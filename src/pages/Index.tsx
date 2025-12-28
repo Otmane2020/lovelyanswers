@@ -65,7 +65,7 @@ export default function Index() {
               <Link to="/dashboard">Login</Link>
             </Button>
             <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
-              <Link to="/dashboard">
+              <Link to="/onboarding">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -98,7 +98,7 @@ export default function Index() {
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button size="lg" className="gap-2 gradient-bg text-primary-foreground shadow-glow text-lg px-8" asChild>
-                <Link to="/dashboard">
+                <Link to="/onboarding">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -205,7 +205,7 @@ export default function Index() {
                 ))}
               </ul>
               <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow" size="lg" asChild>
-                <Link to="/dashboard">
+                <Link to="/onboarding">
                   Start Free Trial
                   <ChevronRight className="h-4 w-4" />
                 </Link>
@@ -231,7 +231,7 @@ export default function Index() {
                 Join businesses optimizing for the AI-first future. Start generating citable answers in minutes.
               </p>
               <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
-                <Link to="/dashboard">
+                <Link to="/onboarding">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
