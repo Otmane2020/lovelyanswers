@@ -1,0 +1,338 @@
+import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { GlassCard } from "@/components/ui/glass-card";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  Filter,
+  Plus,
+  Eye,
+  Pencil,
+  Newspaper,
+  ExternalLink,
+  Copy,
+  Globe,
+  Check,
+  X,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+
+interface Answer {
+  id: string;
+  question: string;
+  answer: string;
+  score: number;
+  platforms: string[];
+  isPublic: boolean;
+  hasArticle: boolean;
+  highCitation: boolean;
+  slug: string;
+  createdAt: string;
+}
+
+const mockAnswers: Answer[] = [
+  {
+    id: "1",
+    question: "What is the best delivery time for birthday cakes?",
+    answer: "For optimal freshness, birthday cakes should be delivered 2-4 hours before the event. This ensures the frosting remains perfect while giving you time for any last-minute preparations.",
+    score: 92,
+    platforms: ["ChatGPT", "Gemini", "Claude"],
+    isPublic: true,
+    hasArticle: true,
+    highCitation: true,
+    slug: "best-delivery-time-birthday-cakes",
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "2",
+    question: "How should I store a custom cake overnight?",
+    answer: "Store custom cakes in the refrigerator at 35-40°F (2-4°C). Remove 1-2 hours before serving to bring to room temperature. Keep covered to prevent drying.",
+    score: 85,
+    platforms: ["ChatGPT", "Perplexity"],
+    isPublic: true,
+    hasArticle: false,
+    highCitation: true,
+    slug: "store-custom-cake-overnight",
+    createdAt: "2024-01-14",
+  },
+  {
+    id: "3",
+    question: "What flavors are most popular for wedding cakes?",
+    answer: "The most popular wedding cake flavors include vanilla bean, red velvet, lemon, and chocolate. Many couples opt for different flavors per tier to offer variety to guests.",
+    score: 67,
+    platforms: ["Claude"],
+    isPublic: false,
+    hasArticle: false,
+    highCitation: false,
+    slug: "popular-wedding-cake-flavors",
+    createdAt: "2024-01-13",
+  },
+  {
+    id: "4",
+    question: "How far in advance should I order a custom cake?",
+    answer: "Order custom cakes at least 2-3 weeks in advance for standard designs. For elaborate wedding cakes or peak seasons, 4-6 weeks is recommended.",
+    score: 78,
+    platforms: ["Gemini", "ChatGPT"],
+    isPublic: true,
+    hasArticle: true,
+    highCitation: false,
+    slug: "advance-order-custom-cake",
+    createdAt: "2024-01-12",
+  },
+  {
+    id: "5",
+    question: "Are your cakes suitable for people with allergies?",
+    answer: "We offer allergy-friendly options including gluten-free, nut-free, and dairy-free cakes. Always inform us of allergies when ordering, and we'll ensure safe preparation.",
+    score: 88,
+    platforms: ["ChatGPT", "Claude", "Perplexity"],
+    isPublic: true,
+    hasArticle: false,
+    highCitation: true,
+    slug: "allergy-friendly-cakes",
+    createdAt: "2024-01-11",
+  },
+];
+
+const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
+
+export default function Answers() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [showHighCitation, setShowHighCitation] = useState(false);
+  const [showPublishedOnly, setShowPublishedOnly] = useState(false);
+  const [answers, setAnswers] = useState(mockAnswers);
+
+  const filteredAnswers = answers.filter((answer) => {
+    const matchesSearch = answer.question.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPlatform = selectedPlatforms.length === 0 || 
+      selectedPlatforms.some((p) => answer.platforms.includes(p));
+    const matchesHighCitation = !showHighCitation || answer.highCitation;
+    const matchesPublished = !showPublishedOnly || answer.isPublic;
+    return matchesSearch && matchesPlatform && matchesHighCitation && matchesPublished;
+  });
+
+  const togglePublish = (id: string) => {
+    setAnswers(answers.map((a) => 
+      a.id === id ? { ...a, isPublic: !a.isPublic } : a
+    ));
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+            <p className="text-muted-foreground">
+              Optimized, citable answers for AI assistants
+            </p>
+          </div>
+          <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
+            <Plus className="h-4 w-4" />
+            New Answer
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search answers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Platform Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Platform
+                {selectedPlatforms.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {selectedPlatforms.length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {platforms.map((platform) => (
+                <DropdownMenuCheckboxItem
+                  key={platform}
+                  checked={selectedPlatforms.includes(platform)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedPlatforms([...selectedPlatforms, platform]);
+                    } else {
+                      setSelectedPlatforms(selectedPlatforms.filter((p) => p !== platform));
+                    }
+                  }}
+                >
+                  {platform}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {selectedPlatforms.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSelectedPlatforms([])}>
+                    Clear all
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Quick Filters */}
+          <Button
+            variant={showHighCitation ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowHighCitation(!showHighCitation)}
+            className={showHighCitation ? "gradient-bg text-primary-foreground" : ""}
+          >
+            High Citation
+          </Button>
+          <Button
+            variant={showPublishedOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowPublishedOnly(!showPublishedOnly)}
+            className={showPublishedOnly ? "gradient-bg text-primary-foreground" : ""}
+          >
+            Published Only
+          </Button>
+        </div>
+
+        {/* Answers List */}
+        <div className="space-y-4">
+          {filteredAnswers.map((answer, index) => (
+            <GlassCard
+              key={answer.id}
+              hover
+              className="p-6 animate-fade-in"
+              style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}
+            >
+              <div className="flex gap-6">
+                {/* Score Ring */}
+                <div className="flex-shrink-0">
+                  <ScoreRing score={answer.score} size="lg" />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-lg font-semibold leading-tight">
+                      {answer.question}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={answer.isPublic}
+                        onCheckedChange={() => togglePublish(answer.id)}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {answer.isPublic ? "Public" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-muted-foreground line-clamp-2">
+                    {answer.answer}
+                  </p>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {answer.platforms.map((platform) => (
+                      <Badge key={platform} variant="secondary" className="text-xs">
+                        {platform}
+                      </Badge>
+                    ))}
+                    {answer.highCitation && (
+                      <Badge className="bg-emerald-500/20 text-emerald-500 border-0">
+                        High Citation
+                      </Badge>
+                    )}
+                    {answer.isPublic && (
+                      <Badge className="bg-blue-500/20 text-blue-500 border-0">
+                        <Globe className="mr-1 h-3 w-3" />
+                        Public
+                      </Badge>
+                    )}
+                    {answer.hasArticle && (
+                      <Badge className="bg-violet-500/20 text-violet-500 border-0">
+                        <Newspaper className="mr-1 h-3 w-3" />
+                        Has Article
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Eye className="h-4 w-4" />
+                      View
+                    </Button>
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    {!answer.hasArticle && (
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Newspaper className="h-4 w-4" />
+                        Generate Article
+                      </Button>
+                    )}
+                    {answer.isPublic && (
+                      <>
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          <ExternalLink className="h-4 w-4" />
+                          View Public
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          <Copy className="h-4 w-4" />
+                          Copy Link
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+
+          {filteredAnswers.length === 0 && (
+            <GlassCard className="p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">No answers found</h3>
+                  <p className="text-muted-foreground">
+                    Try adjusting your filters or create a new answer
+                  </p>
+                </div>
+                <Button className="gap-2 gradient-bg text-primary-foreground">
+                  <Plus className="h-4 w-4" />
+                  Create Answer
+                </Button>
+              </div>
+            </GlassCard>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
