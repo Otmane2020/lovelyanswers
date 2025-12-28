@@ -233,7 +233,41 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+        </GlassCard>
+
+        {/* Potential AI Citations */}
+        <div className="lg:col-span-4">
+          <GlassCard gradient className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Potential AI Citations
+                </h3>
+                <p className="text-sm text-muted-foreground">Estimated visibility across AI platforms</p>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-0">
+                <TrendingUp className="mr-1 h-3 w-3" />
+                Growing
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { name: "ChatGPT", score: 85, color: "from-emerald-500 to-teal-500" },
+                { name: "Gemini", score: 72, color: "from-blue-500 to-cyan-500" },
+                { name: "Claude", score: 68, color: "from-violet-500 to-purple-500" },
+                { name: "Perplexity", score: 54, color: "from-amber-500 to-orange-500" },
+                { name: "Copilot", score: 45, color: "from-pink-500 to-rose-500" },
+              ].map((platform) => (
+                <div key={platform.name} className="text-center p-3 rounded-xl bg-background/50 border border-border">
+                  <ScoreRing score={platform.score} size="md" />
+                  <p className="mt-2 text-sm font-medium">{platform.name}</p>
+                  <p className="text-xs text-muted-foreground">{platform.score}% ready</p>
+                </div>
+              ))}
+            </div>
           </GlassCard>
+        </div>
         </div>
 
         {/* Quick Actions */}
