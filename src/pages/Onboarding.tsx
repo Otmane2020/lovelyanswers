@@ -10,7 +10,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  Sparkles,
+  Rocket,
   Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ export default function Onboarding() {
       <div className="hidden lg:flex w-80 border-r border-border bg-card/50 flex-col p-8">
         <div className="flex items-center gap-2 mb-12">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
+            <Rocket className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold tracking-tight">
             Aeo<span className="gradient-text">reply</span>
@@ -218,8 +218,8 @@ export default function Onboarding() {
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
+            <Rocket className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-bold">Aeoreply</span>
           </div>
@@ -536,7 +536,7 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
         <div className="flex justify-center">
           <div className="relative">
             <div className="h-20 w-20 rounded-2xl gradient-bg flex items-center justify-center shadow-glow animate-pulse">
-              <Sparkles className="h-10 w-10 text-primary-foreground" />
+              <Rocket className="h-10 w-10 text-primary-foreground" />
             </div>
             <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-background border-2 border-primary flex items-center justify-center">
               <Loader2 className="h-3 w-3 text-primary animate-spin" />
