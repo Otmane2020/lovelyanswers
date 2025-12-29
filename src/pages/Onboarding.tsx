@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -65,6 +65,15 @@ const audienceTypes = [
   { value: "both", label: "Both", description: "Mixed audience" },
 ];
 
+// Competitor suggestions based on business type
+const competitorSuggestions: Record<string, string[]> = {
+  ecommerce: ["amazon.com", "shopify.com", "etsy.com"],
+  saas: ["hubspot.com", "salesforce.com", "zendesk.com"],
+  blog: ["medium.com", "substack.com", "wordpress.com"],
+  service: ["fiverr.com", "upwork.com", "thumbtack.com"],
+  local: ["yelp.com", "tripadvisor.com", "google.com/maps"],
+};
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,6 +81,7 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
     language: "",
@@ -93,12 +103,14 @@ export default function Onboarding() {
     updateData("competitors", newCompetitors);
   };
 
-  // Auto-fill function that simulates website analysis
-  const analyzeWebsite = async (url: string) => {
+  // Auto-analyze website when URL changes (debounced)
+  const analyzeWebsite = useCallback(async (url: string) => {
+    if (!url || url.length < 5) return;
+    
     setIsAutoFilling(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Simulate fast API call (1 second)
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Extract domain from URL for brand name
     let domain = "";
@@ -124,54 +136,76 @@ export default function Onboarding() {
     else if (domain.endsWith(".pt") || domain.endsWith(".br")) detectedLanguage = "pt";
     
     // Detect business type from keywords in domain
-    let detectedType = "service";
+    let detectedType = "saas";
     const lowerDomain = domain.toLowerCase();
-    if (lowerDomain.includes("shop") || lowerDomain.includes("store") || lowerDomain.includes("boutique")) {
+    if (lowerDomain.includes("shop") || lowerDomain.includes("store") || lowerDomain.includes("boutique") || lowerDomain.includes("buy")) {
       detectedType = "ecommerce";
-    } else if (lowerDomain.includes("blog") || lowerDomain.includes("news") || lowerDomain.includes("media")) {
+    } else if (lowerDomain.includes("blog") || lowerDomain.includes("news") || lowerDomain.includes("media") || lowerDomain.includes("magazine")) {
       detectedType = "blog";
-    } else if (lowerDomain.includes("app") || lowerDomain.includes("cloud") || lowerDomain.includes("io")) {
+    } else if (lowerDomain.includes("app") || lowerDomain.includes("cloud") || lowerDomain.includes("io") || lowerDomain.includes("webify")) {
       detectedType = "saas";
+    } else if (lowerDomain.includes("agency") || lowerDomain.includes("consulting") || lowerDomain.includes("studio")) {
+      detectedType = "service";
     }
     
-    // Auto-fill the data
+    // Generate description based on brand and type
+    const descriptions: Record<string, string> = {
+      ecommerce: `${brandName} is a premium e-commerce platform offering high-quality products with fast delivery and excellent customer service.`,
+      saas: `${brandName} is an innovative SaaS solution that helps businesses streamline their workflows and boost productivity.`,
+      blog: `${brandName} is a leading content platform providing valuable insights, news, and expert articles for its audience.`,
+      service: `${brandName} offers professional services with a focus on quality, reliability, and customer satisfaction.`,
+      local: `${brandName} is a trusted local business serving the community with dedication and expertise.`,
+    };
+    
+    // Get suggested competitors
+    const suggestedCompetitors = competitorSuggestions[detectedType] || ["competitor1.com", "competitor2.com", "competitor3.com"];
+    
+    // Auto-fill all the data
     setData(prev => ({
       ...prev,
       language: detectedLanguage,
       brandName: brandName,
       businessType: detectedType,
-      businessDescription: `${brandName} is a ${detectedType === "ecommerce" ? "premium online store" : detectedType === "saas" ? "software solution" : detectedType === "blog" ? "content platform" : "professional service"} that helps customers achieve their goals.`,
-      audience: "b2c",
+      businessDescription: descriptions[detectedType],
+      audience: detectedType === "saas" || detectedType === "service" ? "b2b" : "b2c",
+      competitors: suggestedCompetitors,
+      exampleUrl: `https://${domain}/about`,
     }));
     
     setIsAutoFilling(false);
+    setHasAnalyzed(true);
     
     toast({
-      title: "Website analyzed!",
-      description: "We've pre-filled your information. You can edit any field.",
+      title: "Site analysé !",
+      description: "Tous les champs ont été pré-remplis. Vous pouvez les modifier.",
     });
-  };
+  }, [toast]);
+
+  // Debounced auto-analyze when URL changes
+  useEffect(() => {
+    if (data.websiteUrl.length < 5 || hasAnalyzed) return;
+    
+    const timer = setTimeout(() => {
+      analyzeWebsite(data.websiteUrl);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [data.websiteUrl, analyzeWebsite, hasAnalyzed]);
 
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return data.websiteUrl.length > 0;
+        return data.websiteUrl.length > 0 && !isAutoFilling;
       case 2:
         return data.language.length > 0;
       case 3:
         return data.businessDescription.length > 0 && data.businessType.length > 0;
       case 4:
-        return true; // Optional step
+        return true;
       case 5:
-        return true; // Optional step
+        return true;
       default:
         return false;
-    }
-  };
-
-  const handleAnalyze = () => {
-    if (data.websiteUrl) {
-      analyzeWebsite(data.websiteUrl);
     }
   };
 
@@ -193,7 +227,6 @@ export default function Onboarding() {
     setIsAnalyzing(true);
     
     try {
-      // Extract domain from URL
       let domain = "";
       try {
         const urlObj = new URL(data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`);
@@ -202,7 +235,6 @@ export default function Onboarding() {
         domain = data.websiteUrl;
       }
       
-      // Create project in database
       await createProject.mutateAsync({
         name: data.brandName || domain,
         website_url: data.websiteUrl,
@@ -216,15 +248,13 @@ export default function Onboarding() {
         competitors: data.competitors.filter(c => c.length > 0),
       });
       
-      // Simulate additional analysis time
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
       navigate("/dashboard");
     } catch (error) {
       console.error("Error creating project:", error);
       toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
+        title: "Erreur",
+        description: "Échec de la création du projet. Veuillez réessayer.",
         variant: "destructive",
       });
       setIsAnalyzing(false);
@@ -234,7 +264,7 @@ export default function Onboarding() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <WebsiteStep data={data} updateData={updateData} onAnalyze={handleAnalyze} isAutoFilling={isAutoFilling} />;
+        return <WebsiteStep data={data} updateData={updateData} isAutoFilling={isAutoFilling} />;
       case 2:
         return <LanguageStep data={data} updateData={updateData} />;
       case 3:
@@ -289,16 +319,12 @@ export default function Onboarding() {
                     !isActive && !isCompleted && "bg-muted text-muted-foreground"
                   )}
                 >
-                  {isCompleted ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Icon className="h-4 w-4" />
-                  )}
+                  {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{step.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {index === 3 || index === 4 ? "Optional" : "Required"}
+                    {index === 3 || index === 4 ? "Optionnel" : "Requis"}
                   </p>
                 </div>
               </div>
@@ -307,21 +333,15 @@ export default function Onboarding() {
         </nav>
 
         <div className="mt-auto">
-          <p className="text-xs text-muted-foreground">
-            Step {currentStep} of {steps.length}
-          </p>
+          <p className="text-xs text-muted-foreground">Étape {currentStep} sur {steps.length}</p>
           <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full gradient-bg transition-all duration-300"
-              style={{ width: `${(currentStep / steps.length) * 100}%` }}
-            />
+            <div className="h-full gradient-bg transition-all duration-300" style={{ width: `${(currentStep / steps.length) * 100}%` }} />
           </div>
         </div>
       </div>
 
       {/* Right Panel - Content */}
       <div className="flex-1 flex flex-col">
-        {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
@@ -329,12 +349,9 @@ export default function Onboarding() {
             </div>
             <span className="font-bold">Aeoreply</span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {currentStep}/{steps.length}
-          </span>
+          <span className="text-sm text-muted-foreground">{currentStep}/{steps.length}</span>
         </div>
 
-        {/* Step Content */}
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-lg">
             <AnimatePresence mode="wait">
@@ -351,25 +368,13 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* Footer Navigation */}
         <div className="border-t border-border p-6">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 1} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />Retour
             </Button>
-
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed() || isAutoFilling}
-              className="gap-2 gradient-bg text-primary-foreground hover:opacity-90"
-            >
-              {currentStep === 5 ? "Complete Setup" : "Continue"}
+            <Button onClick={handleNext} disabled={!canProceed()} className="gap-2 gradient-bg text-primary-foreground hover:opacity-90">
+              {currentStep === 5 ? "Terminer" : "Continuer"}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -379,77 +384,55 @@ export default function Onboarding() {
   );
 }
 
-// Step Components
-function WebsiteStep({ 
-  data, 
-  updateData, 
-  onAnalyze, 
-  isAutoFilling 
-}: { 
-  data: OnboardingData; 
-  updateData: (field: keyof OnboardingData, value: any) => void;
-  onAnalyze: () => void;
-  isAutoFilling: boolean;
-}) {
+function WebsiteStep({ data, updateData, isAutoFilling }: { data: OnboardingData; updateData: (field: keyof OnboardingData, value: any) => void; isAutoFilling: boolean }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">What's your website?</h1>
-        <p className="text-muted-foreground">
-          Enter your website URL to analyze how AI assistants understand your content.
-        </p>
+        <h1 className="text-3xl font-bold">Quel est votre site web ?</h1>
+        <p className="text-muted-foreground">Entrez l'URL de votre site pour une analyse automatique.</p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="website">Website URL</Label>
-          <div className="flex gap-2">
+          <Label htmlFor="website">URL du site</Label>
+          <div className="relative">
             <Input
               id="website"
               type="url"
               placeholder="https://example.com"
               value={data.websiteUrl}
               onChange={(e) => updateData("websiteUrl", e.target.value)}
-              className="h-12 text-lg flex-1"
+              className="h-12 text-lg pr-12"
             />
-            <Button
-              onClick={onAnalyze}
-              disabled={!data.websiteUrl || isAutoFilling}
-              className="h-12 gap-2 gradient-bg text-primary-foreground"
-            >
-              {isAutoFilling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              Analyze
-            </Button>
+            {isAutoFilling && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-          <p className="text-sm text-muted-foreground">
-            <span className="text-primary font-medium">What we'll analyze:</span>
-            <br />
-            • Your existing content structure
-            <br />
-            • Topics AI assistants can cite
-            <br />
-            • Missing answer opportunities
-          </p>
-        </div>
-        
         {isAutoFilling && (
-          <div className="p-4 rounded-xl bg-accent border border-border">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl bg-primary/5 border border-primary/20"
+          >
             <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
               <div>
-                <p className="font-medium">Analyzing your website...</p>
-                <p className="text-sm text-muted-foreground">
-                  We're detecting language, business type, and more.
-                </p>
+                <p className="font-medium text-primary">Analyse en cours...</p>
+                <p className="text-sm text-muted-foreground">Détection automatique de la langue, du type de business et des concurrents.</p>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {!isAutoFilling && data.websiteUrl && (
+          <div className="p-4 rounded-xl bg-accent/50 border border-border">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Analyse automatique :</span> L'URL sera analysée automatiquement pour pré-remplir tous les champs.
+            </p>
           </div>
         )}
       </div>
@@ -461,24 +444,14 @@ function LanguageStep({ data, updateData }: { data: OnboardingData; updateData: 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Content language</h1>
-        <p className="text-muted-foreground">
-          Select the primary language for your AI-optimized answers.
-        </p>
+        <h1 className="text-3xl font-bold">Langue du contenu</h1>
+        <p className="text-muted-foreground">Langue principale pour vos réponses optimisées IA.</p>
       </div>
-
       <div className="grid grid-cols-2 gap-3">
         {languages.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => updateData("language", lang.code)}
-            className={cn(
-              "flex items-center gap-3 p-4 rounded-xl border transition-all duration-200",
-              data.language === lang.code
-                ? "border-primary bg-primary/10"
-                : "border-border hover:border-primary/50 hover:bg-accent"
-            )}
-          >
+          <button key={lang.code} onClick={() => updateData("language", lang.code)}
+            className={cn("flex items-center gap-3 p-4 rounded-xl border transition-all duration-200",
+              data.language === lang.code ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-accent")}>
             <span className="text-2xl">{lang.flag}</span>
             <span className="font-medium">{lang.name}</span>
           </button>
@@ -492,72 +465,35 @@ function BusinessStep({ data, updateData }: { data: OnboardingData; updateData: 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Describe your business</h1>
-        <p className="text-muted-foreground">
-          Help AI assistants understand what you do and for whom.
-        </p>
+        <h1 className="text-3xl font-bold">Décrivez votre business</h1>
+        <p className="text-muted-foreground">Aidez les IA à comprendre votre activité.</p>
       </div>
-
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="description">Short description</Label>
-          <Textarea
-            id="description"
-            placeholder="We sell premium organic skincare products for sensitive skin..."
-            value={data.businessDescription}
-            onChange={(e) => updateData("businessDescription", e.target.value)}
-            className="min-h-[100px] resize-none"
-          />
+          <Label htmlFor="description">Description courte</Label>
+          <Textarea id="description" placeholder="Nous vendons des produits cosmétiques bio..." value={data.businessDescription} onChange={(e) => updateData("businessDescription", e.target.value)} className="min-h-[100px] resize-none" />
         </div>
-
         <div className="space-y-2">
-          <Label>Business type</Label>
+          <Label>Type de business</Label>
           <div className="grid grid-cols-1 gap-2">
             {businessTypes.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => updateData("businessType", type.value)}
-                className={cn(
-                  "flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left",
-                  data.businessType === type.value
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <div>
-                  <p className="font-medium">{type.label}</p>
-                  <p className="text-xs text-muted-foreground">{type.description}</p>
-                </div>
-                {data.businessType === type.value && (
-                  <Check className="h-5 w-5 text-primary" />
-                )}
+              <button key={type.value} onClick={() => updateData("businessType", type.value)}
+                className={cn("flex items-center justify-between p-3 rounded-xl border transition-all duration-200 text-left",
+                  data.businessType === type.value ? "border-primary bg-primary/10" : "border-border hover:border-primary/50")}>
+                <div><p className="font-medium">{type.label}</p><p className="text-xs text-muted-foreground">{type.description}</p></div>
+                {data.businessType === type.value && <Check className="h-5 w-5 text-primary" />}
               </button>
             ))}
           </div>
         </div>
-
         <div className="space-y-2">
-          <Label>Target audience</Label>
-          <RadioGroup
-            value={data.audience}
-            onValueChange={(value) => updateData("audience", value)}
-            className="flex gap-4"
-          >
+          <Label>Audience cible</Label>
+          <RadioGroup value={data.audience} onValueChange={(value) => updateData("audience", value)} className="flex gap-4">
             {audienceTypes.map((type) => (
-              <label
-                key={type.value}
-                className={cn(
-                  "flex-1 flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all",
-                  data.audience === type.value
-                    ? "border-primary bg-primary/10"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
+              <label key={type.value} className={cn("flex-1 flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all",
+                data.audience === type.value ? "border-primary bg-primary/10" : "border-border hover:border-primary/50")}>
                 <RadioGroupItem value={type.value} />
-                <div>
-                  <p className="font-medium text-sm">{type.label}</p>
-                  <p className="text-xs text-muted-foreground">{type.description}</p>
-                </div>
+                <div><p className="font-medium text-sm">{type.label}</p><p className="text-xs text-muted-foreground">{type.description}</p></div>
               </label>
             ))}
           </RadioGroup>
@@ -572,35 +508,18 @@ function CompetitorsStep({ data, updateCompetitor }: { data: OnboardingData; upd
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">Competitors</h1>
-          <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Optional</span>
+          <h1 className="text-3xl font-bold">Concurrents</h1>
+          <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Optionnel</span>
         </div>
-        <p className="text-muted-foreground">
-          Identify missing answers compared to your competitors.
-        </p>
+        <p className="text-muted-foreground">Identifiez les réponses manquantes par rapport à vos concurrents.</p>
       </div>
-
       <div className="space-y-3">
         {data.competitors.map((competitor, index) => (
           <div key={index} className="space-y-1">
-            <Label htmlFor={`competitor-${index}`}>Competitor {index + 1}</Label>
-            <Input
-              id={`competitor-${index}`}
-              type="url"
-              placeholder="https://competitor.com"
-              value={competitor}
-              onChange={(e) => updateCompetitor(index, e.target.value)}
-            />
+            <Label htmlFor={`competitor-${index}`}>Concurrent {index + 1}</Label>
+            <Input id={`competitor-${index}`} type="url" placeholder="https://concurrent.com" value={competitor} onChange={(e) => updateCompetitor(index, e.target.value)} />
           </div>
         ))}
-      </div>
-
-      <div className="p-4 rounded-xl bg-accent/50 border border-border">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Why add competitors?</span>
-          <br />
-          We'll analyze which questions they answer that you don't, helping you find untapped AI citation opportunities.
-        </p>
       </div>
     </div>
   );
@@ -611,37 +530,20 @@ function BrandStep({ data, updateData }: { data: OnboardingData; updateData: (fi
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">Brand identity</h1>
-          <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Optional</span>
+          <h1 className="text-3xl font-bold">Identité de marque</h1>
+          <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground">Optionnel</span>
         </div>
-        <p className="text-muted-foreground">
-          Help us match your brand's voice in generated answers.
-        </p>
+        <p className="text-muted-foreground">Personnalisez le ton de vos réponses générées.</p>
       </div>
-
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="brand">Brand name</Label>
-          <Input
-            id="brand"
-            placeholder="Acme Inc."
-            value={data.brandName}
-            onChange={(e) => updateData("brandName", e.target.value)}
-          />
+          <Label htmlFor="brand">Nom de marque</Label>
+          <Input id="brand" placeholder="Acme Inc." value={data.brandName} onChange={(e) => updateData("brandName", e.target.value)} />
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="example">Example content URL (optional)</Label>
-          <Input
-            id="example"
-            type="url"
-            placeholder="https://example.com/blog/sample-article"
-            value={data.exampleUrl}
-            onChange={(e) => updateData("exampleUrl", e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Share an article that represents your brand's tone and style.
-          </p>
+          <Label htmlFor="example">URL d'exemple de contenu</Label>
+          <Input id="example" type="url" placeholder="https://example.com/blog/article" value={data.exampleUrl} onChange={(e) => updateData("exampleUrl", e.target.value)} />
+          <p className="text-xs text-muted-foreground">Partagez un article qui représente le ton de votre marque.</p>
         </div>
       </div>
     </div>
@@ -650,16 +552,8 @@ function BrandStep({ data, updateData }: { data: OnboardingData; updateData: (fi
 
 function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
   const [progress, setProgress] = useState(0);
-  const [currentTask, setCurrentTask] = useState("Connecting to website...");
-
-  const tasks = [
-    "Connecting to website...",
-    "Scanning page structure...",
-    "Extracting topics and entities...",
-    "Identifying AI answer opportunities...",
-    "Generating initial answers...",
-    "Preparing your dashboard...",
-  ];
+  const [currentTask, setCurrentTask] = useState("Connexion au site...");
+  const tasks = ["Connexion au site...", "Scan de la structure...", "Extraction des topics...", "Identification des opportunités...", "Génération des réponses...", "Préparation du dashboard..."];
 
   useEffect(() => {
     let taskIndex = 0;
@@ -670,7 +564,6 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
         setProgress((taskIndex / tasks.length) * 100);
       }
     }, 500);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -687,32 +580,16 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
             </div>
           </div>
         </div>
-
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Analyzing your website</h1>
-          <p className="text-muted-foreground text-sm">
-            {websiteUrl}
-          </p>
+          <h1 className="text-2xl font-bold">Analyse de votre site</h1>
+          <p className="text-muted-foreground text-sm">{websiteUrl}</p>
         </div>
-
         <div className="space-y-3">
           <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full gradient-bg"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5 }}
-            />
+            <motion.div className="h-full gradient-bg" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
           </div>
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {currentTask}
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-          <p className="text-sm text-muted-foreground">
-            We're identifying how AI assistants like ChatGPT, Gemini, and Claude can cite your content.
+            <Loader2 className="h-4 w-4 animate-spin" />{currentTask}
           </p>
         </div>
       </div>
