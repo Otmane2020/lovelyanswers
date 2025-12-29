@@ -15,26 +15,24 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <div className="dark">
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/answers" element={<Answers />} />
-            <Route path="/articles" element={<Articles />} />
-            <Route path="/engine" element={<Dashboard />} />
-            <Route path="/assistant" element={<Dashboard />} />
-            <Route path="/opportunities" element={<Dashboard />} />
-            <Route path="/integrations" element={<Dashboard />} />
-            <Route path="/settings" element={<Dashboard />} />
-            <Route path="/account" element={<Dashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </div>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/answers" element={<Answers />} />
+          <Route path="/articles" element={<Articles />} />
+          <Route path="/engine" element={<Dashboard />} />
+          <Route path="/assistant" element={<Dashboard />} />
+          <Route path="/opportunities" element={<Dashboard />} />
+          <Route path="/integrations" element={<Dashboard />} />
+          <Route path="/settings" element={<Dashboard />} />
+          <Route path="/account" element={<Dashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
