@@ -62,10 +62,10 @@ export default function Index() {
           </Link>
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
-              <Link to="/dashboard">Login</Link>
+              <Link to="/auth">Login</Link>
             </Button>
             <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
-              <Link to="/onboarding">
+              <Link to="/auth">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -98,7 +98,7 @@ export default function Index() {
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button size="lg" className="gap-2 gradient-bg text-primary-foreground shadow-glow text-lg px-8" asChild>
-                <Link to="/onboarding">
+                <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -160,7 +160,7 @@ export default function Index() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature, i) => (
+            {features.map((feature) => (
               <GlassCard key={feature.title} hover gradient className="p-6">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl gradient-bg shadow-glow-sm">
                   <feature.icon className="h-6 w-6 text-primary-foreground" />
@@ -205,7 +205,7 @@ export default function Index() {
                 ))}
               </ul>
               <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow" size="lg" asChild>
-                <Link to="/onboarding">
+                <Link to="/auth">
                   Start Free Trial
                   <ChevronRight className="h-4 w-4" />
                 </Link>
@@ -231,7 +231,7 @@ export default function Index() {
                 Join businesses optimizing for the AI-first future. Start generating citable answers in minutes.
               </p>
               <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
-                <Link to="/onboarding">
+                <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>

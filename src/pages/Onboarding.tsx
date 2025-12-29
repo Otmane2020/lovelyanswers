@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -11,7 +11,8 @@ import {
   ArrowLeft,
   Check,
   Rocket,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { useCreateProject } from "@/hooks/useProjects";
+import { useToast } from "@/hooks/use-toast";
 
 interface OnboardingData {
   websiteUrl: string;
@@ -64,8 +67,11 @@ const audienceTypes = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const createProject = useCreateProject();
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
     language: "",
@@ -87,6 +93,65 @@ export default function Onboarding() {
     updateData("competitors", newCompetitors);
   };
 
+  // Auto-fill function that simulates website analysis
+  const analyzeWebsite = async (url: string) => {
+    setIsAutoFilling(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Extract domain from URL for brand name
+    let domain = "";
+    try {
+      const urlObj = new URL(url.startsWith("http") ? url : `https://${url}`);
+      domain = urlObj.hostname.replace("www.", "");
+    } catch {
+      domain = url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+    }
+    
+    // Generate brand name from domain
+    const brandName = domain
+      .split(".")[0]
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    
+    // Auto-detect language (simulate based on TLD)
+    let detectedLanguage = "en";
+    if (domain.endsWith(".fr")) detectedLanguage = "fr";
+    else if (domain.endsWith(".de")) detectedLanguage = "de";
+    else if (domain.endsWith(".es")) detectedLanguage = "es";
+    else if (domain.endsWith(".it")) detectedLanguage = "it";
+    else if (domain.endsWith(".pt") || domain.endsWith(".br")) detectedLanguage = "pt";
+    
+    // Detect business type from keywords in domain
+    let detectedType = "service";
+    const lowerDomain = domain.toLowerCase();
+    if (lowerDomain.includes("shop") || lowerDomain.includes("store") || lowerDomain.includes("boutique")) {
+      detectedType = "ecommerce";
+    } else if (lowerDomain.includes("blog") || lowerDomain.includes("news") || lowerDomain.includes("media")) {
+      detectedType = "blog";
+    } else if (lowerDomain.includes("app") || lowerDomain.includes("cloud") || lowerDomain.includes("io")) {
+      detectedType = "saas";
+    }
+    
+    // Auto-fill the data
+    setData(prev => ({
+      ...prev,
+      language: detectedLanguage,
+      brandName: brandName,
+      businessType: detectedType,
+      businessDescription: `${brandName} is a ${detectedType === "ecommerce" ? "premium online store" : detectedType === "saas" ? "software solution" : detectedType === "blog" ? "content platform" : "professional service"} that helps customers achieve their goals.`,
+      audience: "b2c",
+    }));
+    
+    setIsAutoFilling(false);
+    
+    toast({
+      title: "Website analyzed!",
+      description: "We've pre-filled your information. You can edit any field.",
+    });
+  };
+
   const canProceed = () => {
     switch (currentStep) {
       case 1:
@@ -101,6 +166,12 @@ export default function Onboarding() {
         return true; // Optional step
       default:
         return false;
+    }
+  };
+
+  const handleAnalyze = () => {
+    if (data.websiteUrl) {
+      analyzeWebsite(data.websiteUrl);
     }
   };
 
@@ -120,15 +191,50 @@ export default function Onboarding() {
 
   const handleComplete = async () => {
     setIsAnalyzing(true);
-    // Simulate analysis
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    navigate("/dashboard");
+    
+    try {
+      // Extract domain from URL
+      let domain = "";
+      try {
+        const urlObj = new URL(data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`);
+        domain = urlObj.hostname.replace("www.", "");
+      } catch {
+        domain = data.websiteUrl;
+      }
+      
+      // Create project in database
+      await createProject.mutateAsync({
+        name: data.brandName || domain,
+        website_url: data.websiteUrl,
+        domain: domain,
+        language: data.language,
+        business_description: data.businessDescription,
+        business_type: data.businessType,
+        audience: data.audience,
+        brand_name: data.brandName,
+        example_url: data.exampleUrl || undefined,
+        competitors: data.competitors.filter(c => c.length > 0),
+      });
+      
+      // Simulate additional analysis time
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+    }
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <WebsiteStep data={data} updateData={updateData} />;
+        return <WebsiteStep data={data} updateData={updateData} onAnalyze={handleAnalyze} isAutoFilling={isAutoFilling} />;
       case 2:
         return <LanguageStep data={data} updateData={updateData} />;
       case 3:
@@ -218,8 +324,8 @@ export default function Onboarding() {
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
-            <Rocket className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
+              <Rocket className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-bold">Aeoreply</span>
           </div>
@@ -260,7 +366,7 @@ export default function Onboarding() {
 
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isAutoFilling}
               className="gap-2 gradient-bg text-primary-foreground hover:opacity-90"
             >
               {currentStep === 5 ? "Complete Setup" : "Continue"}
@@ -274,7 +380,17 @@ export default function Onboarding() {
 }
 
 // Step Components
-function WebsiteStep({ data, updateData }: { data: OnboardingData; updateData: (field: keyof OnboardingData, value: any) => void }) {
+function WebsiteStep({ 
+  data, 
+  updateData, 
+  onAnalyze, 
+  isAutoFilling 
+}: { 
+  data: OnboardingData; 
+  updateData: (field: keyof OnboardingData, value: any) => void;
+  onAnalyze: () => void;
+  isAutoFilling: boolean;
+}) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -287,14 +403,28 @@ function WebsiteStep({ data, updateData }: { data: OnboardingData; updateData: (
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="website">Website URL</Label>
-          <Input
-            id="website"
-            type="url"
-            placeholder="https://example.com"
-            value={data.websiteUrl}
-            onChange={(e) => updateData("websiteUrl", e.target.value)}
-            className="h-12 text-lg"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="website"
+              type="url"
+              placeholder="https://example.com"
+              value={data.websiteUrl}
+              onChange={(e) => updateData("websiteUrl", e.target.value)}
+              className="h-12 text-lg flex-1"
+            />
+            <Button
+              onClick={onAnalyze}
+              disabled={!data.websiteUrl || isAutoFilling}
+              className="h-12 gap-2 gradient-bg text-primary-foreground"
+            >
+              {isAutoFilling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Analyze
+            </Button>
+          </div>
         </div>
 
         <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
@@ -308,6 +438,20 @@ function WebsiteStep({ data, updateData }: { data: OnboardingData; updateData: (
             • Missing answer opportunities
           </p>
         </div>
+        
+        {isAutoFilling && (
+          <div className="p-4 rounded-xl bg-accent border border-border">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Analyzing your website...</p>
+                <p className="text-sm text-muted-foreground">
+                  We're detecting language, business type, and more.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -517,7 +661,7 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
     "Preparing your dashboard...",
   ];
 
-  useState(() => {
+  useEffect(() => {
     let taskIndex = 0;
     const interval = setInterval(() => {
       taskIndex++;
@@ -528,7 +672,7 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
     }, 500);
 
     return () => clearInterval(interval);
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
