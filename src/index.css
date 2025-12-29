@@ -6,39 +6,40 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 0 0% 99%;
+    --foreground: 240 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 240 10% 10%;
     --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 15%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 262 30% 96%;
+    --accent-foreground: 262 83% 45%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
     --ring: 262 83% 58%;
     --radius: 0.75rem;
     
-    /* Custom Aeoreply tokens */
+    /* Custom Aeoreply tokens - Light */
     --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(221, 83%, 53%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(280, 87%, 60%) 50%, hsl(221, 83%, 53%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(240, 10%, 98%) 0%, hsl(240, 10%, 96%) 100%);
-    --glass-bg: hsla(0, 0%, 100%, 0.8);
-    --glass-border: hsla(240, 5.9%, 90%, 0.5);
-    --shadow-soft: 0 4px 24px -4px hsla(262, 83%, 58%, 0.15);
-    --shadow-glow: 0 0 40px hsla(262, 83%, 58%, 0.2);
+    --gradient-subtle: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(240, 20%, 98%) 100%);
+    --glass-bg: hsla(0, 0%, 100%, 0.85);
+    --glass-border: hsla(240, 10%, 85%, 0.6);
+    --shadow-soft: 0 4px 24px -4px hsla(262, 83%, 58%, 0.12);
+    --shadow-glow: 0 0 40px hsla(262, 83%, 58%, 0.15);
+    --sidebar-bg: 240 10% 98%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 10% 4%;
     --foreground: 0 0% 98%;
     --card: 240 10% 6%;
     --card-foreground: 0 0% 98%;
@@ -46,16 +47,16 @@
     --popover-foreground: 0 0% 98%;
     --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5.3% 12%;
+    --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 5.3% 14%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 5.3% 14%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 5% 14%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 50%;
+    --destructive: 0 63% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.3% 16%;
-    --input: 240 5.3% 16%;
+    --border: 240 5% 16%;
+    --input: 240 5% 16%;
     --ring: 262 83% 58%;
     
     /* Custom Aeoreply tokens - Dark */
@@ -63,9 +64,10 @@
     --gradient-accent: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(280, 87%, 60%) 50%, hsl(221, 83%, 53%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(240, 10%, 6%) 0%, hsl(240, 10%, 4%) 100%);
     --glass-bg: hsla(240, 10%, 8%, 0.8);
-    --glass-border: hsla(240, 5.3%, 20%, 0.5);
+    --glass-border: hsla(240, 5%, 20%, 0.5);
     --shadow-soft: 0 4px 24px -4px hsla(262, 83%, 58%, 0.25);
     --shadow-glow: 0 0 60px hsla(262, 83%, 58%, 0.3);
+    --sidebar-bg: 240 10% 6%;
   }
 }
 
