@@ -196,82 +196,96 @@ Deno.serve(async (req) => {
     
     // Extract potential competitors from multiple sources
     const competitors: string[] = [];
-    
-    // 1. Find domains mentioned in content
-    const domainMatches: string[] = markdown.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.(?:com|fr|de|es|io|co|net|org|eu|uk))/gi) || [];
     const ownDomain = new URL(formattedUrl).hostname.replace('www.', '').toLowerCase();
     
-    const mentionedDomains = [...new Set(domainMatches)]
-      .map((d: string) => d.replace(/^(https?:\/\/)?(www\.)?/i, '').toLowerCase())
-      .filter((d: string) => !d.includes(ownDomain) && d.length > 4 && d.includes('.'))
-      .slice(0, 5);
+    // Domains to ALWAYS filter out (platforms, social media, generic sites)
+    const blockedDomains = [
+      // Social media
+      'facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'linkedin.com', 
+      'youtube.com', 'tiktok.com', 'pinterest.com', 'snapchat.com', 'whatsapp.com',
+      // E-commerce platforms
+      'shopify.com', 'woocommerce.com', 'bigcommerce.com', 'squarespace.com', 
+      'wix.com', 'wordpress.com', 'webflow.com', 'magento.com', 'prestashop.com',
+      // Payment/tools
+      'paypal.com', 'stripe.com', 'klarna.com', 'afterpay.com',
+      // Search/Analytics
+      'google.com', 'bing.com', 'yahoo.com', 'analytics.google.com',
+      // Hosting/CDN
+      'cloudflare.com', 'amazonaws.com', 'cdn.shopify.com', 'account.de',
+      // Generic
+      'apple.com', 'microsoft.com', 'amazon.com', 'wikipedia.org'
+    ];
     
-    competitors.push(...mentionedDomains);
+    const isBlockedDomain = (domain: string): boolean => {
+      const lowerDomain = domain.toLowerCase();
+      return blockedDomains.some(blocked => lowerDomain.includes(blocked.replace('.com', '').replace('.fr', '')));
+    };
     
-    // 2. Look for comparison sections, "vs", "alternative to" patterns
-    const vsPatterns: string[] = markdown.match(/(?:vs\.?|versus|compared to|alternative to|better than|switch from)\s+([A-Z][a-zA-Z0-9]+)/gi) || [];
-    const companyNames = vsPatterns
-      .map((p: string) => p.replace(/^(vs\.?|versus|compared to|alternative to|better than|switch from)\s+/i, '').trim())
-      .filter((name: string) => name.length > 2 && name.length < 30);
-    
-    // Convert company names to likely domains
-    companyNames.forEach((name: string) => {
-      const domain = name.toLowerCase().replace(/\s+/g, '') + '.com';
-      if (!competitors.includes(domain) && !domain.includes(ownDomain)) {
-        competitors.push(domain);
-      }
-    });
-    
-    // 3. Look for integration mentions (often competitors/similar tools)
-    const integrationPatterns: string[] = markdown.match(/integr(?:ates?|ation) with\s+([A-Z][a-zA-Z0-9]+(?:,?\s+(?:and\s+)?[A-Z][a-zA-Z0-9]+)*)/gi) || [];
-    integrationPatterns.forEach((pattern: string) => {
-      const tools = pattern.replace(/integr(?:ates?|ation) with\s+/i, '').split(/,|\s+and\s+/);
-      tools.forEach((tool: string) => {
-        const cleanTool = tool.trim();
-        if (cleanTool.length > 2 && cleanTool.length < 20) {
-          const domain = cleanTool.toLowerCase().replace(/\s+/g, '') + '.com';
-          if (!competitors.includes(domain) && !domain.includes(ownDomain)) {
-            competitors.push(domain);
-          }
-        }
-      });
-    });
-    
-    // 4. Generate industry-relevant competitors based on keywords
+    // Generate industry-specific competitors based on content analysis
     const contentLower = markdown.toLowerCase();
     const industryCompetitors: string[] = [];
     
-    if (contentLower.includes('crm') || contentLower.includes('sales')) {
-      industryCompetitors.push('hubspot.com', 'salesforce.com', 'pipedrive.com');
+    // Furniture & Home Decor industry
+    if (contentLower.includes('meuble') || contentLower.includes('furniture') || 
+        contentLower.includes('décor') || contentLower.includes('decor') ||
+        contentLower.includes('canapé') || contentLower.includes('sofa') ||
+        contentLower.includes('table') || contentLower.includes('chaise') ||
+        contentLower.includes('intérieur') || contentLower.includes('interior') ||
+        contentLower.includes('mobilier') || contentLower.includes('maison')) {
+      industryCompetitors.push(
+        'maisonsdumonde.com', 'ikea.com', 'conforama.fr', 
+        'butfr.com', 'alinea.com', 'habitat.fr',
+        'laredoute.fr', 'camif.fr', 'made.com'
+      );
     }
-    if (contentLower.includes('marketing') || contentLower.includes('email')) {
-      industryCompetitors.push('mailchimp.com', 'sendgrid.com', 'klaviyo.com');
+    
+    // SaaS/Software industry
+    if (contentLower.includes('saas') || contentLower.includes('software') || contentLower.includes('api')) {
+      industryCompetitors.push('hubspot.com', 'salesforce.com', 'zendesk.com');
     }
-    if (contentLower.includes('ecommerce') || contentLower.includes('store') || contentLower.includes('shop')) {
-      industryCompetitors.push('shopify.com', 'woocommerce.com', 'bigcommerce.com');
+    
+    // Marketing/SEO industry
+    if (contentLower.includes('seo') || contentLower.includes('marketing') || contentLower.includes('référencement')) {
+      industryCompetitors.push('semrush.com', 'ahrefs.com', 'moz.com', 'sistrix.com');
     }
-    if (contentLower.includes('analytics') || contentLower.includes('tracking')) {
-      industryCompetitors.push('google.com/analytics', 'mixpanel.com', 'amplitude.com');
+    
+    // E-commerce general
+    if ((contentLower.includes('ecommerce') || contentLower.includes('boutique') || contentLower.includes('shop')) &&
+        !contentLower.includes('meuble') && !contentLower.includes('furniture')) {
+      industryCompetitors.push('amazon.fr', 'cdiscount.com', 'fnac.com');
     }
-    if (contentLower.includes('project') || contentLower.includes('task') || contentLower.includes('collaboration')) {
-      industryCompetitors.push('asana.com', 'monday.com', 'trello.com');
-    }
-    if (contentLower.includes('seo') || contentLower.includes('search engine') || contentLower.includes('ranking')) {
-      industryCompetitors.push('semrush.com', 'ahrefs.com', 'moz.com');
-    }
-    if (contentLower.includes('ai') || contentLower.includes('artificial intelligence') || contentLower.includes('chatbot')) {
-      industryCompetitors.push('openai.com', 'anthropic.com', 'jasper.ai');
-    }
-    if (contentLower.includes('design') || contentLower.includes('graphic')) {
+    
+    // Design industry
+    if (contentLower.includes('design') && (contentLower.includes('graphic') || contentLower.includes('web'))) {
       industryCompetitors.push('canva.com', 'figma.com', 'adobe.com');
     }
     
-    // Add industry competitors that aren't already in the list
+    // Add industry competitors first (they are curated and relevant)
     industryCompetitors.forEach((c: string) => {
-      if (!competitors.includes(c) && !c.includes(ownDomain)) {
+      if (!competitors.includes(c) && !c.includes(ownDomain.split('.')[0])) {
         competitors.push(c);
       }
     });
+    
+    // Only add mentioned domains if we don't have enough industry competitors
+    if (competitors.length < 5) {
+      const domainMatches: string[] = markdown.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.(?:com|fr|de|es|io|co|net|org|eu|uk))/gi) || [];
+      
+      const mentionedDomains = [...new Set(domainMatches)]
+        .map((d: string) => d.replace(/^(https?:\/\/)?(www\.)?/i, '').toLowerCase())
+        .filter((d: string) => 
+          !d.includes(ownDomain.split('.')[0]) && 
+          d.length > 4 && 
+          d.includes('.') &&
+          !isBlockedDomain(d)
+        );
+      
+      mentionedDomains.forEach((d: string) => {
+        if (competitors.length < 5 && !competitors.includes(d)) {
+          competitors.push(d);
+        }
+      });
+    }
     
     // Remove duplicates and limit to 5
     const uniqueCompetitors = [...new Set(competitors)].slice(0, 5);
