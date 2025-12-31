@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,13 +84,62 @@ export default function Onboarding() {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Auto-analyze website when URL changes
+  // Real website analysis using Firecrawl
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
     
     setIsAutoFilling(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
+    try {
+      // Call the Firecrawl edge function
+      const { data: scrapeResult, error } = await supabase.functions.invoke('firecrawl-scrape', {
+        body: { url }
+      });
+
+      if (error || !scrapeResult?.success) {
+        console.error('Scrape error:', error || scrapeResult?.error);
+        // Fallback to basic extraction
+        await fallbackAnalysis(url);
+        return;
+      }
+
+      const { brandName, description, language: detectedLang, markdown } = scrapeResult.data;
+      
+      // Detect language from content or domain
+      let finalLanguage = detectedLang || "en";
+      if (url.includes(".fr") || url.includes("/fr")) finalLanguage = "fr";
+      else if (url.includes(".de") || url.includes("/de")) finalLanguage = "de";
+      else if (url.includes(".es") || url.includes("/es")) finalLanguage = "es";
+      
+      // Generate audiences from content analysis
+      const audiences = extractAudiences(markdown || description);
+      
+      // Generate competitors from domain type
+      const competitors = generateCompetitors(url, markdown);
+      
+      setData(prev => ({
+        ...prev,
+        language: finalLanguage,
+        businessDescription: description || `${brandName} provides professional services and solutions for its target audience.`,
+        targetAudiences: audiences,
+        competitors: competitors,
+        exampleUrl: url.startsWith("http") ? url : `https://${url}`,
+      }));
+      
+      toast({
+        title: "Website analyzed!",
+        description: "All fields have been auto-filled based on your website.",
+      });
+    } catch (err) {
+      console.error('Analysis error:', err);
+      await fallbackAnalysis(url);
+    } finally {
+      setIsAutoFilling(false);
+      setHasAnalyzed(true);
+    }
+  }, [toast]);
+
+  const fallbackAnalysis = async (url: string) => {
     let domain = "";
     try {
       const urlObj = new URL(url.startsWith("http") ? url : `https://${url}`);
@@ -105,43 +155,66 @@ export default function Onboarding() {
     else if (domain.endsWith(".de")) detectedLanguage = "de";
     else if (domain.endsWith(".es")) detectedLanguage = "es";
     
-    // Detect business type and generate description
-    const lowerDomain = domain.toLowerCase();
-    let description = "";
-    let audiences: string[] = [];
-    let competitors: string[] = [];
-    
-    if (lowerDomain.includes("webify") || lowerDomain.includes("app") || lowerDomain.includes("saas")) {
-      description = `${brandName} is a SaaS platform that helps businesses streamline their digital workflows. The platform offers modern tools for web development, automation, and digital transformation, targeting startups and enterprises looking to scale their online presence.`;
-      audiences = ["startup founders", "developers", "digital agencies", "small business owners", "enterprise teams"];
-      competitors = ["wix.com", "squarespace.com", "webflow.com"];
-    } else if (lowerDomain.includes("shop") || lowerDomain.includes("store") || lowerDomain.includes("deco") || lowerDomain.includes("furniture")) {
-      description = `${brandName} is primarily a B2B furniture wholesaler specializing in modern, trendy, and design-oriented furniture pieces. The website functions as an online platform targeting resellers, interior designers, and professionals seeking bulk purchasing options.`;
-      audiences = ["furniture retailers", "interior designers", "hospitality businesses", "home decor resellers", "contractors and architects"];
-      competitors = ["frenchsweethome.com", "meuble-sajuco.com", "made.com"];
-    } else {
-      description = `${brandName} is a professional service provider offering high-quality solutions to its target audience. The company focuses on delivering value through innovative approaches and customer-centric strategies.`;
-      audiences = ["business owners", "professionals", "decision makers", "industry experts"];
-      competitors = ["competitor1.com", "competitor2.com", "competitor3.com"];
-    }
-    
     setData(prev => ({
       ...prev,
       language: detectedLanguage,
-      businessDescription: description,
-      targetAudiences: audiences,
-      competitors: competitors,
-      exampleUrl: `https://${domain}/about`,
+      businessDescription: `${brandName} is a professional service provider offering high-quality solutions to its target audience.`,
+      targetAudiences: ["business owners", "professionals", "decision makers"],
+      competitors: ["competitor1.com", "competitor2.com", "competitor3.com"],
+      exampleUrl: `https://${domain}`,
     }));
     
-    setIsAutoFilling(false);
-    setHasAnalyzed(true);
-    
     toast({
-      title: "Site analysé !",
-      description: "Tous les champs ont été pré-remplis automatiquement.",
+      title: "Basic analysis complete",
+      description: "Please review and refine the auto-filled information.",
     });
-  }, [toast]);
+  };
+
+  const extractAudiences = (content: string): string[] => {
+    const defaultAudiences = ["business owners", "professionals", "decision makers", "industry experts"];
+    
+    if (!content) return defaultAudiences;
+    
+    const lowerContent = content.toLowerCase();
+    const audiences: string[] = [];
+    
+    if (lowerContent.includes("startup") || lowerContent.includes("entrepreneur")) {
+      audiences.push("startup founders", "entrepreneurs");
+    }
+    if (lowerContent.includes("developer") || lowerContent.includes("engineer")) {
+      audiences.push("developers", "technical teams");
+    }
+    if (lowerContent.includes("marketing") || lowerContent.includes("growth")) {
+      audiences.push("marketing professionals", "growth teams");
+    }
+    if (lowerContent.includes("enterprise") || lowerContent.includes("corporate")) {
+      audiences.push("enterprise companies", "corporate teams");
+    }
+    if (lowerContent.includes("agency") || lowerContent.includes("freelance")) {
+      audiences.push("agencies", "freelancers");
+    }
+    if (lowerContent.includes("ecommerce") || lowerContent.includes("shop") || lowerContent.includes("store")) {
+      audiences.push("e-commerce businesses", "online retailers");
+    }
+    
+    return audiences.length >= 2 ? audiences.slice(0, 5) : defaultAudiences;
+  };
+
+  const generateCompetitors = (url: string, content?: string): string[] => {
+    const domain = url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0].toLowerCase();
+    
+    if (domain.includes("saas") || domain.includes("app") || domain.includes("software")) {
+      return ["hubspot.com", "salesforce.com", "zendesk.com"];
+    }
+    if (domain.includes("shop") || domain.includes("store") || domain.includes("commerce")) {
+      return ["shopify.com", "woocommerce.com", "bigcommerce.com"];
+    }
+    if (domain.includes("agency") || domain.includes("studio") || domain.includes("design")) {
+      return ["dribbble.com", "behance.net", "awwwards.com"];
+    }
+    
+    return ["competitor1.com", "competitor2.com", "competitor3.com"];
+  };
 
   useEffect(() => {
     if (data.websiteUrl.length < 5 || hasAnalyzed) return;
@@ -196,7 +269,7 @@ export default function Onboarding() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       navigate("/dashboard");
     } catch (error) {
-      toast({ title: "Erreur", description: "Échec de la création.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
       setIsAnalyzing(false);
     }
   };
@@ -221,6 +294,20 @@ export default function Onboarding() {
 
   const removeCompetitor = (comp: string) => {
     updateData("competitors", data.competitors.filter(c => c !== comp));
+  };
+
+  const getDescriptionLabel = () => {
+    const lang = languages.find(l => l.code === data.language);
+    if (!lang) return "Description";
+    
+    switch (data.language) {
+      case "fr": return "Description (en français)";
+      case "de": return "Beschreibung (auf Deutsch)";
+      case "es": return "Descripción (en español)";
+      case "it": return "Descrizione (in italiano)";
+      case "pt": return "Descrição (em português)";
+      default: return "Description";
+    }
   };
 
   if (isAnalyzing) {
@@ -276,12 +363,12 @@ export default function Onboarding() {
                   <div className="space-y-6">
                     <div>
                       <h1 className="text-3xl font-bold tracking-tight">Insert Your Website URL</h1>
-                      <p className="text-muted-foreground mt-2">Enter website URL which you want to grow.</p>
+                      <p className="text-muted-foreground mt-2">Enter the website URL you want to optimize for AI visibility.</p>
                     </div>
                     <div className="relative">
                       <Input
                         type="url"
-                        placeholder="Insert your website (example.com)"
+                        placeholder="example.com"
                         value={data.websiteUrl}
                         onChange={(e) => { updateData("websiteUrl", e.target.value); setHasAnalyzed(false); }}
                         className="h-14 text-lg pr-12"
@@ -297,7 +384,7 @@ export default function Onboarding() {
                   <div className="space-y-6">
                     <div>
                       <h1 className="text-3xl font-bold tracking-tight">Choose Your Language</h1>
-                      <p className="text-muted-foreground mt-2">Select the language of your articles based on your target audience.</p>
+                      <p className="text-muted-foreground mt-2">Select the language for your AI-optimized content.</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -325,7 +412,7 @@ export default function Onboarding() {
                     {data.language && (
                       <div className="flex items-center gap-2 text-primary">
                         <Check className="h-4 w-4" />
-                        <span className="text-sm">Potential audience {languages.find(l => l.code === data.language)?.audience}</span>
+                        <span className="text-sm">Potential audience: {languages.find(l => l.code === data.language)?.audience}</span>
                       </div>
                     )}
                   </div>
@@ -337,11 +424,12 @@ export default function Onboarding() {
                       <h1 className="text-3xl font-bold tracking-tight">Describe Your Business</h1>
                     </div>
                     <div className="space-y-2">
-                      <Label>Description</Label>
+                      <Label>{getDescriptionLabel()}</Label>
                       <Textarea
                         value={data.businessDescription}
                         onChange={(e) => updateData("businessDescription", e.target.value)}
                         className="min-h-[150px] resize-none"
+                        placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
                       />
                     </div>
                     <div className="space-y-2">
@@ -374,7 +462,7 @@ export default function Onboarding() {
                 {currentStep === 4 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Select your competitors</h1>
+                      <h1 className="text-3xl font-bold tracking-tight">Select Your Competitors</h1>
                       <p className="text-muted-foreground mt-2">This step is optional. You can always add competitors later in settings.</p>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-2">
@@ -412,10 +500,10 @@ export default function Onboarding() {
                 {currentStep === 5 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Let us know your brand</h1>
+                      <h1 className="text-3xl font-bold tracking-tight">Customize Your Brand</h1>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-1">
-                      <p className="text-sm">• <strong>Brand color</strong> is used to style the articles</p>
+                      <p className="text-sm">• <strong>Brand color</strong> is used to style your articles</p>
                       <p className="text-sm">• <strong>Example article</strong> is used to match your writing style and tone</p>
                     </div>
                     <div className="space-y-2">
@@ -446,7 +534,7 @@ export default function Onboarding() {
                   <div className="space-y-6">
                     <div>
                       <h1 className="text-3xl font-bold tracking-tight">How did you hear about Aeoreply?</h1>
-                      <p className="text-muted-foreground mt-2">Your answer will help us fine-tune our marketing strategies and make your experience even better.</p>
+                      <p className="text-muted-foreground mt-2">Your answer helps us improve our marketing strategies.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {referralSources.map((source) => (
@@ -498,7 +586,6 @@ function WorldMapIllustration() {
   return (
     <div className="w-full h-full flex items-center justify-center p-12">
       <svg viewBox="0 0 400 300" className="w-full max-w-md opacity-20">
-        {/* Simplified world map made of dots */}
         {Array.from({ length: 20 }).map((_, row) =>
           Array.from({ length: 30 }).map((_, col) => (
             <circle
