@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Rocket, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Quote } from "lucide-react";
+import { Rocket, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
-const emailSchema = z.string().email("Adresse email invalide");
-const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
+const emailSchema = z.string().email("Invalid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -51,8 +51,8 @@ export default function Auth() {
     setIsLoading(false);
     if (error) {
       toast({
-        title: "Connexion échouée",
-        description: error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message,
+        title: "Sign in failed",
+        description: error.message === "Invalid login credentials" ? "Invalid email or password." : error.message,
         variant: "destructive",
       });
     }
@@ -66,10 +66,10 @@ export default function Auth() {
     setIsLoading(false);
     if (error) {
       let message = error.message;
-      if (error.message.includes("already registered")) message = "Cet email est déjà enregistré. Connectez-vous.";
-      toast({ title: "Inscription échouée", description: message, variant: "destructive" });
+      if (error.message.includes("already registered")) message = "This email is already registered. Please sign in.";
+      toast({ title: "Sign up failed", description: message, variant: "destructive" });
     } else {
-      toast({ title: "Compte créé !", description: "Bienvenue sur Aeoreply. Configurons votre projet." });
+      toast({ title: "Account created!", description: "Welcome to Aeoreply. Let's set up your project." });
       navigate("/onboarding");
     }
   };
@@ -104,15 +104,15 @@ export default function Auth() {
           >
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                {isLogin ? "Connexion" : "Créer un compte"}
+                {isLogin ? "Sign in" : "Create an account"}
               </h1>
               <p className="mt-2 text-muted-foreground">
-                {isLogin ? "Pas encore inscrit ? " : "Déjà inscrit ? "}
+                {isLogin ? "Don't have an account? " : "Already have an account? "}
                 <button
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-primary font-medium hover:underline"
                 >
-                  {isLogin ? "Inscrivez-vous" : "Connectez-vous"}
+                  {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </p>
             </div>
@@ -129,7 +129,7 @@ export default function Auth() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Continuer avec Google
+              Continue with Google
             </Button>
 
             <div className="relative">
@@ -137,20 +137,20 @@ export default function Auth() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">ou</span>
+                <span className="bg-background px-2 text-muted-foreground">or</span>
               </div>
             </div>
 
             <form onSubmit={isLogin ? handleSignIn : handleSignUp} className="space-y-5">
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-muted-foreground">Nom complet</Label>
+                  <Label htmlFor="name" className="text-muted-foreground">Full name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="name"
                       type="text"
-                      placeholder="Jean Dupont"
+                      placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="pl-10 h-12 bg-muted/50 border-border"
@@ -166,7 +166,7 @@ export default function Auth() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="vous@exemple.com"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-12 bg-muted/50 border-border"
@@ -177,7 +177,7 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-muted-foreground">Mot de passe</Label>
+                <Label htmlFor="password" className="text-muted-foreground">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -202,7 +202,7 @@ export default function Auth() {
 
               {isLogin && (
                 <button type="button" className="text-sm text-primary hover:underline">
-                  Mot de passe oublié ?
+                  Forgot password?
                 </button>
               )}
 
@@ -215,7 +215,7 @@ export default function Auth() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Se connecter" : "Créer un compte"}
+                    {isLogin ? "Sign in" : "Create account"}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -224,7 +224,7 @@ export default function Auth() {
 
             {!isLogin && (
               <p className="text-xs text-center text-muted-foreground">
-                En vous inscrivant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité.
+                By signing up, you agree to our Terms of Service and Privacy Policy.
               </p>
             )}
           </motion.div>
@@ -263,24 +263,24 @@ export default function Auth() {
             transition={{ delay: 0.2 }}
             className="bg-background rounded-2xl shadow-2xl p-8 max-w-md"
           >
-            {/* CEO Info */}
+            {/* User Info */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                AB
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                MK
               </div>
               <div>
-                <h3 className="font-bold text-lg">Anis Bennaceur</h3>
-                <p className="text-primary text-sm font-medium">CEO @Attention</p>
+                <h3 className="font-bold text-lg">Marcus Klein</h3>
+                <p className="text-primary text-sm font-medium">Head of Content @TechFlow</p>
               </div>
             </div>
 
             {/* Quote */}
             <blockquote className="space-y-4">
               <p className="text-primary font-medium text-lg leading-relaxed">
-                "Je suis impressionné par la façon dont Aeoreply s'occupe de tout pour nous. De la recherche de mots-clés à la génération de contenu optimisé. C'est une solution vraiment géniale qui nous fait gagner un temps fou !"
+                "Aeoreply transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently. The ROI has been incredible."
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Le plan de contenu généré était parfait. Chaque réponse est pertinente et optimisée pour l'IA, avec des citations et des liens internes.
+                Within 3 months, we saw a 340% increase in AI-driven traffic. The auto-generated answers are perfectly optimized for LLM citation.
               </p>
             </blockquote>
           </motion.div>
