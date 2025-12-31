@@ -174,18 +174,95 @@ Deno.serve(async (req) => {
       audiences.push('business owners', 'decision makers', 'industry professionals');
     }
     
-    // Extract potential competitors (domains mentioned in content)
-    const domainMatches: string[] = contentPreview.match(/(?:www\.)?([a-z0-9-]+\.(com|fr|de|es|io|co|net|org))/gi) || [];
-    const competitors = [...new Set(domainMatches)]
-      .filter((d: string) => !d.includes(new URL(formattedUrl).hostname.replace('www.', '')))
+    // Extract potential competitors from multiple sources
+    const competitors: string[] = [];
+    
+    // 1. Find domains mentioned in content
+    const domainMatches: string[] = markdown.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.(?:com|fr|de|es|io|co|net|org|eu|uk))/gi) || [];
+    const ownDomain = new URL(formattedUrl).hostname.replace('www.', '').toLowerCase();
+    
+    const mentionedDomains = [...new Set(domainMatches)]
+      .map((d: string) => d.replace(/^(https?:\/\/)?(www\.)?/i, '').toLowerCase())
+      .filter((d: string) => !d.includes(ownDomain) && d.length > 4 && d.includes('.'))
       .slice(0, 5);
+    
+    competitors.push(...mentionedDomains);
+    
+    // 2. Look for comparison sections, "vs", "alternative to" patterns
+    const vsPatterns: string[] = markdown.match(/(?:vs\.?|versus|compared to|alternative to|better than|switch from)\s+([A-Z][a-zA-Z0-9]+)/gi) || [];
+    const companyNames = vsPatterns
+      .map((p: string) => p.replace(/^(vs\.?|versus|compared to|alternative to|better than|switch from)\s+/i, '').trim())
+      .filter((name: string) => name.length > 2 && name.length < 30);
+    
+    // Convert company names to likely domains
+    companyNames.forEach((name: string) => {
+      const domain = name.toLowerCase().replace(/\s+/g, '') + '.com';
+      if (!competitors.includes(domain) && !domain.includes(ownDomain)) {
+        competitors.push(domain);
+      }
+    });
+    
+    // 3. Look for integration mentions (often competitors/similar tools)
+    const integrationPatterns: string[] = markdown.match(/integr(?:ates?|ation) with\s+([A-Z][a-zA-Z0-9]+(?:,?\s+(?:and\s+)?[A-Z][a-zA-Z0-9]+)*)/gi) || [];
+    integrationPatterns.forEach((pattern: string) => {
+      const tools = pattern.replace(/integr(?:ates?|ation) with\s+/i, '').split(/,|\s+and\s+/);
+      tools.forEach((tool: string) => {
+        const cleanTool = tool.trim();
+        if (cleanTool.length > 2 && cleanTool.length < 20) {
+          const domain = cleanTool.toLowerCase().replace(/\s+/g, '') + '.com';
+          if (!competitors.includes(domain) && !domain.includes(ownDomain)) {
+            competitors.push(domain);
+          }
+        }
+      });
+    });
+    
+    // 4. Generate industry-relevant competitors based on keywords
+    const contentLower = markdown.toLowerCase();
+    const industryCompetitors: string[] = [];
+    
+    if (contentLower.includes('crm') || contentLower.includes('sales')) {
+      industryCompetitors.push('hubspot.com', 'salesforce.com', 'pipedrive.com');
+    }
+    if (contentLower.includes('marketing') || contentLower.includes('email')) {
+      industryCompetitors.push('mailchimp.com', 'sendgrid.com', 'klaviyo.com');
+    }
+    if (contentLower.includes('ecommerce') || contentLower.includes('store') || contentLower.includes('shop')) {
+      industryCompetitors.push('shopify.com', 'woocommerce.com', 'bigcommerce.com');
+    }
+    if (contentLower.includes('analytics') || contentLower.includes('tracking')) {
+      industryCompetitors.push('google.com/analytics', 'mixpanel.com', 'amplitude.com');
+    }
+    if (contentLower.includes('project') || contentLower.includes('task') || contentLower.includes('collaboration')) {
+      industryCompetitors.push('asana.com', 'monday.com', 'trello.com');
+    }
+    if (contentLower.includes('seo') || contentLower.includes('search engine') || contentLower.includes('ranking')) {
+      industryCompetitors.push('semrush.com', 'ahrefs.com', 'moz.com');
+    }
+    if (contentLower.includes('ai') || contentLower.includes('artificial intelligence') || contentLower.includes('chatbot')) {
+      industryCompetitors.push('openai.com', 'anthropic.com', 'jasper.ai');
+    }
+    if (contentLower.includes('design') || contentLower.includes('graphic')) {
+      industryCompetitors.push('canva.com', 'figma.com', 'adobe.com');
+    }
+    
+    // Add industry competitors that aren't already in the list
+    industryCompetitors.forEach((c: string) => {
+      if (!competitors.includes(c) && !c.includes(ownDomain)) {
+        competitors.push(c);
+      }
+    });
+    
+    // Remove duplicates and limit to 5
+    const uniqueCompetitors = [...new Set(competitors)].slice(0, 5);
     
     console.log('Scrape successful:', { 
       brandName, 
       language, 
       descriptionLength: enrichedDescription.length,
       audiencesFound: audiences.length,
-      competitorsFound: competitors.length
+      competitorsFound: uniqueCompetitors.length,
+      competitors: uniqueCompetitors
     });
 
     return new Response(
@@ -200,7 +277,7 @@ Deno.serve(async (req) => {
           markdown: markdown.substring(0, 3000),
           url: formattedUrl,
           audiences: [...new Set(audiences)].slice(0, 6),
-          competitors,
+          competitors: uniqueCompetitors,
           headings: cleanHeadings,
         }
       }),
