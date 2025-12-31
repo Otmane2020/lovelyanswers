@@ -82,67 +82,80 @@ Deno.serve(async (req) => {
       brandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
     }
 
+    // Helper function to clean markdown artifacts
+    const cleanMarkdown = (text: string): string => {
+      return text
+        // Remove markdown images ![alt](url)
+        .replace(/!\[.*?\]\(.*?\)/g, '')
+        // Remove markdown links but keep text [text](url) -> text
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        // Remove remaining URLs
+        .replace(/https?:\/\/[^\s)]+/g, '')
+        // Remove multiple spaces
+        .replace(/\s+/g, ' ')
+        // Remove special characters at start/end
+        .replace(/^[\s,;:.]+|[\s,;:.]+$/g, '')
+        .trim();
+    };
+    
     // Extract richer content from markdown for better description
     const contentPreview = markdown.substring(0, 5000);
     
-    // Extract key phrases and sections
-    const headings: string[] = contentPreview.match(/^#{1,3}\s+(.+)$/gm) || [];
-    const cleanHeadings = headings.map((h: string) => h.replace(/^#+\s+/, '').trim()).slice(0, 10);
+    // Clean the base description
+    let enrichedDescription = cleanMarkdown(description);
     
-    // Extract bullet points and key features
-    const bullets: string[] = contentPreview.match(/^[-*]\s+(.+)$/gm) || [];
-    const cleanBullets = bullets.map((b: string) => b.replace(/^[-*]\s+/, '').trim()).slice(0, 15);
-    
-    // Build enriched description if the original is too short
-    let enrichedDescription = description;
-    
-    if (description.length < 200) {
-      // Create a richer description from the content
-      const contentParts = [];
+    // If description is too short, try to enrich it
+    if (enrichedDescription.length < 150) {
+      // Look for first meaningful paragraph in markdown
+      const paragraphs = contentPreview.split(/\n\n+/).filter((p: string) => 
+        p.length > 50 && 
+        !p.startsWith('#') && 
+        !p.startsWith('!') &&
+        !p.startsWith('[') &&
+        !p.includes('cookie') &&
+        !p.includes('newsletter')
+      );
       
-      if (description) {
-        contentParts.push(description);
-      }
-      
-      // Add context from headings
-      if (cleanHeadings.length > 0) {
-        const relevantHeadings = cleanHeadings.filter((h: string) => 
-          h.length > 5 && 
-          !h.toLowerCase().includes('menu') && 
-          !h.toLowerCase().includes('navigation') &&
-          !h.toLowerCase().includes('footer')
-        ).slice(0, 5);
-        
-        if (relevantHeadings.length > 0) {
-          contentParts.push(`Key offerings include: ${relevantHeadings.join(', ')}.`);
+      if (paragraphs.length > 0) {
+        const cleanParagraph = cleanMarkdown(paragraphs[0]);
+        if (cleanParagraph.length > enrichedDescription.length) {
+          enrichedDescription = cleanParagraph;
         }
       }
-      
-      // Add features from bullet points
-      if (cleanBullets.length > 0) {
-        const relevantBullets = cleanBullets.filter((b: string) => 
-          b.length > 10 && 
-          b.length < 100
-        ).slice(0, 5);
-        
-        if (relevantBullets.length > 0) {
-          contentParts.push(`Features: ${relevantBullets.join('; ')}.`);
-        }
-      }
-      
-      enrichedDescription = contentParts.join(' ');
+    }
+    
+    // Ensure description doesn't exceed reasonable length
+    if (enrichedDescription.length > 500) {
+      enrichedDescription = enrichedDescription.substring(0, 497) + '...';
     }
     
     // Extract potential target audiences from content
     const audiences: string[] = [];
     const lowerContent = contentPreview.toLowerCase();
     
-    // B2B indicators
-    if (lowerContent.includes('entreprise') || lowerContent.includes('business') || lowerContent.includes('b2b')) {
-      audiences.push('businesses', 'enterprises');
+    // Furniture & Home decor indicators
+    if (lowerContent.includes('meuble') || lowerContent.includes('furniture') || lowerContent.includes('mobilier')) {
+      audiences.push('furniture buyers', 'home furnishing shoppers');
     }
-    if (lowerContent.includes('professional') || lowerContent.includes('professionnel')) {
-      audiences.push('professionals');
+    if (lowerContent.includes('décor') || lowerContent.includes('decor') || lowerContent.includes('intérieur') || lowerContent.includes('interior')) {
+      audiences.push('home decor enthusiasts', 'interior design lovers');
+    }
+    if (lowerContent.includes('salon') || lowerContent.includes('living room') || lowerContent.includes('canapé') || lowerContent.includes('sofa')) {
+      audiences.push('living room renovators', 'comfort seekers');
+    }
+    if (lowerContent.includes('cuisine') || lowerContent.includes('kitchen') || lowerContent.includes('dining')) {
+      audiences.push('kitchen & dining shoppers');
+    }
+    if (lowerContent.includes('chambre') || lowerContent.includes('bedroom') || lowerContent.includes('lit') || lowerContent.includes('bed')) {
+      audiences.push('bedroom furniture shoppers');
+    }
+    if (lowerContent.includes('bureau') || lowerContent.includes('office') || lowerContent.includes('desk')) {
+      audiences.push('home office buyers', 'remote workers');
+    }
+    
+    // B2B indicators
+    if (lowerContent.includes('entreprise') || lowerContent.includes('business') || lowerContent.includes('b2b') || lowerContent.includes('professionnel')) {
+      audiences.push('businesses', 'professionals');
     }
     if (lowerContent.includes('retailer') || lowerContent.includes('revendeur') || lowerContent.includes('wholesale')) {
       audiences.push('retailers', 'resellers');
@@ -151,27 +164,34 @@ Deno.serve(async (req) => {
       audiences.push('interior designers', 'architects');
     }
     if (lowerContent.includes('hotel') || lowerContent.includes('restaurant') || lowerContent.includes('hospitality')) {
-      audiences.push('hospitality industry', 'hotels & restaurants');
+      audiences.push('hospitality industry');
     }
-    if (lowerContent.includes('startup') || lowerContent.includes('entrepreneur')) {
-      audiences.push('startups', 'entrepreneurs');
+    
+    // Consumer indicators
+    if (lowerContent.includes('homeowner') || lowerContent.includes('particulier') || lowerContent.includes('home') || lowerContent.includes('maison')) {
+      audiences.push('homeowners', 'new home buyers');
     }
-    if (lowerContent.includes('developer') || lowerContent.includes('développeur')) {
-      audiences.push('developers', 'tech teams');
+    if (lowerContent.includes('appartement') || lowerContent.includes('apartment') || lowerContent.includes('studio')) {
+      audiences.push('apartment dwellers', 'renters');
+    }
+    if (lowerContent.includes('livraison') || lowerContent.includes('delivery') || lowerContent.includes('france') || lowerContent.includes('français')) {
+      audiences.push('French consumers');
+    }
+    
+    // Tech/SaaS indicators (kept for non-furniture sites)
+    if (lowerContent.includes('saas') || lowerContent.includes('software') || lowerContent.includes('api')) {
+      audiences.push('tech companies', 'software buyers');
     }
     if (lowerContent.includes('marketing') || lowerContent.includes('agency') || lowerContent.includes('agence')) {
       audiences.push('marketing teams', 'agencies');
     }
-    if (lowerContent.includes('ecommerce') || lowerContent.includes('e-commerce') || lowerContent.includes('online store')) {
-      audiences.push('e-commerce businesses', 'online retailers');
-    }
-    if (lowerContent.includes('homeowner') || lowerContent.includes('particulier') || lowerContent.includes('home')) {
-      audiences.push('homeowners', 'home decor enthusiasts');
+    if (lowerContent.includes('ecommerce') || lowerContent.includes('e-commerce') || lowerContent.includes('online store') || lowerContent.includes('boutique')) {
+      audiences.push('online shoppers');
     }
     
-    // If no specific audiences found, use generic ones based on domain
+    // If no specific audiences found, use generic ones
     if (audiences.length < 2) {
-      audiences.push('business owners', 'decision makers', 'industry professionals');
+      audiences.push('general consumers', 'quality seekers', 'value-conscious buyers');
     }
     
     // Extract potential competitors from multiple sources
@@ -278,7 +298,7 @@ Deno.serve(async (req) => {
           url: formattedUrl,
           audiences: [...new Set(audiences)].slice(0, 6),
           competitors: uniqueCompetitors,
-          headings: cleanHeadings,
+          
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
