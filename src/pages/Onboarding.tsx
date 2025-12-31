@@ -98,12 +98,11 @@ export default function Onboarding() {
 
       if (error || !scrapeResult?.success) {
         console.error('Scrape error:', error || scrapeResult?.error);
-        // Fallback to basic extraction
         await fallbackAnalysis(url);
         return;
       }
 
-      const { brandName, description, language: detectedLang, markdown } = scrapeResult.data;
+      const { brandName, description, language: detectedLang, audiences: scrapedAudiences, competitors: scrapedCompetitors } = scrapeResult.data;
       
       // Detect language from content or domain
       let finalLanguage = detectedLang || "en";
@@ -111,18 +110,22 @@ export default function Onboarding() {
       else if (url.includes(".de") || url.includes("/de")) finalLanguage = "de";
       else if (url.includes(".es") || url.includes("/es")) finalLanguage = "es";
       
-      // Generate audiences from content analysis
-      const audiences = extractAudiences(markdown || description);
+      // Use scraped audiences or fallback
+      const finalAudiences = scrapedAudiences && scrapedAudiences.length >= 2 
+        ? scrapedAudiences 
+        : ["business owners", "professionals", "decision makers", "industry experts"];
       
-      // Generate competitors from domain type
-      const competitors = generateCompetitors(url, markdown);
+      // Use scraped competitors or generate defaults
+      const finalCompetitors = scrapedCompetitors && scrapedCompetitors.length > 0
+        ? scrapedCompetitors
+        : generateCompetitors(url);
       
       setData(prev => ({
         ...prev,
         language: finalLanguage,
         businessDescription: description || `${brandName} provides professional services and solutions for its target audience.`,
-        targetAudiences: audiences,
-        competitors: competitors,
+        targetAudiences: finalAudiences,
+        competitors: finalCompetitors,
         exampleUrl: url.startsWith("http") ? url : `https://${url}`,
       }));
       
@@ -170,37 +173,7 @@ export default function Onboarding() {
     });
   };
 
-  const extractAudiences = (content: string): string[] => {
-    const defaultAudiences = ["business owners", "professionals", "decision makers", "industry experts"];
-    
-    if (!content) return defaultAudiences;
-    
-    const lowerContent = content.toLowerCase();
-    const audiences: string[] = [];
-    
-    if (lowerContent.includes("startup") || lowerContent.includes("entrepreneur")) {
-      audiences.push("startup founders", "entrepreneurs");
-    }
-    if (lowerContent.includes("developer") || lowerContent.includes("engineer")) {
-      audiences.push("developers", "technical teams");
-    }
-    if (lowerContent.includes("marketing") || lowerContent.includes("growth")) {
-      audiences.push("marketing professionals", "growth teams");
-    }
-    if (lowerContent.includes("enterprise") || lowerContent.includes("corporate")) {
-      audiences.push("enterprise companies", "corporate teams");
-    }
-    if (lowerContent.includes("agency") || lowerContent.includes("freelance")) {
-      audiences.push("agencies", "freelancers");
-    }
-    if (lowerContent.includes("ecommerce") || lowerContent.includes("shop") || lowerContent.includes("store")) {
-      audiences.push("e-commerce businesses", "online retailers");
-    }
-    
-    return audiences.length >= 2 ? audiences.slice(0, 5) : defaultAudiences;
-  };
-
-  const generateCompetitors = (url: string, content?: string): string[] => {
+  const generateCompetitors = (url: string): string[] => {
     const domain = url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0].toLowerCase();
     
     if (domain.includes("saas") || domain.includes("app") || domain.includes("software")) {
