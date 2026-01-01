@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "@/lib/language";
-import { aeoTranslations } from "@/lib/translations/aeo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   FileText, Search, Eye, Edit, Trash2, 
-  Calendar, TrendingUp, Sparkles, ExternalLink, Plus
+  Calendar, Plus
 } from "lucide-react";
-import { toast } from "sonner";
 import { format } from "date-fns";
-import { fr, enUS } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 interface AeoArticle {
   id: string;
@@ -26,9 +23,7 @@ interface AeoArticle {
 }
 
 export default function AeoArticles() {
-  const { language } = useTranslation();
   const { user } = useAuth();
-  const t = aeoTranslations[language] || aeoTranslations.fr;
   
   const [articles, setArticles] = useState<AeoArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +40,6 @@ export default function AeoArticles() {
     
     setLoading(true);
     try {
-      // Get user's active project first
       const { data: projects } = await supabase
         .from('projects')
         .select('id')
@@ -89,12 +83,12 @@ export default function AeoArticles() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{t.articles.title}</h1>
-            <p className="text-muted-foreground mt-1">{t.articles.subtitle}</p>
+            <h1 className="text-3xl font-bold">AEO Articles</h1>
+            <p className="text-muted-foreground mt-1">Your articles optimized for AI citation</p>
           </div>
           <Button className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" />
-            {t.articles.create}
+            Create article
           </Button>
         </div>
 
@@ -102,7 +96,7 @@ export default function AeoArticles() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t.articles.search}
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -122,15 +116,13 @@ export default function AeoArticles() {
         ) : filteredArticles.length === 0 ? (
           <Card className="p-12 text-center">
             <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t.articles.empty}</h3>
+            <h3 className="text-lg font-semibold mb-2">No articles found</h3>
             <p className="text-muted-foreground mb-4">
-              {language === 'fr' 
-                ? "Créez votre premier article optimisé pour l'IA"
-                : "Create your first AI-optimized article"}
+              Create your first AI-optimized article
             </p>
             <Button className="bg-gradient-to-r from-primary to-blue-500">
               <Plus className="w-4 h-4 mr-2" />
-              {t.articles.create}
+              Create article
             </Button>
           </Card>
         ) : (
@@ -160,13 +152,13 @@ export default function AeoArticles() {
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {article.created_at 
-                      ? format(new Date(article.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })
+                      ? format(new Date(article.created_at), 'PP', { locale: enUS })
                       : '-'}
                   </div>
                   {article.word_count && (
                     <div className="flex items-center gap-1">
                       <FileText className="h-3 w-3" />
-                      {article.word_count} {language === 'fr' ? 'mots' : 'words'}
+                      {article.word_count} words
                     </div>
                   )}
                 </div>

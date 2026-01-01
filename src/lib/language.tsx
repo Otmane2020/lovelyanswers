@@ -1,37 +1,27 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-
-type Language = "fr" | "en";
+import React, { createContext, useContext, ReactNode } from 'react';
 
 interface TranslationContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
+  language: 'en';
+  setLanguage: (lang: 'en') => void;
 }
 
-const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
+const TranslationContext = createContext<TranslationContextType>({ 
+  language: 'en', 
+  setLanguage: () => {} 
+});
 
-export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    const stored = localStorage.getItem("app_language");
-    return (stored as Language) || "fr";
-  });
+interface TranslationProviderProps {
+  children: ReactNode;
+}
 
-  const handleSetLanguage = (lang: Language) => {
-    setLanguage(lang);
-    localStorage.setItem("app_language", lang);
-  };
-
+export function TranslationProvider({ children }: TranslationProviderProps) {
   return (
-    <TranslationContext.Provider value={{ language, setLanguage: handleSetLanguage }}>
+    <TranslationContext.Provider value={{ language: 'en', setLanguage: () => {} }}>
       {children}
     </TranslationContext.Provider>
   );
 }
 
 export function useTranslation() {
-  const context = useContext(TranslationContext);
-  if (context === undefined) {
-    // Fallback for components outside provider
-    return { language: "fr" as Language, setLanguage: () => {} };
-  }
-  return context;
+  return useContext(TranslationContext);
 }

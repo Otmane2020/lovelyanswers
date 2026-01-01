@@ -3,50 +3,47 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { useTranslation } from "@/lib/language";
 
 export default function AeoSubscription() {
-  const { language } = useTranslation();
-
   const plans = [
     {
       name: "Free",
-      price: "0€",
-      period: language === 'fr' ? "/mois" : "/month",
-      description: language === 'fr' ? "Pour démarrer" : "To get started",
+      price: "€0",
+      period: "/month",
+      description: "To get started",
       features: [
-        language === 'fr' ? "5 optimisations AEO" : "5 AEO optimizations",
-        language === 'fr' ? "2 articles" : "2 articles",
-        language === 'fr' ? "10 réponses actives" : "10 active answers",
+        "5 AEO optimizations",
+        "2 articles",
+        "10 active answers",
       ],
       icon: Zap,
       current: true,
     },
     {
       name: "Pro",
-      price: "29€",
-      period: language === 'fr' ? "/mois" : "/month",
-      description: language === 'fr' ? "Pour les créateurs" : "For creators",
+      price: "€29",
+      period: "/month",
+      description: "For creators",
       features: [
-        language === 'fr' ? "50 optimisations AEO" : "50 AEO optimizations",
-        language === 'fr' ? "20 articles" : "20 articles",
-        language === 'fr' ? "100 réponses actives" : "100 active answers",
-        language === 'fr' ? "Intégrations" : "Integrations",
+        "50 AEO optimizations",
+        "20 articles",
+        "100 active answers",
+        "Integrations",
       ],
       icon: Sparkles,
       popular: true,
     },
     {
       name: "Business",
-      price: "99€",
-      period: language === 'fr' ? "/mois" : "/month",
-      description: language === 'fr' ? "Pour les équipes" : "For teams",
+      price: "€99",
+      period: "/month",
+      description: "For teams",
       features: [
-        language === 'fr' ? "Optimisations illimitées" : "Unlimited optimizations",
-        language === 'fr' ? "Articles illimités" : "Unlimited articles",
-        language === 'fr' ? "Réponses illimitées" : "Unlimited answers",
-        language === 'fr' ? "Support prioritaire" : "Priority support",
-        language === 'fr' ? "API access" : "API access",
+        "Unlimited optimizations",
+        "Unlimited articles",
+        "Unlimited answers",
+        "Priority support",
+        "API access",
       ],
       icon: Crown,
     },
@@ -56,12 +53,8 @@ export default function AeoSubscription() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">
-            {language === 'fr' ? "Choisissez votre plan" : "Choose your plan"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {language === 'fr' ? "Évoluez selon vos besoins" : "Scale as you grow"}
-          </p>
+          <h1 className="text-3xl font-bold">Choose your plan</h1>
+          <p className="text-muted-foreground mt-1">Scale as you grow</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -72,7 +65,7 @@ export default function AeoSubscription() {
             >
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                  {language === 'fr' ? "Populaire" : "Popular"}
+                  Popular
                 </Badge>
               )}
               
@@ -102,9 +95,7 @@ export default function AeoSubscription() {
                 variant={plan.current ? "outline" : plan.popular ? "default" : "secondary"}
                 disabled={plan.current}
               >
-                {plan.current 
-                  ? (language === 'fr' ? "Plan actuel" : "Current plan")
-                  : (language === 'fr' ? "Choisir" : "Choose")}
+                {plan.current ? "Current plan" : "Choose"}
               </Button>
             </Card>
           ))}

@@ -27,74 +27,34 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTranslation } from "@/lib/language";
 
 export function AeoSidebar() {
   const { state, isMobile: sidebarIsMobile, openMobile, toggleSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { language } = useTranslation();
   const currentPath = location.pathname;
   const isMobile = useIsMobile();
 
   const mainMenuItems = [
-    { 
-      title: language === 'fr' ? "Tableau de bord" : "Dashboard", 
-      url: "/dashboard", 
-      icon: LayoutDashboard 
-    },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   ];
 
   const aeoMenuItems = [
-    { 
-      title: language === 'fr' ? "Assistant" : "Wizard", 
-      url: "/wizard", 
-      icon: Lightbulb,
-    },
-    { 
-      title: language === 'fr' ? "Opportunités" : "Opportunities", 
-      url: "/opportunities", 
-      icon: Sparkles,
-    },
-    { 
-      title: language === 'fr' ? "Réponses" : "Answers", 
-      url: "/answers", 
-      icon: MessageSquare,
-    },
-    { 
-      title: language === 'fr' ? "Articles" : "Articles", 
-      url: "/articles", 
-      icon: FileText,
-    },
-    { 
-      title: language === 'fr' ? "Intégrations" : "Integrations", 
-      url: "/integrations", 
-      icon: Link,
-    },
-    { 
-      title: language === 'fr' ? "Paramètres" : "Settings", 
-      url: "/settings", 
-      icon: Settings,
-    },
+    { title: "Wizard", url: "/wizard", icon: Lightbulb },
+    { title: "Opportunities", url: "/opportunities", icon: Sparkles },
+    { title: "Answers", url: "/answers", icon: MessageSquare },
+    { title: "Articles", url: "/articles", icon: FileText },
+    { title: "Integrations", url: "/integrations", icon: Link },
+    { title: "Settings", url: "/settings", icon: Settings },
   ];
 
   const accountMenuItems = [
-    { 
-      title: language === 'fr' ? "Mon compte" : "My account", 
-      url: "/account", 
-      icon: User 
-    },
-    { 
-      title: language === 'fr' ? "Abonnement" : "Subscription", 
-      url: "/subscription", 
-      icon: CreditCard 
-    },
+    { title: "My account", url: "/account", icon: User },
+    { title: "Subscription", url: "/subscription", icon: CreditCard },
   ];
 
-  const isActive = (path: string) => {
-    return currentPath === path;
-  };
+  const isActive = (path: string) => currentPath === path;
 
   const handleNavClick = () => {
     if ((sidebarIsMobile || isMobile) && openMobile) {
@@ -136,7 +96,7 @@ export function AeoSidebar() {
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-primary/80 uppercase text-xs tracking-wider">
-            {language === 'fr' ? "Principal" : "Main"}
+            Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -186,7 +146,7 @@ export function AeoSidebar() {
         {/* Account */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-primary/80 uppercase text-xs tracking-wider">
-            {language === 'fr' ? "Compte" : "Account"}
+            Account
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -228,7 +188,7 @@ export function AeoSidebar() {
               className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="h-4 w-4 mr-2" />
-              {language === 'fr' ? "Déconnexion" : "Sign out"}
+              Sign out
             </Button>
           </div>
         )}

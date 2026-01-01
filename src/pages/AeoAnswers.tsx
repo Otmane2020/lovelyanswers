@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "@/lib/language";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   MessageSquare, Search, Copy, Check, TrendingUp, 
-  Sparkles, FileText, RefreshCw, ExternalLink, Share2, Globe
+  Sparkles, FileText, RefreshCw, ExternalLink, Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -26,7 +25,6 @@ interface AeoAnswer {
 }
 
 export default function AeoAnswers() {
-  const { language } = useTranslation();
   const { user } = useAuth();
   
   const [answers, setAnswers] = useState<AeoAnswer[]>([]);
@@ -80,12 +78,6 @@ export default function AeoAnswers() {
     
     setPublishingId(answer.id);
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      
       const slug = generateSlug(answer.question);
       
       const { error } = await supabase
@@ -98,11 +90,11 @@ export default function AeoAnswers() {
 
       if (error) throw error;
       
-      toast.success(language === 'fr' ? "Réponse publiée !" : "Answer published!");
+      toast.success("Answer published!");
       fetchAnswers();
     } catch (error) {
       console.error('Error publishing answer:', error);
-      toast.error(language === 'fr' ? "Erreur lors de la publication" : "Error publishing");
+      toast.error("Error publishing");
     } finally {
       setPublishingId(null);
     }
@@ -111,14 +103,14 @@ export default function AeoAnswers() {
   const copyToClipboard = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
-    toast.success(language === 'fr' ? "Réponse copiée !" : "Answer copied!");
+    toast.success("Answer copied!");
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const copyPublicUrl = async (answer: AeoAnswer) => {
     const url = `${window.location.origin}/answers/${answer.slug}`;
     await navigator.clipboard.writeText(url);
-    toast.success(language === 'fr' ? "Lien public copié !" : "Public URL copied!");
+    toast.success("Public URL copied!");
   };
 
   const openPublicUrl = (answer: AeoAnswer) => {
@@ -149,21 +141,12 @@ export default function AeoAnswers() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {language === 'fr' ? "Réponses AEO" : "AEO Answers"}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {language === 'fr' 
-                ? "Vos réponses optimisées pour les assistants IA"
-                : "Your answers optimized for AI assistants"}
-            </p>
+            <h1 className="text-3xl font-bold text-foreground">AEO Answers</h1>
+            <p className="text-muted-foreground mt-1">Your answers optimized for AI assistants</p>
           </div>
-          <Button 
-            onClick={fetchAnswers}
-            variant="outline" 
-          >
+          <Button onClick={fetchAnswers} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
-            {language === 'fr' ? "Actualiser" : "Refresh"}
+            Refresh
           </Button>
         </div>
 
@@ -171,7 +154,7 @@ export default function AeoAnswers() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
-            placeholder={language === 'fr' ? "Rechercher une réponse..." : "Search answers..."}
+            placeholder="Search answers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -187,7 +170,7 @@ export default function AeoAnswers() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{answers.length}</p>
-                <p className="text-xs text-muted-foreground">{language === 'fr' ? "Total réponses" : "Total answers"}</p>
+                <p className="text-xs text-muted-foreground">Total answers</p>
               </div>
             </div>
           </Card>
@@ -198,7 +181,7 @@ export default function AeoAnswers() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{answers.filter(a => a.is_public).length}</p>
-                <p className="text-xs text-muted-foreground">{language === 'fr' ? "Publiées" : "Published"}</p>
+                <p className="text-xs text-muted-foreground">Published</p>
               </div>
             </div>
           </Card>
@@ -213,7 +196,7 @@ export default function AeoAnswers() {
                     ? Math.round(answers.reduce((sum, a) => sum + (a.score || 0), 0) / answers.length)
                     : 0}%
                 </p>
-                <p className="text-xs text-muted-foreground">{language === 'fr' ? "Score moyen" : "Avg score"}</p>
+                <p className="text-xs text-muted-foreground">Avg score</p>
               </div>
             </div>
           </Card>
@@ -224,7 +207,7 @@ export default function AeoAnswers() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{answers.filter(a => (a.score || 0) >= 80).length}</p>
-                <p className="text-xs text-muted-foreground">{language === 'fr' ? "Haute citation" : "High citation"}</p>
+                <p className="text-xs text-muted-foreground">High citation</p>
               </div>
             </div>
           </Card>
@@ -238,17 +221,13 @@ export default function AeoAnswers() {
         ) : filteredAnswers.length === 0 ? (
           <Card className="p-12 text-center">
             <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              {language === 'fr' ? "Aucune réponse" : "No answers yet"}
-            </h3>
+            <h3 className="text-xl font-semibold mb-2">No answers yet</h3>
             <p className="text-muted-foreground mb-6">
-              {language === 'fr' 
-                ? "Générez des opportunités AEO pour créer vos premières réponses."
-                : "Generate AEO opportunities to create your first answers."}
+              Generate AEO opportunities to create your first answers.
             </p>
             <Button className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white">
               <Sparkles className="w-4 h-4 mr-2" />
-              {language === 'fr' ? "Lancer l'assistant" : "Start wizard"}
+              Start wizard
             </Button>
           </Card>
         ) : (
@@ -276,13 +255,13 @@ export default function AeoAnswers() {
                           {answer.is_public && (
                             <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">
                               <Globe className="w-3 h-3 mr-1" />
-                              {language === 'fr' ? "Publié" : "Published"}
+                              Published
                             </Badge>
                           )}
                           {answer.has_article && (
                             <Badge variant="outline" className="border-blue-500/30 text-blue-600">
                               <FileText className="w-3 h-3 mr-1" />
-                              {language === 'fr' ? "Article lié" : "Linked article"}
+                              Linked article
                             </Badge>
                           )}
                         </div>
@@ -333,7 +312,7 @@ export default function AeoAnswers() {
                         ) : (
                           <>
                             <Globe className="w-4 h-4 mr-1" />
-                            {language === 'fr' ? "Publier" : "Publish"}
+                            Publish
                           </>
                         )}
                       </Button>
@@ -344,7 +323,7 @@ export default function AeoAnswers() {
                         onClick={() => openPublicUrl(answer)}
                       >
                         <ExternalLink className="w-4 h-4 mr-1" />
-                        {language === 'fr' ? "Voir" : "View"}
+                        View
                       </Button>
                     )}
                     <Button 
