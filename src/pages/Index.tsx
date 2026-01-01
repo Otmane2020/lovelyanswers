@@ -56,14 +56,14 @@ const comparisons = [
 const pricingFeatures = [
   "30 SEO/LLM optimized articles automatically generated and published",
   "Articles with citations, internal links and branded infographics",
-  "Automatic quality backlinks (valued at $800+ per month) through our exclusive network",
-  "Technical SEO audit - find issues blocking Google and ChatGPT",
+  "Automatic quality backlinks (valued at $800+ per month) through our exclusive network of 1,000+ vetted partner sites",
+  "We find technical issues on your website that block Google and ChatGPT from properly reading and ranking your site",
   "Articles backed by real-time research and expert insights",
   "Automated keyword research and SERP-based clustering",
   "Reddit agent that builds your brand visibility and authority",
-  "Integrates with WordPress, Webflow, Shopify, Wix, API and more",
+  "Integrates with WordPress, Webflow, Shopify, Wix, API and many other platforms",
   "JSON-LD schema markup for featured snippets",
-  "Articles available in 20+ languages",
+  "Articles available in 20+ languages (purchase option available)",
 ];
 
 const faqs = [
@@ -226,25 +226,27 @@ export default function Index() {
       {/* Pricing */}
       <section className="py-20 bg-muted/30">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Simple Pricing</h2>
-            <p className="text-muted-foreground">We limit monthly admissions to maintain backlink quality and network balance.</p>
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">For smart entrepreneurs</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Main Plan */}
             <GlassCard gradient className="p-8">
-              <Badge className="mb-4 gradient-bg text-primary-foreground border-0">All-In-One</Badge>
-              <h3 className="text-2xl font-bold">Complete AEO Solution</h3>
-              <div className="mt-4 mb-6">
+              <Badge className="mb-4 gradient-bg text-primary-foreground border-0">All-in-One</Badge>
+              <div className="mt-2 mb-2">
                 <span className="text-2xl text-muted-foreground line-through mr-2">$247</span>
                 <span className="text-5xl font-bold">$99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
+              <p className="text-primary font-medium text-sm mb-2">Only 34 spots left in January</p>
+              <p className="text-xs text-muted-foreground mb-6">
+                We limit monthly admissions to maintain backlink quality and network balance.
+              </p>
               <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-6" size="lg" asChild>
                 <Link to="/auth">
                   Start 3-Day Free Trial
-                  <ChevronRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <p className="text-sm font-medium mb-4">What's included:</p>
@@ -260,10 +262,10 @@ export default function Index() {
 
             {/* Agency Plan */}
             <GlassCard className="p-8 flex flex-col">
-              <Badge variant="secondary" className="mb-4 w-fit">For Agencies</Badge>
-              <h3 className="text-2xl font-bold">White-Label Solution</h3>
+              <Badge variant="secondary" className="mb-4 w-fit">For agencies</Badge>
+              <h3 className="text-2xl font-bold">Agency Plan</h3>
               <p className="text-muted-foreground mt-4 flex-1">
-                For businesses which want to resell our services to their clients. Get custom branding, volume discounts, and dedicated support.
+                For businesses which want to resell our services to their clients.
               </p>
               <div className="mt-8 space-y-3">
                 <Button variant="outline" className="w-full" size="lg" asChild>
