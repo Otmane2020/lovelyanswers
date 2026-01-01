@@ -226,7 +226,8 @@ export default function Index() {
       {/* Pricing */}
       <section className="py-20 bg-muted/30">
         <div className="container">
-          <div className="text-center mb-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">Invest in Long-Term Growth</h2>
             <p className="text-sm text-muted-foreground">For smart entrepreneurs</p>
           </div>
 
