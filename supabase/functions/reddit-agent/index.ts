@@ -67,7 +67,7 @@ interface RedditOpportunity {
   postAge: string;
 }
 
-// 🔥 NEW: Fetch REAL Reddit posts using public JSON API
+// 🔥 NEW: Fetch REAL Reddit posts using RSS feed (more reliable than JSON API)
 interface RealRedditPost {
   id: string;
   title: string;
@@ -79,40 +79,119 @@ interface RealRedditPost {
   createdUtc: number;
 }
 
+// Parse Reddit RSS to extract posts
+function parseRedditRss(xml: string, subreddit: string): RealRedditPost[] {
+  const posts: RealRedditPost[] = [];
+  
+  // Simple XML parsing for Reddit RSS feed
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+  let match;
+  
+  while ((match = entryRegex.exec(xml)) !== null) {
+    const entry = match[1];
+    
+    const titleMatch = entry.match(/<title>([^<]*)<\/title>/);
+    const linkMatch = entry.match(/<link href="([^"]+)"/);
+    const contentMatch = entry.match(/<content[^>]*>([\s\S]*?)<\/content>/);
+    const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
+    
+    if (titleMatch && linkMatch) {
+      const url = linkMatch[1];
+      // Extract post ID from URL: /r/subreddit/comments/POST_ID/...
+      const idMatch = url.match(/\/comments\/([a-z0-9]+)/i);
+      
+      if (idMatch) {
+        // Decode HTML entities in title
+        const title = titleMatch[1]
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+        
+        // Extract text from content (remove HTML)
+        const content = contentMatch ? contentMatch[1]
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&nbsp;/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .substring(0, 500) : "";
+        
+        posts.push({
+          id: idMatch[1],
+          title,
+          body: content,
+          subreddit,
+          url,
+          score: 0, // RSS doesn't provide score
+          comments: 0, // RSS doesn't provide comment count
+          createdUtc: updatedMatch ? Math.floor(new Date(updatedMatch[1]).getTime() / 1000) : 0
+        });
+      }
+    }
+  }
+  
+  return posts;
+}
+
 async function fetchRealRedditPosts(subreddit: string): Promise<RealRedditPost[]> {
   try {
+    // Use RSS feed which is more permissive from server environments
     const res = await fetch(
-      `https://www.reddit.com/r/${subreddit}/hot.json?limit=15`,
+      `https://www.reddit.com/r/${subreddit}/new.rss?limit=25`,
       { 
         headers: { 
-          "User-Agent": "aeo-reddit-agent/1.0 (by /u/aeo-tool)" 
+          "User-Agent": "Mozilla/5.0 (compatible; bot/1.0)",
+          "Accept": "application/rss+xml, application/xml, text/xml, */*",
         } 
       }
     );
 
     if (!res.ok) {
-      console.error(`[reddit-agent] Failed to fetch r/${subreddit}: ${res.status}`);
+      // Try alternative: Pushshift API or fallback
+      console.error(`[reddit-agent] RSS failed for r/${subreddit}: ${res.status}, trying fallback...`);
+      
+      // Fallback: Use a public Reddit search proxy
+      const searchRes = await fetch(
+        `https://www.reddit.com/search.json?q=subreddit:${subreddit}&sort=new&limit=20&restrict_sr=off`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          }
+        }
+      );
+      
+      if (!searchRes.ok) {
+        console.error(`[reddit-agent] Fallback also failed for r/${subreddit}: ${searchRes.status}`);
+        return [];
+      }
+      
+      const searchJson = await searchRes.json();
+      if (searchJson.data?.children) {
+        return searchJson.data.children
+          .filter((p: any) => p.data && !p.data.stickied)
+          .map((p: any) => ({
+            id: p.data.id,
+            title: p.data.title,
+            body: p.data.selftext || "",
+            subreddit: p.data.subreddit,
+            url: `https://www.reddit.com${p.data.permalink}`,
+            score: p.data.score || 0,
+            comments: p.data.num_comments || 0,
+            createdUtc: p.data.created_utc || 0
+          }));
+      }
       return [];
     }
 
-    const json = await res.json();
+    const xml = await res.text();
+    const posts = parseRedditRss(xml, subreddit);
     
-    if (!json.data?.children) {
-      return [];
-    }
-
-    return json.data.children
-      .filter((p: any) => p.data && !p.data.stickied) // Skip pinned posts
-      .map((p: any) => ({
-        id: p.data.id,
-        title: p.data.title,
-        body: p.data.selftext || "",
-        subreddit: p.data.subreddit,
-        url: `https://www.reddit.com${p.data.permalink}`,
-        score: p.data.score,
-        comments: p.data.num_comments,
-        createdUtc: p.data.created_utc
-      }));
+    console.log(`[reddit-agent] Fetched ${posts.length} posts from r/${subreddit} via RSS`);
+    return posts;
   } catch (error) {
     console.error(`[reddit-agent] Error fetching r/${subreddit}:`, error);
     return [];
