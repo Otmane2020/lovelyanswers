@@ -48,6 +48,7 @@ export default function AeoAnswers() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -140,6 +141,37 @@ export default function AeoAnswers() {
       toast.error("Error generating article");
     } finally {
       setGeneratingArticleId(null);
+    }
+  };
+
+  const regenerateAnswer = async (answer: AeoAnswer) => {
+    if (!user) return;
+    
+    setRegeneratingId(answer.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke('generate-aeo-answers', {
+        body: { 
+          projectId: answer.id, // Using answer's project context
+          questions: [answer.question],
+          regenerate: true,
+          answerId: answer.id
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success("Answer regenerated!");
+      fetchAnswers();
+    } catch (error) {
+      console.error('Error regenerating answer:', error);
+      toast.error("Error regenerating answer");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -446,21 +478,40 @@ export default function AeoAnswers() {
                     )}
                   </div>
                   
-                  {/* Generate AEO article button */}
-                  {!answer.has_article && (
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {/* Regenerate answer button */}
                     <Button 
-                      onClick={() => generateArticle(answer)}
-                      disabled={generatingArticleId === answer.id}
-                      className="bg-primary hover:bg-primary/90"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => regenerateAnswer(answer)}
+                      disabled={regeneratingId === answer.id}
                     >
-                      {generatingArticleId === answer.id ? (
+                      {regeneratingId === answer.id ? (
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
-                        <Sparkles className="w-4 h-4 mr-2" />
+                        <RefreshCw className="w-4 h-4 mr-2" />
                       )}
-                      Generate AEO article
+                      Regenerate
                     </Button>
-                  )}
+                    
+                    {/* Generate AEO article button */}
+                    {!answer.has_article && (
+                      <Button 
+                        onClick={() => generateArticle(answer)}
+                        disabled={generatingArticleId === answer.id}
+                        className="bg-primary hover:bg-primary/90"
+                        size="sm"
+                      >
+                        {generatingArticleId === answer.id ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        Generate AEO article
+                      </Button>
+                    )}
+                  </div>
                   
                   {answer.has_article && (
                     <div className="flex gap-2">

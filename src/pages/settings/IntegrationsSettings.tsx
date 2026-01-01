@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Check, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 const CMS_INTEGRATIONS = [
   { id: "wordpress", name: "WordPress", icon: "🔵" },
@@ -19,6 +19,12 @@ const CMS_INTEGRATIONS = [
   { id: "framer", name: "Framer", icon: "⬛" },
 ];
 
+const ANALYTICS_INTEGRATIONS = [
+  { id: "gsc", name: "Google Search Console", icon: "🔍", description: "Track search performance" },
+  { id: "ga4", name: "Google Analytics 4", icon: "📊", description: "Website analytics" },
+  { id: "merchant", name: "Google Merchant", icon: "🛒", description: "Product listings" },
+];
+
 interface Integration {
   id: string;
   name: string;
@@ -28,7 +34,6 @@ interface Integration {
 
 export function IntegrationsSettings() {
   const [autoPublish, setAutoPublish] = useState(true);
-  const [gscConnected, setGscConnected] = useState(false);
   const [integrations] = useState<Integration[]>(
     CMS_INTEGRATIONS.map(cms => ({ ...cms, connected: false }))
   );
@@ -67,30 +72,27 @@ export function IntegrationsSettings() {
       </Card>
 
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">Google Search Console</h3>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <span className="text-xl">🔍</span>
+        <h3 className="font-semibold mb-4">Analytics & Search</h3>
+        <div className="space-y-4">
+          {ANALYTICS_INTEGRATIONS.map((integration) => (
+            <div key={integration.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <span className="text-xl">{integration.icon}</span>
+                </div>
+                <div>
+                  <p className="font-medium">{integration.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {integration.description}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Connect
+              </Button>
             </div>
-            <div>
-              <p className="font-medium">Google Search Console</p>
-              <p className="text-sm text-muted-foreground">
-                {gscConnected ? "Connected" : "Not connected"}
-              </p>
-            </div>
-          </div>
-          {gscConnected ? (
-            <Badge className="gap-1 bg-green-500/10 text-green-600 border-green-500/20">
-              <Check className="w-3 h-3" />
-              Connected
-            </Badge>
-          ) : (
-            <Button variant="outline" className="gap-2">
-              <ExternalLink className="w-4 h-4" />
-              Connect
-            </Button>
-          )}
+          ))}
         </div>
       </Card>
     </div>
