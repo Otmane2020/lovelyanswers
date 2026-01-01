@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Globe, ChevronDown, Zap, Crown, Bell, Moon, Sun, LogOut } from "lucide-react";
+import { Globe, ChevronDown, Crown, Bell, Moon, Sun, LogOut, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useActiveProject, useProjects, useSetActiveProject } from "@/hooks/useProjects";
-import { useCredits } from "@/hooks/useCredits";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -20,13 +20,10 @@ export function AppTopbar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { project, projects = [] } = useActiveProject();
-  const { data: credits } = useCredits();
+  const { subscribed, isLoading: subLoading, startCheckout } = useSubscription();
   const setActiveProject = useSetActiveProject();
   const [currentLanguage, setCurrentLanguage] = useState(languages[0]);
   const [isDark, setIsDark] = useState(true);
-
-  const creditsUsed = credits?.credits_used || 0;
-  const creditsTotal = credits?.credits_total || 100;
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -90,14 +87,23 @@ export function AppTopbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-1.5">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium"><span className="text-foreground">{creditsUsed}</span><span className="text-muted-foreground"> / {creditsTotal}</span></span>
-          <div className="h-4 w-px bg-border" />
-          <span className="text-xs text-muted-foreground">credits</span>
-        </div>
-
-        <Button size="sm" className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm hover:shadow-glow"><Crown className="h-4 w-4" /><span className="hidden sm:inline">Upgrade</span></Button>
+        {subscribed ? (
+          <Badge variant="outline" className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-3 py-1.5">
+            <Check className="h-3.5 w-3.5" />
+            <span className="text-sm font-medium">All-in-One</span>
+          </Badge>
+        ) : (
+          <Button 
+            size="sm" 
+            className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm hover:shadow-glow"
+            onClick={startCheckout}
+            disabled={subLoading}
+          >
+            <Crown className="h-4 w-4" />
+            <span className="hidden sm:inline">Start Free Trial</span>
+          </Button>
+        )}
+        
         <Button variant="ghost" size="icon" onClick={toggleTheme}>{isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</Button>
         <Button variant="ghost" size="icon" className="relative"><Bell className="h-5 w-5" /></Button>
 
@@ -109,6 +115,10 @@ export function AppTopbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">{user?.email}</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/subscription")}>
+              <Crown className="mr-2 h-4 w-4" />Subscription
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
           </DropdownMenuContent>
