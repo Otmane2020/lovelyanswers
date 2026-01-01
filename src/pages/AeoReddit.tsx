@@ -32,7 +32,20 @@ interface RedditPost {
   suggestedComment?: string;
   url: string;
   estimatedScore?: number;
+  brandMentioned?: boolean;
+  linkIncluded?: boolean;
 }
+
+// Keywords → Subreddits mapping for better targeting
+const KEYWORD_SUBREDDIT_MAP: Record<string, string[]> = {
+  "shopify": ["shopify", "ecommerce", "dropship", "smallbusiness"],
+  "seo": ["seo", "bigseo", "marketing", "juststart"],
+  "ai seo": ["seo", "artificialintelligence", "marketing", "bigseo"],
+  "ecommerce": ["ecommerce", "shopify", "entrepreneur", "smallbusiness"],
+  "marketing": ["marketing", "digitalmarketing", "seo", "socialmedia"],
+  "saas": ["saas", "startups", "entrepreneur", "webdev"],
+  "wordpress": ["wordpress", "webdev", "webdesign", "seo"],
+};
 
 export default function AeoReddit() {
   const { toast } = useToast();
@@ -52,12 +65,29 @@ export default function AeoReddit() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Build keywords from project data
+      const projectKeywords: string[] = [];
+      if (activeProject.brand_name) projectKeywords.push(activeProject.brand_name.toLowerCase());
+      if (activeProject.business_type) projectKeywords.push(activeProject.business_type.toLowerCase());
+      
+      // Map keywords to relevant subreddits
+      const targetSubreddits = new Set<string>();
+      projectKeywords.forEach(kw => {
+        const matchedSubs = KEYWORD_SUBREDDIT_MAP[kw] || [];
+        matchedSubs.forEach(sub => targetSubreddits.add(sub));
+      });
+      
+      // Add defaults if no specific ones found
+      if (targetSubreddits.size === 0) {
+        ["seo", "marketing", "smallbusiness", "entrepreneur", "ecommerce"].forEach(s => targetSubreddits.add(s));
+      }
+      
       const { data, error } = await supabase.functions.invoke('reddit-agent', {
         body: {
           action: 'find-opportunities',
           projectId: activeProject.id,
-          subreddits: ['seo', 'marketing', 'smallbusiness', 'entrepreneur', 'ecommerce'],
-          keywords: activeProject.brand_name ? [activeProject.brand_name] : []
+          subreddits: Array.from(targetSubreddits).slice(0, 5),
+          keywords: projectKeywords
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
@@ -112,7 +142,7 @@ export default function AeoReddit() {
     }
   }, [activeProject?.id, initialLoadDone]);
 
-  const generateReplyForPost = async (post: RedditPost) => {
+  const generateReplyForPost = async (post: RedditPost, options?: { mentionBrand?: boolean; includeLink?: boolean }) => {
     setGeneratingId(post.id);
     
     try {
@@ -124,8 +154,11 @@ export default function AeoReddit() {
           title: post.title,
           body: post.body || '',
           subreddit: post.subreddit.replace('r/', ''),
-          mention_brand: false,
-          tone: 'expert_human'
+          mention_brand: options?.mentionBrand ?? true, // Default to true
+          include_link: options?.includeLink ?? false,
+          tone: 'expert_human',
+          brand_name: activeProject?.brand_name || '',
+          brand_url: activeProject?.website_url || ''
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
@@ -139,14 +172,19 @@ export default function AeoReddit() {
           ? { 
               ...p, 
               suggestedComment: data.reply,
-              estimatedScore: data.estimatedScore
+              estimatedScore: data.estimatedScore,
+              brandMentioned: data.brandMentioned,
+              linkIncluded: data.linkIncluded
             }
           : p
       ));
 
+      const brandInfo = data.brandMentioned 
+        ? (data.linkIncluded ? " (with brand + link)" : " (with brand mention)") 
+        : "";
       toast({
         title: "Reply generated!",
-        description: `Reddit score: ${data.estimatedScore}/100`,
+        description: `Reddit score: ${data.estimatedScore}/100${brandInfo}`,
       });
     } catch (error) {
       console.error('Error generating reply:', error);
@@ -165,7 +203,7 @@ export default function AeoReddit() {
     
     for (const post of posts) {
       if (!post.suggestedComment) {
-        await generateReplyForPost(post);
+        await generateReplyForPost(post, { mentionBrand: true, includeLink: false });
         await new Promise(r => setTimeout(r, 1000));
       }
     }
@@ -173,7 +211,7 @@ export default function AeoReddit() {
     setLoading(false);
     toast({
       title: "All replies generated!",
-      description: "Your Reddit engagement opportunities are ready.",
+      description: `Generated with brand mentions for ${activeProject?.brand_name || "your brand"}`,
     });
   };
 
@@ -348,10 +386,20 @@ export default function AeoReddit() {
                 {/* Suggested Comment or Generate Button */}
                 {post.suggestedComment ? (
                   <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <Zap className="w-4 h-4 text-emerald-500" />
                         <span className="text-sm font-medium text-emerald-600">Generated Reply</span>
+                        {post.brandMentioned && (
+                          <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30 text-xs">
+                            Brand mentioned
+                          </Badge>
+                        )}
+                        {post.linkIncluded && (
+                          <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 text-xs">
+                            Link included
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {getScoreBadge(post.estimatedScore)}
@@ -365,12 +413,12 @@ export default function AeoReddit() {
                     </p>
                   </div>
                 ) : (
-                  <div className="mt-4">
+                  <div className="mt-4 flex gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => generateReplyForPost(post)}
+                      onClick={() => generateReplyForPost(post, { mentionBrand: true })}
                       disabled={generatingId === post.id}
-                      className="w-full"
+                      className="flex-1"
                     >
                       {generatingId === post.id ? (
                         <>
@@ -380,9 +428,17 @@ export default function AeoReddit() {
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Generate Reply
+                          Generate with Brand
                         </>
                       )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => generateReplyForPost(post, { mentionBrand: false })}
+                      disabled={generatingId === post.id}
+                      className="text-muted-foreground"
+                    >
+                      Neutral
                     </Button>
                   </div>
                 )}
