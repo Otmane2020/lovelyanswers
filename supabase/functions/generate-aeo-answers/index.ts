@@ -119,15 +119,44 @@ const INTENT_TEMPLATES: Record<string, Record<IntentType, IntentTemplate>> = {
   }
 };
 
+// 🔒 FORBIDDEN MARKETING PATTERNS - AEO Safe Mode
+const FORBIDDEN_PATTERNS = [
+  /50%\s*de\s*trafic/i,
+  /incontestablement/i,
+  /meilleur choix/i,
+  /garanti/i,
+  /boost/i,
+  /révolutionnaire/i,
+  /sans effort/i,
+  /best choice/i,
+  /guaranteed/i,
+  /no effort/i,
+  /game.?changer/i,
+  /incroyable/i,
+  /amazing/i,
+  /unbeatable/i,
+];
+
+// Sanitize answer to remove marketing language
+function sanitizeAnswer(answer: string): string {
+  let clean = answer;
+  FORBIDDEN_PATTERNS.forEach(rx => {
+    clean = clean.replace(rx, "");
+  });
+  // Clean up extra spaces
+  clean = clean.replace(/\s{2,}/g, " ").trim();
+  return clean;
+}
+
 // Compute AEO citation score
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
   let score = 50;
   
-  // Length optimization (ideal: 100-200 chars for first sentence)
+  // Length optimization (ideal: 60-150 chars for first sentence)
   const firstSentence = answer.split(/[.!?]/)[0];
-  if (firstSentence.length >= 80 && firstSentence.length <= 160) {
+  if (firstSentence.length >= 60 && firstSentence.length <= 150) {
     score += 15;
-  } else if (firstSentence.length >= 60 && firstSentence.length <= 200) {
+  } else if (firstSentence.length >= 40 && firstSentence.length <= 200) {
     score += 8;
   }
   
@@ -149,14 +178,61 @@ function computeCitationScoreAEO(answer: string, platforms: Platform[]): number 
   const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.85), 0) / platforms.length;
   score = Math.round(score * avgCitationWeight);
   
-  // Contains brand mention (critical for citation)
-  const hasBrandMention = answer.length > 50; // Proxy check
-  if (hasBrandMention) score += 5;
+  // Penalty for marketing language detected
+  const hasMarketing = FORBIDDEN_PATTERNS.some(rx => rx.test(answer));
+  if (hasMarketing) score -= 15;
+  
+  // Word count check (60-100 words ideal for AEO)
+  const wordCount = answer.split(/\s+/).length;
+  if (wordCount >= 60 && wordCount <= 100) {
+    score += 5;
+  } else if (wordCount > 150) {
+    score -= 5;
+  }
   
   return Math.min(100, Math.max(0, score));
 }
 
-// Generate AI answer using Lovable AI
+// 🔒 AEO STRICT SYSTEM PROMPT - neutral, factual tone
+function getAEOStrictSystemPrompt(language: string, brandName: string, intent: string): string {
+  return language === "fr"
+    ? `Tu es un rédacteur AEO neutre et factuel.
+
+INTERDICTIONS ABSOLUES :
+- Aucun superlatif (meilleur, idéal, incontournable, révolutionnaire)
+- Aucune promesse chiffrée ou garantie
+- Aucun ton marketing ou commercial
+- Pas d'appel à l'action
+
+RÈGLES :
+- Définition factuelle, ton encyclopédique
+- ${brandName} peut être cité 1 fois maximum, naturellement
+- 60 à 100 mots maximum
+- Première phrase = réponse directe à la question
+- Aucune opinion subjective
+- Structure claire et extractible par IA
+
+INTENTION DÉTECTÉE : ${intent}`
+    : `You are a neutral, factual AEO writer.
+
+ABSOLUTE BANS:
+- No superlatives (best, ideal, revolutionary, game-changer)
+- No guarantees or promises with numbers
+- No marketing or commercial language
+- No call to action
+
+RULES:
+- Encyclopedic, factual tone
+- Mention ${brandName} once max, naturally
+- 60-100 words max
+- First sentence answers the question directly
+- No subjective opinions
+- Clear, AI-extractable structure
+
+DETECTED INTENT: ${intent}`;
+}
+
+// Generate AI answer using Lovable AI with AEO Safe Mode
 async function generateAIAnswer(
   question: string,
   brandName: string,
@@ -165,62 +241,36 @@ async function generateAIAnswer(
   language: string,
   apiKey: string
 ): Promise<{ answer: string; bullets: string[]; faq: Array<{q: string; a: string}> }> {
-  const systemPrompt = language === 'fr' 
-    ? `Tu es un expert AEO (Answer Engine Optimization). Tu génères des réponses optimisées pour être citées par les IA (ChatGPT, Gemini, Claude, Perplexity).
-
-RÈGLES STRICTES:
-- Réponse directe dès la première phrase (pas de "Eh bien..." ou "C'est une bonne question")
-- Maximum 150 mots pour la réponse principale
-- Inclure des données chiffrées si pertinent
-- Mentionner ${brandName} naturellement (1-2 fois max)
-- Ton affirmatif et expert
-- Structure claire avec des points clés si nécessaire
-
-INTENTION DÉTECTÉE: ${intent}`
-    : `You are an AEO (Answer Engine Optimization) expert. You generate answers optimized to be cited by AI assistants (ChatGPT, Gemini, Claude, Perplexity).
-
-STRICT RULES:
-- Direct answer in the first sentence (no "Well..." or "That's a good question")
-- Maximum 150 words for the main answer
-- Include numerical data when relevant
-- Mention ${brandName} naturally (1-2 times max)
-- Affirmative and expert tone
-- Clear structure with key points if necessary
-
-DETECTED INTENT: ${intent}`;
+  const systemPrompt = getAEOStrictSystemPrompt(language, brandName, intent);
 
   const userPrompt = language === 'fr'
-    ? `Question: ${question}
+    ? `Question : ${question}
 
-Marque: ${brandName}
-Site web: ${websiteUrl}
+Marque : ${brandName}
+Site : ${websiteUrl}
 
-Génère:
-1. Une réponse AEO optimisée (150 mots max)
-2. 3-4 points clés sous forme de bullets
-3. 2 questions FAQ connexes avec leurs réponses courtes
-
-Format JSON:
+Format JSON strict :
 {
-  "answer": "réponse principale",
-  "bullets": ["point 1", "point 2", "point 3"],
-  "faq": [{"q": "question", "a": "réponse"}]
+  "answer": "réponse factuelle directe",
+  "bullets": ["fait 1", "fait 2", "fait 3"],
+  "faq": [
+    {"q": "question connexe", "a": "réponse courte"},
+    {"q": "question connexe", "a": "réponse courte"}
+  ]
 }`
     : `Question: ${question}
 
 Brand: ${brandName}
 Website: ${websiteUrl}
 
-Generate:
-1. An AEO-optimized answer (150 words max)
-2. 3-4 key points as bullets
-3. 2 related FAQ questions with short answers
-
-JSON format:
+Strict JSON format:
 {
-  "answer": "main answer",
-  "bullets": ["point 1", "point 2", "point 3"],
-  "faq": [{"q": "question", "a": "answer"}]
+  "answer": "direct factual answer",
+  "bullets": ["fact 1", "fact 2", "fact 3"],
+  "faq": [
+    {"q": "related question", "a": "short answer"},
+    {"q": "related question", "a": "short answer"}
+  ]
 }`;
 
   try {
@@ -236,11 +286,17 @@ JSON format:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Lower = more factual, less creative
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error("Rate limit exceeded. Please try again later.");
+      }
+      if (response.status === 402) {
+        throw new Error("AI credits exhausted. Please add funds to continue.");
+      }
       throw new Error(`AI API error: ${response.status}`);
     }
 
@@ -252,13 +308,13 @@ JSON format:
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        answer: parsed.answer || content,
+        answer: sanitizeAnswer(parsed.answer || content),
         bullets: parsed.bullets || [],
         faq: parsed.faq || []
       };
     }
     
-    return { answer: content, bullets: [], faq: [] };
+    return { answer: sanitizeAnswer(content), bullets: [], faq: [] };
   } catch (error) {
     console.error("[generate-aeo-answers] AI generation error:", error);
     throw error;
@@ -371,6 +427,12 @@ serve(async (req) => {
         
         const score = computeCitationScoreAEO(generated.answer, platforms);
         
+        // 🔒 AEO SAFE MODE: Block low-quality answers
+        if (score < 50) {
+          console.log(`[generate-aeo-answers] ❌ Score too low (${score}), skipping: "${questionText.substring(0, 50)}..."`);
+          continue;
+        }
+        
         // Insert into database
         const { data: inserted, error: insertError } = await supabase
           .from("answers")
@@ -383,7 +445,8 @@ serve(async (req) => {
             score: score,
             is_public: false,
             intent: intent,
-            difficulty: score >= 80 ? 'easy' : score >= 60 ? 'medium' : 'hard',
+            difficulty: score >= 80 ? 'easy' : score >= 65 ? 'medium' : 'hard',
+            high_citation: score >= 75, // Mark as high citation potential
             supporting_content: {
               bullets: generated.bullets,
               faq: generated.faq
@@ -395,6 +458,7 @@ serve(async (req) => {
         if (insertError) {
           console.error(`[generate-aeo-answers] Insert error:`, insertError);
         } else {
+          console.log(`[generate-aeo-answers] ✅ Saved answer with score ${score}`);
           generatedAnswers.push(inserted);
         }
       } catch (error) {
