@@ -49,7 +49,7 @@ export function AeoSidebar() {
 
   const otherMenuItems = [
     { title: "Settings", url: "/settings", icon: Settings },
-    { title: "Billing", url: "/subscription", icon: CreditCard },
+    { title: "Billing", url: "/billing", icon: CreditCard },
   ];
 
   const isActive = (path: string) => currentPath === path;
