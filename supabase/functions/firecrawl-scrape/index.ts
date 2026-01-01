@@ -135,20 +135,27 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (lovableApiKey) {
       try {
-        console.log('Extracting audiences using AI...');
+        console.log('Extracting audiences using AI in language:', language);
         
-        const aiPrompt = `Tu es un expert en marketing. Analyse cette description d'entreprise et le contenu de la page pour identifier 4 à 6 audiences cibles très spécifiques et pertinentes.
+        // Use same language as the content for audiences
+        const langInstruction = language === 'fr' 
+          ? 'Réponds en FRANÇAIS uniquement.'
+          : 'Respond in ENGLISH only.';
+        
+        const aiPrompt = `You are a marketing expert. Analyze this business description and page content to identify 4-6 very specific and relevant target audiences.
 
 Description: ${enrichedDescription}
 
-Extrait du contenu de la page:
+Page content excerpt:
 ${contentPreview.substring(0, 2000)}
 
-Retourne UNIQUEMENT un JSON array avec 4 à 6 audiences cibles courtes (2-4 mots max chacune), spécifiques au business analysé. 
-Exemples de bons formats: "propriétaires de boutiques Shopify", "agences SEO", "marketeurs e-commerce", "PME tech".
-NE PAS utiliser des termes génériques comme "business professionals" ou "AI early adopters".
+${langInstruction}
 
-Format de réponse attendu: ["audience1", "audience2", "audience3", "audience4"]`;
+Return ONLY a JSON array with 4-6 short target audiences (2-4 words max each), specific to the analyzed business.
+Good examples: "Shopify store owners", "SEO agencies", "e-commerce marketers", "tech SMBs".
+DO NOT use generic terms like "business professionals" or "AI early adopters".
+
+Expected format: ["audience1", "audience2", "audience3", "audience4"]`;
 
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
