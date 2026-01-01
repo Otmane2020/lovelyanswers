@@ -21,6 +21,12 @@ export function UserSettings() {
 
   return (
     <div className="space-y-6">
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          Manage your user information and security
+        </p>
+      </div>
+      
       <Card className="p-6">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -67,7 +73,7 @@ export function UserSettings() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-2">
             <div className="space-y-0.5">
               <Label>Product Updates</Label>
               <p className="text-xs text-muted-foreground">
@@ -77,10 +83,9 @@ export function UserSettings() {
             <Switch
               checked={productUpdates}
               onCheckedChange={setProductUpdates}
+              className="data-[state=checked]:bg-primary"
             />
           </div>
-
-          <Button className="w-full">Save changes</Button>
         </div>
       </Card>
     </div>
