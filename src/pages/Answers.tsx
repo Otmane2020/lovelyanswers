@@ -6,24 +6,34 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAnswers, useToggleAnswerPublic } from "@/hooks/useAnswers";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
 export default function Answers() {
   const navigate = useNavigate();
-  const { data: answers = [], isLoading } = useAnswers();
+  const { user } = useAuth();
+  const { data: answers = [], isLoading, refetch } = useAnswers();
   const togglePublic = useToggleAnswerPublic();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [showHighCitation, setShowHighCitation] = useState(false);
   const [showPublishedOnly, setShowPublishedOnly] = useState(false);
   const [viewingAnswer, setViewingAnswer] = useState<typeof answers[0] | null>(null);
+  
+  // New Answer Modal State
+  const [showNewAnswerModal, setShowNewAnswerModal] = useState(false);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const filteredAnswers = answers.filter((answer) => {
     const matchesSearch = answer.question.toLowerCase().includes(searchQuery.toLowerCase());
@@ -50,13 +60,61 @@ export default function Answers() {
   };
 
   const handleViewPublic = (slug: string) => {
-    window.open(`/answer/${slug}`, "_blank");
+    window.open(`/answers/${slug}`, "_blank");
   };
 
   const handleCopyLink = (slug: string) => {
-    const publicUrl = `${window.location.origin}/answer/${slug}`;
+    const publicUrl = `${window.location.origin}/answers/${slug}`;
     navigator.clipboard.writeText(publicUrl);
     toast.success("Link copied to clipboard!");
+  };
+
+  const handleGenerateNewAnswer = async () => {
+    if (!newQuestion.trim() || !user) return;
+    
+    setIsGenerating(true);
+    try {
+      // Get project
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+      
+      if (!projects || projects.length === 0) {
+        toast.error("No active project found");
+        return;
+      }
+
+      const project = projects[0];
+      
+      // Call the generate-aeo-answers edge function
+      const { data, error } = await supabase.functions.invoke("generate-aeo-answers", {
+        body: {
+          projectId: project.id,
+          questions: [newQuestion],
+          businessContext: {
+            name: project.brand_name || project.name,
+            description: project.business_description,
+            audience: project.audience,
+            language: project.language
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success("Answer generated successfully!");
+      setShowNewAnswerModal(false);
+      setNewQuestion("");
+      refetch();
+    } catch (error) {
+      console.error("Error generating answer:", error);
+      toast.error("Failed to generate answer");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -67,7 +125,7 @@ export default function Answers() {
             <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
             <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
           </div>
-          <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
+          <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
             <Plus className="h-4 w-4" />New Answer
           </Button>
         </div>
@@ -139,7 +197,7 @@ export default function Answers() {
               <div className="flex flex-col items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><Search className="h-8 w-8 text-muted-foreground" /></div>
                 <div><h3 className="text-lg font-semibold">No answers found</h3><p className="text-muted-foreground">{answers.length === 0 ? "Generate your first AI-ready answer" : "Try adjusting your filters"}</p></div>
-                <Button className="gap-2 gradient-bg text-primary-foreground"><Plus className="h-4 w-4" />Create Answer</Button>
+                <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground"><Plus className="h-4 w-4" />Create Answer</Button>
               </div>
             </GlassCard>
           )}
@@ -173,6 +231,43 @@ export default function Answers() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Answer Modal */}
+      <Dialog open={showNewAnswerModal} onOpenChange={setShowNewAnswerModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate New Answer</DialogTitle>
+            <DialogDescription>
+              Enter a question and we'll generate an AI-optimized, citable answer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="question">Question</Label>
+              <Textarea
+                id="question"
+                placeholder="e.g., What is AEO and how does it differ from SEO?"
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewAnswerModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleGenerateNewAnswer}
+              disabled={!newQuestion.trim() || isGenerating}
+              className="gradient-bg text-primary-foreground"
+            >
+              {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generate Answer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
