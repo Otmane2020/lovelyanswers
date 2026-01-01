@@ -116,10 +116,17 @@ Deno.serve(async (req) => {
     const contentPreview = markdown.substring(0, 2000);
     
     // Start AI and wait for competitors in parallel
-    const [audiences, competitors] = await Promise.all([
+    const [audiences, dataForSeoCompetitors] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
       competitorsPromise || Promise.resolve([])
     ]);
+
+    // If DataForSEO returned no competitors, use AI to detect them
+    let competitors = dataForSeoCompetitors;
+    if (competitors.length === 0 && lovableApiKey) {
+      console.log('[COMPETITORS] DataForSEO returned nothing, using AI fallback');
+      competitors = await detectCompetitorsWithAI(enrichedDescription, contentPreview, brandName, ownDomain, lovableApiKey);
+    }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
     console.log('[SCRAPE] Found', audiences.length, 'audiences,', competitors.length, 'competitors');
@@ -195,6 +202,80 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
+// AI-based competitor detection fallback
+async function detectCompetitorsWithAI(description: string, content: string, brandName: string, domain: string, apiKey: string): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [{
+          role: 'user',
+          content: `Based on this business description and content, identify 3-5 REAL competitor domains that offer similar products/services.
+
+Business: ${brandName}
+Domain: ${domain}
+Description: ${description}
+Content preview: ${content.substring(0, 800)}
+
+Rules:
+- Return ONLY real existing domains (e.g., "competitor.com")
+- No social media sites (facebook, instagram, linkedin, twitter)
+- No generic platforms (amazon, shopify, wordpress, wix)
+- Only direct business competitors in the same niche
+- If you're not sure about real competitors, return fewer items
+
+Return ONLY a JSON array: ["competitor1.com", "competitor2.com", "competitor3.com"]`
+        }],
+        temperature: 0.3,
+        max_tokens: 200,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*?\]/);
+    
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) {
+        // Filter out obvious non-competitors
+        const blocked = new Set([
+          'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
+          'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com',
+          'amazon.com', 'ebay.com', 'wikipedia.org', 'shopify.com',
+          'wix.com', 'wordpress.com', 'squarespace.com', 'webflow.com'
+        ]);
+        const filtered = parsed.filter((d: string) => {
+          if (!d || typeof d !== 'string') return false;
+          const lower = d.toLowerCase();
+          if (blocked.has(lower)) return false;
+          if (lower.includes(domain.split('.')[0])) return false;
+          return true;
+        });
+        console.log('[COMPETITORS] AI detected:', filtered);
+        return filtered.slice(0, 5);
+      }
+    }
+    return [];
+  } catch (e) {
+    console.error('[COMPETITORS AI] Error:', e);
+    return [];
+  }
+}
+
 // Fast competitors fetch - single API call only
 async function fetchCompetitorsFast(domain: string, login: string, password: string): Promise<string[]> {
   try {
@@ -214,7 +295,7 @@ async function fetchCompetitorsFast(domain: string, login: string, password: str
         location_code: 2840, // US - most data
         language_code: 'en',
         limit: 10,
-        filters: ["intersections", ">", 3]
+        filters: ["intersections", ">", 1] // Lowered from 3 to get more results
       }]),
       signal: controller.signal,
     });
