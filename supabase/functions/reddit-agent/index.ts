@@ -7,10 +7,16 @@ const corsHeaders = {
 };
 
 interface RedditRequest {
-  projectId: string;
-  action: "find-opportunities" | "generate-responses" | "analyze-subreddits";
+  projectId?: string;
+  action: "find-opportunities" | "generate-responses" | "analyze-subreddits" | "aeo-reply";
   subreddits?: string[];
   keywords?: string[];
+  // For aeo-reply action
+  title?: string;
+  body?: string;
+  subreddit?: string;
+  mention_brand?: boolean;
+  tone?: "expert_human" | "casual" | "professional";
 }
 
 interface RedditOpportunity {
@@ -29,11 +35,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
@@ -41,7 +42,41 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { projectId, action, subreddits = [], keywords = [] }: RedditRequest = await req.json();
+    const { 
+      projectId, 
+      action, 
+      subreddits = [], 
+      keywords = [],
+      title,
+      body,
+      subreddit,
+      mention_brand = false,
+      tone = "expert_human"
+    }: RedditRequest = await req.json();
+
+    console.log(`[reddit-agent] Action: ${action}${projectId ? ` for project ${projectId}` : ""}`);
+
+    // Handle aeo-reply action (doesn't require project)
+    if (action === "aeo-reply") {
+      if (!title || !subreddit) {
+        throw new Error("title and subreddit are required for aeo-reply action");
+      }
+      const result = await generateAeoReply(title, body || "", subreddit, mention_brand, tone, lovableApiKey);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action,
+          ...result,
+          generatedAt: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Other actions require projectId
+    if (!projectId) {
+      throw new Error("projectId is required for this action");
+    }
 
     console.log(`[reddit-agent] Action: ${action} for project ${projectId}`);
 
@@ -321,4 +356,108 @@ Return JSON:
   } catch {
     return { analysis: [] };
   }
+}
+
+// AEO Reply - Generate human-like Reddit comment for a specific post
+async function generateAeoReply(
+  title: string,
+  body: string,
+  subreddit: string,
+  mentionBrand: boolean,
+  tone: string,
+  apiKey: string
+): Promise<{ reply: string; estimatedScore: number }> {
+  const toneInstructions = {
+    expert_human: "Write like an experienced practitioner sharing genuine insights. Be helpful but not academic.",
+    casual: "Write in a relaxed, conversational style. Use common Reddit expressions naturally.",
+    professional: "Write clearly and professionally, but avoid corporate jargon. Be direct and helpful."
+  };
+
+  const systemPrompt = `You are a Reddit user and SEO/AEO practitioner.
+Write helpful, natural, non-promotional answers.
+Never sound like marketing or AI-generated.
+No links in the response.
+If a tool is mentioned, treat it as personal experience.
+Tone: ${toneInstructions[tone as keyof typeof toneInstructions] || toneInstructions.expert_human}`;
+
+  const userPrompt = `Reddit post to respond to:
+Title: ${title}
+${body ? `Body: ${body}` : "(No body text)"}
+Subreddit: r/${subreddit}
+
+Task:
+- Answer clearly and practically as a fellow Redditor
+- Focus on AEO (Answer Engine Optimization) and SEO evolution
+- Maximum 120 words
+- End with a soft open question to encourage discussion
+${mentionBrand ? "- You may mention NewAI once briefly as a tool you personally tested, but keep it ultra soft (1 phrase max)" : "- Do NOT mention any product or tool by name"}
+
+Write the Reddit comment now:`;
+
+  console.log(`[reddit-agent] Generating AEO reply for r/${subreddit}: "${title.substring(0, 50)}..."`);
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[reddit-agent] AI API error:`, response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (response.status === 402) {
+      throw new Error("AI credits exhausted. Please add funds to continue.");
+    }
+    throw new Error(`AI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const reply = data.choices?.[0]?.message?.content?.trim();
+
+  if (!reply) {
+    throw new Error("No reply generated");
+  }
+
+  // Estimate upvote potential based on content quality signals
+  const estimatedScore = estimateReplyScore(reply, subreddit);
+
+  console.log(`[reddit-agent] Generated reply (${reply.length} chars), estimated score: ${estimatedScore}`);
+
+  return { reply, estimatedScore };
+}
+
+function estimateReplyScore(reply: string, subreddit: string): number {
+  let score = 50; // Base score
+
+  // Positive signals
+  if (reply.length > 80 && reply.length < 600) score += 10; // Good length
+  if (reply.includes("?")) score += 10; // Ends with question
+  if (reply.match(/I've|I've been|In my experience|What I've found/i)) score += 10; // Personal experience
+  if (!reply.match(/http|www\.|\.com/i)) score += 5; // No links (good for Reddit)
+  
+  // Negative signals
+  if (reply.match(/check out|try using|I recommend/i)) score -= 10; // Promotional language
+  if (reply.length > 800) score -= 10; // Too long
+  if (reply.match(/As an AI|I'm an AI/i)) score -= 30; // AI disclosure (bad)
+
+  // Subreddit-specific adjustments
+  if (["seo", "bigseo", "TechSEO"].includes(subreddit.toLowerCase())) {
+    if (reply.match(/AEO|Answer Engine|AI search/i)) score += 5; // Relevant topic
+  }
+
+  return Math.max(10, Math.min(95, score));
 }
