@@ -280,10 +280,19 @@ export default function AeoAnswers() {
             <h1 className="text-3xl font-bold text-foreground">AEO Answers</h1>
             <p className="text-muted-foreground mt-1">AI-optimized answers for citation by ChatGPT, Gemini, Claude</p>
           </div>
-          <Button onClick={fetchAnswers} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={fetchAnswers} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/onboarding'}
+              className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate New
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
