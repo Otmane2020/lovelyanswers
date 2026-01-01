@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
-  Zap,
+  Rocket,
   ArrowRight,
   Check,
   Sparkles,
@@ -54,7 +54,7 @@ export default function Index() {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Zap className="h-5 w-5 text-primary-foreground" />
+              <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight">
               Aeo<span className="gradient-text">reply</span>
@@ -249,7 +249,7 @@ export default function Index() {
         <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
-              <Zap className="h-4 w-4 text-primary-foreground" />
+              <Rocket className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-bold">Aeoreply</span>
           </div>
