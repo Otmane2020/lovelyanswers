@@ -67,6 +67,58 @@ interface RedditOpportunity {
   postAge: string;
 }
 
+// 🔥 NEW: Fetch REAL Reddit posts using public JSON API
+interface RealRedditPost {
+  id: string;
+  title: string;
+  body: string;
+  subreddit: string;
+  url: string;
+  score: number;
+  comments: number;
+  createdUtc: number;
+}
+
+async function fetchRealRedditPosts(subreddit: string): Promise<RealRedditPost[]> {
+  try {
+    const res = await fetch(
+      `https://www.reddit.com/r/${subreddit}/hot.json?limit=15`,
+      { 
+        headers: { 
+          "User-Agent": "aeo-reddit-agent/1.0 (by /u/aeo-tool)" 
+        } 
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[reddit-agent] Failed to fetch r/${subreddit}: ${res.status}`);
+      return [];
+    }
+
+    const json = await res.json();
+    
+    if (!json.data?.children) {
+      return [];
+    }
+
+    return json.data.children
+      .filter((p: any) => p.data && !p.data.stickied) // Skip pinned posts
+      .map((p: any) => ({
+        id: p.data.id,
+        title: p.data.title,
+        body: p.data.selftext || "",
+        subreddit: p.data.subreddit,
+        url: `https://www.reddit.com${p.data.permalink}`,
+        score: p.data.score,
+        comments: p.data.num_comments,
+        createdUtc: p.data.created_utc
+      }));
+  } catch (error) {
+    console.error(`[reddit-agent] Error fetching r/${subreddit}:`, error);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -212,7 +264,7 @@ serve(async (req) => {
 
     switch (action) {
       case "find-opportunities":
-        result = await findOpportunities(project, keywords, redditData, lovableApiKey);
+        result = await findOpportunities(project, keywords, subreddits, lovableApiKey);
         break;
       case "generate-responses":
         result = await generateResponses(project, subreddits, keywords, lovableApiKey);
@@ -245,47 +297,81 @@ serve(async (req) => {
   }
 });
 
+// 🔥 FIXED: Use REAL Reddit posts, not AI-generated fake ones
 async function findOpportunities(
   project: Record<string, unknown>,
   keywords: string[],
-  redditData: unknown[],
+  subreddits: string[],
   apiKey: string
-): Promise<{ opportunities: RedditOpportunity[] }> {
-  const prompt = `You are a Reddit marketing expert. Find opportunities for brand visibility on Reddit for:
+): Promise<{ opportunities: any[] }> {
+  
+  // Default subreddits if none provided
+  const targetSubreddits = subreddits.length > 0 
+    ? subreddits.slice(0, 5) 
+    : ["seo", "marketing", "smallbusiness", "entrepreneur", "ecommerce"];
+
+  console.log(`[reddit-agent] Fetching real posts from: ${targetSubreddits.join(", ")}`);
+
+  // 1. Fetch REAL posts from Reddit JSON API
+  const allPosts: RealRedditPost[] = [];
+  for (const sub of targetSubreddits) {
+    const posts = await fetchRealRedditPosts(sub);
+    allPosts.push(...posts);
+    // Small delay to be nice to Reddit
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  console.log(`[reddit-agent] Fetched ${allPosts.length} real Reddit posts`);
+
+  if (allPosts.length === 0) {
+    return { opportunities: [] };
+  }
+
+  // 2. Use AI to QUALIFY which posts are worth responding to
+  const postsForAI = allPosts.slice(0, 30).map(p => ({
+    id: p.id,
+    title: p.title,
+    body: p.body.substring(0, 200),
+    subreddit: p.subreddit,
+    url: p.url,
+    score: p.score,
+    comments: p.comments
+  }));
+
+  const prompt = `You are analyzing REAL Reddit posts to find engagement opportunities.
 
 Business: ${project.brand_name || project.name}
-Website: ${project.website_url}
 Industry: ${project.business_type || "General"}
 Target Audience: ${project.audience || "General audience"}
-Keywords: ${keywords.join(", ") || "Not specified"}
+Keywords: ${keywords.join(", ") || "general topics"}
 
-${redditData.length > 0 ? `
-Scraped Reddit data:
-${redditData.map((d: any) => `r/${d.subreddit}: ${d.content?.substring(0, 500)}`).join("\n\n")}
-` : ""}
+Here are REAL Reddit posts (with real URLs):
+${JSON.stringify(postsForAI, null, 2)}
 
-Find Reddit threads where the brand could add value by:
-1. Answering questions related to the industry
-2. Sharing expertise without being promotional
-3. Engaging in discussions where the product/service could help
-4. Building authority through helpful contributions
+Select the TOP 10 posts where replying would be:
+1. Natural and helpful (not promotional)
+2. Relevant to the business expertise
+3. Posts with < 50 comments are better (less competition)
+4. Questions or discussions work best
 
-Generate 10 realistic Reddit opportunities. Return JSON:
+Return JSON with ONLY these real posts (keep exact URLs):
 {
   "opportunities": [
     {
-      "subreddit": "subreddit_name",
-      "postTitle": "Thread title",
-      "postUrl": "https://reddit.com/r/subreddit/comments/...",
-      "relevanceScore": 85,
-      "suggestedResponse": "A helpful, non-promotional response...",
+      "id": "exact_post_id",
+      "subreddit": "exact_subreddit",
+      "title": "exact_title",
+      "body": "post body if any",
+      "url": "exact_url_from_input",
+      "score": number,
+      "comments": number,
       "engagementPotential": "high|medium|low",
-      "postAge": "2 hours ago"
+      "reason": "Why this post is a good opportunity"
     }
   ]
 }
 
-Make responses helpful, not promotional. Focus on adding genuine value.`;
+CRITICAL: Return ONLY posts from the input. Do NOT invent URLs or post IDs.`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -296,14 +382,28 @@ Make responses helpful, not promotional. Focus on adding genuine value.`;
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are a Reddit marketing expert. Respond with valid JSON only." },
+        { role: "system", content: "You are a Reddit analyst. Return valid JSON only. Never invent data." },
         { role: "user", content: prompt }
       ],
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
+    console.error(`[reddit-agent] AI API error: ${response.status}`);
+    // Fallback: return raw posts without AI qualification
+    return {
+      opportunities: allPosts.slice(0, 10).map(p => ({
+        id: p.id,
+        subreddit: p.subreddit,
+        title: p.title,
+        body: p.body,
+        url: p.url,
+        score: p.score,
+        comments: p.comments,
+        engagementPotential: p.comments < 20 ? "high" : p.comments < 50 ? "medium" : "low",
+        reason: "Real Reddit post"
+      }))
+    };
   }
 
   const data = await response.json();
@@ -311,9 +411,33 @@ Make responses helpful, not promotional. Focus on adding genuine value.`;
 
   try {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || [null, content];
-    return JSON.parse(jsonMatch[1] || content);
-  } catch {
-    return { opportunities: [] };
+    const parsed = JSON.parse(jsonMatch[1] || content);
+    
+    // 🔒 CRITICAL: Validate that returned URLs are REAL (from our input)
+    const validUrls = new Set(allPosts.map(p => p.url));
+    const validatedOpportunities = (parsed.opportunities || []).filter((opp: any) => 
+      opp.url && validUrls.has(opp.url)
+    );
+
+    console.log(`[reddit-agent] Validated ${validatedOpportunities.length} opportunities with real URLs`);
+    
+    return { opportunities: validatedOpportunities };
+  } catch (parseError) {
+    console.error(`[reddit-agent] JSON parse error:`, parseError);
+    // Fallback to raw posts
+    return {
+      opportunities: allPosts.slice(0, 10).map(p => ({
+        id: p.id,
+        subreddit: p.subreddit,
+        title: p.title,
+        body: p.body,
+        url: p.url,
+        score: p.score,
+        comments: p.comments,
+        engagementPotential: "medium",
+        reason: "Real Reddit post"
+      }))
+    };
   }
 }
 

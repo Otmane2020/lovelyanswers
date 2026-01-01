@@ -67,19 +67,23 @@ export default function AeoReddit() {
       if (error) throw error;
 
       if (data?.opportunities && Array.isArray(data.opportunities)) {
-        const transformedPosts: RedditPost[] = data.opportunities.map((opp: any, index: number) => ({
-          id: opp.id || `post-${index}`,
-          subreddit: opp.subreddit ? `r/${opp.subreddit}` : 'r/seo',
-          title: opp.title || opp.question || 'Untitled post',
-          body: opp.body || opp.content || '',
-          views: opp.views || `${Math.floor(Math.random() * 15) + 1}K`,
-          trending: opp.trending ?? Math.random() > 0.5,
-          url: opp.url || `https://reddit.com/r/seo/comments/${opp.id || index}`
-        }));
+        // 🔒 CRITICAL: Only accept posts with REAL Reddit URLs
+        const transformedPosts: RedditPost[] = data.opportunities
+          .filter((opp: any) => opp.url && opp.url.includes("reddit.com/r/"))
+          .map((opp: any, index: number) => ({
+            id: opp.id || `post-${index}`,
+            subreddit: opp.subreddit ? `r/${opp.subreddit}` : 'r/unknown',
+            title: opp.title || 'Untitled post',
+            body: opp.body || '',
+            views: opp.score ? `${opp.score} pts` : `${opp.comments || 0} comments`,
+            trending: (opp.score || 0) > 100 || opp.engagementPotential === "high",
+            url: opp.url // REAL URL only
+          }));
+        
         setPosts(transformedPosts);
         toast({
           title: "Posts loaded",
-          description: `Found ${transformedPosts.length} Reddit opportunities`,
+          description: `Found ${transformedPosts.length} real Reddit opportunities`,
         });
       } else {
         setPosts([]);
