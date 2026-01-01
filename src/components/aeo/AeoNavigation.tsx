@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom";
-import { useTranslation } from "@/lib/language";
 import { cn } from "@/lib/utils";
 
 interface AeoNavigationProps {
@@ -7,13 +6,11 @@ interface AeoNavigationProps {
 }
 
 export default function AeoNavigation({ className }: AeoNavigationProps) {
-  const { language } = useTranslation();
-
   const navItems = [
-    { href: "/dashboard", label: language === "fr" ? "Tableau de bord" : "Dashboard" },
-    { href: "/opportunities", label: language === "fr" ? "Opportunités" : "Opportunities" },
-    { href: "/answers", label: language === "fr" ? "Réponses" : "Answers" },
-    { href: "/articles", label: language === "fr" ? "Articles" : "Articles" },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/opportunities", label: "Opportunities" },
+    { href: "/answers", label: "Answers" },
+    { href: "/articles", label: "Articles" },
   ];
 
   return (
