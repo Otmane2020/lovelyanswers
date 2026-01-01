@@ -12,6 +12,12 @@ verify_jwt = false
 [functions.generate-articles]
 verify_jwt = true
 
+[functions.generate-aeo-answers]
+verify_jwt = true
+
+[functions.generate-aeo-article]
+verify_jwt = true
+
 [functions.seo-audit]
 verify_jwt = true
 
