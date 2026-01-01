@@ -52,9 +52,11 @@ interface RedditRequest {
   body?: string;
   subreddit?: string;
   mention_brand?: boolean;
+  include_link?: boolean;
   tone?: "expert_human" | "casual" | "professional";
-  brand_name?: string; // Optional brand name for mention
-  save_as_aeo?: boolean; // Save question to AEO pipeline
+  brand_name?: string;
+  brand_url?: string;
+  save_as_aeo?: boolean;
 }
 
 interface RedditOpportunity {
@@ -220,8 +222,10 @@ serve(async (req) => {
       body,
       subreddit,
       mention_brand = false,
+      include_link = false,
       tone = "expert_human",
       brand_name,
+      brand_url,
       save_as_aeo = false
     }: RedditRequest = await req.json();
 
@@ -237,10 +241,12 @@ serve(async (req) => {
         title, 
         body || "", 
         subreddit, 
-        mention_brand, 
+        mention_brand,
+        include_link,
         tone, 
         brand_name || "",
-        lovableApiKey
+        brand_url || "",
+        Deno.env.get("LOVABLE_API_KEY")!
       );
       
       // 🔥 Strategic: Reddit → AEO pipeline
@@ -652,10 +658,12 @@ async function generateRedditReply(
   body: string,
   subreddit: string,
   mentionBrand: boolean,
+  includeLink: boolean,
   tone: string,
   brandName: string,
+  brandUrl: string,
   apiKey: string
-): Promise<{ reply: string; estimatedScore: number; brandMentioned: boolean }> {
+): Promise<{ reply: string; estimatedScore: number; brandMentioned: boolean; linkIncluded: boolean }> {
   
   const toneInstructions: Record<string, string> = {
     expert_human: "Write like someone who's been doing this for years. Share from experience, not theory.",
@@ -663,8 +671,9 @@ async function generateRedditReply(
     professional: "Write clearly but warmly. No corporate speak. Be direct and helpful."
   };
 
-  // 🔒 PATCH 2 — Brand mention = probabilistic (20% chance)
-  const shouldMentionBrand = mentionBrand && Math.random() < 0.2;
+  // 🔒 PATCH 2 — Brand mention = probabilistic (30% chance if enabled)
+  const shouldMentionBrand = mentionBrand && brandName && Math.random() < 0.3;
+  const shouldIncludeLink = includeLink && brandUrl && shouldMentionBrand && Math.random() < 0.5; // Link only if brand mentioned
   const actualBrandName = brandName || "a tool I tried";
 
   // 🔒 PATCH 3 — System prompt: real Reddit user, no SEO vocabulary
@@ -688,11 +697,11 @@ Write a Reddit comment that:
 - Maximum 100 words (shorter is better)
 - Ends with a casual question or "curious what others think"
 - Sounds like a real person, not a consultant
-${shouldMentionBrand ? `- You can briefly mention "${actualBrandName}" as something you personally tried (1 phrase max, ultra casual)` : "- Do NOT mention any product, tool, or service by name"}
+${shouldMentionBrand ? `- You can briefly mention "${actualBrandName}" as something you personally tried (1 phrase max, ultra casual)${shouldIncludeLink ? ` and casually drop the link: ${brandUrl}` : ""}` : "- Do NOT mention any product, tool, or service by name"}
 
 Write the Reddit comment now:`;
 
-  console.log(`[reddit-agent] Generating reply for r/${subreddit}: "${title.substring(0, 50)}..." (brand mention: ${shouldMentionBrand})`);
+  console.log(`[reddit-agent] Generating reply for r/${subreddit}: "${title.substring(0, 50)}..." (brand: ${shouldMentionBrand}, link: ${shouldIncludeLink})`);
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -706,7 +715,7 @@ Write the Reddit comment now:`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.8, // Higher for more natural variation
+      temperature: 0.8,
     }),
   });
 
@@ -736,9 +745,14 @@ Write the Reddit comment now:`;
   // 🔒 PATCH 4 — Stricter Reddit score
   const estimatedScore = estimateRedditScore(reply);
 
-  console.log(`[reddit-agent] Generated reply (${reply.length} chars), score: ${estimatedScore}, brand: ${shouldMentionBrand}`);
+  console.log(`[reddit-agent] Generated reply (${reply.length} chars), score: ${estimatedScore}, brand: ${!!shouldMentionBrand}, link: ${!!shouldIncludeLink}`);
 
-  return { reply, estimatedScore, brandMentioned: shouldMentionBrand };
+  return { 
+    reply, 
+    estimatedScore, 
+    brandMentioned: !!shouldMentionBrand, 
+    linkIncluded: !!shouldIncludeLink 
+  };
 }
 
 // 🔒 PATCH 4 — Score Reddit plus strict
