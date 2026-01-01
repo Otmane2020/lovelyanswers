@@ -12,7 +12,14 @@ import {
   Target,
   Bot,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const features = [
   {
@@ -44,6 +51,46 @@ const comparisons = [
   { feature: "Content", seo: "Keywords & backlinks", aeo: "Answers & structure" },
   { feature: "Goal", seo: "Google traffic", aeo: "LLM recommendations" },
   { feature: "Format", seo: "Long-form pages", aeo: "Citable answers" },
+];
+
+const pricingFeatures = [
+  "30 SEO/LLM optimized articles automatically generated and published",
+  "Articles with citations, internal links and branded infographics",
+  "Automatic quality backlinks (valued at $800+ per month) through our exclusive network",
+  "Technical SEO audit - find issues blocking Google and ChatGPT",
+  "Articles backed by real-time research and expert insights",
+  "Automated keyword research and SERP-based clustering",
+  "Reddit agent that builds your brand visibility and authority",
+  "Integrates with WordPress, Webflow, Shopify, Wix, API and more",
+  "JSON-LD schema markup for featured snippets",
+  "Articles available in 20+ languages",
+];
+
+const faqs = [
+  {
+    question: "What is Answer Engine Optimization (AEO)?",
+    answer: "AEO is a new approach to content optimization that focuses on making your content citable by AI assistants like ChatGPT, Gemini, Claude, and Perplexity. Unlike traditional SEO which targets search engine rankings, AEO ensures AI models understand and recommend your content to users.",
+  },
+  {
+    question: "How does Aeoreply generate content?",
+    answer: "Aeoreply uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
+  },
+  {
+    question: "What platforms does Aeoreply integrate with?",
+    answer: "Aeoreply integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
+  },
+  {
+    question: "How do the backlinks work?",
+    answer: "Through our exclusive network, we provide automatic quality backlinks valued at $800+ per month. We limit monthly admissions to maintain backlink quality and network balance, ensuring maximum value for all members.",
+  },
+  {
+    question: "Can I try Aeoreply before committing?",
+    answer: "Yes! We offer a 3-day free trial so you can experience the full power of Aeoreply. No credit card required to start. Cancel anytime if it's not the right fit.",
+  },
+  {
+    question: "What languages are supported?",
+    answer: "Aeoreply generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
+  },
 ];
 
 export default function Index() {
@@ -180,52 +227,87 @@ export default function Index() {
       <section className="py-20 bg-muted/30">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Simple, Credit-Based Pricing</h2>
-            <p className="text-muted-foreground">No hidden fees. Cancel anytime.</p>
+            <h2 className="text-3xl font-bold mb-4">Simple Pricing</h2>
+            <p className="text-muted-foreground">We limit monthly admissions to maintain backlink quality and network balance.</p>
           </div>
 
-          <div className="max-w-md mx-auto">
-            <GlassCard gradient className="p-8 text-center">
-              <Badge className="mb-4 gradient-bg text-primary-foreground border-0">Most Popular</Badge>
-              <h3 className="text-2xl font-bold">AEO Pro</h3>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Main Plan */}
+            <GlassCard gradient className="p-8">
+              <Badge className="mb-4 gradient-bg text-primary-foreground border-0">All-In-One</Badge>
+              <h3 className="text-2xl font-bold">Complete AEO Solution</h3>
               <div className="mt-4 mb-6">
-                <span className="text-5xl font-bold">€79</span>
+                <span className="text-2xl text-muted-foreground line-through mr-2">$247</span>
+                <span className="text-5xl font-bold">$99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
-              <ul className="space-y-3 text-left mb-8">
-                {[
-                  "100 credits per month",
-                  "Public answer pages",
-                  "All AI platforms",
-                  "LLMs.txt generation",
-                  "Sitemap automation",
-                  "3-day free trial",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-emerald-500" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow" size="lg" asChild>
+              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-6" size="lg" asChild>
                 <Link to="/auth">
-                  Start Free Trial
+                  Start 3-Day Free Trial
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <p className="mt-4 text-xs text-muted-foreground">
-                1 credit = 1 AEO Answer • 2 credits = 1 AEO Article
+              <p className="text-sm font-medium mb-4">What's included:</p>
+              <ul className="space-y-3 text-left">
+                {pricingFeatures.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Check className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <span className="text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+
+            {/* Agency Plan */}
+            <GlassCard className="p-8 flex flex-col">
+              <Badge variant="secondary" className="mb-4 w-fit">For Agencies</Badge>
+              <h3 className="text-2xl font-bold">White-Label Solution</h3>
+              <p className="text-muted-foreground mt-4 flex-1">
+                For businesses which want to resell our services to their clients. Get custom branding, volume discounts, and dedicated support.
               </p>
-              <Button variant="link" className="mt-2 text-muted-foreground" asChild>
-                <Link to="/pricing">Voir tous les plans →</Link>
-              </Button>
+              <div className="mt-8 space-y-3">
+                <Button variant="outline" className="w-full" size="lg" asChild>
+                  <Link to="/pricing">
+                    Learn More
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" className="w-full text-muted-foreground" asChild>
+                  <a href="#case-study">View Case Study</a>
+                </Button>
+              </div>
             </GlassCard>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
+      {/* FAQs */}
       <section className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Everything you need to know about Aeoreply and Answer Engine Optimization
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 bg-muted/30">
         <div className="container">
           <GlassCard className="p-12 text-center gradient-bg text-primary-foreground overflow-hidden relative">
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
