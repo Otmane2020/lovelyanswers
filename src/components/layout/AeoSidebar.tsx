@@ -41,8 +41,8 @@ export function AeoSidebar() {
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
     { title: "AEO Answers", url: "/answers", icon: FileText },
-    { title: "Analytics", url: "/answers", icon: BarChart3 },
-    { title: "Backlinks", url: "/integrations", icon: Link2 },
+    { title: "Analytics", url: "/analytics", icon: BarChart3 },
+    { title: "Integrations", url: "/integrations", icon: Link2 },
     { title: "GEO Audit", url: "/seo-audit", icon: Search, badge: "New" },
     { title: "Reddit", url: "/reddit", icon: MessageSquareText, badge: "New" },
   ];
