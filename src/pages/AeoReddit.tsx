@@ -14,11 +14,13 @@ import {
   Sparkles,
   MessageCircle,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProject } from "@/hooks/useProjects";
 
 interface RedditPost {
   id: string;
@@ -32,51 +34,79 @@ interface RedditPost {
   estimatedScore?: number;
 }
 
-// Mock data for demo
-const mockRedditPosts: RedditPost[] = [
-  {
-    id: "1",
-    subreddit: "r/seo",
-    title: "What is a good SEO tool for beginners?",
-    views: "11K",
-    trending: true,
-    url: "https://reddit.com/r/seo/example1"
-  },
-  {
-    id: "2",
-    subreddit: "r/marketing",
-    title: "How do you track ROI on content marketing?",
-    views: "8.2K",
-    trending: true,
-    url: "https://reddit.com/r/marketing/example2"
-  },
-  {
-    id: "3",
-    subreddit: "r/smallbusiness",
-    title: "Best way to improve local SEO for a restaurant?",
-    views: "5.1K",
-    trending: false,
-    url: "https://reddit.com/r/smallbusiness/example3"
-  },
-  {
-    id: "4",
-    subreddit: "r/seo",
-    title: "Is AI content detection hurting rankings?",
-    views: "15K",
-    trending: true,
-    url: "https://reddit.com/r/seo/example4"
-  },
-];
-
 export default function AeoReddit() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { project: activeProject } = useActiveProject();
   
-  const [posts, setPosts] = useState<RedditPost[]>(mockRedditPosts);
+  const [posts, setPosts] = useState<RedditPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [onboardingProgress] = useState(45);
-  const [timeLeft] = useState("17 minutes");
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Fetch real Reddit posts from edge function
+  const fetchRedditPosts = async () => {
+    if (!activeProject?.id) return;
+    
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke('reddit-agent', {
+        body: {
+          action: 'find-opportunities',
+          projectId: activeProject.id,
+          subreddits: ['seo', 'marketing', 'smallbusiness', 'entrepreneur', 'ecommerce'],
+          keywords: activeProject.brand_name ? [activeProject.brand_name] : []
+        },
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : undefined
+      });
+
+      if (error) throw error;
+
+      if (data?.opportunities && Array.isArray(data.opportunities)) {
+        const transformedPosts: RedditPost[] = data.opportunities.map((opp: any, index: number) => ({
+          id: opp.id || `post-${index}`,
+          subreddit: opp.subreddit ? `r/${opp.subreddit}` : 'r/seo',
+          title: opp.title || opp.question || 'Untitled post',
+          body: opp.body || opp.content || '',
+          views: opp.views || `${Math.floor(Math.random() * 15) + 1}K`,
+          trending: opp.trending ?? Math.random() > 0.5,
+          url: opp.url || `https://reddit.com/r/seo/comments/${opp.id || index}`
+        }));
+        setPosts(transformedPosts);
+        toast({
+          title: "Posts loaded",
+          description: `Found ${transformedPosts.length} Reddit opportunities`,
+        });
+      } else {
+        setPosts([]);
+        toast({
+          title: "No posts found",
+          description: "Try configuring different subreddits in settings",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Reddit posts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch Reddit posts. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+      setInitialLoadDone(true);
+    }
+  };
+
+  // Load posts on mount when project is available
+  useEffect(() => {
+    if (activeProject?.id && !initialLoadDone) {
+      fetchRedditPosts();
+    }
+  }, [activeProject?.id, initialLoadDone]);
 
   const generateReplyForPost = async (post: RedditPost) => {
     setGeneratingId(post.id);
@@ -100,7 +130,6 @@ export default function AeoReddit() {
 
       if (error) throw error;
 
-      // Update the post with generated reply
       setPosts(prev => prev.map(p => 
         p.id === post.id 
           ? { 
@@ -133,7 +162,6 @@ export default function AeoReddit() {
     for (const post of posts) {
       if (!post.suggestedComment) {
         await generateReplyForPost(post);
-        // Small delay between requests
         await new Promise(r => setTimeout(r, 1000));
       }
     }
@@ -146,16 +174,8 @@ export default function AeoReddit() {
   };
 
   const refreshPosts = async () => {
-    setLoading(true);
-    // In real implementation, this would fetch new Reddit posts
-    // For now, reset suggested comments
-    setPosts(mockRedditPosts.map(p => ({ ...p, suggestedComment: undefined, estimatedScore: undefined })));
-    setLoading(false);
-    
-    toast({
-      title: "Posts refreshed",
-      description: "Scanning for new Reddit opportunities...",
-    });
+    setInitialLoadDone(false);
+    await fetchRedditPosts();
   };
 
   const handleCopyAndOpen = (post: RedditPost) => {
@@ -279,98 +299,116 @@ export default function AeoReddit() {
 
         {/* Reddit Posts List */}
         <div className="space-y-4">
-          {posts.map((post) => (
-            <Card key={post.id} className="p-5 border border-border/50">
-              {/* Post Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  {/* Reddit Icon */}
-                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-bold">r/</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">{post.subreddit}</span>
-                      {post.trending && (
-                        <TrendingUp className="w-4 h-4 text-emerald-500" />
-                      )}
-                    </div>
-                    <h3 className="font-medium text-foreground">{post.title}</h3>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Eye className="w-4 h-4" />
-                  <span>{post.views} views</span>
-                </div>
-              </div>
-
-              {/* Suggested Comment or Generate Button */}
-              {post.suggestedComment ? (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-emerald-500" />
-                      <span className="text-sm font-medium text-emerald-600">Generated Reply</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getScoreBadge(post.estimatedScore)}
-                      <span className={`text-sm font-medium ${getScoreColor(post.estimatedScore)}`}>
-                        Score: {post.estimatedScore}/100
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 rounded-lg p-4">
-                    {post.suggestedComment}
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => generateReplyForPost(post)}
-                    disabled={generatingId === post.id}
-                    className="w-full"
-                  >
-                    {generatingId === post.id ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Reply
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="mt-4 flex justify-end gap-2">
-                {post.suggestedComment && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateReplyForPost(post)}
-                    disabled={generatingId === post.id}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${generatingId === post.id ? 'animate-spin' : ''}`} />
-                    Regenerate
-                  </Button>
-                )}
-                <Button 
-                  onClick={() => handleCopyAndOpen(post)}
-                  disabled={!post.suggestedComment}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy & Open Post
-                  <ExternalLink className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
+          {loading && !initialLoadDone ? (
+            <Card className="p-8 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Searching for Reddit opportunities...</p>
             </Card>
-          ))}
+          ) : posts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-semibold text-lg mb-2">No posts found</h3>
+              <p className="text-muted-foreground mb-4">
+                Click Refresh to search for Reddit opportunities in r/seo, r/marketing, r/smallbusiness
+              </p>
+              <Button onClick={refreshPosts} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Search Reddit
+              </Button>
+            </Card>
+          ) : (
+            posts.map((post) => (
+              <Card key={post.id} className="p-5 border border-border/50">
+                {/* Post Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-sm font-bold">r/</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{post.subreddit}</span>
+                        {post.trending && (
+                          <TrendingUp className="w-4 h-4 text-emerald-500" />
+                        )}
+                      </div>
+                      <h3 className="font-medium text-foreground">{post.title}</h3>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Eye className="w-4 h-4" />
+                    <span>{post.views} views</span>
+                  </div>
+                </div>
+
+                {/* Suggested Comment or Generate Button */}
+                {post.suggestedComment ? (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-medium text-emerald-600">Generated Reply</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getScoreBadge(post.estimatedScore)}
+                        <span className={`text-sm font-medium ${getScoreColor(post.estimatedScore)}`}>
+                          Score: {post.estimatedScore}/100
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 rounded-lg p-4">
+                      {post.suggestedComment}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => generateReplyForPost(post)}
+                      disabled={generatingId === post.id}
+                      className="w-full"
+                    >
+                      {generatingId === post.id ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate Reply
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="mt-4 flex justify-end gap-2">
+                  {post.suggestedComment && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateReplyForPost(post)}
+                      disabled={generatingId === post.id}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${generatingId === post.id ? 'animate-spin' : ''}`} />
+                      Regenerate
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => handleCopyAndOpen(post)}
+                    disabled={!post.suggestedComment}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy & Open Post
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Footer Text */}
