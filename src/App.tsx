@@ -16,6 +16,7 @@ import AeoIntegrations from "./pages/AeoIntegrations";
 import AeoSettings from "./pages/AeoSettings";
 import Account from "./pages/Account";
 import AeoSubscription from "./pages/AeoSubscription";
+import AeoPublicAnswer from "./pages/AeoPublicAnswer";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
             <Route path="/engine" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/assistant" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
+            <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
