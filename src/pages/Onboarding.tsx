@@ -246,7 +246,7 @@ export default function Onboarding() {
       
       const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
       
-      await createProject.mutateAsync({
+      const newProject = await createProject.mutateAsync({
         name: brandName,
         website_url: data.websiteUrl,
         domain: domain,
@@ -259,7 +259,20 @@ export default function Onboarding() {
         competitors: data.competitors,
       });
       
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Auto-generate initial AEO content
+      try {
+        await supabase.functions.invoke('auto-generate-aeo', {
+          body: { 
+            projectId: newProject.id,
+            language: data.language 
+          }
+        });
+      } catch (aeoError) {
+        console.error('AEO generation error:', aeoError);
+        // Continue even if AEO generation fails
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
       navigate("/dashboard");
     } catch (error) {
       toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
