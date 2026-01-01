@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
-import { useAeoCredits } from "@/hooks/useAeoCredits";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -15,9 +14,9 @@ import {
   Lightbulb,
   Link,
   Settings,
-  AlertTriangle,
-  Zap,
+  Crown,
   Target,
+  Check,
 } from "lucide-react";
 
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
@@ -25,7 +24,7 @@ const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 export default function AeoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { credits, getUsagePercentage, isLimitReached } = useAeoCredits();
+  const { subscribed, startCheckout, isLoading } = useSubscription();
   
   const [answersStats, setAnswersStats] = useState({
     total: 0,
@@ -124,31 +123,13 @@ export default function AeoDashboard() {
     },
   ];
 
-  const usageItems = [
-    {
-      label: "AEO Optimizations",
-      used: credits.optimizations.used,
-      limit: credits.optimizations.limit,
-      percentage: getUsagePercentage('optimizations'),
-      isLimited: isLimitReached('optimizations'),
-    },
-    {
-      label: "AEO Articles",
-      used: credits.articles.used,
-      limit: credits.articles.limit,
-      percentage: getUsagePercentage('articles'),
-      isLimited: isLimitReached('articles'),
-    },
-    {
-      label: "Active AEO Answers",
-      used: answersStats.published,
-      limit: credits.answers.limit,
-      percentage: credits.answers.limit > 0 ? (answersStats.published / credits.answers.limit) * 100 : 0,
-      isLimited: answersStats.published >= credits.answers.limit,
-    },
+  const planFeatures = [
+    "30 SEO/LLM optimized articles",
+    "Automatic quality backlinks",
+    "Technical SEO audits",
+    "Reddit agent branding",
+    "20+ languages support",
   ];
-
-  const anyLimitReached = usageItems.some(item => item.isLimited);
 
   return (
     <div className="space-y-8">
@@ -158,52 +139,45 @@ export default function AeoDashboard() {
         <p className="text-muted-foreground mt-1">Optimize your visibility on AI answer engines</p>
       </div>
 
-      {/* Usage Banner */}
-      <Card className={`p-6 ${anyLimitReached ? 'bg-destructive/10 border-destructive/30' : 'bg-gradient-to-r from-primary/10 to-blue-500/10 border-primary/20'}`}>
+      {/* Subscription Banner */}
+      <Card className={`p-6 ${subscribed ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20' : 'bg-gradient-to-r from-primary/10 to-blue-500/10 border-primary/20'}`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${anyLimitReached ? 'bg-destructive/20' : 'bg-gradient-to-br from-primary to-blue-500'}`}>
-              {anyLimitReached ? (
-                <AlertTriangle className="w-6 h-6 text-destructive" />
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${subscribed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-primary to-blue-500'}`}>
+              {subscribed ? (
+                <Check className="w-6 h-6 text-white" />
               ) : (
-                <Zap className="w-6 h-6 text-primary-foreground" />
+                <Crown className="w-6 h-6 text-white" />
               )}
             </div>
             <div>
               <h3 className="font-semibold">
-                {anyLimitReached ? "Limit reached" : "Monthly usage"}
+                {subscribed ? "All-in-One Plan Active" : "Start Your Free Trial"}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {anyLimitReached 
-                  ? "Upgrade your plan to continue"
-                  : "AEO credits used this month"}
+                {subscribed 
+                  ? "Full access to all features"
+                  : "3 days free, then $99/month"}
               </p>
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-6 flex-1 max-w-2xl">
-            {usageItems.map((item, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <span className={`text-xs font-medium ${item.isLimited ? 'text-destructive' : ''}`}>
-                    {item.used} / {item.limit}
-                  </span>
-                </div>
-                <Progress 
-                  value={item.percentage} 
-                  className={`h-2 ${item.isLimited ? 'bg-destructive/20' : ''}`}
-                />
-              </div>
-            ))}
-          </div>
-
-          {anyLimitReached && (
+          {subscribed ? (
+            <div className="flex flex-wrap gap-2">
+              {planFeatures.map((feature, index) => (
+                <span key={index} className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">
+                  <Check className="w-3 h-3" />
+                  {feature}
+                </span>
+              ))}
+            </div>
+          ) : (
             <Button 
-              onClick={() => navigate('/subscription')}
+              onClick={startCheckout}
+              disabled={isLoading}
               className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 text-primary-foreground"
             >
-              Upgrade
+              Start 3-Day Free Trial
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
