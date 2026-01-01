@@ -2,103 +2,103 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles, Zap, Crown } from "lucide-react";
+import { Check, Crown, Loader2 } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
+
+const features = [
+  "30 SEO/LLM optimized articles per month",
+  "Articles with citations, internal links and infographics",
+  "Automatic quality backlinks ($800+ value)",
+  "Technical SEO audit for Google & ChatGPT",
+  "Real-time research and expert insights",
+  "Automated keyword research & SERP clustering",
+  "Reddit agent for brand visibility",
+  "WordPress, Webflow, Shopify integrations",
+  "JSON-LD schema markup",
+  "20+ languages supported",
+];
 
 export default function AeoSubscription() {
-  const plans = [
-    {
-      name: "Free",
-      price: "€0",
-      period: "/month",
-      description: "To get started",
-      features: [
-        "5 AEO optimizations",
-        "2 articles",
-        "10 active answers",
-      ],
-      icon: Zap,
-      current: true,
-    },
-    {
-      name: "Pro",
-      price: "€29",
-      period: "/month",
-      description: "For creators",
-      features: [
-        "50 AEO optimizations",
-        "20 articles",
-        "100 active answers",
-        "Integrations",
-      ],
-      icon: Sparkles,
-      popular: true,
-    },
-    {
-      name: "Business",
-      price: "€99",
-      period: "/month",
-      description: "For teams",
-      features: [
-        "Unlimited optimizations",
-        "Unlimited articles",
-        "Unlimited answers",
-        "Priority support",
-        "API access",
-      ],
-      icon: Crown,
-    },
-  ];
+  const { subscribed, trial, isLoading, startCheckout, openCustomerPortal } = useSubscription();
+
+  const isActive = subscribed || trial;
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8 max-w-2xl mx-auto">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Choose your plan</h1>
-          <p className="text-muted-foreground mt-1">Scale as you grow</p>
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+            {trial ? "Trial Active" : subscribed ? "Active Subscription" : "Limited Time Offer"}
+          </Badge>
+          <h1 className="text-3xl font-bold">All-in-One Plan</h1>
+          <p className="text-muted-foreground mt-2">
+            Everything you need to dominate AI search results
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {plans.map((plan) => (
-            <Card 
-              key={plan.name} 
-              className={`p-6 relative ${plan.popular ? 'border-primary shadow-lg shadow-primary/20' : ''}`}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                  Popular
-                </Badge>
-              )}
-              
-              <div className="text-center mb-6">
-                <div className={`w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center ${plan.popular ? 'bg-primary' : 'bg-muted'}`}>
-                  <plan.icon className={`w-6 h-6 ${plan.popular ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                </div>
-                <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  <span className="text-muted-foreground">{plan.period}</span>
-                </div>
-              </div>
+        <Card className={`p-8 relative ${isActive ? 'border-emerald-500 shadow-lg shadow-emerald-500/20' : 'border-primary shadow-lg shadow-primary/20'}`}>
+          {isActive && (
+            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white">
+              {trial ? "Trial Active" : "Your Plan"}
+            </Badge>
+          )}
+          
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-primary to-blue-500 shadow-lg">
+              <Crown className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <span className="text-2xl text-muted-foreground line-through">$247</span>
+              <span className="text-5xl font-bold">$99</span>
+              <span className="text-muted-foreground">/month</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              3-day free trial • Cancel anytime
+            </p>
+          </div>
 
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <Check className="w-4 h-4 text-primary" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+          <ul className="space-y-3 mb-8">
+            {features.map((feature, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm">
+                <Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
 
+          {isLoading ? (
+            <Button className="w-full" size="lg" disabled>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading...
+            </Button>
+          ) : isActive ? (
+            <div className="space-y-3">
               <Button 
-                className={`w-full ${plan.popular ? 'bg-primary text-primary-foreground' : ''}`}
-                variant={plan.current ? "outline" : plan.popular ? "default" : "secondary"}
-                disabled={plan.current}
+                className="w-full" 
+                size="lg"
+                variant="outline"
+                onClick={openCustomerPortal}
               >
-                {plan.current ? "Current plan" : "Choose"}
+                Manage Subscription
               </Button>
-            </Card>
-          ))}
+              <p className="text-center text-sm text-muted-foreground">
+                {trial ? "Your trial is active. Subscribe to continue after trial ends." : "Manage billing, cancel, or update payment method."}
+              </p>
+            </div>
+          ) : (
+            <Button 
+              className="w-full gradient-bg text-primary-foreground shadow-glow" 
+              size="lg"
+              onClick={startCheckout}
+            >
+              Start 3-Day Free Trial
+            </Button>
+          )}
+        </Card>
+
+        <div className="text-center text-sm text-muted-foreground">
+          <p>We limit monthly admissions to maintain backlink quality and network balance.</p>
+          <p className="mt-1">Questions? Contact support@aeoreply.com</p>
         </div>
       </div>
     </DashboardLayout>
