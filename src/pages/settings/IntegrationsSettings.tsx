@@ -17,7 +17,6 @@ const CMS_INTEGRATIONS = [
   { id: "bigcommerce", name: "BigCommerce", icon: "📦" },
   { id: "snapps", name: "snapps", icon: "📱" },
   { id: "framer", name: "Framer", icon: "⬛" },
-  { id: "ghost", name: "Ghost", icon: "👻" },
 ];
 
 interface Integration {
