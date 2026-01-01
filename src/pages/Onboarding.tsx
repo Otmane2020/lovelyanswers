@@ -163,7 +163,7 @@ export default function Onboarding() {
       language: detectedLanguage,
       businessDescription: `${brandName} is a professional service provider offering high-quality solutions to its target audience.`,
       targetAudiences: ["business owners", "professionals", "decision makers"],
-      competitors: ["competitor1.com", "competitor2.com", "competitor3.com"],
+      competitors: [], // Empty - user adds manually
       exampleUrl: `https://${domain}`,
     }));
     
@@ -173,20 +173,10 @@ export default function Onboarding() {
     });
   };
 
-  const generateCompetitors = (url: string): string[] => {
-    const domain = url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0].toLowerCase();
-    
-    if (domain.includes("saas") || domain.includes("app") || domain.includes("software")) {
-      return ["hubspot.com", "salesforce.com", "zendesk.com"];
-    }
-    if (domain.includes("shop") || domain.includes("store") || domain.includes("commerce")) {
-      return ["shopify.com", "woocommerce.com", "bigcommerce.com"];
-    }
-    if (domain.includes("agency") || domain.includes("studio") || domain.includes("design")) {
-      return ["dribbble.com", "behance.net", "awwwards.com"];
-    }
-    
-    return ["competitor1.com", "competitor2.com", "competitor3.com"];
+  // No more hardcoded competitors - let user add manually if API fails
+  const generateCompetitors = (_url: string): string[] => {
+    // Return empty - user can add competitors manually
+    return [];
   };
 
   useEffect(() => {

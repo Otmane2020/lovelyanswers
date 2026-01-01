@@ -292,49 +292,51 @@ Return ONLY valid JSON:
           }
         }
 
-        // STEP 2: Query DataForSEO SERP with detected keywords
+        // STEP 2: Query DataForSEO with keywords using keyword suggestions endpoint (no extra subscription needed)
         if (searchKeywords.length > 0) {
-          console.log('Step 2: Querying DataForSEO SERP with keywords:', searchKeywords.slice(0, 3));
+          console.log('Step 2: Searching for competitors via Google keyword suggestions...');
           
           const authString = btoa(`${dfLogin}:${dfPassword}`);
           const locationCode = language === 'fr' ? 2250 : 2840;
           const langCode = language === 'fr' ? 'fr' : 'en';
           
-          const serpResponse = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/advanced', {
+          // Use keyword suggestions to find competitor domains
+          const keywordSuggestResponse = await fetch('https://api.dataforseo.com/v3/dataforseo_labs/google/keyword_suggestions/live', {
             method: 'POST',
             headers: {
               'Authorization': `Basic ${authString}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(
-              searchKeywords.slice(0, 3).map(k => ({
-                keyword: k,
-                location_code: locationCode,
-                language_code: langCode,
-                device: 'desktop',
-                depth: 20
-              }))
-            ),
+            body: JSON.stringify([{
+              keyword: searchKeywords[0],
+              location_code: locationCode,
+              language_code: langCode,
+              include_serp_info: true,
+              include_seed_keyword: true,
+              limit: 30
+            }]),
           });
 
-          const serpData = await serpResponse.json();
-          console.log('DataForSEO SERP response status:', serpData.status_code);
+          const kwSuggestData = await keywordSuggestResponse.json();
+          console.log('DataForSEO keyword suggestions response status:', kwSuggestData.status_code);
 
-          if (serpData.status_code === 20000 && serpData.tasks) {
+          // Extract domains from keyword suggestions SERP info
+          if (kwSuggestData.status_code === 20000 && kwSuggestData.tasks?.[0]?.result) {
             const competitorMap = new Map<string, { domain: string; score: number; title: string }>();
+            const resultItems = kwSuggestData.tasks[0].result || [];
             
-            // STEP 3: Extract and filter SERP results
-            for (const task of serpData.tasks) {
-              const items = task?.result?.[0]?.items || [];
+            // STEP 3: Extract domains from SERP info in keyword suggestions
+            for (const kwItem of resultItems) {
+              // serp_info contains ranking domains for this keyword
+              const serpItems = kwItem?.serp_info?.serp || [];
               
-              for (const item of items) {
-                if (item.type !== 'organic') continue;
+              for (const serpEntry of serpItems) {
+                const domain = (serpEntry?.domain || '').toLowerCase().replace('www.', '');
+                const title = serpEntry?.title || domain;
+                const itemUrl = (serpEntry?.url || '').toLowerCase();
+                const text = `${title.toLowerCase()} ${domain} ${itemUrl}`;
                 
-                const domain = (item.domain || '').toLowerCase().replace('www.', '');
-                const itemTitle = (item.title || '').toLowerCase();
-                const itemDesc = (item.description || '').toLowerCase();
-                const itemUrl = (item.url || '').toLowerCase();
-                const text = `${itemTitle} ${itemDesc} ${domain} ${itemUrl}`;
+                if (!domain) continue;
                 
                 // Skip own domain
                 if (domain.includes(ownDomain.split('.')[0])) continue;
@@ -380,17 +382,17 @@ Return ONLY valid JSON:
                   }
                 }
                 
-                // Position boost (higher ranked = more relevant)
-                const position = item.rank_absolute || 20;
+                // Position boost
+                const position = serpEntry?.position || 10;
                 score += Math.max(0, 10 - position);
                 
                 // Only include if relevant or has decent score
-                if (isRelevant || score >= 5) {
+                if (isRelevant || score >= 3) {
                   const existing = competitorMap.get(domain);
                   if (existing) {
                     existing.score += 2; // Boost for appearing multiple times
                   } else {
-                    competitorMap.set(domain, { domain, score, title: item.title || domain });
+                    competitorMap.set(domain, { domain, score, title });
                   }
                 }
               }
@@ -401,7 +403,7 @@ Return ONLY valid JSON:
               .sort((a, b) => b.score - a.score)
               .slice(0, 10);
             
-            console.log('SERP competitors found:', competitors.map(c => `${c.domain} (score: ${c.score})`));
+            console.log('Keyword suggestions competitors found:', competitors.map(c => `${c.domain} (score: ${c.score})`));
           }
         }
         
