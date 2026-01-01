@@ -24,14 +24,16 @@ import {
 } from "@/components/ui/accordion";
 
 const features = [
-  { icon: Sparkles, text: "100 credits per month" },
-  { icon: FileText, text: "Public answer pages optimized for AI citations" },
-  { icon: Bot, text: "All AI platforms (ChatGPT, Claude, Perplexity, Gemini, Copilot)" },
-  { icon: FileText, text: "LLMs.txt generation for AI discoverability" },
-  { icon: Globe, text: "Automatic sitemap and robots.txt optimization" },
-  { icon: Search, text: "JSON-LD schema markup for featured snippets" },
-  { icon: Languages, text: "Content in 20+ languages" },
-  { icon: LinkIcon, text: "Custom domain support" },
+  { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
+  { icon: Sparkles, text: "Articles with citations, internal links and branded infographics" },
+  { icon: LinkIcon, text: "Automatic quality backlinks (valued at $800+ per month) through our exclusive network" },
+  { icon: Wrench, text: "Technical SEO audit - find issues blocking Google and ChatGPT" },
+  { icon: Search, text: "Articles backed by real-time research and expert insights" },
+  { icon: Bot, text: "Automated keyword research and SERP-based clustering" },
+  { icon: MessageSquare, text: "Reddit agent that builds your brand visibility and authority" },
+  { icon: Globe, text: "Integrates with WordPress, Webflow, Shopify, Wix, API and more" },
+  { icon: FileText, text: "JSON-LD schema markup for featured snippets" },
+  { icon: Languages, text: "Articles available in 20+ languages" },
 ];
 
 const faqs = [
@@ -104,16 +106,16 @@ export default function Pricing() {
         <div className="container relative">
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
-              Simple, transparent pricing
+              For smart entrepreneurs
             </Badge>
             
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Simple,{" "}
-              <span className="gradient-text">Credit-Based Pricing</span>
+              Invest in{" "}
+              <span className="gradient-text">Long-Term Growth</span>
             </h1>
             
             <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto">
-              No hidden fees. Cancel anytime. Get cited by ChatGPT, Claude, Perplexity and more.
+              All-in-one AI SEO solution to dominate search rankings and get cited by AI assistants.
             </p>
           </div>
 
@@ -121,32 +123,29 @@ export default function Pricing() {
           <div className="mt-16 max-w-xl mx-auto">
             <GlassCard gradient className="p-8 relative overflow-hidden">
               <div className="absolute top-4 right-4">
-                <Badge className="bg-primary/20 text-primary border-primary/30">
-                  Most Popular
+                <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-500 text-white border-0">
+                  Only 34 spots left in January
                 </Badge>
               </div>
               
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">AEO Pro</h2>
+                <h2 className="text-2xl font-bold mb-2">All-In-One</h2>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Everything you need to get cited by AI assistants.
+                  We limit monthly admissions to maintain backlink quality and network balance.
                 </p>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-6xl font-bold">€79</span>
+                  <span className="text-2xl text-muted-foreground line-through">$247</span>
+                  <span className="text-6xl font-bold">$99</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
               </div>
 
-              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-6" size="lg" asChild>
+              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-8" size="lg" asChild>
                 <Link to="/auth">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
-
-              <p className="text-center text-sm text-muted-foreground mb-6">
-                1 credit = 1 AEO Answer • 2 credits = 1 AEO Article
-              </p>
 
               <div className="space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
