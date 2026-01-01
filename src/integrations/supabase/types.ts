@@ -17,47 +17,66 @@ export type Database = {
       answers: {
         Row: {
           answer: string
+          article_id: string | null
           created_at: string | null
+          difficulty: string | null
           has_article: boolean | null
           high_citation: boolean | null
           id: string
+          intent: string | null
           is_public: boolean | null
           platforms: string[] | null
           project_id: string
           question: string
           score: number | null
           slug: string
+          supporting_content: Json | null
           updated_at: string | null
         }
         Insert: {
           answer: string
+          article_id?: string | null
           created_at?: string | null
+          difficulty?: string | null
           has_article?: boolean | null
           high_citation?: boolean | null
           id?: string
+          intent?: string | null
           is_public?: boolean | null
           platforms?: string[] | null
           project_id: string
           question: string
           score?: number | null
           slug: string
+          supporting_content?: Json | null
           updated_at?: string | null
         }
         Update: {
           answer?: string
+          article_id?: string | null
           created_at?: string | null
+          difficulty?: string | null
           has_article?: boolean | null
           high_citation?: boolean | null
           id?: string
+          intent?: string | null
           is_public?: boolean | null
           platforms?: string[] | null
           project_id?: string
           question?: string
           score?: number | null
           slug?: string
+          supporting_content?: Json | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "answers_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "answers_project_id_fkey"
             columns: ["project_id"]
