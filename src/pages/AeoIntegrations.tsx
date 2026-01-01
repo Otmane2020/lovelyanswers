@@ -1,27 +1,20 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Plug, ExternalLink } from "lucide-react";
-import { useTranslation } from "@/lib/language";
 
 export default function AeoIntegrations() {
-  const { language } = useTranslation();
-
   const integrations = [
-    { name: "WordPress", description: language === 'fr' ? "Publiez directement sur votre blog" : "Publish directly to your blog", connected: false },
-    { name: "Shopify", description: language === 'fr' ? "Synchronisez avec votre boutique" : "Sync with your store", connected: false },
-    { name: "Webflow", description: language === 'fr' ? "Intégrez avec votre CMS" : "Integrate with your CMS", connected: false },
+    { name: "WordPress", description: "Publish directly to your blog", connected: false },
+    { name: "Shopify", description: "Sync with your store", connected: false },
+    { name: "Webflow", description: "Integrate with your CMS", connected: false },
   ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">
-            {language === 'fr' ? "Intégrations" : "Integrations"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {language === 'fr' ? "Connectez vos plateformes" : "Connect your platforms"}
-          </p>
+          <h1 className="text-3xl font-bold">Integrations</h1>
+          <p className="text-muted-foreground mt-1">Connect your platforms</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

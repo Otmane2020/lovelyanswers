@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
 import { AccountSettings } from '@/components/dashboard/AccountSettings';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Sparkles, ExternalLink, CreditCard, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '@/lib/language';
-import { toast } from 'sonner';
 
 export default function AeoAccount() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { language } = useTranslation();
   const [planName, setPlanName] = useState<string | null>(null);
   const [isTrialing, setIsTrialing] = useState(false);
 
@@ -39,22 +35,18 @@ export default function AeoAccount() {
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-          {language === 'fr' ? 'Mon compte' : 'My Account'}
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">My Account</h1>
         {planName && (
           <Badge variant="secondary" className="mt-2 bg-primary/10 text-primary">
             <Sparkles className="w-3 h-3 mr-1" />
-            {isTrialing ? (language === 'fr' ? 'Essai gratuit' : 'Free trial') : planName}
+            {isTrialing ? 'Free trial' : planName}
           </Badge>
         )}
       </div>
 
       {/* Profile Settings */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          {language === 'fr' ? 'Paramètres du profil' : 'Profile Settings'}
-        </h2>
+        <h2 className="text-lg font-semibold mb-4">Profile Settings</h2>
         <AccountSettings />
       </Card>
 
@@ -67,12 +59,8 @@ export default function AeoAccount() {
               <CreditCard className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">
-                {language === 'fr' ? 'Gérer mon abonnement' : 'Manage subscription'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {language === 'fr' ? 'Voir les plans et upgrader' : 'View plans and upgrade'}
-              </p>
+              <h3 className="font-semibold">Manage subscription</h3>
+              <p className="text-sm text-muted-foreground">View plans and upgrade</p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </div>
@@ -85,12 +73,8 @@ export default function AeoAccount() {
               <ExternalLink className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">
-                {language === 'fr' ? 'Documentation' : 'Documentation'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {language === 'fr' ? 'Guides et ressources' : 'Guides and resources'}
-              </p>
+              <h3 className="font-semibold">Documentation</h3>
+              <p className="text-sm text-muted-foreground">Guides and resources</p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </div>

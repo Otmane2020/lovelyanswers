@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "@/lib/language";
-import { aeoTranslations } from "@/lib/translations/aeo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useAeoCredits } from "@/hooks/useAeoCredits";
-import { SoftPaywallBanner } from "@/components/aeo/SoftPaywallBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -26,11 +23,9 @@ import {
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
 export default function AeoDashboard() {
-  const { language } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const t = aeoTranslations[language] || aeoTranslations.fr;
-  const { credits, loading: creditsLoading, getUsagePercentage, isLimitReached } = useAeoCredits();
+  const { credits, getUsagePercentage, isLimitReached } = useAeoCredits();
   
   const [answersStats, setAnswersStats] = useState({
     total: 0,
@@ -69,28 +64,28 @@ export default function AeoDashboard() {
 
   const stats = [
     { 
-      label: language === 'fr' ? "Réponses AEO actives" : "Active AEO Answers",
-      sublabel: language === 'fr' ? `${answersStats.total} générées` : `${answersStats.total} generated`,
+      label: "Active AEO Answers",
+      sublabel: `${answersStats.total} generated`,
       value: `${answersStats.published}`, 
       icon: MessageSquare,
       color: "from-primary to-purple-500"
     },
     { 
-      label: language === 'fr' ? "Haute citation" : "High Citation",
-      sublabel: language === 'fr' ? "Score ≥ 80%" : "Score ≥ 80%",
+      label: "High Citation",
+      sublabel: "Score ≥ 80%",
       value: answersStats.highCitation.toString(), 
       icon: Target,
       color: "from-emerald-500 to-teal-500"
     },
     { 
-      label: language === 'fr' ? "Score AEO moyen" : "Avg AEO Score",
-      sublabel: language === 'fr' ? "Potentiel de citation" : "Citation potential",
+      label: "Avg AEO Score",
+      sublabel: "Citation potential",
       value: answersStats.avgScore > 0 ? `${answersStats.avgScore}%` : "—", 
       icon: TrendingUp,
       color: "from-blue-500 to-cyan-500"
     },
     { 
-      label: language === 'fr' ? "Plateformes IA ciblées" : "AI Platforms Targeted",
+      label: "AI Platforms Targeted",
       sublabel: AI_PLATFORMS.slice(0, 3).join(' · '),
       value: AI_PLATFORMS.length.toString(), 
       icon: Globe,
@@ -100,29 +95,29 @@ export default function AeoDashboard() {
 
   const quickActions = [
     {
-      title: language === 'fr' ? "Assistant AEO" : "AEO Wizard",
-      description: language === 'fr' ? "Générer des opportunités de citation" : "Generate citation opportunities",
+      title: "AEO Wizard",
+      description: "Generate citation opportunities",
       icon: Lightbulb,
       url: "/wizard",
       color: "from-primary to-purple-500"
     },
     {
-      title: language === 'fr' ? "Opportunités" : "Opportunities",
-      description: language === 'fr' ? "Voir vos opportunités AEO" : "View your AEO opportunities",
+      title: "Opportunities",
+      description: "View your AEO opportunities",
       icon: Sparkles,
       url: "/opportunities",
       color: "from-blue-500 to-cyan-500"
     },
     {
-      title: language === 'fr' ? "Intégrations" : "Integrations",
-      description: language === 'fr' ? "Connecter vos plateformes" : "Connect your platforms",
+      title: "Integrations",
+      description: "Connect your platforms",
       icon: Link,
       url: "/integrations",
       color: "from-emerald-500 to-teal-500"
     },
     {
-      title: language === 'fr' ? "Paramètres" : "Settings",
-      description: language === 'fr' ? "Configurer LLMs.txt" : "Configure LLMs.txt",
+      title: "Settings",
+      description: "Configure LLMs.txt",
       icon: Settings,
       url: "/settings",
       color: "from-orange-500 to-amber-500"
@@ -131,21 +126,21 @@ export default function AeoDashboard() {
 
   const usageItems = [
     {
-      label: language === 'fr' ? "Optimisations AEO" : "AEO Optimizations",
+      label: "AEO Optimizations",
       used: credits.optimizations.used,
       limit: credits.optimizations.limit,
       percentage: getUsagePercentage('optimizations'),
       isLimited: isLimitReached('optimizations'),
     },
     {
-      label: language === 'fr' ? "Articles AEO" : "AEO Articles",
+      label: "AEO Articles",
       used: credits.articles.used,
       limit: credits.articles.limit,
       percentage: getUsagePercentage('articles'),
       isLimited: isLimitReached('articles'),
     },
     {
-      label: language === 'fr' ? "Réponses AEO actives" : "Active AEO Answers",
+      label: "Active AEO Answers",
       used: answersStats.published,
       limit: credits.answers.limit,
       percentage: credits.answers.limit > 0 ? (answersStats.published / credits.answers.limit) * 100 : 0,
@@ -159,8 +154,8 @@ export default function AeoDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
-        <p className="text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+        <h1 className="text-3xl font-bold">AEO Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Optimize your visibility on AI answer engines</p>
       </div>
 
       {/* Usage Banner */}
@@ -176,14 +171,12 @@ export default function AeoDashboard() {
             </div>
             <div>
               <h3 className="font-semibold">
-                {anyLimitReached 
-                  ? (language === 'fr' ? "Limite atteinte" : "Limit reached")
-                  : (language === 'fr' ? "Utilisation mensuelle" : "Monthly usage")}
+                {anyLimitReached ? "Limit reached" : "Monthly usage"}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {anyLimitReached
-                  ? (language === 'fr' ? "Passez à un plan supérieur pour continuer" : "Upgrade your plan to continue")
-                  : (language === 'fr' ? "Crédits AEO utilisés ce mois" : "AEO credits used this month")}
+                {anyLimitReached 
+                  ? "Upgrade your plan to continue"
+                  : "AEO credits used this month"}
               </p>
             </div>
           </div>
@@ -210,7 +203,7 @@ export default function AeoDashboard() {
               onClick={() => navigate('/subscription')}
               className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 text-primary-foreground"
             >
-              {language === 'fr' ? "Upgrade" : "Upgrade"}
+              Upgrade
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
@@ -244,9 +237,7 @@ export default function AeoDashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-bold mb-4">
-          {language === 'fr' ? "Actions rapides" : "Quick actions"}
-        </h2>
+        <h2 className="text-xl font-bold mb-4">Quick actions</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
             <Card 
@@ -260,7 +251,7 @@ export default function AeoDashboard() {
               <h3 className="font-bold mb-1">{action.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
               <div className="flex items-center text-primary text-sm font-medium">
-                {language === 'fr' ? "Accéder" : "Go"}
+                Go
                 <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
             </Card>
@@ -272,13 +263,9 @@ export default function AeoDashboard() {
       <Card className="bg-gradient-to-br from-primary/10 to-blue-500/10 border-primary/20 p-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">
-              {language === 'fr' ? "Prêt à être cité par l'IA ?" : "Ready to be cited by AI?"}
-            </h2>
+            <h2 className="text-2xl font-bold mb-2">Ready to be cited by AI?</h2>
             <p className="text-muted-foreground">
-              {language === 'fr' 
-                ? "Commencez par générer vos premières opportunités AEO avec l'assistant."
-                : "Start by generating your first AEO opportunities with the wizard."}
+              Start by generating your first AEO opportunities with the wizard.
             </p>
           </div>
           <Button 
@@ -286,7 +273,7 @@ export default function AeoDashboard() {
             className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 text-primary-foreground shadow-lg shadow-primary/25"
             onClick={() => navigate('/wizard')}
           >
-            {language === 'fr' ? "Lancer l'assistant" : "Start wizard"}
+            Start wizard
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
