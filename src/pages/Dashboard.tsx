@@ -1,182 +1,169 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { GlassCard } from "@/components/ui/glass-card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
-  FileText,
-  MessageSquare,
-  Search,
-  Key,
-  Bot,
-  Link,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
   ArrowRight,
-  Zap,
-  Crown,
+  AlertCircle,
   Clock,
 } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
-import { useAnswers } from "@/hooks/useAnswers";
-import { useArticles } from "@/hooks/useArticles";
+import { useState, useEffect } from "react";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useSubscription } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const quickActions = [
-  { title: "SEO Audit", description: "Analyze your website", icon: Search, href: "/seo-audit", color: "from-rose-500 to-pink-600" },
-  { title: "Keywords", description: "Research opportunities", icon: Key, href: "/keywords", color: "from-amber-500 to-orange-600" },
-  { title: "Articles", description: "Generate SEO content", icon: FileText, href: "/articles", color: "from-blue-500 to-cyan-600" },
-  { title: "Reddit Agent", description: "Build brand visibility", icon: Bot, href: "/reddit", color: "from-violet-500 to-purple-600" },
-];
+interface AuditIssue {
+  id: string;
+  title: string;
+  severity: "High" | "Medium" | "Low";
+  fixed: boolean;
+}
 
 export default function Dashboard() {
-  const { data: answers = [] } = useAnswers();
-  const { data: articles = [] } = useArticles();
   const { project } = useActiveProject();
-  const { subscribed, trial, isLoading, startCheckout, openCustomerPortal } = useSubscription();
+  const { subscribed, trial, isLoading } = useSubscription();
+  const [onboardingProgress, setOnboardingProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState("17 minutes");
+  const [geoScore, setGeoScore] = useState(78);
+  const [isOpen, setIsOpen] = useState(true);
+  
+  const [auditIssues, setAuditIssues] = useState<AuditIssue[]>([
+    { id: "1", title: "Missing llms.txt", severity: "High", fixed: true },
+    { id: "2", title: "Missing JSON-LD schema", severity: "High", fixed: false },
+    { id: "3", title: "Duplicated H1s", severity: "High", fixed: false },
+    { id: "4", title: "Broken Internal Link", severity: "Low", fixed: false },
+    { id: "5", title: "Irrelevant Meta Description", severity: "Medium", fixed: false },
+  ]);
 
-  const articlesThisMonth = articles.filter(a => {
-    const created = new Date(a.created_at || '');
-    const now = new Date();
-    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-  }).length;
+  useEffect(() => {
+    // Simulate onboarding progress
+    const timer = setInterval(() => {
+      setOnboardingProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(timer);
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 2000);
 
-  const getSubscriptionStatus = () => {
-    if (isLoading) return { label: "Loading...", variant: "secondary" as const, icon: Clock };
-    if (trial) return { label: "Trial Active", variant: "default" as const, icon: Clock };
-    if (subscribed) return { label: "All-in-One", variant: "default" as const, icon: Crown };
-    return { label: "No subscription", variant: "secondary" as const, icon: Zap };
+    return () => clearInterval(timer);
+  }, []);
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "High":
+        return "text-destructive";
+      case "Medium":
+        return "text-amber-500";
+      case "Low":
+        return "text-emerald-500";
+      default:
+        return "text-muted-foreground";
+    }
   };
 
-  const status = getSubscriptionStatus();
+  const issuesCount = auditIssues.filter((i) => !i.fixed).length;
+  const isOnboarding = !subscribed && !trial;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl gradient-bg p-8 text-primary-foreground shadow-glow">
-          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <Badge className={`${subscribed || trial ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-white/20 text-white border-0'} backdrop-blur-sm`}>
-                <status.icon className="mr-1 h-3 w-3" />
-                {status.label}
-              </Badge>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Onboarding Progress Card */}
+        <Card className="p-6 border border-border/50 shadow-sm">
+          <div className="flex items-start justify-between mb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl font-bold text-foreground">{onboardingProgress}%</span>
+              </div>
+              <div className="w-24 h-1 bg-primary rounded-full mt-2" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Welcome to Aeoreply
-            </h1>
-            <p className="mt-2 max-w-xl text-lg text-white/80">
-              {project ? `Managing ${project.name}` : "Get cited by ChatGPT, Gemini & AI assistants."}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {subscribed || trial ? (
-                <>
-                  <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
-                    <RouterLink to="/articles"><Zap className="mr-2 h-4 w-4" />Generate Articles</RouterLink>
-                  </Button>
-                  <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" onClick={openCustomerPortal}>
-                    Manage Subscription
-                  </Button>
-                </>
-              ) : (
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" onClick={startCheckout}>
-                  <Zap className="mr-2 h-4 w-4" />Start 3-Day Free Trial
-                </Button>
-              )}
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Clock className="w-4 h-4" />
+              <span>{timeLeft} left</span>
             </div>
           </div>
-        </div>
+          
+          <h2 className="text-xl font-semibold text-foreground mb-1">
+            Onboarding in progress...
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            You can leave this page, we'll email you when everything is ready.
+          </p>
+        </Card>
 
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <GlassCard hover gradient className="p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <Crown className="h-6 w-6 text-primary" />
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">Subscription</p>
-              <p className="text-2xl font-bold">{status.label}</p>
-              {(subscribed || trial) && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {trial ? "3-day trial" : "$99/month"}
-                </p>
-              )}
-            </div>
-          </GlassCard>
-
-          <GlassCard hover gradient className="p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10">
-              <FileText className="h-6 w-6 text-blue-500" />
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">Articles This Month</p>
-              <p className="text-3xl font-bold">{articlesThisMonth}<span className="text-lg text-muted-foreground">/30</span></p>
-            </div>
-          </GlassCard>
-
-          <GlassCard hover gradient className="p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10">
-              <MessageSquare className="h-6 w-6 text-emerald-500" />
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">AI Answers</p>
-              <p className="text-3xl font-bold">{answers.length}</p>
-            </div>
-          </GlassCard>
-
-          <GlassCard hover gradient className="p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10">
-              <Link className="h-6 w-6 text-violet-500" />
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">Integrations</p>
-              <Button variant="link" className="p-0 h-auto text-primary" asChild>
-                <RouterLink to="/integrations">Connect CMS<ArrowRight className="ml-1 h-3 w-3" /></RouterLink>
-              </Button>
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Quick Actions */}
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">Quick Actions</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickActions.map((action) => (
-              <RouterLink key={action.href} to={action.href}>
-                <GlassCard hover className="group p-6">
-                  <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${action.color} shadow-lg transition-transform group-hover:scale-110`}>
-                    <action.icon className="h-6 w-6 text-white" />
+        {/* GEO Audit Card */}
+        <Card className="border border-border/50 shadow-sm overflow-hidden">
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  {isOpen ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <span className="font-medium text-foreground">
+                    {project?.website_url || "www.yoursite.com"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">GEO Score </span>
+                    <span className="font-semibold text-primary">{geoScore}</span>
                   </div>
-                  <h3 className="font-semibold">{action.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{action.description}</p>
-                  <ArrowRight className="mt-4 h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                </GlassCard>
-              </RouterLink>
-            ))}
-          </div>
-        </div>
+                  <div>
+                    <span className="text-muted-foreground">Issues: </span>
+                    <span className="font-semibold text-foreground">{issuesCount}</span>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="border-t border-border/50">
+                {auditIssues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    className="flex items-center justify-between px-6 py-4 border-b border-border/30 last:border-b-0 hover:bg-muted/30 transition-colors"
+                  >
+                    <span className="text-foreground">{issue.title}</span>
+                    <div className="flex items-center gap-4">
+                      <span className={`text-sm font-medium ${getSeverityColor(issue.severity)}`}>
+                        {issue.severity}
+                      </span>
+                      {issue.fixed ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Fixed
+                        </Badge>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          className="bg-foreground hover:bg-foreground/90 text-background h-8 px-4"
+                        >
+                          Fix <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
 
-        {/* Getting Started / CTA */}
-        {!subscribed && !trial && (
-          <GlassCard className="p-8 text-center border-primary/30">
-            <div className="max-w-lg mx-auto">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
-                <Crown className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold">Unlock All-in-One Features</h3>
-              <p className="text-muted-foreground mt-2">
-                Get 30 SEO articles/month, automatic backlinks, Reddit agent, and more.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <span className="text-muted-foreground line-through">$247</span>
-                <span className="text-3xl font-bold">$99</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
-              <Button size="lg" className="mt-6 gradient-bg text-primary-foreground shadow-glow" onClick={startCheckout}>
-                Start 3-Day Free Trial
-              </Button>
-            </div>
-          </GlassCard>
-        )}
+        {/* Info Text */}
+        <p className="text-center text-muted-foreground text-sm">
+          We are finding technical issues on your website that are preventing{" "}
+          <span className="font-medium text-foreground">Google</span> and{" "}
+          <span className="font-medium text-foreground">ChatGPT</span> from properly reading and ranking your site.
+        </p>
       </div>
     </DashboardLayout>
   );
