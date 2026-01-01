@@ -216,6 +216,9 @@ export default function Index() {
               <p className="mt-4 text-xs text-muted-foreground">
                 1 credit = 1 AEO Answer • 2 credits = 1 AEO Article
               </p>
+              <Button variant="link" className="mt-2 text-muted-foreground" asChild>
+                <Link to="/pricing">Voir tous les plans →</Link>
+              </Button>
             </GlassCard>
           </div>
         </div>
