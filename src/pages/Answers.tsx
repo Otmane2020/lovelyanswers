@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { ScoreRing } from "@/components/ui/score-ring";
@@ -8,17 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAnswers, useToggleAnswerPublic } from "@/hooks/useAnswers";
+import { toast } from "sonner";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
 export default function Answers() {
+  const navigate = useNavigate();
   const { data: answers = [], isLoading } = useAnswers();
   const togglePublic = useToggleAnswerPublic();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [showHighCitation, setShowHighCitation] = useState(false);
   const [showPublishedOnly, setShowPublishedOnly] = useState(false);
+  const [viewingAnswer, setViewingAnswer] = useState<typeof answers[0] | null>(null);
 
   const filteredAnswers = answers.filter((answer) => {
     const matchesSearch = answer.question.toLowerCase().includes(searchQuery.toLowerCase());
@@ -30,6 +35,28 @@ export default function Answers() {
 
   const handleTogglePublish = (id: string, currentState: boolean) => {
     togglePublic.mutate({ id, isPublic: !currentState });
+  };
+
+  const handleViewAnswer = (answer: typeof answers[0]) => {
+    setViewingAnswer(answer);
+  };
+
+  const handleEditAnswer = (answerId: string) => {
+    navigate(`/answers/${answerId}/edit`);
+  };
+
+  const handleGenerateArticle = (answerId: string) => {
+    navigate(`/articles?generate=${answerId}`);
+  };
+
+  const handleViewPublic = (slug: string) => {
+    window.open(`/answer/${slug}`, "_blank");
+  };
+
+  const handleCopyLink = (slug: string) => {
+    const publicUrl = `${window.location.origin}/answer/${slug}`;
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Link copied to clipboard!");
   };
 
   return (
@@ -80,7 +107,7 @@ export default function Answers() {
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="text-lg font-semibold leading-tight">{answer.question}</h3>
                     <div className="flex items-center gap-2">
-                      <Switch checked={answer.is_public} onCheckedChange={() => handleTogglePublish(answer.id, answer.is_public)} />
+                      <Switch checked={answer.is_public} onCheckedChange={() => handleTogglePublish(answer.id, answer.is_public ?? false)} />
                       <span className="text-sm text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
                     </div>
                   </div>
@@ -92,10 +119,15 @@ export default function Answers() {
                     {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
                   </div>
                   <div className="flex items-center gap-2 pt-2">
-                    <Button variant="ghost" size="sm" className="gap-2"><Eye className="h-4 w-4" />View</Button>
-                    <Button variant="ghost" size="sm" className="gap-2"><Pencil className="h-4 w-4" />Edit</Button>
-                    {!answer.has_article && <Button variant="ghost" size="sm" className="gap-2"><Newspaper className="h-4 w-4" />Generate Article</Button>}
-                    {answer.is_public && (<><Button variant="ghost" size="sm" className="gap-2"><ExternalLink className="h-4 w-4" />View Public</Button><Button variant="ghost" size="sm" className="gap-2"><Copy className="h-4 w-4" />Copy Link</Button></>)}
+                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View</Button>
+                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
+                    {!answer.has_article && <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleGenerateArticle(answer.id)}><Newspaper className="h-4 w-4" />Generate Article</Button>}
+                    {answer.is_public && (
+                      <>
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyLink(answer.slug)}><Copy className="h-4 w-4" />Copy Link</Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -113,6 +145,36 @@ export default function Answers() {
           )}
         </div>
       </div>
+
+      {/* View Answer Dialog */}
+      <Dialog open={!!viewingAnswer} onOpenChange={() => setViewingAnswer(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingAnswer?.question}</DialogTitle>
+            <DialogDescription>
+              <div className="flex items-center gap-2 mt-2">
+                <ScoreRing score={viewingAnswer?.score ?? 0} size="sm" />
+                <span>Citation Score: {viewingAnswer?.score ?? 0}</span>
+                {viewingAnswer?.is_public && <Badge className="bg-blue-500/20 text-blue-500 border-0">Public</Badge>}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <h4 className="font-medium mb-2">Answer</h4>
+              <p className="text-muted-foreground whitespace-pre-wrap">{viewingAnswer?.answer}</p>
+            </div>
+            {viewingAnswer?.platforms && viewingAnswer.platforms.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Target Platforms</h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingAnswer.platforms.map((p) => <Badge key={p} variant="secondary">{p}</Badge>)}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
