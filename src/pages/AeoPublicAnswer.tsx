@@ -104,7 +104,7 @@ export default function AeoPublicAnswer() {
     );
   }
 
-  // JSON-LD structured data for AEO
+  // JSON-LD structured data for AEO - Enhanced for AI citation
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -113,9 +113,26 @@ export default function AeoPublicAnswer() {
       "name": answer.question,
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": answer.answer
+        "text": answer.answer,
+        "dateCreated": answer.created_at,
+        "author": {
+          "@type": "Organization",
+          "name": "AEOReply",
+          "url": window.location.origin
+        }
       }
-    }]
+    }],
+    "publisher": {
+      "@type": "Organization",
+      "name": "AEOReply",
+      "url": window.location.origin,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${window.location.origin}/favicon.ico`
+      }
+    },
+    "datePublished": answer.created_at,
+    "dateModified": answer.created_at
   };
 
   return (
