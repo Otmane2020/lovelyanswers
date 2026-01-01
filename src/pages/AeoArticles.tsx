@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ interface AeoArticle {
 
 export default function AeoArticles() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [articles, setArticles] = useState<AeoArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,10 @@ export default function AeoArticles() {
             <h1 className="text-3xl font-bold">AEO Articles</h1>
             <p className="text-muted-foreground mt-1">Your articles optimized for AI citation</p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
+          <Button 
+            onClick={() => navigate("/aeo/answers")}
+            className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Create article
           </Button>
@@ -120,7 +125,10 @@ export default function AeoArticles() {
             <p className="text-muted-foreground mb-4">
               Create your first AI-optimized article
             </p>
-            <Button className="bg-gradient-to-r from-primary to-blue-500">
+            <Button 
+              onClick={() => navigate("/aeo/answers")}
+              className="bg-gradient-to-r from-primary to-blue-500"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create article
             </Button>
