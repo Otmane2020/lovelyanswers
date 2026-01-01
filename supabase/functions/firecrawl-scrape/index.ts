@@ -204,11 +204,11 @@ Expected format: ["audience1", "audience2", "audience3", "audience4"]`;
       audiences = ['professionnels du digital', 'entreprises en croissance', 'marketeurs'];
     }
     
-    // Extract competitors using Data for SEO API
+    // ============= COMPETITOR DETECTION (GENERIC & ROBUST) =============
     const ownDomain = new URL(formattedUrl).hostname.replace('www.', '').toLowerCase();
-    let competitors: string[] = [];
+    let competitors: { domain: string; score: number }[] = [];
     
-    // Domains to ALWAYS filter out
+    // Domains to ALWAYS filter out (platforms, social, generic tools)
     const blockedDomains = [
       'facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'linkedin.com', 
       'youtube.com', 'tiktok.com', 'pinterest.com', 'snapchat.com', 'whatsapp.com',
@@ -216,91 +216,47 @@ Expected format: ["audience1", "audience2", "audience3", "audience4"]`;
       'wix.com', 'wordpress.com', 'webflow.com', 'magento.com', 'prestashop.com',
       'paypal.com', 'stripe.com', 'klarna.com', 'afterpay.com',
       'google.com', 'bing.com', 'yahoo.com', 'analytics.google.com',
-      'cloudflare.com', 'amazonaws.com', 'cdn.shopify.com', 'account.de',
-      'apple.com', 'microsoft.com', 'amazon.com', 'wikipedia.org', 'amazon.fr',
-      'ebay.com', 'ebay.fr', 'aliexpress.com', 'alibaba.com'
+      'cloudflare.com', 'amazonaws.com', 'cdn.shopify.com',
+      'apple.com', 'microsoft.com', 'amazon.com', 'wikipedia.org',
+      'ebay.com', 'aliexpress.com', 'alibaba.com',
+      // Generic AI tools blacklist
+      'jasper.ai', 'copy.ai', 'rytr.me', 'writesonic.com', 'chatgpt.com',
+      'openai.com', 'claude.ai', 'anthropic.com', 'perplexity.ai',
+      'surferseo.com', 'semrush.com', 'ahrefs.com', 'moz.com'
     ];
     
     const isBlockedDomain = (domain: string): boolean => {
       const lowerDomain = domain.toLowerCase();
-      return blockedDomains.some(blocked => lowerDomain.includes(blocked.replace('.com', '').replace('.fr', '')));
+      return blockedDomains.some(blocked => 
+        lowerDomain === blocked || 
+        lowerDomain.endsWith('.' + blocked) ||
+        lowerDomain.includes(blocked.split('.')[0])
+      );
     };
     
-    // Try Data for SEO API first
     const dfLogin = Deno.env.get('DATAFORSEO_LOGIN');
     const dfPassword = Deno.env.get('DATAFORSEO_PASSWORD');
     
-    if (dfLogin && dfPassword) {
+    if (dfLogin && dfPassword && lovableApiKey) {
       try {
-        console.log('Fetching competitors from Data for SEO...');
+        // STEP 1: Detect vertical and keywords using AI
+        console.log('Step 1: Detecting vertical and keywords...');
         
-        const authString = btoa(`${dfLogin}:${dfPassword}`);
-        
-        // Use the competitors API
-        const dfResponse = await fetch('https://api.dataforseo.com/v3/dataforseo_labs/google/competitors_domain/live', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${authString}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([{
-            target: ownDomain,
-            language_code: language === 'fr' ? 'fr' : 'en',
-            location_code: language === 'fr' ? 2250 : 2840, // France or US
-            filters: ["intersections", ">", 10],
-            limit: 10
-          }]),
-        });
-        
-        const dfData = await dfResponse.json();
-        console.log('Data for SEO response status:', dfData.status_code);
-        
-        if (dfData.status_code === 20000 && dfData.tasks?.[0]?.result?.[0]?.items) {
-          const items = dfData.tasks[0].result[0].items;
-          console.log('Found', items.length, 'potential competitors from Data for SEO');
-          
-          // Extract competitor domains, sorted by relevance (intersections)
-          const seoCompetitors = items
-            .filter((item: any) => 
-              item.domain && 
-              !item.domain.includes(ownDomain.split('.')[0]) &&
-              !isBlockedDomain(item.domain)
-            )
-            .sort((a: any, b: any) => (b.intersections || 0) - (a.intersections || 0))
-            .slice(0, 5)
-            .map((item: any) => item.domain);
-          
-          competitors = seoCompetitors;
-          console.log('SEO competitors found:', competitors);
-        } else {
-          console.log('Data for SEO returned no results or error:', dfData.status_message || 'Unknown');
-        }
-      } catch (dfError) {
-        console.error('Data for SEO API error:', dfError);
-      }
-    } else {
-      console.log('Data for SEO credentials not configured, using fallback');
-    }
-    
-    // Use AI to suggest competitors if Data for SEO didn't return enough results
-    if (competitors.length < 3 && lovableApiKey) {
-      try {
-        console.log('Extracting competitors using AI...');
-        
-        const competitorPrompt = `Tu es un expert en analyse concurrentielle. Analyse cette entreprise et suggère 5 concurrents directs pertinents.
+        const verticalPrompt = `Analyze this website and extract its business vertical and 3-5 search keywords that competitors would rank for.
 
-Nom de la marque: ${brandName}
+Title: ${title}
 Description: ${enrichedDescription}
 URL: ${formattedUrl}
+Content: ${contentPreview.substring(0, 1500)}
 
-Retourne UNIQUEMENT un JSON array avec 5 domaines de concurrents (format: exemple.com).
-Les concurrents doivent être des entreprises réelles dans le même secteur d'activité.
-NE PAS inclure de plateformes génériques (shopify, wix, wordpress, etc.).
-NE PAS inclure de réseaux sociaux ou marketplaces.
+Return ONLY valid JSON:
+{
+  "vertical": "specific vertical (e.g. Shopify SEO App, SaaS CRM, E-commerce Fashion)",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "signals": ["shopify", "saas", "ecommerce"] // detected platform/tech signals
+}`;
 
-Format attendu: ["concurrent1.com", "concurrent2.com", "concurrent3.com", "concurrent4.com", "concurrent5.com"]`;
-
-        const aiCompResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const verticalResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${lovableApiKey}`,
@@ -308,39 +264,200 @@ Format attendu: ["concurrent1.com", "concurrent2.com", "concurrent3.com", "concu
           },
           body: JSON.stringify({
             model: 'google/gemini-2.5-flash',
-            messages: [{ role: 'user', content: competitorPrompt }],
-            temperature: 0.3,
+            messages: [{ role: 'user', content: verticalPrompt }],
+            temperature: 0.2,
           }),
         });
 
-        if (aiCompResponse.ok) {
-          const aiCompData = await aiCompResponse.json();
-          const compContent = aiCompData.choices?.[0]?.message?.content || '';
-          console.log('AI competitors response:', compContent);
+        let vertical = '';
+        let searchKeywords: string[] = [];
+        let signals: string[] = [];
+
+        if (verticalResponse.ok) {
+          const verticalData = await verticalResponse.json();
+          const verticalContent = verticalData.choices?.[0]?.message?.content || '';
+          console.log('Vertical detection response:', verticalContent);
           
-          const jsonCompMatch = compContent.match(/\[[\s\S]*?\]/);
-          if (jsonCompMatch) {
+          const jsonMatch = verticalContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
             try {
-              const parsedComp = JSON.parse(jsonCompMatch[0]);
-              if (Array.isArray(parsedComp) && parsedComp.length > 0) {
-                const aiCompetitors = parsedComp
-                  .slice(0, 5)
-                  .map((c: string) => c.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, ''))
-                  .filter((c: string) => !isBlockedDomain(c) && !c.includes(ownDomain.split('.')[0]));
-                competitors = [...competitors, ...aiCompetitors];
-                console.log('AI extracted competitors:', aiCompetitors);
-              }
-            } catch (parseError) {
-              console.error('Failed to parse AI competitors:', parseError);
+              const parsed = JSON.parse(jsonMatch[0]);
+              vertical = parsed.vertical || '';
+              searchKeywords = parsed.keywords || [];
+              signals = parsed.signals || [];
+              console.log('Detected vertical:', vertical, 'Keywords:', searchKeywords, 'Signals:', signals);
+            } catch (e) {
+              console.error('Failed to parse vertical JSON:', e);
             }
           }
         }
-      } catch (aiError) {
-        console.error('AI competitor extraction error:', aiError);
+
+        // STEP 2: Query DataForSEO SERP with detected keywords
+        if (searchKeywords.length > 0) {
+          console.log('Step 2: Querying DataForSEO SERP with keywords:', searchKeywords.slice(0, 3));
+          
+          const authString = btoa(`${dfLogin}:${dfPassword}`);
+          const locationCode = language === 'fr' ? 2250 : 2840;
+          const langCode = language === 'fr' ? 'fr' : 'en';
+          
+          const serpResponse = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/advanced', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${authString}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(
+              searchKeywords.slice(0, 3).map(k => ({
+                keyword: k,
+                location_code: locationCode,
+                language_code: langCode,
+                device: 'desktop',
+                depth: 20
+              }))
+            ),
+          });
+
+          const serpData = await serpResponse.json();
+          console.log('DataForSEO SERP response status:', serpData.status_code);
+
+          if (serpData.status_code === 20000 && serpData.tasks) {
+            const competitorMap = new Map<string, { domain: string; score: number; title: string }>();
+            
+            // STEP 3: Extract and filter SERP results
+            for (const task of serpData.tasks) {
+              const items = task?.result?.[0]?.items || [];
+              
+              for (const item of items) {
+                if (item.type !== 'organic') continue;
+                
+                const domain = (item.domain || '').toLowerCase().replace('www.', '');
+                const itemTitle = (item.title || '').toLowerCase();
+                const itemDesc = (item.description || '').toLowerCase();
+                const itemUrl = (item.url || '').toLowerCase();
+                const text = `${itemTitle} ${itemDesc} ${domain} ${itemUrl}`;
+                
+                // Skip own domain
+                if (domain.includes(ownDomain.split('.')[0])) continue;
+                
+                // Skip blocked domains
+                if (isBlockedDomain(domain)) continue;
+                
+                // STEP 4: Vertical-specific filtering
+                let isRelevant = false;
+                let score = 0;
+                
+                // Check if matches detected signals
+                for (const signal of signals) {
+                  if (text.includes(signal.toLowerCase())) {
+                    isRelevant = true;
+                    score += 3;
+                  }
+                }
+                
+                // Check for keyword matches
+                for (const kw of searchKeywords) {
+                  const kwLower = kw.toLowerCase();
+                  if (text.includes(kwLower)) {
+                    score += 2;
+                  }
+                }
+                
+                // Vertical-specific boosts
+                if (vertical.toLowerCase().includes('shopify')) {
+                  if (text.includes('shopify') || itemUrl.includes('apps.shopify.com')) {
+                    isRelevant = true;
+                    score += 5;
+                  }
+                }
+                if (vertical.toLowerCase().includes('seo')) {
+                  if (text.includes('seo') || text.includes('ranking') || text.includes('optimization')) {
+                    score += 2;
+                  }
+                }
+                if (vertical.toLowerCase().includes('ecommerce') || vertical.toLowerCase().includes('e-commerce')) {
+                  if (text.includes('ecommerce') || text.includes('store') || text.includes('shop')) {
+                    score += 2;
+                  }
+                }
+                
+                // Position boost (higher ranked = more relevant)
+                const position = item.rank_absolute || 20;
+                score += Math.max(0, 10 - position);
+                
+                // Only include if relevant or has decent score
+                if (isRelevant || score >= 5) {
+                  const existing = competitorMap.get(domain);
+                  if (existing) {
+                    existing.score += 2; // Boost for appearing multiple times
+                  } else {
+                    competitorMap.set(domain, { domain, score, title: item.title || domain });
+                  }
+                }
+              }
+            }
+            
+            // STEP 5: Sort by score and get top competitors
+            competitors = Array.from(competitorMap.values())
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 10);
+            
+            console.log('SERP competitors found:', competitors.map(c => `${c.domain} (score: ${c.score})`));
+          }
+        }
+        
+        // Fallback: Try domain competitors API if SERP didn't return enough
+        if (competitors.length < 3) {
+          console.log('SERP insufficient, trying domain competitors API...');
+          
+          const authString = btoa(`${dfLogin}:${dfPassword}`);
+          const dfResponse = await fetch('https://api.dataforseo.com/v3/dataforseo_labs/google/competitors_domain/live', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${authString}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([{
+              target: ownDomain,
+              language_code: language === 'fr' ? 'fr' : 'en',
+              location_code: language === 'fr' ? 2250 : 2840,
+              filters: ["intersections", ">", 5],
+              limit: 15
+            }]),
+          });
+          
+          const dfData = await dfResponse.json();
+          
+          if (dfData.status_code === 20000 && dfData.tasks?.[0]?.result?.[0]?.items) {
+            const items = dfData.tasks[0].result[0].items;
+            console.log('Domain competitors API found:', items.length, 'results');
+            
+            for (const item of items) {
+              if (!item.domain || isBlockedDomain(item.domain)) continue;
+              if (item.domain.includes(ownDomain.split('.')[0])) continue;
+              
+              const exists = competitors.find(c => c.domain === item.domain);
+              if (!exists) {
+                competitors.push({
+                  domain: item.domain,
+                  score: item.intersections || 1
+                });
+              }
+            }
+          }
+        }
+        
+      } catch (dfError) {
+        console.error('Competitor detection error:', dfError);
       }
+    } else {
+      console.log('DataForSEO or AI credentials not configured');
     }
     
-    const uniqueCompetitors = [...new Set(competitors)].slice(0, 5);
+    // Extract just domains, sorted by score
+    const uniqueCompetitors = competitors
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(c => c.domain);
     
     console.log('Scrape successful:', { 
       brandName, 
