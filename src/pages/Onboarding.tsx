@@ -64,6 +64,7 @@ export default function Onboarding() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [urlError, setUrlError] = useState("");
   const [newAudience, setNewAudience] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
   
@@ -82,6 +83,33 @@ export default function Onboarding() {
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Validate URL format
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.length < 3) return false;
+    // Allow domain formats like example.com or full URLs
+    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+    return urlPattern.test(url.trim());
+  };
+
+  const handleUrlChange = (value: string) => {
+    updateData("websiteUrl", value);
+    setHasAnalyzed(false);
+    setUrlError("");
+  };
+
+  const validateAndProceed = () => {
+    if (currentStep === 1 && !isValidUrl(data.websiteUrl)) {
+      setUrlError("Please enter a valid URL (e.g., example.com or https://example.com)");
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid website URL format.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
   };
 
   // Real website analysis using Firecrawl
@@ -187,7 +215,7 @@ export default function Onboarding() {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return data.websiteUrl.length > 0 && !isAutoFilling;
+      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl);
       case 2: return data.language.length > 0;
       case 3: return data.businessDescription.length > 0 && data.targetAudiences.length >= 2;
       case 4: return true;
@@ -198,6 +226,8 @@ export default function Onboarding() {
   };
 
   const handleNext = () => {
+    if (!validateAndProceed()) return;
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -328,16 +358,21 @@ export default function Onboarding() {
                       <h1 className="text-3xl font-bold tracking-tight">Insert Your Website URL</h1>
                       <p className="text-muted-foreground mt-2">Enter the website URL you want to optimize for AI visibility.</p>
                     </div>
-                    <div className="relative">
-                      <Input
-                        type="url"
-                        placeholder="example.com"
-                        value={data.websiteUrl}
-                        onChange={(e) => { updateData("websiteUrl", e.target.value); setHasAnalyzed(false); }}
-                        className="h-14 text-lg pr-12"
-                      />
-                      {isAutoFilling && (
-                        <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-primary" />
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Input
+                          type="url"
+                          placeholder="example.com"
+                          value={data.websiteUrl}
+                          onChange={(e) => handleUrlChange(e.target.value)}
+                          className={cn("h-14 text-lg pr-12", urlError && "border-destructive focus-visible:ring-destructive")}
+                        />
+                        {isAutoFilling && (
+                          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-primary" />
+                        )}
+                      </div>
+                      {urlError && (
+                        <p className="text-sm text-destructive">{urlError}</p>
                       )}
                     </div>
                   </div>
