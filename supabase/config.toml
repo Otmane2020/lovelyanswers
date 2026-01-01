@@ -8,3 +8,18 @@ verify_jwt = true
 
 [functions.auto-generate-aeo]
 verify_jwt = true
+
+[functions.generate-articles]
+verify_jwt = true
+
+[functions.seo-audit]
+verify_jwt = true
+
+[functions.keyword-research]
+verify_jwt = true
+
+[functions.cms-publish]
+verify_jwt = true
+
+[functions.reddit-agent]
+verify_jwt = true
