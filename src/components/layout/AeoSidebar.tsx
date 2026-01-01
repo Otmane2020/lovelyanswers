@@ -1,14 +1,14 @@
 import {
   LayoutDashboard,
-  Lightbulb,
-  Sparkles,
-  MessageSquare,
+  Search,
+  Key,
   FileText,
+  MessageSquare,
+  Bot,
   Link,
-  Settings,
-  User,
-  LogOut,
   CreditCard,
+  Settings,
+  LogOut,
   Rocket,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -41,17 +41,20 @@ export function AeoSidebar() {
   ];
 
   const aeoMenuItems = [
-    { title: "Wizard", url: "/wizard", icon: Lightbulb },
-    { title: "Opportunities", url: "/opportunities", icon: Sparkles },
-    { title: "Answers", url: "/answers", icon: MessageSquare },
+    { title: "SEO Audit", url: "/seo-audit", icon: Search },
+    { title: "Keywords", url: "/keywords", icon: Key },
     { title: "Articles", url: "/articles", icon: FileText },
+    { title: "Answers", url: "/answers", icon: MessageSquare },
+    { title: "Reddit Agent", url: "/reddit", icon: Bot },
+  ];
+
+  const publishMenuItems = [
     { title: "Integrations", url: "/integrations", icon: Link },
-    { title: "Settings", url: "/settings", icon: Settings },
   ];
 
   const accountMenuItems = [
-    { title: "My account", url: "/account", icon: User },
     { title: "Subscription", url: "/subscription", icon: CreditCard },
+    { title: "Settings", url: "/settings", icon: Settings },
   ];
 
   const isActive = (path: string) => currentPath === path;
@@ -85,7 +88,7 @@ export function AeoSidebar() {
                 Aeoreply
               </span>
               <span className="text-[10px] text-muted-foreground -mt-0.5">
-                Answer Engine Optimization
+                All-in-One AEO Platform
               </span>
             </div>
           )}
@@ -118,7 +121,7 @@ export function AeoSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* AEO Features */}
+        {/* AEO Engine */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-primary/80 uppercase text-xs tracking-wider">
             AEO Engine
@@ -126,6 +129,31 @@ export function AeoSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {aeoMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive(item.url)}
+                    className="hover:bg-primary/10 data-[active=true]:bg-gradient-to-r data-[active=true]:from-primary/20 data-[active=true]:to-blue-500/20 data-[active=true]:border-l-2 data-[active=true]:border-primary"
+                  >
+                    <NavLink to={item.url} onClick={handleNavClick}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Publish */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-primary/80 uppercase text-xs tracking-wider">
+            Publish
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {publishMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
