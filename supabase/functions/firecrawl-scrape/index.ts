@@ -275,42 +275,62 @@ Format de réponse attendu: ["audience1", "audience2", "audience3", "audience4"]
       console.log('Data for SEO credentials not configured, using fallback');
     }
     
-    // Fallback to industry-based competitors if Data for SEO didn't return results
-    if (competitors.length < 3) {
-      console.log('Using fallback industry competitors');
-      const contentLower = markdown.toLowerCase();
-      const industryCompetitors: string[] = [];
-      
-      // Furniture & Home Decor industry
-      if (contentLower.includes('meuble') || contentLower.includes('furniture') || 
-          contentLower.includes('décor') || contentLower.includes('decor') ||
-          contentLower.includes('canapé') || contentLower.includes('sofa') ||
-          contentLower.includes('table') || contentLower.includes('chaise') ||
-          contentLower.includes('intérieur') || contentLower.includes('interior') ||
-          contentLower.includes('mobilier') || contentLower.includes('maison')) {
-        industryCompetitors.push(
-          'maisonsdumonde.com', 'ikea.com', 'conforama.fr', 
-          'but.fr', 'alinea.com', 'habitat.fr',
-          'laredoute.fr', 'camif.fr', 'made.com'
-        );
-      }
-      
-      // SaaS/Software industry
-      if (contentLower.includes('saas') || contentLower.includes('software') || contentLower.includes('api')) {
-        industryCompetitors.push('hubspot.com', 'salesforce.com', 'zendesk.com');
-      }
-      
-      // Marketing/SEO industry
-      if (contentLower.includes('seo') || contentLower.includes('marketing') || contentLower.includes('référencement')) {
-        industryCompetitors.push('semrush.com', 'ahrefs.com', 'moz.com', 'sistrix.com');
-      }
-      
-      // Add fallback competitors
-      industryCompetitors.forEach((c: string) => {
-        if (competitors.length < 5 && !competitors.includes(c) && !c.includes(ownDomain.split('.')[0])) {
-          competitors.push(c);
+    // Use AI to suggest competitors if Data for SEO didn't return enough results
+    if (competitors.length < 3 && lovableApiKey) {
+      try {
+        console.log('Extracting competitors using AI...');
+        
+        const competitorPrompt = `Tu es un expert en analyse concurrentielle. Analyse cette entreprise et suggère 5 concurrents directs pertinents.
+
+Nom de la marque: ${brandName}
+Description: ${enrichedDescription}
+URL: ${formattedUrl}
+
+Retourne UNIQUEMENT un JSON array avec 5 domaines de concurrents (format: exemple.com).
+Les concurrents doivent être des entreprises réelles dans le même secteur d'activité.
+NE PAS inclure de plateformes génériques (shopify, wix, wordpress, etc.).
+NE PAS inclure de réseaux sociaux ou marketplaces.
+
+Format attendu: ["concurrent1.com", "concurrent2.com", "concurrent3.com", "concurrent4.com", "concurrent5.com"]`;
+
+        const aiCompResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [{ role: 'user', content: competitorPrompt }],
+            temperature: 0.3,
+          }),
+        });
+
+        if (aiCompResponse.ok) {
+          const aiCompData = await aiCompResponse.json();
+          const compContent = aiCompData.choices?.[0]?.message?.content || '';
+          console.log('AI competitors response:', compContent);
+          
+          const jsonCompMatch = compContent.match(/\[[\s\S]*?\]/);
+          if (jsonCompMatch) {
+            try {
+              const parsedComp = JSON.parse(jsonCompMatch[0]);
+              if (Array.isArray(parsedComp) && parsedComp.length > 0) {
+                const aiCompetitors = parsedComp
+                  .slice(0, 5)
+                  .map((c: string) => c.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, ''))
+                  .filter((c: string) => !isBlockedDomain(c) && !c.includes(ownDomain.split('.')[0]));
+                competitors = [...competitors, ...aiCompetitors];
+                console.log('AI extracted competitors:', aiCompetitors);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse AI competitors:', parseError);
+            }
+          }
         }
-      });
+      } catch (aiError) {
+        console.error('AI competitor extraction error:', aiError);
+      }
     }
     
     const uniqueCompetitors = [...new Set(competitors)].slice(0, 5);

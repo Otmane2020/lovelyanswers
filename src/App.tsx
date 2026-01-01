@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Answers from "./pages/Answers";
 import Articles from "./pages/Articles";
 import Onboarding from "./pages/Onboarding";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/onboarding"
