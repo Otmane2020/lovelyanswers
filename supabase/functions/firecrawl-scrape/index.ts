@@ -129,93 +129,72 @@ Deno.serve(async (req) => {
       enrichedDescription = enrichedDescription.substring(0, 497) + '...';
     }
     
-    // Extract target audiences dynamically from the ACTUAL page content
-    const audiences: string[] = [];
-    const lowerContent = contentPreview.toLowerCase();
-    const lowerDescription = enrichedDescription.toLowerCase();
-    const combinedContent = lowerDescription + ' ' + lowerContent;
+    // Extract target audiences using AI for more accurate and contextual results
+    let audiences: string[] = [];
     
-    // AI/SaaS/Tech indicators - HIGH PRIORITY (check first for tech products)
-    if (combinedContent.includes('ai') || combinedContent.includes('artificial intelligence') || 
-        combinedContent.includes('machine learning') || combinedContent.includes('automation')) {
-      audiences.push('AI early adopters', 'tech-forward businesses');
-    }
-    if (combinedContent.includes('seo') || combinedContent.includes('référencement') || 
-        combinedContent.includes('search engine') || combinedContent.includes('ranking')) {
-      audiences.push('SEO professionals', 'digital marketers');
-    }
-    if (combinedContent.includes('shopify') || combinedContent.includes('woocommerce') || 
-        combinedContent.includes('e-commerce') || combinedContent.includes('ecommerce') ||
-        combinedContent.includes('online store') || combinedContent.includes('boutique en ligne')) {
-      audiences.push('e-commerce store owners', 'online retailers');
-    }
-    if (combinedContent.includes('product description') || combinedContent.includes('description produit') ||
-        combinedContent.includes('alt text') || combinedContent.includes('content generation')) {
-      audiences.push('content managers', 'product marketers');
-    }
-    if (combinedContent.includes('saas') || combinedContent.includes('software') || 
-        combinedContent.includes('platform') || combinedContent.includes('plateforme')) {
-      audiences.push('SaaS buyers', 'business software users');
-    }
-    if (combinedContent.includes('api') || combinedContent.includes('developer') || 
-        combinedContent.includes('développeur') || combinedContent.includes('integration')) {
-      audiences.push('developers', 'tech teams');
-    }
-    if (combinedContent.includes('startup') || combinedContent.includes('entrepreneur') || 
-        combinedContent.includes('business owner') || combinedContent.includes('founder')) {
-      audiences.push('startup founders', 'entrepreneurs');
-    }
-    if (combinedContent.includes('marketing') || combinedContent.includes('growth') || 
-        combinedContent.includes('conversion') || combinedContent.includes('traffic')) {
-      audiences.push('growth marketers', 'marketing managers');
-    }
-    if (combinedContent.includes('agency') || combinedContent.includes('agence') || 
-        combinedContent.includes('freelance') || combinedContent.includes('consultant')) {
-      audiences.push('marketing agencies', 'freelancers');
-    }
-    if (combinedContent.includes('small business') || combinedContent.includes('pme') || 
-        combinedContent.includes('sme') || combinedContent.includes('tpe')) {
-      audiences.push('small business owners', 'SMB decision makers');
-    }
-    
-    // B2B indicators
-    if (combinedContent.includes('enterprise') || combinedContent.includes('entreprise') || 
-        combinedContent.includes('b2b') || combinedContent.includes('professionnel')) {
-      audiences.push('enterprise buyers', 'B2B professionals');
-    }
-    
-    // Furniture & Home decor indicators - only if NO tech indicators found
-    if (audiences.length === 0) {
-      if (combinedContent.includes('meuble') || combinedContent.includes('furniture') || combinedContent.includes('mobilier')) {
-        audiences.push('furniture buyers', 'home furnishing shoppers');
-      }
-      if (combinedContent.includes('décor') || combinedContent.includes('decor') || 
-          combinedContent.includes('intérieur') || combinedContent.includes('interior')) {
-        audiences.push('home decor enthusiasts', 'interior design lovers');
-      }
-      if (combinedContent.includes('salon') || combinedContent.includes('living room') || 
-          combinedContent.includes('canapé') || combinedContent.includes('sofa')) {
-        audiences.push('living room renovators', 'comfort seekers');
-      }
-      if (combinedContent.includes('cuisine') || combinedContent.includes('kitchen') || combinedContent.includes('dining')) {
-        audiences.push('kitchen & dining shoppers');
-      }
-      if (combinedContent.includes('chambre') || combinedContent.includes('bedroom') || 
-          combinedContent.includes('lit') || combinedContent.includes('bed')) {
-        audiences.push('bedroom furniture shoppers');
-      }
-      if (combinedContent.includes('bureau') || combinedContent.includes('office') || combinedContent.includes('desk')) {
-        audiences.push('home office buyers', 'remote workers');
-      }
-      if (combinedContent.includes('homeowner') || combinedContent.includes('particulier') || 
-          combinedContent.includes('home') || combinedContent.includes('maison')) {
-        audiences.push('homeowners', 'new home buyers');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (lovableApiKey) {
+      try {
+        console.log('Extracting audiences using AI...');
+        
+        const aiPrompt = `Tu es un expert en marketing. Analyse cette description d'entreprise et le contenu de la page pour identifier 4 à 6 audiences cibles très spécifiques et pertinentes.
+
+Description: ${enrichedDescription}
+
+Extrait du contenu de la page:
+${contentPreview.substring(0, 2000)}
+
+Retourne UNIQUEMENT un JSON array avec 4 à 6 audiences cibles courtes (2-4 mots max chacune), spécifiques au business analysé. 
+Exemples de bons formats: "propriétaires de boutiques Shopify", "agences SEO", "marketeurs e-commerce", "PME tech".
+NE PAS utiliser des termes génériques comme "business professionals" ou "AI early adopters".
+
+Format de réponse attendu: ["audience1", "audience2", "audience3", "audience4"]`;
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'user', content: aiPrompt }
+            ],
+            temperature: 0.3,
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const content = aiData.choices?.[0]?.message?.content || '';
+          console.log('AI response:', content);
+          
+          // Extract JSON array from response
+          const jsonMatch = content.match(/\[[\s\S]*?\]/);
+          if (jsonMatch) {
+            try {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                audiences = parsed.slice(0, 6).map((a: string) => a.trim());
+                console.log('AI extracted audiences:', audiences);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse AI audiences:', parseError);
+            }
+          }
+        } else {
+          console.error('AI request failed:', aiResponse.status);
+        }
+      } catch (aiError) {
+        console.error('AI extraction error:', aiError);
       }
     }
     
-    // If no specific audiences found, use generic professional ones
+    // Fallback if AI didn't return results
     if (audiences.length < 2) {
-      audiences.push('business professionals', 'digital-first companies', 'growth-focused teams');
+      console.log('Using fallback audiences');
+      audiences = ['professionnels du digital', 'entreprises en croissance', 'marketeurs'];
     }
     
     // Extract competitors using Data for SEO API
