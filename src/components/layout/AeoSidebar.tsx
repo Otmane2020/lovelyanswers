@@ -40,7 +40,7 @@ export function AeoSidebar() {
 
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
-    { title: "Blogs", url: "/articles", icon: FileText },
+    { title: "AEO Answers", url: "/answers", icon: FileText },
     { title: "Analytics", url: "/answers", icon: BarChart3 },
     { title: "Backlinks", url: "/integrations", icon: Link2 },
     { title: "GEO Audit", url: "/seo-audit", icon: Search, badge: "New" },
