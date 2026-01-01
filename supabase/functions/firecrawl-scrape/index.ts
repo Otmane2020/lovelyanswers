@@ -129,69 +129,93 @@ Deno.serve(async (req) => {
       enrichedDescription = enrichedDescription.substring(0, 497) + '...';
     }
     
-    // Extract potential target audiences from content
+    // Extract target audiences dynamically from the ACTUAL page content
     const audiences: string[] = [];
     const lowerContent = contentPreview.toLowerCase();
+    const lowerDescription = enrichedDescription.toLowerCase();
+    const combinedContent = lowerDescription + ' ' + lowerContent;
     
-    // Furniture & Home decor indicators
-    if (lowerContent.includes('meuble') || lowerContent.includes('furniture') || lowerContent.includes('mobilier')) {
-      audiences.push('furniture buyers', 'home furnishing shoppers');
+    // AI/SaaS/Tech indicators - HIGH PRIORITY (check first for tech products)
+    if (combinedContent.includes('ai') || combinedContent.includes('artificial intelligence') || 
+        combinedContent.includes('machine learning') || combinedContent.includes('automation')) {
+      audiences.push('AI early adopters', 'tech-forward businesses');
     }
-    if (lowerContent.includes('décor') || lowerContent.includes('decor') || lowerContent.includes('intérieur') || lowerContent.includes('interior')) {
-      audiences.push('home decor enthusiasts', 'interior design lovers');
+    if (combinedContent.includes('seo') || combinedContent.includes('référencement') || 
+        combinedContent.includes('search engine') || combinedContent.includes('ranking')) {
+      audiences.push('SEO professionals', 'digital marketers');
     }
-    if (lowerContent.includes('salon') || lowerContent.includes('living room') || lowerContent.includes('canapé') || lowerContent.includes('sofa')) {
-      audiences.push('living room renovators', 'comfort seekers');
+    if (combinedContent.includes('shopify') || combinedContent.includes('woocommerce') || 
+        combinedContent.includes('e-commerce') || combinedContent.includes('ecommerce') ||
+        combinedContent.includes('online store') || combinedContent.includes('boutique en ligne')) {
+      audiences.push('e-commerce store owners', 'online retailers');
     }
-    if (lowerContent.includes('cuisine') || lowerContent.includes('kitchen') || lowerContent.includes('dining')) {
-      audiences.push('kitchen & dining shoppers');
+    if (combinedContent.includes('product description') || combinedContent.includes('description produit') ||
+        combinedContent.includes('alt text') || combinedContent.includes('content generation')) {
+      audiences.push('content managers', 'product marketers');
     }
-    if (lowerContent.includes('chambre') || lowerContent.includes('bedroom') || lowerContent.includes('lit') || lowerContent.includes('bed')) {
-      audiences.push('bedroom furniture shoppers');
+    if (combinedContent.includes('saas') || combinedContent.includes('software') || 
+        combinedContent.includes('platform') || combinedContent.includes('plateforme')) {
+      audiences.push('SaaS buyers', 'business software users');
     }
-    if (lowerContent.includes('bureau') || lowerContent.includes('office') || lowerContent.includes('desk')) {
-      audiences.push('home office buyers', 'remote workers');
+    if (combinedContent.includes('api') || combinedContent.includes('developer') || 
+        combinedContent.includes('développeur') || combinedContent.includes('integration')) {
+      audiences.push('developers', 'tech teams');
+    }
+    if (combinedContent.includes('startup') || combinedContent.includes('entrepreneur') || 
+        combinedContent.includes('business owner') || combinedContent.includes('founder')) {
+      audiences.push('startup founders', 'entrepreneurs');
+    }
+    if (combinedContent.includes('marketing') || combinedContent.includes('growth') || 
+        combinedContent.includes('conversion') || combinedContent.includes('traffic')) {
+      audiences.push('growth marketers', 'marketing managers');
+    }
+    if (combinedContent.includes('agency') || combinedContent.includes('agence') || 
+        combinedContent.includes('freelance') || combinedContent.includes('consultant')) {
+      audiences.push('marketing agencies', 'freelancers');
+    }
+    if (combinedContent.includes('small business') || combinedContent.includes('pme') || 
+        combinedContent.includes('sme') || combinedContent.includes('tpe')) {
+      audiences.push('small business owners', 'SMB decision makers');
     }
     
     // B2B indicators
-    if (lowerContent.includes('entreprise') || lowerContent.includes('business') || lowerContent.includes('b2b') || lowerContent.includes('professionnel')) {
-      audiences.push('businesses', 'professionals');
-    }
-    if (lowerContent.includes('retailer') || lowerContent.includes('revendeur') || lowerContent.includes('wholesale')) {
-      audiences.push('retailers', 'resellers');
-    }
-    if (lowerContent.includes('interior design') || lowerContent.includes('décorateur') || lowerContent.includes('architect')) {
-      audiences.push('interior designers', 'architects');
-    }
-    if (lowerContent.includes('hotel') || lowerContent.includes('restaurant') || lowerContent.includes('hospitality')) {
-      audiences.push('hospitality industry');
+    if (combinedContent.includes('enterprise') || combinedContent.includes('entreprise') || 
+        combinedContent.includes('b2b') || combinedContent.includes('professionnel')) {
+      audiences.push('enterprise buyers', 'B2B professionals');
     }
     
-    // Consumer indicators
-    if (lowerContent.includes('homeowner') || lowerContent.includes('particulier') || lowerContent.includes('home') || lowerContent.includes('maison')) {
-      audiences.push('homeowners', 'new home buyers');
-    }
-    if (lowerContent.includes('appartement') || lowerContent.includes('apartment') || lowerContent.includes('studio')) {
-      audiences.push('apartment dwellers', 'renters');
-    }
-    if (lowerContent.includes('livraison') || lowerContent.includes('delivery') || lowerContent.includes('france') || lowerContent.includes('français')) {
-      audiences.push('French consumers');
+    // Furniture & Home decor indicators - only if NO tech indicators found
+    if (audiences.length === 0) {
+      if (combinedContent.includes('meuble') || combinedContent.includes('furniture') || combinedContent.includes('mobilier')) {
+        audiences.push('furniture buyers', 'home furnishing shoppers');
+      }
+      if (combinedContent.includes('décor') || combinedContent.includes('decor') || 
+          combinedContent.includes('intérieur') || combinedContent.includes('interior')) {
+        audiences.push('home decor enthusiasts', 'interior design lovers');
+      }
+      if (combinedContent.includes('salon') || combinedContent.includes('living room') || 
+          combinedContent.includes('canapé') || combinedContent.includes('sofa')) {
+        audiences.push('living room renovators', 'comfort seekers');
+      }
+      if (combinedContent.includes('cuisine') || combinedContent.includes('kitchen') || combinedContent.includes('dining')) {
+        audiences.push('kitchen & dining shoppers');
+      }
+      if (combinedContent.includes('chambre') || combinedContent.includes('bedroom') || 
+          combinedContent.includes('lit') || combinedContent.includes('bed')) {
+        audiences.push('bedroom furniture shoppers');
+      }
+      if (combinedContent.includes('bureau') || combinedContent.includes('office') || combinedContent.includes('desk')) {
+        audiences.push('home office buyers', 'remote workers');
+      }
+      if (combinedContent.includes('homeowner') || combinedContent.includes('particulier') || 
+          combinedContent.includes('home') || combinedContent.includes('maison')) {
+        audiences.push('homeowners', 'new home buyers');
+      }
     }
     
-    // Tech/SaaS indicators (kept for non-furniture sites)
-    if (lowerContent.includes('saas') || lowerContent.includes('software') || lowerContent.includes('api')) {
-      audiences.push('tech companies', 'software buyers');
-    }
-    if (lowerContent.includes('marketing') || lowerContent.includes('agency') || lowerContent.includes('agence')) {
-      audiences.push('marketing teams', 'agencies');
-    }
-    if (lowerContent.includes('ecommerce') || lowerContent.includes('e-commerce') || lowerContent.includes('online store') || lowerContent.includes('boutique')) {
-      audiences.push('online shoppers');
-    }
-    
-    // If no specific audiences found, use generic ones
+    // If no specific audiences found, use generic professional ones
     if (audiences.length < 2) {
-      audiences.push('general consumers', 'quality seekers', 'value-conscious buyers');
+      audiences.push('business professionals', 'digital-first companies', 'growth-focused teams');
     }
     
     // Extract competitors using Data for SEO API
