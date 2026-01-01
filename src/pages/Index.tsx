@@ -62,6 +62,9 @@ export default function Index() {
           </Link>
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
+              <Link to="/pricing">Pricing</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link to="/auth">Login</Link>
             </Button>
             <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
