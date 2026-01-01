@@ -210,6 +210,62 @@ export default function AeoAnswers() {
     return colors[difficulty || ''] || "text-slate-400";
   };
 
+  const getDifficultyBadgeColor = (difficulty: string | null) => {
+    const colors: Record<string, string> = {
+      easy: "border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10",
+      medium: "border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-500/10",
+      hard: "border-red-500 text-red-600 bg-red-50 dark:bg-red-500/10",
+    };
+    return colors[difficulty || 'medium'] || "border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-500/10";
+  };
+
+  const getDifficultyLabel = (difficulty: string | null) => {
+    const labels: Record<string, string> = {
+      easy: "Easy",
+      medium: "Medium",
+      hard: "Hard",
+    };
+    return labels[difficulty || 'medium'] || "Medium";
+  };
+
+  const extractKeywords = (question: string): string[] => {
+    // Remove common words and extract meaningful keywords
+    const stopWords = new Set([
+      'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'et', 'en', 'à', 'pour', 
+      'qui', 'que', 'quoi', 'quel', 'quelle', 'quels', 'quelles', 'est', 'sont',
+      'the', 'a', 'an', 'and', 'or', 'for', 'to', 'in', 'on', 'at', 'is', 'are',
+      'what', 'which', 'how', 'why', 'when', 'where', 'who', 'best', 'top',
+      'comment', 'pourquoi', 'quand', 'où', 'meilleur', 'meilleure', 'prix',
+      '?', '!', '.', ',', ':', ';', '"', "'", '«', '»'
+    ]);
+    
+    const words = question.toLowerCase()
+      .replace(/[?!.,;:"'«»]/g, '')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+    
+    // Get unique words and combine some as phrases
+    const keywords: string[] = [];
+    const seen = new Set<string>();
+    
+    for (let i = 0; i < words.length && keywords.length < 4; i++) {
+      const word = words[i];
+      if (!seen.has(word)) {
+        seen.add(word);
+        // Try to form 2-word phrases for better context
+        if (i < words.length - 1 && !stopWords.has(words[i + 1])) {
+          keywords.push(`${word} ${words[i + 1]}`);
+          seen.add(words[i + 1]);
+          i++;
+        } else {
+          keywords.push(word);
+        }
+      }
+    }
+    
+    return keywords.slice(0, 4);
+  };
+
   const filteredAnswers = answers.filter(answer => 
     answer.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     answer.answer.toLowerCase().includes(searchQuery.toLowerCase())
@@ -311,181 +367,110 @@ export default function AeoAnswers() {
             </Button>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {filteredAnswers.map((answer) => (
-              <Card key={answer.id} className="p-6 hover:shadow-md transition-all">
-                <div className="flex flex-col gap-4">
-                  {/* Header row */}
-                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                          <MessageSquare className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{answer.question}</h3>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {/* Intent badge */}
-                            {answer.intent && (
-                              <Badge className={getIntentColor(answer.intent)}>
-                                {getIntentLabel(answer.intent)}
-                              </Badge>
-                            )}
-                            
-                            {/* Platform badges */}
-                            {answer.platforms?.map((platform, idx) => (
-                              <Badge key={idx} className={getPlatformColor(platform)}>
-                                {platform}
-                              </Badge>
-                            ))}
-                            
-                            {/* Score badge */}
-                            <Badge variant="outline" className="gap-1">
-                              <TrendingUp className="w-3 h-3" />
-                              {answer.score || 0}%
-                              <span className={getDifficultyColor(answer.difficulty)}>
-                                ({answer.difficulty || 'medium'})
-                              </span>
-                            </Badge>
-                            
-                            {answer.is_public && (
-                              <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">
-                                <Globe className="w-3 h-3 mr-1" />
-                                Published
-                              </Badge>
-                            )}
-                            {answer.has_article && (
-                              <Badge variant="outline" className="border-blue-500/30 text-blue-600">
-                                <FileText className="w-3 h-3 mr-1" />
-                                Article
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Answer content */}
-                      <div className="bg-muted/50 rounded-lg p-4 ml-13">
-                        <p className="text-sm leading-relaxed">{answer.answer}</p>
-                      </div>
-                      
-                      {/* Supporting content (collapsible) */}
-                      {(answer.supporting_content?.bullets?.length || answer.supporting_content?.faq?.length) && (
-                        <Collapsible 
-                          open={expandedId === answer.id}
-                          onOpenChange={() => setExpandedId(expandedId === answer.id ? null : answer.id)}
-                        >
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="ml-13 text-muted-foreground">
-                              {expandedId === answer.id ? (
-                                <ChevronUp className="w-4 h-4 mr-1" />
-                              ) : (
-                                <ChevronDown className="w-4 h-4 mr-1" />
-                              )}
-                              Supporting content
-                            </Button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="ml-13 mt-2 space-y-3">
-                            {/* Bullets */}
-                            {answer.supporting_content?.bullets && answer.supporting_content.bullets.length > 0 && (
-                              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
-                                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-2">
-                                  <Zap className="w-4 h-4" />
-                                  Key Points
-                                </div>
-                                <ul className="space-y-1">
-                                  {answer.supporting_content.bullets.map((bullet, idx) => (
-                                    <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                                      <span className="text-emerald-400 mt-1">•</span>
-                                      {bullet}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {/* FAQ */}
-                            {answer.supporting_content?.faq && answer.supporting_content.faq.length > 0 && (
-                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                                <div className="flex items-center gap-2 text-blue-400 text-sm font-medium mb-2">
-                                  <HelpCircle className="w-4 h-4" />
-                                  Related FAQ
-                                </div>
-                                <div className="space-y-2">
-                                  {answer.supporting_content.faq.map((faq, idx) => (
-                                    <div key={idx} className="text-sm">
-                                      <p className="text-foreground font-medium">{faq.q}</p>
-                                      <p className="text-muted-foreground">{faq.a}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      )}
-                      
-                      {/* Public URL display if published */}
-                      {answer.is_public && answer.slug && (
-                        <div className="flex items-center gap-2 ml-13 mt-2">
-                          <span className="text-xs text-muted-foreground">URL:</span>
-                          <code className="text-xs text-primary bg-muted px-2 py-1 rounded">
-                            /answers/{answer.slug}
-                          </code>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => copyPublicUrl(answer)}
-                            className="h-6 px-2"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => openPublicUrl(answer)}
-                            className="h-6 px-2"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
+          <div className="space-y-6">
+            {filteredAnswers.map((answer) => {
+              // Extract keywords from question for tags
+              const keywords = extractKeywords(answer.question);
+              
+              return (
+                <div key={answer.id} className="space-y-4 pb-6 border-b border-border last:border-0">
+                  {/* Typical question label */}
+                  <span className="text-sm text-muted-foreground">Typical question</span>
+                  
+                  {/* Question */}
+                  <h3 className="text-lg font-medium text-primary">
+                    "{answer.question}"
+                  </h3>
+                  
+                  {/* Citable answer box with green left border */}
+                  <div className="border-l-4 border-emerald-500 bg-muted/30 rounded-r-lg p-4">
+                    <div className="flex items-center gap-2 text-emerald-600 text-sm mb-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="font-medium">Citable answer</span>
                     </div>
+                    <p className="text-foreground leading-relaxed">
+                      "{answer.answer}"
+                    </p>
+                  </div>
+                  
+                  {/* Badges row: Difficulty + Score */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Difficulty badge */}
+                    <Badge 
+                      variant="outline" 
+                      className={getDifficultyBadgeColor(answer.difficulty)}
+                    >
+                      {getDifficultyLabel(answer.difficulty)}
+                    </Badge>
                     
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                      {/* Generate Article button */}
-                      {!answer.has_article && (
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => generateArticle(answer)}
-                          disabled={generatingArticleId === answer.id}
-                          className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                        >
-                          {generatingArticleId === answer.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <FileText className="w-4 h-4 mr-1" />
-                              Article
-                            </>
-                          )}
-                        </Button>
+                    {/* Score badge */}
+                    <Badge variant="secondary" className="bg-muted">
+                      Score: {answer.score || 0}%
+                    </Badge>
+                    
+                    {answer.is_public && (
+                      <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 bg-emerald-50">
+                        <Globe className="w-3 h-3 mr-1" />
+                        Published
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Keyword tags */}
+                  <div className="flex flex-wrap gap-2">
+                    {keywords.map((keyword, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="outline" 
+                        className="bg-background text-foreground font-normal"
+                      >
+                        {keyword}
+                      </Badge>
+                    ))}
+                    {answer.intent && (
+                      <Badge 
+                        variant="outline" 
+                        className="bg-background text-foreground font-normal"
+                      >
+                        {answer.intent}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Generate AEO article button */}
+                  {!answer.has_article && (
+                    <Button 
+                      onClick={() => generateArticle(answer)}
+                      disabled={generatingArticleId === answer.id}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      {generatingArticleId === answer.id ? (
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 mr-2" />
                       )}
-                      
+                      Generate AEO article
+                    </Button>
+                  )}
+                  
+                  {answer.has_article && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Article
+                      </Button>
                       {!answer.is_public ? (
                         <Button 
                           size="sm"
                           onClick={() => publishAnswer(answer)}
                           disabled={publishingId === answer.id}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="bg-emerald-600 hover:bg-emerald-700"
                         >
                           {publishingId === answer.id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
                             <>
-                              <Globe className="w-4 h-4 mr-1" />
+                              <Globe className="w-4 h-4 mr-2" />
                               Publish
                             </>
                           )}
@@ -496,26 +481,69 @@ export default function AeoAnswers() {
                           size="sm"
                           onClick={() => openPublicUrl(answer)}
                         >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Public
                         </Button>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => copyToClipboard(answer.answer, answer.id)}
-                      >
-                        {copiedId === answer.id ? (
-                          <Check className="w-4 h-4 text-emerald-500" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
                     </div>
-                  </div>
+                  )}
+                  
+                  {/* Supporting content (collapsible) */}
+                  {(answer.supporting_content?.bullets?.length || answer.supporting_content?.faq?.length) && (
+                    <Collapsible 
+                      open={expandedId === answer.id}
+                      onOpenChange={() => setExpandedId(expandedId === answer.id ? null : answer.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground">
+                          {expandedId === answer.id ? (
+                            <ChevronUp className="w-4 h-4 mr-1" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 mr-1" />
+                          )}
+                          Supporting content
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-3 space-y-3">
+                        {answer.supporting_content?.bullets && answer.supporting_content.bullets.length > 0 && (
+                          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium mb-2">
+                              <Zap className="w-4 h-4" />
+                              Key Points
+                            </div>
+                            <ul className="space-y-1">
+                              {answer.supporting_content.bullets.map((bullet, idx) => (
+                                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                                  <span className="text-emerald-500 mt-1">•</span>
+                                  {bullet}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {answer.supporting_content?.faq && answer.supporting_content.faq.length > 0 && (
+                          <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-blue-600 text-sm font-medium mb-2">
+                              <HelpCircle className="w-4 h-4" />
+                              Related FAQ
+                            </div>
+                            <div className="space-y-2">
+                              {answer.supporting_content.faq.map((faq, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <p className="text-foreground font-medium">{faq.q}</p>
+                                  <p className="text-muted-foreground">{faq.a}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
