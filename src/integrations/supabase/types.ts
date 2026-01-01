@@ -145,6 +145,80 @@ export type Database = {
         }
         Relationships: []
       }
+      integrations: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_connected: boolean | null
+          platform: string
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_connected?: boolean | null
+          platform: string
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_connected?: boolean | null
+          platform?: string
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number | null
+          billing_date: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          pdf_url: string | null
+          status: string | null
+          stripe_invoice_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_date?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          pdf_url?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          billing_date?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          pdf_url?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -168,6 +242,95 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      project_settings: {
+        Row: {
+          article_length: number | null
+          article_schedule: string[] | null
+          article_types: string | null
+          auto_publish: boolean | null
+          citations_region: string | null
+          created_at: string | null
+          cta_link: string | null
+          english_type: string | null
+          id: string
+          image_style: string | null
+          include_citations: boolean | null
+          include_internal_links: boolean | null
+          include_schema: boolean | null
+          include_screenshot: boolean | null
+          include_summary: boolean | null
+          include_toc: boolean | null
+          include_youtube: boolean | null
+          project_id: string
+          special_instructions: string | null
+          text_overlay: boolean | null
+          trailing_slash: boolean | null
+          updated_at: string | null
+          visual_instructions: string | null
+          www_prefix: boolean | null
+        }
+        Insert: {
+          article_length?: number | null
+          article_schedule?: string[] | null
+          article_types?: string | null
+          auto_publish?: boolean | null
+          citations_region?: string | null
+          created_at?: string | null
+          cta_link?: string | null
+          english_type?: string | null
+          id?: string
+          image_style?: string | null
+          include_citations?: boolean | null
+          include_internal_links?: boolean | null
+          include_schema?: boolean | null
+          include_screenshot?: boolean | null
+          include_summary?: boolean | null
+          include_toc?: boolean | null
+          include_youtube?: boolean | null
+          project_id: string
+          special_instructions?: string | null
+          text_overlay?: boolean | null
+          trailing_slash?: boolean | null
+          updated_at?: string | null
+          visual_instructions?: string | null
+          www_prefix?: boolean | null
+        }
+        Update: {
+          article_length?: number | null
+          article_schedule?: string[] | null
+          article_types?: string | null
+          auto_publish?: boolean | null
+          citations_region?: string | null
+          created_at?: string | null
+          cta_link?: string | null
+          english_type?: string | null
+          id?: string
+          image_style?: string | null
+          include_citations?: boolean | null
+          include_internal_links?: boolean | null
+          include_schema?: boolean | null
+          include_screenshot?: boolean | null
+          include_summary?: boolean | null
+          include_toc?: boolean | null
+          include_youtube?: boolean | null
+          project_id?: string
+          special_instructions?: string | null
+          text_overlay?: boolean | null
+          trailing_slash?: boolean | null
+          updated_at?: string | null
+          visual_instructions?: string | null
+          www_prefix?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -222,6 +385,51 @@ export type Database = {
           website_url?: string
         }
         Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          invited_email: string | null
+          project_id: string
+          role: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invited_email?: string | null
+          project_id: string
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invited_email?: string | null
+          project_id?: string
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -13,6 +13,7 @@ import AeoArticles from "./pages/AeoArticles";
 import AeoIntegrations from "./pages/AeoIntegrations";
 import AeoSettings from "./pages/AeoSettings";
 import AeoSubscription from "./pages/AeoSubscription";
+import AeoBilling from "./pages/AeoBilling";
 import AeoPublicAnswer from "./pages/AeoPublicAnswer";
 import AeoSeoAudit from "./pages/AeoSeoAudit";
 import AeoKeywords from "./pages/AeoKeywords";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
             <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
             <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
+            <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
             <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
             <Route path="*" element={<NotFound />} />
