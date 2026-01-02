@@ -238,6 +238,53 @@ export type Database = {
         }
         Relationships: []
       }
+      keywords: {
+        Row: {
+          created_at: string | null
+          difficulty: number | null
+          id: string
+          intent: string | null
+          is_used: boolean | null
+          keyword: string
+          project_id: string
+          search_volume: number | null
+          source_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          is_used?: boolean | null
+          keyword: string
+          project_id: string
+          search_volume?: number | null
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          is_used?: boolean | null
+          keyword?: string
+          project_id?: string
+          search_volume?: number | null
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keywords_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

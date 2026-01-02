@@ -313,6 +313,22 @@ serve(async (req) => {
       throw new Error("Project not found");
     }
 
+    // 🔥 NEW: Fetch keywords from database if none provided
+    let effectiveKeywords = keywords;
+    if (effectiveKeywords.length === 0) {
+      console.log(`[reddit-agent] No keywords provided, fetching from database...`);
+      const { data: dbKeywords, error: keywordsError } = await supabase
+        .from("keywords")
+        .select("keyword")
+        .eq("project_id", projectId)
+        .limit(20);
+
+      if (!keywordsError && dbKeywords && dbKeywords.length > 0) {
+        effectiveKeywords = dbKeywords.map(k => k.keyword);
+        console.log(`[reddit-agent] Using ${effectiveKeywords.length} keywords from database`);
+      }
+    }
+
     let redditData: unknown[] = [];
 
     // Scrape Reddit using Firecrawl if available
@@ -349,10 +365,10 @@ serve(async (req) => {
 
     switch (action) {
       case "find-opportunities":
-        result = await findOpportunities(project, keywords, subreddits, lovableApiKey);
+        result = await findOpportunities(project, effectiveKeywords, subreddits, lovableApiKey);
         break;
       case "generate-responses":
-        result = await generateResponses(project, subreddits, keywords, lovableApiKey);
+        result = await generateResponses(project, subreddits, effectiveKeywords, lovableApiKey);
         break;
       case "analyze-subreddits":
         result = await analyzeSubreddits(project, subreddits, lovableApiKey);

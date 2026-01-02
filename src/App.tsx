@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Answers from "./pages/Answers";
-import AeoAnswers from "./pages/AeoAnswers";
 import AeoArticles from "./pages/AeoArticles";
 import AeoIntegrations from "./pages/AeoIntegrations";
 import AeoAnalytics from "./pages/AeoAnalytics";
@@ -44,7 +43,6 @@ const App = () => (
             <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
             <Route path="/articles" element={<ProtectedRoute><AeoArticles /></ProtectedRoute>} />
             <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
-            <Route path="/aeo-answers" element={<ProtectedRoute><AeoAnswers /></ProtectedRoute>} />
             <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
             <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
