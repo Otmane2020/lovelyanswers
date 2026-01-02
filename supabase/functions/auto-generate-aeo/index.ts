@@ -338,15 +338,43 @@ serve(async (req) => {
     const description = project.business_description || "";
     const targetPlatforms: Platform[] = ["chatgpt", "gemini", "claude"];
 
-    // Get keywords from database
-    const { data: dbKeywords } = await supabase
+    console.log(`[auto-generate-aeo] Project: ${project.id}, Brand: ${brandName}`);
+
+    // Get keywords from database - first try current project
+    let { data: dbKeywords } = await supabase
       .from("keywords")
       .select("keyword")
       .eq("project_id", projectId)
       .limit(30);
     
+    // Fallback: if no keywords, search other active projects for this user
+    if (!dbKeywords || dbKeywords.length === 0) {
+      console.log(`[auto-generate-aeo] No keywords for project ${projectId}, searching other projects...`);
+      
+      const { data: otherProjects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .neq("id", projectId);
+      
+      for (const otherProject of otherProjects || []) {
+        const { data: otherKeywords } = await supabase
+          .from("keywords")
+          .select("keyword")
+          .eq("project_id", otherProject.id)
+          .limit(30);
+        
+        if (otherKeywords && otherKeywords.length > 0) {
+          console.log(`[auto-generate-aeo] Found ${otherKeywords.length} keywords in project ${otherProject.id}`);
+          dbKeywords = otherKeywords;
+          break;
+        }
+      }
+    }
+    
     const keywords = dbKeywords?.map(k => k.keyword) || [];
-    console.log(`[auto-generate-aeo] Found ${keywords.length} keywords`);
+    console.log(`[auto-generate-aeo] Using ${keywords.length} keywords: ${keywords.slice(0, 5).join(', ')}...`);
 
     // Generate questions
     let questions: Array<{ question: string; intent: IntentType }>;
