@@ -112,13 +112,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ============= STEP 2: AI Analysis + Competitors in PARALLEL =============
+    // ============= STEP 2: AI Analysis + Competitors + Keywords in PARALLEL =============
     const contentPreview = markdown.substring(0, 2000);
     
     // Start AI and wait for competitors in parallel
-    const [audiences, dataForSeoCompetitors] = await Promise.all([
+    const [audiences, dataForSeoCompetitors, keywords] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
-      competitorsPromise || Promise.resolve([])
+      competitorsPromise || Promise.resolve([]),
+      lovableApiKey ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) : Promise.resolve([])
     ]);
 
     // If DataForSEO returned no competitors, use AI to detect them
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
-    console.log('[SCRAPE] Found', audiences.length, 'audiences,', competitors.length, 'competitors');
+    console.log('[SCRAPE] Found', audiences.length, 'audiences,', competitors.length, 'competitors,', keywords.length, 'keywords');
 
     return new Response(
       JSON.stringify({
@@ -140,6 +141,7 @@ Deno.serve(async (req) => {
           language,
           audiences: audiences.length >= 2 ? audiences : ['business owners', 'professionals', 'decision makers'],
           competitors,
+          keywords: keywords.length >= 5 ? keywords : [],
         },
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -272,6 +274,72 @@ Return ONLY a JSON array: ["competitor1.com", "competitor2.com", "competitor3.co
     return [];
   } catch (e) {
     console.error('[COMPETITORS AI] Error:', e);
+    return [];
+  }
+}
+
+// AI-based keyword extraction for AEO
+async function extractKeywordsFast(description: string, content: string, brandName: string, language: string, apiKey: string): Promise<Array<{keyword: string, intent: string}>> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const langInstruction = language === 'fr' 
+      ? 'Génère des mots-clés en FRANÇAIS adaptés au marché francophone.'
+      : 'Generate keywords in ENGLISH.';
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [{
+          role: 'user',
+          content: `Extract 15-20 SEO/AEO keywords for this business. ${langInstruction}
+
+Business: ${brandName}
+Description: ${description}
+Content: ${content.substring(0, 1200)}
+
+Rules:
+- Include a mix of:
+  - Head terms (1-2 words, high volume)
+  - Long-tail keywords (3-5 words, specific)
+  - Question-based keywords (how, what, why, when)
+  - Comparison keywords (vs, alternative, best)
+  - Intent keywords (buy, price, review, tutorial)
+- Classify each keyword intent: informational, transactional, navigational, commercial
+
+Return ONLY a JSON array:
+[{"keyword": "keyword here", "intent": "informational"}, ...]`
+        }],
+        temperature: 0.4,
+        max_tokens: 600,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*?\]/);
+    
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) {
+        console.log('[KEYWORDS] Extracted:', parsed.length, 'keywords');
+        return parsed.slice(0, 20);
+      }
+    }
+    return [];
+  } catch (e) {
+    console.error('[KEYWORDS] Error:', e);
     return [];
   }
 }
