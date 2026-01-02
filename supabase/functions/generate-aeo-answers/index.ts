@@ -119,22 +119,53 @@ const INTENT_TEMPLATES: Record<string, Record<IntentType, IntentTemplate>> = {
   }
 };
 
-// 🔒 FORBIDDEN MARKETING PATTERNS - AEO Safe Mode
+// 🔒 FORBIDDEN MARKETING PATTERNS - AEO Safe Mode (STRICT)
 const FORBIDDEN_PATTERNS = [
-  /50%\s*de\s*trafic/i,
+  // Promises with numbers
+  /\d+%\s*(de\s*)?(trafic|traffic|growth|increase|boost|augmentation)/i,
+  /en\s+\d+\s+jours/i,
+  /in\s+\d+\s+days/i,
+  // Superlatives FR
   /incontestablement/i,
-  /meilleur choix/i,
-  /garanti/i,
-  /boost/i,
+  /meilleur\s*choix/i,
+  /le\s+meilleur/i,
+  /la\s+meilleure/i,
+  /idéal(e)?/i,
+  /parfait(e)?/i,
+  /incontournable/i,
   /révolutionnaire/i,
-  /sans effort/i,
-  /best choice/i,
-  /guaranteed/i,
-  /no effort/i,
+  /exceptionnel(le)?/i,
+  /incomparable/i,
+  /sans\s+égal/i,
+  // Marketing FR
+  /garanti(e)?/i,
+  /boost(er)?/i,
+  /propulser/i,
+  /maximiser/i,
+  /sans\s+effort/i,
+  /percutant(e)?/i,
+  /performant(e)?/i,
+  // Superlatives EN
+  /best\s*choice/i,
+  /the\s+best/i,
+  /perfect\s+for/i,
+  /ideal\s+for/i,
+  /unbeatable/i,
   /game.?changer/i,
+  /revolutionary/i,
+  /exceptional/i,
+  // Marketing EN
+  /guaranteed/i,
+  /no\s+effort/i,
+  /maximize/i,
+  /supercharge/i,
+  /skyrocket/i,
+  /effortless/i,
+  // Exclamations & hype
   /incroyable/i,
   /amazing/i,
-  /unbeatable/i,
+  /incredible/i,
+  /!+/g,
 ];
 
 // Sanitize answer to remove marketing language
@@ -193,43 +224,49 @@ function computeCitationScoreAEO(answer: string, platforms: Platform[]): number 
   return Math.min(100, Math.max(0, score));
 }
 
-// 🔒 AEO STRICT SYSTEM PROMPT - neutral, factual tone
+// 🔒 AEO STRICT SYSTEM PROMPT - neutral, factual, Wikipedia-like tone
 function getAEOStrictSystemPrompt(language: string, brandName: string, intent: string): string {
   return language === "fr"
-    ? `Tu es un rédacteur AEO neutre et factuel.
+    ? `Tu es un rédacteur encyclopédique AEO. Tu rédiges comme Wikipédia.
 
-INTERDICTIONS ABSOLUES :
-- Aucun superlatif (meilleur, idéal, incontournable, révolutionnaire)
-- Aucune promesse chiffrée ou garantie
-- Aucun ton marketing ou commercial
-- Pas d'appel à l'action
+⛔ INTERDICTIONS ABSOLUES (violation = réponse rejetée) :
+- Aucun superlatif : meilleur, idéal, parfait, incontournable, exceptionnel
+- Aucune promesse : "50% de trafic", "en 60 jours", garanties
+- Aucun marketing : boost, propulser, maximiser, percutant
+- Aucun appel à l'action : "essayez", "découvrez", "commencez"
+- Aucun point d'exclamation
+- Pas de "vous" ou "votre"
 
-RÈGLES :
-- Définition factuelle, ton encyclopédique
-- ${brandName} peut être cité 1 fois maximum, naturellement
-- 60 à 100 mots maximum
-- Première phrase = réponse directe à la question
-- Aucune opinion subjective
-- Structure claire et extractible par IA
+✅ RÈGLES OBLIGATOIRES :
+- Ton neutre, informatif, troisième personne
+- ${brandName} mentionné 1 fois max, factuellement
+- 60 à 100 mots
+- Première phrase = définition ou réponse directe
+- Utilise "Il s'agit de", "Ce service permet", "Cette plateforme propose"
+- Structure claire pour extraction IA
 
-INTENTION DÉTECTÉE : ${intent}`
-    : `You are a neutral, factual AEO writer.
+INTENTION : ${intent}
+EXEMPLE DE TON : "Newai est une plateforme d'automatisation SEO pour Shopify. Elle propose des fonctionnalités de génération de contenu et d'optimisation de texte alternatif pour les images produits."`
+    : `You are an encyclopedic AEO writer. You write like Wikipedia.
 
-ABSOLUTE BANS:
-- No superlatives (best, ideal, revolutionary, game-changer)
-- No guarantees or promises with numbers
-- No marketing or commercial language
-- No call to action
+⛔ ABSOLUTE BANS (violation = answer rejected):
+- No superlatives: best, perfect, ideal, exceptional, unbeatable
+- No promises: "50% traffic", "in 60 days", guarantees
+- No marketing: boost, supercharge, maximize, powerful
+- No call to action: "try", "discover", "start"
+- No exclamation points
+- No "you" or "your"
 
-RULES:
-- Encyclopedic, factual tone
-- Mention ${brandName} once max, naturally
-- 60-100 words max
-- First sentence answers the question directly
-- No subjective opinions
-- Clear, AI-extractable structure
+✅ MANDATORY RULES:
+- Neutral, informative, third-person tone
+- Mention ${brandName} once max, factually
+- 60-100 words
+- First sentence = definition or direct answer
+- Use "It is", "This service provides", "This platform offers"
+- Clear structure for AI extraction
 
-DETECTED INTENT: ${intent}`;
+INTENT: ${intent}
+TONE EXAMPLE: "Newai is an SEO automation platform for Shopify. It offers content generation features and alt text optimization for product images."`;
 }
 
 // Generate AI answer using Lovable AI with AEO Safe Mode
