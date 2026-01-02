@@ -452,6 +452,75 @@ export type Database = {
         }
         Relationships: []
       }
+      reddit_responses: {
+        Row: {
+          brand_mentioned: boolean | null
+          created_at: string | null
+          generated_reply: string
+          id: string
+          is_posted_to_reddit: boolean | null
+          is_shared: boolean | null
+          link_included: boolean | null
+          linked_answer_id: string | null
+          original_question: string | null
+          project_id: string
+          reddit_post_title: string
+          reddit_post_url: string
+          reply_mode: string | null
+          subreddit: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand_mentioned?: boolean | null
+          created_at?: string | null
+          generated_reply: string
+          id?: string
+          is_posted_to_reddit?: boolean | null
+          is_shared?: boolean | null
+          link_included?: boolean | null
+          linked_answer_id?: string | null
+          original_question?: string | null
+          project_id: string
+          reddit_post_title: string
+          reddit_post_url: string
+          reply_mode?: string | null
+          subreddit: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand_mentioned?: boolean | null
+          created_at?: string | null
+          generated_reply?: string
+          id?: string
+          is_posted_to_reddit?: boolean | null
+          is_shared?: boolean | null
+          link_included?: boolean | null
+          linked_answer_id?: string | null
+          original_question?: string | null
+          project_id?: string
+          reddit_post_title?: string
+          reddit_post_url?: string
+          reply_mode?: string | null
+          subreddit?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_responses_linked_answer_id_fkey"
+            columns: ["linked_answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reddit_responses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string | null
