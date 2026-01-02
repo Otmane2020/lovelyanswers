@@ -306,21 +306,19 @@ export default function Answers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* ChatGPT Logo - Separate Line */}
-        <div className="flex items-center justify-center">
+        {/* ChatGPT Logo + Badge - Separate Line */}
+        <div className="flex items-center gap-3">
           <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
+          <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
+            Rank First!
+          </Badge>
         </div>
 
         {/* Hero Header */}
         <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-                <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
-                  Rank First!
-                </Badge>
-              </div>
+              <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
               <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
             </div>
             <div className="flex gap-2 flex-wrap">
