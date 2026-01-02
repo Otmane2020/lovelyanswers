@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap } from "lucide-react";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAnswers, useToggleAnswerPublic } from "@/hooks/useAnswers";
+import { usePublishAnswer } from "@/hooks/usePublishAnswer";
+import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,8 +25,10 @@ const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 export default function Answers() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { project } = useActiveProject();
   const { data: answers = [], isLoading, refetch } = useAnswers();
   const togglePublic = useToggleAnswerPublic();
+  const publishAnswer = usePublishAnswer();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [showHighCitation, setShowHighCitation] = useState(false);
@@ -39,6 +43,20 @@ export default function Answers() {
   const [generating30, setGenerating30] = useState(false);
   const [unusedKeywordsCount, setUnusedKeywordsCount] = useState(0);
   const [showCmsPopup, setShowCmsPopup] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+
+  const handlePublishToCms = async (answerId: string) => {
+    if (!project) {
+      toast.error("No active project");
+      return;
+    }
+    setPublishingId(answerId);
+    try {
+      await publishAnswer.mutateAsync({ answerId, projectId: project.id });
+    } finally {
+      setPublishingId(null);
+    }
+  };
 
   // Fetch unused keywords count
   useEffect(() => {
@@ -371,10 +389,24 @@ export default function Answers() {
                     {answer.is_public && <Badge className="bg-blue-500/20 text-blue-500 border-0"><Globe className="mr-1 h-3 w-3" />Public</Badge>}
                     {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
                   </div>
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2 pt-2 flex-wrap">
                     <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View</Button>
                     <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
                     {!answer.has_article && <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleGenerateArticle(answer.id)}><Newspaper className="h-4 w-4" />Generate Article</Button>}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 text-primary hover:text-primary" 
+                      onClick={() => handlePublishToCms(answer.id)}
+                      disabled={publishingId === answer.id}
+                    >
+                      {publishingId === answer.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Publish to CMS
+                    </Button>
                     {answer.is_public && (
                       <>
                         <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
