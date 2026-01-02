@@ -222,12 +222,13 @@ export default function Answers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Get all active projects and find one with keywords
       const { data: projects } = await supabase
         .from("projects")
         .select("*")
         .eq("user_id", user.id)
         .eq("is_active", true)
-        .limit(1);
+        .order("created_at", { ascending: false });
       
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
@@ -235,7 +236,23 @@ export default function Answers() {
         return;
       }
 
-      const project = projects[0];
+      // Find project with keywords
+      let projectWithKeywords = null;
+      for (const p of projects) {
+        const { count } = await supabase
+          .from("keywords")
+          .select("*", { count: "exact", head: true })
+          .eq("project_id", p.id);
+        
+        if (count && count > 0) {
+          projectWithKeywords = p;
+          console.log(`[generate30Answers] Found project with ${count} keywords: ${p.id}`);
+          break;
+        }
+      }
+
+      const project = projectWithKeywords || projects[0];
+      console.log(`[generate30Answers] Using project: ${project.id} (${project.name})`);
       
       toast.info("Génération de 30 Q/A planifiées sur 30 jours...");
       

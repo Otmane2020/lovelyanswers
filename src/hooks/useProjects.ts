@@ -43,7 +43,11 @@ export function useProjects() {
 export function useActiveProject() {
   const { data: projects, isLoading } = useProjects();
   
-  const activeProject = projects?.find((p) => p.is_active) || projects?.[0];
+  // Select the most recent active project deterministically
+  const activeProject = projects
+    ?.filter((p) => p.is_active)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] 
+    || projects?.[0];
   
   return {
     project: activeProject,
