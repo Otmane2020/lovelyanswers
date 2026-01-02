@@ -1,19 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, X, ExternalLink } from "lucide-react";
+import { Sparkles, X, ExternalLink, Loader2 } from "lucide-react";
+import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
+import { toast } from "sonner";
 
 export function BusinessSettings() {
+  const { project, isLoading } = useActiveProject();
+  const updateProject = useUpdateProject();
+
   const [description, setDescription] = useState("");
-  const [audienceTags, setAudienceTags] = useState<string[]>(["Entrepreneurs", "Small businesses"]);
+  const [audienceTags, setAudienceTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const [brandColor, setBrandColor] = useState("#FF6B2C");
+  const [brandColor, setBrandColor] = useState("#000000");
   const [brandVoice, setBrandVoice] = useState("");
   const [sitemapUrl, setSitemapUrl] = useState("");
+
+  // Load data from project when it's available
+  useEffect(() => {
+    if (project) {
+      setDescription(project.business_description || "");
+      // Parse audience - it's stored as a string, could be comma-separated or JSON
+      if (project.audience) {
+        try {
+          const parsed = JSON.parse(project.audience);
+          setAudienceTags(Array.isArray(parsed) ? parsed : [project.audience]);
+        } catch {
+          // If not JSON, treat as comma-separated
+          setAudienceTags(project.audience.split(",").map(s => s.trim()).filter(Boolean));
+        }
+      }
+      setBrandColor((project as any).brand_color || "#000000");
+      setBrandVoice((project as any).brand_voice_url || "");
+      setSitemapUrl((project as any).sitemap_url || "");
+    }
+  }, [project]);
 
   const addTag = () => {
     if (newTag && !audienceTags.includes(newTag)) {
@@ -25,6 +50,42 @@ export function BusinessSettings() {
   const removeTag = (tag: string) => {
     setAudienceTags(audienceTags.filter(t => t !== tag));
   };
+
+  const handleSave = async () => {
+    if (!project) return;
+
+    try {
+      await updateProject.mutateAsync({
+        projectId: project.id,
+        updates: {
+          business_description: description,
+          audience: JSON.stringify(audienceTags),
+          brand_color: brandColor,
+          brand_voice_url: brandVoice,
+          sitemap_url: sitemapUrl,
+        },
+      });
+      toast.success("Business settings saved");
+    } catch (error) {
+      toast.error("Failed to save settings");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No project found. Please create a project first.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -126,7 +187,20 @@ export function BusinessSettings() {
             </div>
           </div>
 
-          <Button className="w-full">Save</Button>
+          <Button 
+            className="w-full" 
+            onClick={handleSave}
+            disabled={updateProject.isPending}
+          >
+            {updateProject.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save"
+            )}
+          </Button>
         </div>
       </Card>
     </div>

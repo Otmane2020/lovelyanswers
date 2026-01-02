@@ -422,7 +422,9 @@ export type Database = {
       projects: {
         Row: {
           audience: string | null
+          brand_color: string | null
           brand_name: string | null
+          brand_voice_url: string | null
           business_description: string | null
           business_type: string | null
           competitors: string[] | null
@@ -433,13 +435,16 @@ export type Database = {
           is_active: boolean | null
           language: string
           name: string
+          sitemap_url: string | null
           updated_at: string | null
           user_id: string
           website_url: string
         }
         Insert: {
           audience?: string | null
+          brand_color?: string | null
           brand_name?: string | null
+          brand_voice_url?: string | null
           business_description?: string | null
           business_type?: string | null
           competitors?: string[] | null
@@ -450,13 +455,16 @@ export type Database = {
           is_active?: boolean | null
           language?: string
           name: string
+          sitemap_url?: string | null
           updated_at?: string | null
           user_id: string
           website_url: string
         }
         Update: {
           audience?: string | null
+          brand_color?: string | null
           brand_name?: string | null
+          brand_voice_url?: string | null
           business_description?: string | null
           business_type?: string | null
           competitors?: string[] | null
@@ -467,6 +475,7 @@ export type Database = {
           is_active?: boolean | null
           language?: string
           name?: string
+          sitemap_url?: string | null
           updated_at?: string | null
           user_id?: string
           website_url?: string

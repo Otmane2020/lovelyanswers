@@ -117,3 +117,48 @@ export function useSetActiveProject() {
     },
   });
 }
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      updates,
+    }: {
+      projectId: string;
+      updates: Partial<{
+        name: string;
+        website_url: string;
+        domain: string;
+        language: string;
+        business_description: string;
+        business_type: string;
+        audience: string;
+        brand_name: string;
+        brand_color: string;
+        brand_voice_url: string;
+        sitemap_url: string;
+        example_url: string;
+        competitors: string[];
+      }>;
+    }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("projects")
+        .update(updates)
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Project;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
