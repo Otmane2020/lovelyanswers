@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.publish-scheduled-answers]
 verify_jwt = false
+
+[functions.get-public-answer]
+verify_jwt = false
