@@ -231,24 +231,93 @@ async function loadProjectContext(supabase: any, projectId: string): Promise<Pro
     throw new Error(`Project not found: ${projectId}`);
   }
 
-  // Load generation settings for extra context
+  // Load generation settings for extra context - THIS IS THE SOURCE OF TRUTH FOR LANGUAGE
   const { data: settings } = await supabase
     .from("generation_settings")
     .select("*")
     .eq("project_id", projectId)
     .single();
 
+  // 🔒 FIXED: Prioritize generation_settings.language over project.language
+  const effectiveLanguage = settings?.language || project?.language || "en";
+  
+  console.log(`[reddit-agent] Language source: settings=${settings?.language}, project=${project?.language}, effective=${effectiveLanguage}`);
+
   return {
     projectId,
-    brandName: project.brand_name || project.name,
-    language: project.language || "en",
-    businessDescription: project.business_description || settings?.business_description || "",
+    brandName: settings?.brand_name || project.brand_name || project.name,
+    language: effectiveLanguage, // ✅ FIXED: Use generation_settings first
+    businessDescription: settings?.business_description || project.business_description || "",
     targetAudiences: settings?.target_audiences || [],
-    websiteUrl: project.website_url || "",
+    websiteUrl: settings?.website_url || project.website_url || "",
     businessType: project.business_type || "General",
-    competitors: project.competitors || [],
+    competitors: settings?.competitors || project.competitors || [],
     tone: settings?.tone || "professional"
   };
+}
+
+/* =======================
+   KEYWORD-BASED SUBREDDIT MAPPING (LANGUAGE-AWARE)
+======================= */
+function getSubredditsFromKeywords(keywords: string[], language: string): string[] {
+  const subreddits = new Set<string>();
+  
+  // Category mappings with language-specific subreddits
+  const categoryMap: Record<string, { fr: string[]; en: string[] }> = {
+    // Tech/SaaS/Startup
+    "tech|saas|startup|mvp|dev|application|logiciel|software|ai|ia|machine learning": {
+      fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
+      en: ["startups", "SideProject", "webdev", "Entrepreneur", "SaaS", "indiehackers"]
+    },
+    // Furniture/Home/Decor
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit": {
+      fr: ["france", "deco", "maison", "ameublement", "BrisDecoMaison"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace"]
+    },
+    // E-commerce/Retail
+    "ecommerce|boutique|shopify|vente|store|retail|commerce|magasin": {
+      fr: ["ecommerce_france", "vosfinances", "entrepreneur", "france"],
+      en: ["ecommerce", "shopify", "dropship", "Entrepreneur", "FulfillmentByAmazon"]
+    },
+    // Marketing/SEO
+    "marketing|seo|traffic|référencement|growth|acquisition|leads|publicité": {
+      fr: ["SEOfr", "marketing_france", "vosfinances", "france"],
+      en: ["SEO", "marketing", "GrowthHacking", "bigseo", "digitalmarketing"]
+    },
+    // Freelance/Agency
+    "freelance|agency|agence|consultant|client|prestataire": {
+      fr: ["freelance_france", "vosfinances", "france", "AskFrance"],
+      en: ["freelance", "webdev", "Entrepreneur", "DigitalNomad"]
+    },
+    // Finance/Investment
+    "finance|investissement|argent|épargne|bourse|crypto|trading": {
+      fr: ["vosfinances", "france", "cryptoFR"],
+      en: ["personalfinance", "investing", "stocks", "CryptoCurrency"]
+    }
+  };
+
+  keywords.forEach(kw => {
+    const kwLower = kw.toLowerCase();
+    Object.entries(categoryMap).forEach(([pattern, subs]) => {
+      if (new RegExp(pattern, "i").test(kwLower)) {
+        // 🔒 CRITICAL: Only add subreddits for the project's language
+        const langSubs = language === "fr" ? subs.fr : subs.en;
+        langSubs.forEach(s => subreddits.add(s));
+      }
+    });
+  });
+
+  // Strict language-based fallback
+  if (subreddits.size === 0) {
+    if (language === "fr") {
+      ["france", "vosfinances", "AskFrance", "entrepreneur"].forEach(s => subreddits.add(s));
+    } else {
+      ["startups", "Entrepreneur", "smallbusiness", "webdev", "SideProject"].forEach(s => subreddits.add(s));
+    }
+  }
+
+  console.log(`[reddit-agent] Generated ${subreddits.size} subreddits for lang=${language}: ${Array.from(subreddits).join(", ")}`);
+  return Array.from(subreddits);
 }
 
 /* =======================
@@ -554,14 +623,10 @@ async function findOpportunities(
   apiKey: string
 ): Promise<{ opportunities: any[] }> {
   
-  // Default subreddits based on context and language
-  const defaultSubreddits = context.language === "fr"
-    ? ["france", "vosfinances", "entrepreneur", "startups"]
-    : ["startups", "Entrepreneur", "SideProject", "webdev", "smallbusiness"];
-    
+  // 🔒 FIXED: Use keywords to generate language-specific subreddits
   const targetSubreddits = subreddits.length > 0 
     ? subreddits.slice(0, 8) 
-    : defaultSubreddits;
+    : getSubredditsFromKeywords(keywords, context.language);
 
   console.log(`[reddit-agent] Finding opportunities for ${context.brandName} | lang=${context.language} | subs=${targetSubreddits.join(", ")}`);
 
@@ -612,10 +677,16 @@ async function findOpportunities(
 - Target Audiences: ${context.targetAudiences.join(", ") || "General"}
 - Keywords: ${keywords.join(", ") || "general topics"}
 
-FORBIDDEN:
-- Do NOT mention any other brand or business
-- Do NOT generate content in the wrong language
-- Do NOT suggest off-topic posts
+CRITICAL LANGUAGE RULES:
+${context.language === "fr" ? `
+- ONLY select posts written in FRENCH (titre et contenu en français)
+- Reject ANY post with English sentences unless it's a technical term
+- French subreddits (r/france, r/vosfinances, r/AskFrance) are MANDATORY
+- If no French posts match, return empty array rather than English posts
+` : `
+- ONLY select posts written in ENGLISH
+- Reject ANY post with non-English text (except brand names)
+`}
 
 Here are REAL Reddit posts (with real URLs):
 ${JSON.stringify(postsForAI, null, 2)}
@@ -625,7 +696,7 @@ Select the TOP 10 posts where replying would be:
 2. Natural place to share knowledge (not promotional)
 3. Posts with < 50 comments (less competition)
 4. Questions, help requests, or discussions work best
-5. ${context.language === "fr" ? "PREFER French posts. Only suggest English posts if clearly tech-focused and no French alternatives" : "English posts preferred"}
+5. ${context.language === "fr" ? "ONLY French posts (French language mandatory)" : "English posts only"}
 
 SCORING PRIORITY:
 - Posts mentioning keywords directly = HIGH priority
