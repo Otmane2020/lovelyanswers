@@ -18,6 +18,28 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate URL format before processing
+    const urlString = String(url).trim();
+    
+    // Quick validation: URL should be short and look like a domain
+    if (urlString.length > 500 || urlString.includes('\n') || urlString.includes('  ')) {
+      console.error('Invalid URL format - too long or contains invalid characters:', urlString.substring(0, 100));
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid URL format. Please provide a valid domain like example.com' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check for valid URL pattern
+    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+    if (!urlPattern.test(urlString)) {
+      console.error('URL does not match valid pattern:', urlString.substring(0, 100));
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid URL format. Please provide a valid domain like example.com' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
     if (!apiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
@@ -28,7 +50,7 @@ Deno.serve(async (req) => {
     }
 
     // Format URL
-    let formattedUrl = url.trim();
+    let formattedUrl = urlString;
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = `https://${formattedUrl}`;
     }
