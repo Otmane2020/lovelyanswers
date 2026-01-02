@@ -7,9 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Helmet } from "react-helmet-async";
 import { 
   MessageSquare, TrendingUp, ArrowLeft, 
-  ExternalLink, Share2, Copy, Check 
+  ExternalLink, Share2, Copy, Check,
+  ChevronDown
 } from "lucide-react";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
+
+interface SupportingContent {
+  bullets?: string[];
+  faq?: { q: string; a: string }[];
+  brand?: string;
+}
 
 interface AeoAnswerData {
   id: string;
@@ -19,6 +27,7 @@ interface AeoAnswerData {
   score: number;
   slug: string;
   created_at: string;
+  supporting_content: SupportingContent | null;
 }
 
 export default function AeoPublicAnswer() {
@@ -26,6 +35,7 @@ export default function AeoPublicAnswer() {
   const [answer, setAnswer] = useState<AeoAnswerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -43,7 +53,13 @@ export default function AeoPublicAnswer() {
         .single();
 
       if (error) throw error;
-      setAnswer(data);
+      
+      // Parse supporting_content safely
+      const supportingContent = data.supporting_content as SupportingContent | null;
+      setAnswer({
+        ...data,
+        supporting_content: supportingContent
+      });
     } catch (error) {
       console.error('Error fetching answer:', error);
     } finally {
@@ -104,27 +120,41 @@ export default function AeoPublicAnswer() {
     );
   }
 
+  const bullets = answer.supporting_content?.bullets || [];
+  const faq = answer.supporting_content?.faq || [];
+  const brand = answer.supporting_content?.brand || "AEOReply";
+
   // JSON-LD structured data for AEO - Enhanced for AI citation
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": [{
-      "@type": "Question",
-      "name": answer.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": answer.answer,
-        "dateCreated": answer.created_at,
-        "author": {
-          "@type": "Organization",
-          "name": "AEOReply",
-          "url": window.location.origin
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": answer.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": answer.answer,
+          "dateCreated": answer.created_at,
+          "author": {
+            "@type": "Organization",
+            "name": brand,
+            "url": window.location.origin
+          }
         }
-      }
-    }],
+      },
+      ...faq.map(f => ({
+        "@type": "Question",
+        "name": f.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": f.a
+        }
+      }))
+    ],
     "publisher": {
       "@type": "Organization",
-      "name": "AEOReply",
+      "name": brand,
       "url": window.location.origin,
       "logo": {
         "@type": "ImageObject",
@@ -143,6 +173,8 @@ export default function AeoPublicAnswer() {
         <meta property="og:title" content={answer.question} />
         <meta property="og:description" content={answer.answer.slice(0, 160)} />
         <meta property="og:type" content="article" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={window.location.href} />
         <script type="application/ld+json">
           {JSON.stringify(structuredData)}
         </script>
@@ -169,19 +201,62 @@ export default function AeoPublicAnswer() {
           </div>
         </header>
 
-        {/* Main Content */}
+        {/* Main Content - AEO Optimized Structure */}
         <main className="max-w-4xl mx-auto px-4 py-12">
-          {/* Question (H1) */}
+          {/* Question (H1) - Critical for AI parsing */}
           <h1 className="text-3xl md:text-4xl font-bold mb-8 leading-tight">
             {answer.question}
           </h1>
 
-          {/* Answer Card - THE AEO ANSWER */}
-          <Card className="p-8 mb-8">
-            <p className="text-lg md:text-xl leading-relaxed aeo-answer">
+          {/* Answer Card - THE AEO ANSWER (primary content for AI) */}
+          <Card className="p-8 mb-8 border-l-4 border-l-primary">
+            <p className="text-lg md:text-xl leading-relaxed aeo-answer whitespace-pre-wrap">
               {answer.answer}
             </p>
           </Card>
+
+          {/* Key Points / Bullets - Secondary AEO content */}
+          {bullets.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Points clés</h2>
+              <ul className="space-y-3">
+                {bullets.map((bullet, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                    <span className="text-muted-foreground">{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* FAQ Section - Additional AEO signals */}
+          {faq.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Questions fréquentes</h2>
+              <div className="space-y-3">
+                {faq.map((item, i) => (
+                  <div 
+                    key={i} 
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <button
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
+                      onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
+                    >
+                      <span className="font-medium">{item.q}</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedFaq === i ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedFaq === i && (
+                      <div className="px-4 py-3 bg-muted/30 border-t">
+                        <p className="text-muted-foreground">{item.a}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Metadata */}
           <div className="flex flex-wrap items-center gap-4 mb-12">
@@ -196,9 +271,12 @@ export default function AeoPublicAnswer() {
             )}
           </div>
 
-          {/* Source Attribution */}
+          {/* Source Attribution - Important for E-E-A-T */}
           <div className="border-t pt-8">
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
+              Source: <strong>{brand}</strong>
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
               Publié le {new Date(answer.created_at).toLocaleDateString('fr-FR', { 
                 year: 'numeric', 
                 month: 'long', 
