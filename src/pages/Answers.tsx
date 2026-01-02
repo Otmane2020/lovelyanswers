@@ -20,6 +20,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
+import shopifyLogo from "@/assets/shopify-logo.png";
+import wixLogo from "@/assets/wix-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
@@ -306,44 +309,57 @@ export default function Answers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <img src={chatGptLogo} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-              <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
+        {/* Hero Header with Logos */}
+        <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-background/80 backdrop-blur rounded-xl p-2 shadow-sm border border-border/50">
+                <img src={chatGptLogo} alt="ChatGPT" className="h-10 w-10 rounded-lg object-contain" />
+                <img src={shopifyLogo} alt="Shopify" className="h-8 w-auto object-contain" />
+                <img src={wixLogo} alt="Wix" className="h-6 w-auto object-contain dark:invert" />
+                <img src={wordpressLogo} alt="WordPress" className="h-8 w-auto object-contain dark:invert" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+                  <Badge className="bg-primary/20 text-primary border-0 font-semibold">
+                    Rank First!
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button 
-              variant="outline"
-              onClick={generate30Answers}
-              disabled={generating30}
-              className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-            >
-              {generating30 ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Zap className="h-4 w-4" />
-              )}
-              Générer 30 Q/A (30 jours)
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={regenerateAllAnswers}
-              disabled={regeneratingAll}
-              className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
-            >
-              {regeneratingAll ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount})` : "Régénérer"}
-            </Button>
-            <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
-              <Plus className="h-4 w-4" />New Answer
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                variant="outline"
+                onClick={generate30Answers}
+                disabled={generating30}
+                className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+              >
+                {generating30 ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                Générer 30 Q/A (30 jours)
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={regenerateAllAnswers}
+                disabled={regeneratingAll}
+                className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+              >
+                {regeneratingAll ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount})` : "Régénérer"}
+              </Button>
+              <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
+                <Plus className="h-4 w-4" />New Answer
+              </Button>
+            </div>
           </div>
         </div>
 
