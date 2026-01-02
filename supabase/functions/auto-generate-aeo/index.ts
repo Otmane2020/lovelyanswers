@@ -1,476 +1,306 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/* =========================
+   CORS
+========================= */
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type IntentType = 'price' | 'duration' | 'criteria' | 'comparison' | 'howto' | 'best' | 'what' | 'why';
-type Platform = 'chatgpt' | 'gemini' | 'claude' | 'perplexity' | 'copilot';
+/* =========================
+   TYPES
+========================= */
+type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 
-const PLATFORM_WEIGHTS: Record<Platform, number> = {
-  chatgpt: 0.95,
-  gemini: 0.90,
-  claude: 0.92,
-  perplexity: 0.88,
-  copilot: 0.85,
-};
+type Platform = "chatgpt" | "gemini" | "claude" | "perplexity" | "copilot";
 
-function computeCitationScore(answer: string, platforms: Platform[]): number {
-  // 🔥 FIX: Start at 70 base score for well-formed AEO answers
-  let score = 70;
-  
+/* =========================
+   SCORING (REAL AEO)
+========================= */
+function computeCitationScore(answer: string): number {
+  let score = 60;
+
   const firstSentence = answer.split(/[.!?]/)[0];
-  const answerLength = answer.length;
-  
-  // First sentence quality (ideal: 80-160 chars for direct answer)
-  if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 8;
-  else if (firstSentence.length >= 60 && firstSentence.length <= 200) score += 4;
-  
-  // Contains data/numbers (factual content)
-  if (/\d+/.test(answer)) score += 5;
-  
-  // Starts with affirmative statement (not a question word)
-  if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) score += 4;
-  
-  // Has structured content (lists, bullets)
-  if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 4;
-  
-  // Good answer length (200-600 chars ideal for AEO)
-  if (answerLength >= 200 && answerLength <= 600) score += 5;
-  else if (answerLength >= 150 && answerLength <= 800) score += 2;
-  
-  // Contains brand mention (important for AEO)
-  if (/webify|app/i.test(answer)) score += 3;
-  
-  // Limit score to 75-95 range (yellow to green)
-  return Math.min(95, Math.max(75, score));
+  const length = answer.length;
+
+  // Strong direct first sentence
+  if (firstSentence.length >= 80 && firstSentence.length <= 180) score += 10;
+
+  // Good global length
+  if (length >= 180 && length <= 700) score += 10;
+
+  // Brand mention (required)
+  if (/webify|newai/i.test(answer)) score += 10;
+
+  // URL presence (very important for citation)
+  if (/https?:\/\//i.test(answer)) score += 10;
+
+  // Structured content
+  if (answer.includes("\n") || answer.includes("•") || answer.includes("-")) score += 5;
+
+  // Penalize fake % claims
+  if (/\d{1,3}\s?%/.test(answer)) score -= 20;
+
+  return Math.min(95, Math.max(55, score));
 }
 
+/* =========================
+   INTENT DETECTION
+========================= */
 function detectIntent(question: string): IntentType {
-  const lowerQ = question.toLowerCase();
-  const intentPatterns: Record<IntentType, RegExp[]> = {
-    price: [/prix|tarif|co[uû]t|combien|gratuit|abonnement|price|cost|pricing|free|subscription/i],
-    duration: [/temps|dur[ée]e|d[ée]lai|combien de temps|rapidit[ée]|time|duration|how long|quickly/i],
-    criteria: [/crit[èe]res|conditions|exigences|pr[ée]requis|criteria|requirements/i],
-    comparison: [/vs|versus|compar|diff[ée]ren|alternative|meilleur que|better than/i],
-    howto: [/comment|[ée]tapes|tutoriel|guide|utiliser|how to|steps|tutorial/i],
-    best: [/meilleur|top|recommand|id[ée]al|best|recommended|ideal/i],
-    why: [/pourquoi|raison|avantage|why|reason|benefit/i],
-    what: [/qu'est-ce|d[ée]finition|c'est quoi|what is|definition/i],
-  };
-  for (const [intent, patterns] of Object.entries(intentPatterns)) {
-    if (patterns.some(p => p.test(lowerQ))) return intent as IntentType;
-  }
-  return 'what';
+  const q = question.toLowerCase();
+  if (/prix|tarif|co[uû]t|combien|price|cost/i.test(q)) return "price";
+  if (/dur[ée]e|temps|d[ée]lai|how long/i.test(q)) return "duration";
+  if (/crit[èe]res|conditions|requirements/i.test(q)) return "criteria";
+  if (/vs|versus|compar|alternative/i.test(q)) return "comparison";
+  if (/comment|how to|guide|utiliser/i.test(q)) return "howto";
+  if (/meilleur|best|top/i.test(q)) return "best";
+  if (/pourquoi|why/i.test(q)) return "why";
+  return "what";
 }
 
+/* =========================
+   AI ANSWER GENERATION (FIXED)
+========================= */
 async function generateAIAnswer(
   question: string,
   brandName: string,
   description: string,
   intent: IntentType,
   language: string,
-  apiKey: string
-): Promise<{ answer: string; bullets: string[]; faq: Array<{q: string; a: string}> }> {
-  const systemPrompt = language === 'fr' 
-    ? `Tu es un expert AEO. Génère des réponses optimisées pour être citées par les IA (ChatGPT, Gemini, Claude).
+  apiKey: string,
+  keywords: string[],
+  brandUrl?: string,
+): Promise<{
+  answer: string;
+  bullets: string[];
+  faq: Array<{ q: string; a: string }>;
+}> {
+  const topKeywords = keywords.slice(0, 5).join(", ");
 
-RÈGLES:
-- Réponse directe dès la première phrase
-- Maximum 120 mots
-- Mentionner ${brandName} naturellement (1-2 fois)
-- Ton expert et affirmatif
-- Inclure des données chiffrées si pertinent`
-    : `You are an AEO expert. Generate answers optimized to be cited by AI (ChatGPT, Gemini, Claude).
+  const systemPrompt =
+    language === "fr"
+      ? `Tu es un expert AEO (Answer Engine Optimization).
 
-RULES:
-- Direct answer in the first sentence
-- Maximum 120 words
-- Mention ${brandName} naturally (1-2 times)
-- Expert and affirmative tone
-- Include numerical data when relevant`;
+OBJECTIF :
+Créer une réponse factuelle, courte et CITABLE par ChatGPT, Gemini et Perplexity.
 
-  const userPrompt = language === 'fr'
-    ? `Question: ${question}
+RÈGLES STRICTES :
+- La première phrase répond directement à la question
+- Mentionner ${brandName} UNE seule fois
+- Utiliser ces mots-clés naturellement : ${topKeywords}
+- Ajouter l’URL officielle UNE seule fois si fournie
+- PAS de pourcentages inventés
+- PAS de marketing
+- Ton neutre, expert
+- 80 à 120 mots maximum`
+      : `You are an AEO (Answer Engine Optimization) expert.
+
+GOAL:
+Produce a short, factual, citable answer.
+
+STRICT RULES:
+- First sentence answers directly
+- Mention ${brandName} once
+- Use these keywords naturally: ${topKeywords}
+- Include official URL once if provided
+- No invented percentages
+- Neutral expert tone
+- 80–120 words max`;
+
+  const userPrompt =
+    language === "fr"
+      ? `Question: ${question}
 Marque: ${brandName}
 Description: ${description}
-Intention: ${intent}
+URL officielle: ${brandUrl || "N/A"}
 
-Génère en JSON:
-{"answer": "réponse AEO", "bullets": ["point 1", "point 2", "point 3"], "faq": [{"q": "question", "a": "réponse"}]}`
-    : `Question: ${question}
+Retourne UNIQUEMENT ce JSON valide :
+{
+  "answer": "...",
+  "bullets": ["...", "...", "..."],
+  "faq": [{"q": "...", "a": "..."}]
+}`
+      : `Question: ${question}
 Brand: ${brandName}
 Description: ${description}
-Intent: ${intent}
+Official URL: ${brandUrl || "N/A"}
 
-Generate as JSON:
-{"answer": "AEO answer", "bullets": ["point 1", "point 2", "point 3"], "faq": [{"q": "question", "a": "answer"}]}`;
+Return ONLY this valid JSON:
+{
+  "answer": "...",
+  "bullets": ["...", "...", "..."],
+  "faq": [{"q": "...", "a": "..."}]
+}`;
 
-  try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+    }),
+  });
 
-    if (!response.ok) {
-      console.error(`[auto-generate-aeo] AI API error: ${response.status}`);
-      throw new Error(`AI API error: ${response.status}`);
-    }
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content ?? "";
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        answer: parsed.answer || content,
-        bullets: parsed.bullets || [],
-        faq: parsed.faq || []
-      };
-    }
-    
-    return { answer: content, bullets: [], faq: [] };
-  } catch (error) {
-    console.error("[auto-generate-aeo] AI generation error:", error);
-    return {
-      answer: language === 'fr'
-        ? `${brandName} est une solution innovante qui répond à cette question. Pour plus d'informations, consultez notre site.`
-        : `${brandName} is an innovative solution that addresses this question. For more information, visit our website.`,
-      bullets: [],
-      faq: []
-    };
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) {
+    throw new Error("Invalid AI JSON output");
   }
+
+  return JSON.parse(match[0]);
 }
 
+/* =========================
+   SLUG
+========================= */
 function generateSlug(question: string): string {
-  let slug = question.toLowerCase();
-  slug = slug.replace(/[àáâãäå]/g, 'a');
-  slug = slug.replace(/[èéêë]/g, 'e');
-  slug = slug.replace(/[ìíîï]/g, 'i');
-  slug = slug.replace(/[òóôõö]/g, 'o');
-  slug = slug.replace(/[ùúûü]/g, 'u');
-  slug = slug.replace(/[ç]/g, 'c');
-  slug = slug.replace(/[^a-z0-9\s-]/g, '');
-  slug = slug.replace(/\s+/g, '-');
-  slug = slug.replace(/-+/g, '-');
-  slug = slug.replace(/^-|-$/g, '');
-  return slug.slice(0, 100);
+  return question
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 100);
 }
 
-// Generate 30 questions based on keywords and brand context
-async function generate30Questions(
-  brandName: string,
-  description: string,
-  keywords: string[],
-  language: string,
-  apiKey: string
-): Promise<Array<{ question: string; intent: IntentType }>> {
-  const keywordsList = keywords.slice(0, 20).join(", ");
-  
-  const systemPrompt = language === 'fr'
-    ? `Tu génères 30 questions FAQ uniques optimisées pour l'AEO (Answer Engine Optimization). Chaque question doit cibler une intention différente et être pertinente pour les IA assistants.`
-    : `You generate 30 unique FAQ questions optimized for AEO (Answer Engine Optimization). Each question should target a different intent and be relevant for AI assistants.`;
-
-  const userPrompt = language === 'fr'
-    ? `Marque: ${brandName}
-Description: ${description}
-Mots-clés: ${keywordsList}
-
-Génère 30 questions variées couvrant:
-- Questions "Qu'est-ce que" (définition)
-- Questions "Comment" (tutoriel)
-- Questions "Pourquoi" (raisons)
-- Questions prix/tarifs
-- Questions comparaison
-- Questions avis/recommandations
-
-Format JSON array:
-[{"question": "...", "intent": "what|howto|why|price|comparison|best|criteria|duration"}]`
-    : `Brand: ${brandName}
-Description: ${description}
-Keywords: ${keywordsList}
-
-Generate 30 varied questions covering:
-- "What is" questions (definition)
-- "How to" questions (tutorial)
-- "Why" questions (reasons)
-- Price/cost questions
-- Comparison questions
-- Review/recommendation questions
-
-JSON array format:
-[{"question": "...", "intent": "what|howto|why|price|comparison|best|criteria|duration"}]`;
-
-  try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.8,
-      }),
-    });
-
-    if (!response.ok) throw new Error(`AI error: ${response.status}`);
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.slice(0, 30);
-    }
-    
-    return [];
-  } catch (error) {
-    console.error("[auto-generate-aeo] Error generating 30 questions:", error);
-    // Fallback to basic questions
-    const baseQuestions: Array<{ question: string; intent: IntentType }> = [];
-    const intents: IntentType[] = ['what', 'howto', 'why', 'price', 'comparison', 'best'];
-    
-    const templatesFr: Record<string, (k: string, b: string) => string> = {
-      what: (k: string, b: string) => `Qu'est-ce que ${k} de ${b} ?`,
-      howto: (k: string, b: string) => `Comment utiliser ${k} avec ${b} ?`,
-      why: (k: string, b: string) => `Pourquoi choisir ${b} pour ${k} ?`,
-      price: (k: string, b: string) => `Quel est le prix de ${k} chez ${b} ?`,
-      comparison: (k: string, b: string) => `${b} vs concurrents pour ${k} ?`,
-      best: (k: string, b: string) => `${b} est-il le meilleur pour ${k} ?`,
-    };
-    
-    const templatesEn: Record<string, (k: string, b: string) => string> = {
-      what: (k: string, b: string) => `What is ${k} from ${b}?`,
-      howto: (k: string, b: string) => `How to use ${k} with ${b}?`,
-      why: (k: string, b: string) => `Why choose ${b} for ${k}?`,
-      price: (k: string, b: string) => `What is the price of ${k} at ${b}?`,
-      comparison: (k: string, b: string) => `${b} vs competitors for ${k}?`,
-      best: (k: string, b: string) => `Is ${b} the best for ${k}?`,
-    };
-    
-    const templates = language === 'fr' ? templatesFr : templatesEn;
-    
-    for (let i = 0; i < 30; i++) {
-      const intent = intents[i % intents.length];
-      const keyword = keywords[i % keywords.length] || brandName;
-      const templateFn = templates[intent];
-      
-      if (templateFn) {
-        baseQuestions.push({ question: templateFn(keyword, brandName), intent });
-      }
-    }
-    
-    return baseQuestions;
-  }
-}
-
+/* =========================
+   SERVER
+========================= */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user) {
+    const { data: userData } = await supabase.auth.getUser(token);
+    if (!userData?.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = userData.user.id;
     const { projectId, language = "fr", generate30 = false } = await req.json();
 
-    console.log(`[auto-generate-aeo] Starting for user ${userId}, project: ${projectId}, generate30: ${generate30}`);
-
-    const { data: project, error: projectError } = await supabase
+    const { data: project } = await supabase
       .from("projects")
       .select("*")
       .eq("id", projectId)
-      .eq("user_id", userId)
+      .eq("user_id", userData.user.id)
       .single();
 
-    if (projectError || !project) {
-      console.log("[auto-generate-aeo] No project found, skipping auto-generation");
-      return new Response(JSON.stringify({ 
-        success: false, 
-        message: "No project found" 
-      }), {
+    if (!project) {
+      return new Response(JSON.stringify({ error: "Project not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const brandName = project.brand_name || project.name;
+    const brandUrl = project.website_url;
     const description = project.business_description || "";
-    const targetPlatforms: Platform[] = ["chatgpt", "gemini", "claude"];
 
-    console.log(`[auto-generate-aeo] Project: ${project.id}, Brand: ${brandName}`);
-
-    // Get keywords from database - first try current project
-    let { data: dbKeywords } = await supabase
+    const { data: dbKeywords } = await supabase
       .from("keywords")
       .select("keyword")
       .eq("project_id", projectId)
       .limit(30);
-    
-    // Fallback: if no keywords, search other active projects for this user
-    if (!dbKeywords || dbKeywords.length === 0) {
-      console.log(`[auto-generate-aeo] No keywords for project ${projectId}, searching other projects...`);
-      
-      const { data: otherProjects } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .neq("id", projectId);
-      
-      for (const otherProject of otherProjects || []) {
-        const { data: otherKeywords } = await supabase
-          .from("keywords")
-          .select("keyword")
-          .eq("project_id", otherProject.id)
-          .limit(30);
-        
-        if (otherKeywords && otherKeywords.length > 0) {
-          console.log(`[auto-generate-aeo] Found ${otherKeywords.length} keywords in project ${otherProject.id}`);
-          dbKeywords = otherKeywords;
-          break;
-        }
-      }
-    }
-    
-    const keywords = dbKeywords?.map(k => k.keyword) || [];
-    console.log(`[auto-generate-aeo] Using ${keywords.length} keywords: ${keywords.slice(0, 5).join(', ')}...`);
 
-    // Generate questions
-    let questions: Array<{ question: string; intent: IntentType }>;
-    
-    if (generate30) {
-      console.log("[auto-generate-aeo] Generating 30 questions from keywords...");
-      questions = await generate30Questions(brandName, description, keywords, language, lovableApiKey);
-    } else {
-      // Default: generate 5 basic questions
-      questions = [
-        { question: language === 'fr' ? `Qu'est-ce que ${brandName} et quels sont ses services ?` : `What is ${brandName} and what services do they offer?`, intent: "what" as IntentType },
-        { question: language === 'fr' ? `Combien coûte ${brandName} ?` : `How much does ${brandName} cost?`, intent: "price" as IntentType },
-        { question: language === 'fr' ? `Pourquoi choisir ${brandName} ?` : `Why choose ${brandName}?`, intent: "why" as IntentType },
-        { question: language === 'fr' ? `Comment utiliser ${brandName} ?` : `How to use ${brandName}?`, intent: "howto" as IntentType },
-        { question: language === 'fr' ? `${brandName} est-il le meilleur choix ?` : `Is ${brandName} the best choice?`, intent: "best" as IntentType },
-      ];
-    }
+    const keywords = dbKeywords?.map((k) => k.keyword) || [];
 
-    console.log(`[auto-generate-aeo] Generating ${questions.length} answers...`);
+    const questions = generate30
+      ? keywords.slice(0, 30).map((k) => ({
+          question: `${brandName} ${k} : comment ça fonctionne ?`,
+          intent: detectIntent(k),
+        }))
+      : [
+          {
+            question: `Qu’est-ce que ${brandName} et à quoi sert-il ?`,
+            intent: "what",
+          },
+          {
+            question: `Combien coûte ${brandName} ?`,
+            intent: "price",
+          },
+          {
+            question: `Pourquoi choisir ${brandName} ?`,
+            intent: "why",
+          },
+        ];
 
-    const answersToInsert: any[] = [];
-    const today = new Date();
+    const answers = [];
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      console.log(`[auto-generate-aeo] Generating answer ${i + 1}/${questions.length}: "${q.question.slice(0, 50)}..."`);
-      
+
       const generated = await generateAIAnswer(
         q.question,
         brandName,
         description,
         q.intent,
         language,
-        lovableApiKey
+        lovableApiKey,
+        keywords,
+        brandUrl,
       );
-      
-      const score = computeCitationScore(generated.answer, targetPlatforms);
-      
-      // Schedule one per day over 30 days
-      const scheduledDate = new Date(today);
-      scheduledDate.setDate(today.getDate() + i);
-      
-      answersToInsert.push({
-        project_id: project.id,
+
+      const score = computeCitationScore(generated.answer);
+
+      answers.push({
+        project_id: projectId,
         question: q.question,
         answer: generated.answer,
         slug: generateSlug(q.question),
-        platforms: targetPlatforms,
-        score: score,
-        is_public: false,
+        score,
         intent: q.intent,
-        difficulty: score >= 80 ? 'easy' : score >= 60 ? 'medium' : 'hard',
-        scheduled_date: scheduledDate.toISOString(),
+        is_public: false,
+        scheduled_date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString(),
         supporting_content: {
           bullets: generated.bullets,
-          faq: generated.faq
-        }
+          faq: generated.faq,
+        },
       });
     }
 
-    const { data: insertedAnswers, error: answersError } = await supabase
-      .from("answers")
-      .insert(answersToInsert)
-      .select();
+    const { data: inserted } = await supabase.from("answers").insert(answers).select();
 
-    if (answersError) {
-      console.error("[auto-generate-aeo] Error inserting answers:", answersError);
-    } else {
-      console.log(`[auto-generate-aeo] Created ${insertedAnswers?.length || 0} AI-generated answers with scheduling`);
-    }
-
-    // Mark keywords as used
-    if (keywords.length > 0) {
-      await supabase
-        .from("keywords")
-        .update({ is_used: true })
-        .eq("project_id", projectId)
-        .in("keyword", keywords.slice(0, questions.length));
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      answers_created: insertedAnswers?.length || 0,
-      scheduled_days: questions.length,
-      answers: insertedAnswers
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (error) {
-    console.error("[auto-generate-aeo] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      success: false 
-    }), {
+    return new Response(
+      JSON.stringify({
+        success: true,
+        answers_created: inserted?.length || 0,
+        answers: inserted,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
