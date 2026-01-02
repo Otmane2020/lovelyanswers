@@ -419,12 +419,13 @@ serve(async (req) => {
 
     const { 
       projectId, 
-      questions, // Array of questions to generate answers for
+      questions, // Array of questions to generate answers for (optional if useKeywords=true)
       targetPlatforms = ["chatgpt", "gemini", "claude"],
-      language = "fr" 
+      language = "fr",
+      useKeywords = false // If true, generate questions from keywords table
     } = await req.json();
 
-    console.log(`[generate-aeo-answers] Starting for project: ${projectId}, ${questions?.length || 0} questions`);
+    console.log(`[generate-aeo-answers] Starting for project: ${projectId}, useKeywords: ${useKeywords}, ${questions?.length || 0} questions`);
 
     // Get project info
     const { data: project, error: projectError } = await supabase
@@ -445,8 +446,79 @@ serve(async (req) => {
     const websiteUrl = project.website_url || "";
     const generatedAnswers: any[] = [];
 
+    // Determine questions to process
+    let questionsToProcess: string[] = questions || [];
+
+    // If useKeywords is true, fetch keywords and generate questions from them
+    if (useKeywords || (!questions || questions.length === 0)) {
+      console.log(`[generate-aeo-answers] Fetching keywords for project: ${projectId}`);
+      
+      const { data: keywords, error: keywordsError } = await supabase
+        .from("keywords")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("is_used", false)
+        .limit(10);
+
+      if (keywordsError) {
+        console.error(`[generate-aeo-answers] Keywords fetch error:`, keywordsError);
+      } else if (keywords && keywords.length > 0) {
+        console.log(`[generate-aeo-answers] Found ${keywords.length} unused keywords`);
+        
+        // Generate questions from keywords using AI
+        const keywordList = keywords.map(k => k.keyword).join(", ");
+        const questionGenPrompt = language === "fr"
+          ? `Tu es un expert AEO. À partir de ces mots-clés : ${keywordList}
+          
+Génère 5 questions naturelles que les utilisateurs poseraient à un assistant IA sur ${brandName}.
+Format JSON: {"questions": ["question 1", "question 2", ...]}`
+          : `You are an AEO expert. From these keywords: ${keywordList}
+          
+Generate 5 natural questions users would ask an AI assistant about ${brandName}.
+JSON format: {"questions": ["question 1", "question 2", ...]}`;
+
+        try {
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: "Tu génères des questions AEO basées sur des mots-clés. Réponds uniquement en JSON." },
+                { role: "user", content: questionGenPrompt }
+              ],
+              temperature: 0.5,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content || "";
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              questionsToProcess = parsed.questions || [];
+              console.log(`[generate-aeo-answers] Generated ${questionsToProcess.length} questions from keywords`);
+            }
+          }
+        } catch (e) {
+          console.error(`[generate-aeo-answers] Error generating questions from keywords:`, e);
+        }
+
+        // Mark keywords as used
+        const keywordIds = keywords.map(k => k.id);
+        await supabase
+          .from("keywords")
+          .update({ is_used: true })
+          .in("id", keywordIds);
+      }
+    }
+
     // Generate answers for each question
-    for (const questionText of questions || []) {
+    for (const questionText of questionsToProcess) {
       try {
         const intent = detectIntent(questionText, language);
         const platforms = targetPlatforms as Platform[];
