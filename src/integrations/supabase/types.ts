@@ -28,6 +28,7 @@ export type Database = {
           platforms: string[] | null
           project_id: string
           question: string
+          scheduled_date: string | null
           score: number | null
           slug: string
           supporting_content: Json | null
@@ -46,6 +47,7 @@ export type Database = {
           platforms?: string[] | null
           project_id: string
           question: string
+          scheduled_date?: string | null
           score?: number | null
           slug: string
           supporting_content?: Json | null
@@ -64,6 +66,7 @@ export type Database = {
           platforms?: string[] | null
           project_id?: string
           question?: string
+          scheduled_date?: string | null
           score?: number | null
           slug?: string
           supporting_content?: Json | null
@@ -88,33 +91,51 @@ export type Database = {
       }
       articles: {
         Row: {
+          aeo_score: number | null
           content: string | null
           created_at: string | null
+          html_content: string | null
           id: string
+          keywords: string[] | null
           linked_answer_id: string | null
+          meta_description: string | null
           project_id: string
+          scheduled_date: string | null
+          slug: string | null
           status: string | null
           title: string
           updated_at: string | null
           word_count: number | null
         }
         Insert: {
+          aeo_score?: number | null
           content?: string | null
           created_at?: string | null
+          html_content?: string | null
           id?: string
+          keywords?: string[] | null
           linked_answer_id?: string | null
+          meta_description?: string | null
           project_id: string
+          scheduled_date?: string | null
+          slug?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
           word_count?: number | null
         }
         Update: {
+          aeo_score?: number | null
           content?: string | null
           created_at?: string | null
+          html_content?: string | null
           id?: string
+          keywords?: string[] | null
           linked_answer_id?: string | null
+          meta_description?: string | null
           project_id?: string
+          scheduled_date?: string | null
+          slug?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null

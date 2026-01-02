@@ -1,17 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  CalendarDays, ChevronLeft, ChevronRight, Plus,
-  FileText, Clock
+  ChevronLeft, ChevronRight, Plus,
+  FileText, Clock, Loader2
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ScheduledItem {
   id: string;
@@ -21,26 +22,84 @@ interface ScheduledItem {
   status: "scheduled" | "published" | "draft";
 }
 
-// Mock data for scheduled items
-const mockScheduledItems: ScheduledItem[] = [
-  { id: "1", title: "What is AEO?", type: "answer", date: addDays(new Date(), 2), status: "scheduled" },
-  { id: "2", title: "SEO vs AEO comparison", type: "article", date: addDays(new Date(), 5), status: "scheduled" },
-  { id: "3", title: "How to optimize for AI?", type: "answer", date: addDays(new Date(), 7), status: "scheduled" },
-  { id: "4", title: "Best practices for citations", type: "article", date: addDays(new Date(), 12), status: "scheduled" },
-  { id: "5", title: "AI assistants ranking factors", type: "answer", date: addDays(new Date(), 15), status: "scheduled" },
-];
-
 export default function AeoPlanning() {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [view, setView] = useState<"month" | "year">("month");
+  const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch scheduled answers and articles from database
+  useEffect(() => {
+    const fetchScheduledItems = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // Get active project
+        const { data: projects } = await supabase
+          .from("projects")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .limit(1);
+        
+        if (!projects || projects.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const projectId = projects[0].id;
+
+        // Fetch answers with scheduled_date
+        const { data: answers } = await supabase
+          .from("answers")
+          .select("id, question, scheduled_date, is_public")
+          .eq("project_id", projectId)
+          .not("scheduled_date", "is", null);
+
+        // Fetch articles with scheduled_date  
+        const { data: articles } = await supabase
+          .from("articles")
+          .select("id, title, scheduled_date, status")
+          .eq("project_id", projectId)
+          .not("scheduled_date", "is", null);
+
+        const items: ScheduledItem[] = [
+          ...(answers || []).map(a => ({
+            id: a.id,
+            title: a.question,
+            type: "answer" as const,
+            date: new Date(a.scheduled_date!),
+            status: a.is_public ? "published" as const : "scheduled" as const
+          })),
+          ...(articles || []).map(a => ({
+            id: a.id,
+            title: a.title,
+            type: "article" as const,
+            date: new Date(a.scheduled_date!),
+            status: a.status === "published" ? "published" as const : "scheduled" as const
+          }))
+        ];
+
+        setScheduledItems(items);
+      } catch (error) {
+        console.error("Error fetching scheduled items:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchScheduledItems();
+  }, [user]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     setCurrentDate(direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
   };
 
   const getItemsForDate = (date: Date) => {
-    return mockScheduledItems.filter(
+    return scheduledItems.filter(
       item => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
     );
   };
@@ -48,7 +107,7 @@ export default function AeoPlanning() {
   const getUpcomingItems = () => {
     const today = new Date();
     const next30Days = addDays(today, 30);
-    return mockScheduledItems
+    return scheduledItems
       .filter(item => item.date >= today && item.date <= next30Days)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   };
@@ -60,7 +119,7 @@ export default function AeoPlanning() {
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const date = new Date(currentDate.getFullYear(), i, 1);
-    const items = mockScheduledItems.filter(item => 
+    const items = scheduledItems.filter(item => 
       item.date.getMonth() === i && item.date.getFullYear() === currentDate.getFullYear()
     );
     return { date, items };
@@ -173,44 +232,59 @@ export default function AeoPlanning() {
               <Card className="p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Next 30 Days
+                  Next 30 Days ({getUpcomingItems().length})
                 </h3>
-                <div className="space-y-3">
-                  {getUpcomingItems().map(item => (
-                    <div
-                      key={item.id}
-                      className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={cn(
-                          "p-2 rounded-lg",
-                          item.type === "answer" 
-                            ? "bg-blue-500/20" 
-                            : "bg-emerald-500/20"
-                        )}>
-                          <FileText className={cn(
-                            "h-4 w-4",
-                            item.type === "answer" ? "text-blue-600" : "text-emerald-600"
-                          )} />
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {getUpcomingItems().map(item => (
+                      <div
+                        key={item.id}
+                        className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "p-2 rounded-lg",
+                            item.type === "answer" 
+                              ? "bg-blue-500/20" 
+                              : "bg-emerald-500/20"
+                          )}>
+                            <FileText className={cn(
+                              "h-4 w-4",
+                              item.type === "answer" ? "text-blue-600" : "text-emerald-600"
+                            )} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{item.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(item.date, "d MMM yyyy", { locale: fr })}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {item.type === "answer" ? "Answer" : "Article"}
+                          </Badge>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{item.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(item.date, "d MMM yyyy", { locale: fr })}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {item.type === "answer" ? "Answer" : "Article"}
-                        </Badge>
                       </div>
-                    </div>
-                  ))}
-                  {getUpcomingItems().length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No scheduled content
-                    </p>
-                  )}
-                </div>
+                    ))}
+                    {getUpcomingItems().length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground mb-4">
+                          No scheduled content
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.location.href = '/answers'}
+                        >
+                          Generate 30 Q/A
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             </div>
           </TabsContent>
