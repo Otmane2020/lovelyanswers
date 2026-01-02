@@ -1,4 +1,3 @@
-```ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,43 +6,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 ======================= */
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 /* =======================
    TYPES
 ======================= */
-type IntentType =
-  | "price"
-  | "duration"
-  | "criteria"
-  | "comparison"
-  | "howto"
-  | "best"
-  | "what"
-  | "why";
+type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 
-type Platform =
-  | "chatgpt"
-  | "gemini"
-  | "claude"
-  | "perplexity"
-  | "copilot";
+type Platform = "chatgpt" | "gemini" | "claude" | "perplexity" | "copilot";
 
 /* =======================
-   UTILS
+   HELPERS
 ======================= */
-function computeCitationScore(answer: string): number {
-  let score = 60;
-
-  if (answer.length >= 150 && answer.length <= 800) score += 10;
-  if (/newai|webify/i.test(answer)) score += 10;
-  if (/https?:\/\//.test(answer)) score += 10;
-  if (answer.includes("-") || answer.includes("•")) score += 5;
-  if (/\d{1,3}\s?%/.test(answer)) score -= 15;
-
-  return Math.min(95, Math.max(55, score));
+function normalizeIntent(intent: string): IntentType {
+  const allowed: IntentType[] = ["price", "duration", "criteria", "comparison", "howto", "best", "what", "why"];
+  return allowed.includes(intent as IntentType) ? (intent as IntentType) : "what";
 }
 
 function detectIntent(question: string): IntentType {
@@ -58,6 +36,20 @@ function detectIntent(question: string): IntentType {
   if (/pourquoi|why/.test(q)) return "why";
 
   return "what";
+}
+
+function computeCitationScore(answer: string, brand: string): number {
+  let score = 70;
+
+  const firstSentence = answer.split(/[.!?]/)[0];
+
+  if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 8;
+  if (/\d+/.test(answer)) score += 5;
+  if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 4;
+  if (answer.length >= 200 && answer.length <= 600) score += 5;
+  if (new RegExp(brand, "i").test(answer)) score += 5;
+
+  return Math.min(95, Math.max(75, score));
 }
 
 function generateSlug(question: string): string {
@@ -81,66 +73,52 @@ async function generateAIAnswer(
   intent: IntentType,
   language: string,
   apiKey: string,
-  keywords: string[],
-  brandUrl?: string
 ): Promise<{
   answer: string;
   bullets: string[];
   faq: Array<{ q: string; a: string }>;
 }> {
-  const topKeywords = keywords.slice(0, 5).join(", ");
-
   const systemPrompt =
     language === "fr"
       ? `Tu es un expert AEO.
-Règles :
-- Réponds dès la première phrase
+- Réponse directe dès la première phrase
 - Mentionne ${brandName} UNE fois
-- Utilise ces mots-clés : ${topKeywords}
-- Ajoute l’URL officielle une seule fois si pertinente
-- Ton neutre, informatif, factuel
+- Ton factuel, non marketing
 - 80 à 120 mots max`
       : `You are an AEO expert.
-Rules:
-- Direct answer in first sentence
+- Direct answer first sentence
 - Mention ${brandName} once
-- Use keywords: ${topKeywords}
-- Include official URL once if relevant
-- Neutral, factual tone
+- Factual, non-marketing tone
 - 80–120 words max`;
 
   const userPrompt = `
 Question: ${question}
 Brand: ${brandName}
 Description: ${description}
-Official URL: ${brandUrl || "N/A"}
+Intent: ${intent}
 
 Return ONLY valid JSON:
 {
   "answer": "...",
   "bullets": ["...", "...", "..."],
   "faq": [{"q": "...", "a": "..."}]
-}
-`;
+}`;
 
-  const response = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.3,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    }
-  );
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      temperature: 0.3,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content ?? "";
@@ -160,10 +138,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY")!;
 
@@ -174,8 +149,7 @@ serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser(token);
     if (!userData?.user) throw new Error("Invalid token");
 
-    const { projectId, language = "fr", generate30 = false } =
-      await req.json();
+    const { projectId, language = "fr", generate30 = false } = await req.json();
 
     const { data: project } = await supabase
       .from("projects")
@@ -188,7 +162,6 @@ serve(async (req) => {
 
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
-    const brandUrl = project.website_url;
 
     const { data: keywordRows } = await supabase
       .from("keywords")
@@ -198,26 +171,25 @@ serve(async (req) => {
 
     const keywords = keywordRows?.map((k) => k.keyword) ?? [];
 
-    const questions: Array<{ question: string; intent: IntentType }> =
-      generate30
-        ? keywords.slice(0, 30).map((k) => ({
-            question: `${brandName} ${k} : comment ça fonctionne ?`,
-            intent: detectIntent(k),
-          }))
-        : [
-            {
-              question: `Qu’est-ce que ${brandName} et à quoi sert-il ?`,
-              intent: "what",
-            },
-            {
-              question: `Combien coûte ${brandName} ?`,
-              intent: "price",
-            },
-            {
-              question: `Pourquoi choisir ${brandName} ?`,
-              intent: "why",
-            },
-          ];
+    const questions: Array<{ question: string; intent: IntentType }> = generate30
+      ? keywords.slice(0, 30).map((k) => ({
+          question: `${brandName} ${k} : comment ça fonctionne ?`,
+          intent: detectIntent(k),
+        }))
+      : [
+          {
+            question: `Qu’est-ce que ${brandName} et à quoi sert-il ?`,
+            intent: "what",
+          },
+          {
+            question: `Combien coûte ${brandName} ?`,
+            intent: "price",
+          },
+          {
+            question: `Pourquoi choisir ${brandName} ?`,
+            intent: "why",
+          },
+        ];
 
     const today = new Date();
     const inserts: any[] = [];
@@ -225,16 +197,7 @@ serve(async (req) => {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
 
-      const generated = await generateAIAnswer(
-        q.question,
-        brandName,
-        description,
-        q.intent,
-        language,
-        apiKey,
-        keywords,
-        brandUrl
-      );
+      const generated = await generateAIAnswer(q.question, brandName, description, q.intent, language, apiKey);
 
       inserts.push({
         project_id: projectId,
@@ -242,11 +205,9 @@ serve(async (req) => {
         answer: generated.answer,
         slug: generateSlug(q.question),
         intent: q.intent,
-        score: computeCitationScore(generated.answer),
+        score: computeCitationScore(generated.answer, brandName),
         is_public: false,
-        scheduled_date: new Date(
-          today.getTime() + i * 86400000
-        ).toISOString(),
+        scheduled_date: new Date(today.getTime() + i * 86400000).toISOString(),
         supporting_content: {
           bullets: generated.bullets,
           faq: generated.faq,
@@ -254,10 +215,7 @@ serve(async (req) => {
       });
     }
 
-    const { data } = await supabase
-      .from("answers")
-      .insert(inserts)
-      .select();
+    const { data } = await supabase.from("answers").insert(inserts).select();
 
     return new Response(
       JSON.stringify({
@@ -267,16 +225,12 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (e: any) {
-    return new Response(
-      JSON.stringify({ success: false, error: e.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: e.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
-```
