@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
+import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
@@ -318,7 +319,10 @@ export default function Answers() {
         <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+              <div className="flex items-center gap-3">
+                <img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
+                <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+              </div>
               <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
             </div>
             <div className="flex gap-2 flex-wrap">
