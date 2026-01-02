@@ -104,8 +104,38 @@ export default function Answers() {
     navigate(`/answers/${answerId}/edit`);
   };
 
-  const handleGenerateArticle = (answerId: string) => {
-    navigate(`/articles?generate=${answerId}`);
+  const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
+
+  const handleGenerateArticle = async (answerId: string) => {
+    if (!project) {
+      toast.error("No active project");
+      return;
+    }
+    
+    setGeneratingArticleId(answerId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data, error } = await supabase.functions.invoke("generate-aeo-article", {
+        body: { 
+          answerId, 
+          language: project.language || "fr" 
+        },
+        headers: { 
+          Authorization: `Bearer ${session?.access_token}` 
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Article generated successfully!");
+      refetch();
+    } catch (error) {
+      console.error("Error generating article:", error);
+      toast.error("Failed to generate article");
+    } finally {
+      setGeneratingArticleId(null);
+    }
   };
 
   const handleViewPublic = (slug: string) => {
@@ -408,7 +438,22 @@ export default function Answers() {
                   <div className="flex items-center gap-2 pt-2 flex-wrap">
                     <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View</Button>
                     <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
-                    {!answer.has_article && <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleGenerateArticle(answer.id)}><Newspaper className="h-4 w-4" />Generate Article</Button>}
+                    {!answer.has_article && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2" 
+                        onClick={() => handleGenerateArticle(answer.id)}
+                        disabled={generatingArticleId === answer.id}
+                      >
+                        {generatingArticleId === answer.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Newspaper className="h-4 w-4" />
+                        )}
+                        Generate Article
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 

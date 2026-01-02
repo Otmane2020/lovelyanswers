@@ -13,18 +13,23 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ExternalLink, Youtube, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import shopifyLogo from "@/assets/shopify-logo.png";
+import wixLogo from "@/assets/wix-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo.png";
 
 // CMS Platform configurations
 const CMS_CONFIG: Record<string, {
   name: string;
   icon: string;
+  isImage?: boolean;
   description: string;
   tutorialUrl?: string;
   fields: { key: string; label: string; placeholder: string; type?: string }[];
 }> = {
   wordpress: {
     name: "WordPress",
-    icon: "🔵",
+    icon: wordpressLogo,
+    isImage: true,
     description: "Enter your webhook endpoint and access token to enable automatic content publishing to your WordPress site via the plugin.",
     tutorialUrl: "https://example.com/wordpress-tutorial",
     fields: [
@@ -35,7 +40,8 @@ const CMS_CONFIG: Record<string, {
   },
   shopify: {
     name: "Shopify",
-    icon: "🟢",
+    icon: shopifyLogo,
+    isImage: true,
     description: "Connect your Shopify store to publish blog articles directly.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Shopify Store" },
@@ -45,7 +51,8 @@ const CMS_CONFIG: Record<string, {
   },
   wix: {
     name: "Wix",
-    icon: "🟡",
+    icon: wixLogo,
+    isImage: true,
     description: "Connect your Wix site to publish blog posts automatically.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Wix Site" },
@@ -249,7 +256,11 @@ export function IntegrationConfigModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <span className="text-2xl">{config.icon}</span>
+            {config.isImage ? (
+              <img src={config.icon} alt={config.name} className="h-8 w-8 object-contain dark:invert" />
+            ) : (
+              <span className="text-2xl">{config.icon}</span>
+            )}
             {config.name} Integration
           </DialogTitle>
           {config.tutorialUrl && (
