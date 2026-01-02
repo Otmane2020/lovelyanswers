@@ -449,10 +449,11 @@ serve(async (req) => {
     // Determine questions to process
     let questionsToProcess: string[] = questions || [];
 
-    // If useKeywords is true, fetch keywords and generate questions from them
-    if (useKeywords || (!questions || questions.length === 0)) {
-      console.log(`[generate-aeo-answers] Fetching keywords for project: ${projectId}`);
+    // If no questions provided, try to generate from keywords or project context
+    if (!questions || questions.length === 0) {
+      console.log(`[generate-aeo-answers] No questions provided, generating from keywords/context`);
       
+      // First, try to fetch unused keywords
       const { data: keywords, error: keywordsError } = await supabase
         .from("keywords")
         .select("*")
@@ -462,58 +463,155 @@ serve(async (req) => {
 
       if (keywordsError) {
         console.error(`[generate-aeo-answers] Keywords fetch error:`, keywordsError);
-      } else if (keywords && keywords.length > 0) {
-        console.log(`[generate-aeo-answers] Found ${keywords.length} unused keywords`);
-        
-        // Generate questions from keywords using AI
+      }
+      
+      const hasKeywords = keywords && keywords.length > 0;
+      console.log(`[generate-aeo-answers] Found ${keywords?.length || 0} unused keywords`);
+
+      // Build context for question generation
+      const businessContext = {
+        brandName,
+        websiteUrl,
+        description: project.business_description || "",
+        audience: project.audience || "",
+        businessType: project.business_type || "",
+        competitors: project.competitors || []
+      };
+
+      let questionGenPrompt: string;
+      
+      if (hasKeywords) {
+        // Generate questions from keywords
         const keywordList = keywords.map(k => k.keyword).join(", ");
-        const questionGenPrompt = language === "fr"
-          ? `Tu es un expert AEO. À partir de ces mots-clés : ${keywordList}
+        questionGenPrompt = language === "fr"
+          ? `Tu es un expert AEO (Answer Engine Optimization). À partir de ces mots-clés : ${keywordList}
           
-Génère 5 questions naturelles que les utilisateurs poseraient à un assistant IA sur ${brandName}.
-Format JSON: {"questions": ["question 1", "question 2", ...]}`
-          : `You are an AEO expert. From these keywords: ${keywordList}
+Contexte de la marque :
+- Nom : ${brandName}
+- Description : ${businessContext.description || "Non spécifiée"}
+- Audience cible : ${businessContext.audience || "Non spécifiée"}
+- Type d'activité : ${businessContext.businessType || "Non spécifié"}
+
+Génère 8 questions AEO naturelles et VARIÉES que les utilisateurs poseraient à ChatGPT, Gemini ou Claude.
+Inclus différents types : prix, fonctionnalités, comparaisons, tutoriels, avantages.
+Ne répète PAS les questions existantes sur ce produit.
+
+Format JSON strict : {"questions": ["question 1", "question 2", ...]}`
+          : `You are an AEO (Answer Engine Optimization) expert. From these keywords: ${keywordList}
           
-Generate 5 natural questions users would ask an AI assistant about ${brandName}.
-JSON format: {"questions": ["question 1", "question 2", ...]}`;
+Brand context:
+- Name: ${brandName}
+- Description: ${businessContext.description || "Not specified"}
+- Target audience: ${businessContext.audience || "Not specified"}
+- Business type: ${businessContext.businessType || "Not specified"}
 
-        try {
-          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                { role: "system", content: "Tu génères des questions AEO basées sur des mots-clés. Réponds uniquement en JSON." },
-                { role: "user", content: questionGenPrompt }
-              ],
-              temperature: 0.5,
-            }),
-          });
+Generate 8 natural and VARIED AEO questions that users would ask ChatGPT, Gemini or Claude.
+Include different types: pricing, features, comparisons, tutorials, benefits.
+Do NOT repeat existing questions about this product.
 
-          if (response.ok) {
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content || "";
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              questionsToProcess = parsed.questions || [];
-              console.log(`[generate-aeo-answers] Generated ${questionsToProcess.length} questions from keywords`);
-            }
+Strict JSON format: {"questions": ["question 1", "question 2", ...]}`;
+      } else {
+        // No keywords - generate questions from project context only
+        questionGenPrompt = language === "fr"
+          ? `Tu es un expert AEO (Answer Engine Optimization) spécialisé dans la création de contenu citable par les IA.
+
+Contexte de la marque :
+- Nom : ${brandName}
+- Site web : ${websiteUrl}
+- Description : ${businessContext.description || "Entreprise proposant des services/produits"}
+- Audience cible : ${businessContext.audience || "Professionnels et particuliers"}
+- Type d'activité : ${businessContext.businessType || "Services numériques"}
+- Concurrents : ${businessContext.competitors.join(", ") || "Non spécifiés"}
+
+Génère 10 questions AEO essentielles et VARIÉES que les utilisateurs poseraient à ChatGPT, Gemini ou Claude à propos de ${brandName}.
+
+Types de questions à inclure :
+1. "Qu'est-ce que [marque] ?" - Définition
+2. "Combien coûte [marque] ?" - Prix/Tarification
+3. "Comment fonctionne [marque] ?" - Processus
+4. "Quels sont les avantages de [marque] ?" - Bénéfices
+5. "[Marque] vs [concurrent]" - Comparaison
+6. "Comment utiliser [marque] ?" - Tutoriel
+7. "[Marque] est-il fiable ?" - Confiance
+8. "À qui s'adresse [marque] ?" - Cible
+9. "Quelles alternatives à [marque] ?" - Alternatives
+10. "Pourquoi choisir [marque] ?" - Justification
+
+Format JSON strict : {"questions": ["question 1", "question 2", ...]}`
+          : `You are an AEO (Answer Engine Optimization) expert specialized in creating AI-citable content.
+
+Brand context:
+- Name: ${brandName}
+- Website: ${websiteUrl}
+- Description: ${businessContext.description || "Company offering services/products"}
+- Target audience: ${businessContext.audience || "Professionals and individuals"}
+- Business type: ${businessContext.businessType || "Digital services"}
+- Competitors: ${businessContext.competitors.join(", ") || "Not specified"}
+
+Generate 10 essential and VARIED AEO questions that users would ask ChatGPT, Gemini or Claude about ${brandName}.
+
+Question types to include:
+1. "What is [brand]?" - Definition
+2. "How much does [brand] cost?" - Pricing
+3. "How does [brand] work?" - Process
+4. "What are the benefits of [brand]?" - Benefits
+5. "[Brand] vs [competitor]" - Comparison
+6. "How to use [brand]?" - Tutorial
+7. "Is [brand] reliable?" - Trust
+8. "Who is [brand] for?" - Target
+9. "What alternatives to [brand]?" - Alternatives
+10. "Why choose [brand]?" - Justification
+
+Strict JSON format: {"questions": ["question 1", "question 2", ...]}`;
+      }
+
+      try {
+        console.log(`[generate-aeo-answers] Calling AI to generate questions...`);
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: language === "fr" 
+                ? "Tu es un expert AEO. Tu génères des questions pertinentes pour optimiser la citabilité par les assistants IA. Réponds uniquement en JSON valide."
+                : "You are an AEO expert. You generate relevant questions to optimize AI assistant citability. Reply only in valid JSON."
+              },
+              { role: "user", content: questionGenPrompt }
+            ],
+            temperature: 0.7, // Higher creativity for varied questions
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || "";
+          console.log(`[generate-aeo-answers] AI response received:`, content.substring(0, 200));
+          
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            questionsToProcess = parsed.questions || [];
+            console.log(`[generate-aeo-answers] Generated ${questionsToProcess.length} questions`);
           }
-        } catch (e) {
-          console.error(`[generate-aeo-answers] Error generating questions from keywords:`, e);
+        } else {
+          console.error(`[generate-aeo-answers] AI response error:`, response.status, await response.text());
         }
+      } catch (e) {
+        console.error(`[generate-aeo-answers] Error generating questions:`, e);
+      }
 
-        // Mark keywords as used
+      // Mark keywords as used if we had any
+      if (hasKeywords) {
         const keywordIds = keywords.map(k => k.id);
         await supabase
           .from("keywords")
           .update({ is_used: true })
           .in("id", keywordIds);
+        console.log(`[generate-aeo-answers] Marked ${keywordIds.length} keywords as used`);
       }
     }
 
