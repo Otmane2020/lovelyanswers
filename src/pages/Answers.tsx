@@ -119,7 +119,7 @@ export default function Answers() {
   };
 
   const regenerateAllAnswers = async () => {
-    if (!user || answers.length === 0) return;
+    if (!user) return;
     
     setRegeneratingAll(true);
     let successCount = 0;
@@ -128,56 +128,98 @@ export default function Answers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Group answers by project_id
-      const answersByProject = answers.reduce((acc, answer) => {
-        const projectId = answer.project_id;
-        if (!acc[projectId]) acc[projectId] = [];
-        acc[projectId].push(answer);
-        return acc;
-      }, {} as Record<string, typeof answers>);
+      // Get active project
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
       
-      // Process each project's answers
-      for (const [projectId, projectAnswers] of Object.entries(answersByProject)) {
-        const questions = projectAnswers.map(a => a.question);
-        const answerIds = projectAnswers.map(a => a.id);
+      if (!projects || projects.length === 0) {
+        toast.error("No active project found");
+        setRegeneratingAll(false);
+        return;
+      }
+
+      const project = projects[0];
+      
+      // If there are existing answers, regenerate them
+      if (answers.length > 0) {
+        const answersByProject = answers.reduce((acc, answer) => {
+          const projectId = answer.project_id;
+          if (!acc[projectId]) acc[projectId] = [];
+          acc[projectId].push(answer);
+          return acc;
+        }, {} as Record<string, typeof answers>);
         
-        try {
-          // Delete old answers for this project
-          const { error: deleteError } = await supabase
-            .from('answers')
-            .delete()
-            .in('id', answerIds);
+        for (const [projectId, projectAnswers] of Object.entries(answersByProject)) {
+          const questions = projectAnswers.map(a => a.question);
+          const answerIds = projectAnswers.map(a => a.id);
           
-          if (deleteError) {
-            console.error('Error deleting answers:', deleteError);
-            failCount += projectAnswers.length;
-            continue;
-          }
-          
-          // Generate new answers
-          const { error } = await supabase.functions.invoke('generate-aeo-answers', {
-            body: { 
-              projectId,
-              questions,
-              language: 'fr'
-            },
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`
+          try {
+            const { error: deleteError } = await supabase
+              .from('answers')
+              .delete()
+              .in('id', answerIds);
+            
+            if (deleteError) {
+              console.error('Error deleting answers:', deleteError);
+              failCount += projectAnswers.length;
+              continue;
             }
-          });
-          
-          if (error) {
+            
+            const { error } = await supabase.functions.invoke('generate-aeo-answers', {
+              body: { 
+                projectId,
+                questions,
+                language: project.language || 'fr'
+              },
+              headers: {
+                Authorization: `Bearer ${session?.access_token}`
+              }
+            });
+            
+            if (error) {
+              failCount += projectAnswers.length;
+            } else {
+              successCount += projectAnswers.length;
+            }
+          } catch (err) {
+            console.error('Error regenerating project answers:', err);
             failCount += projectAnswers.length;
-          } else {
-            successCount += projectAnswers.length;
           }
-        } catch (err) {
-          console.error('Error regenerating project answers:', err);
-          failCount += projectAnswers.length;
+        }
+      } else {
+        // No answers exist - generate from keywords
+        toast.info("Génération de nouvelles réponses depuis les keywords...");
+        
+        const { error } = await supabase.functions.invoke('generate-aeo-answers', {
+          body: { 
+            projectId: project.id,
+            useKeywords: true,
+            businessContext: {
+              name: project.brand_name || project.name,
+              description: project.business_description,
+              audience: project.audience,
+              language: project.language
+            }
+          },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        if (error) {
+          toast.error("Erreur lors de la génération");
+          failCount = 1;
+        } else {
+          toast.success("Réponses générées avec succès!");
+          successCount = 1;
         }
       }
       
-      if (successCount > 0) {
+      if (successCount > 0 && answers.length > 0) {
         toast.success(`${successCount} réponses régénérées avec succès!`);
       }
       if (failCount > 0) {
@@ -205,7 +247,7 @@ export default function Answers() {
             <Button 
               variant="outline"
               onClick={regenerateAllAnswers}
-              disabled={regeneratingAll || answers.length === 0}
+              disabled={regeneratingAll}
               className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
             >
               {regeneratingAll ? (
@@ -213,7 +255,7 @@ export default function Answers() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              Régénérer tout ({answers.length})
+              {answers.length > 0 ? `Régénérer tout (${answers.length})` : "Générer depuis keywords"}
             </Button>
             <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
               <Plus className="h-4 w-4" />New Answer
