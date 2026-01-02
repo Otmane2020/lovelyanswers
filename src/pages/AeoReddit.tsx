@@ -79,16 +79,34 @@ export default function AeoReddit() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Build keywords from project data
-      const projectKeywords: string[] = [];
+      // 🔥 FIX: Fetch REAL keywords from database instead of just brand_name
+      const { data: dbKeywords } = await supabase
+        .from("keywords")
+        .select("keyword")
+        .eq("project_id", activeProject.id)
+        .limit(20);
+      
+      const projectKeywords: string[] = dbKeywords?.map(k => k.keyword.toLowerCase()) || [];
+      
+      // Add brand_name and business_type as fallback
       if (activeProject.brand_name) projectKeywords.push(activeProject.brand_name.toLowerCase());
       if (activeProject.business_type) projectKeywords.push(activeProject.business_type.toLowerCase());
+      
+      console.log(`[Reddit] Using ${projectKeywords.length} keywords:`, projectKeywords.slice(0, 5));
       
       // Map keywords to relevant subreddits
       const targetSubreddits = new Set<string>();
       projectKeywords.forEach(kw => {
+        // Check for exact matches first
         const matchedSubs = KEYWORD_SUBREDDIT_MAP[kw] || [];
         matchedSubs.forEach(sub => targetSubreddits.add(sub));
+        
+        // Also check for partial matches
+        Object.entries(KEYWORD_SUBREDDIT_MAP).forEach(([key, subs]) => {
+          if (kw.includes(key) || key.includes(kw)) {
+            subs.forEach(sub => targetSubreddits.add(sub));
+          }
+        });
       });
       
       // Add defaults if no specific ones found
@@ -96,12 +114,14 @@ export default function AeoReddit() {
         ["seo", "marketing", "smallbusiness", "entrepreneur", "ecommerce"].forEach(s => targetSubreddits.add(s));
       }
       
+      console.log(`[Reddit] Target subreddits:`, Array.from(targetSubreddits));
+      
       const { data, error } = await supabase.functions.invoke('reddit-agent', {
         body: {
           action: 'find-opportunities',
           projectId: activeProject.id,
           subreddits: Array.from(targetSubreddits).slice(0, 5),
-          keywords: projectKeywords
+          keywords: projectKeywords.slice(0, 20) // Send actual keywords
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
