@@ -306,22 +306,22 @@ export default function Answers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Hero Header with Logos */}
+        {/* ChatGPT Logo - Separate Line */}
+        <div className="flex items-center justify-center">
+          <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
+        </div>
+
+        {/* Hero Header */}
         <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#10a37f] rounded-2xl p-3 shadow-lg border border-border/50 overflow-hidden">
-                <img src={chatGptLogo} alt="ChatGPT" className="h-12 w-12 object-cover object-left" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+                <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
+                  Rank First!
+                </Badge>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-                  <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
-                    Rank First!
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
-              </div>
+              <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button 
