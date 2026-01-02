@@ -6,13 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ChevronLeft, ChevronRight, Plus,
-  FileText, Clock, Loader2
+  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePublishAnswer } from "@/hooks/usePublishAnswer";
+import { useActiveProject } from "@/hooks/useProjects";
+import { toast } from "sonner";
 
 interface ScheduledItem {
   id: string;
@@ -20,15 +23,36 @@ interface ScheduledItem {
   type: "answer" | "article";
   date: Date;
   status: "scheduled" | "published" | "draft";
+  publishedUrl?: string;
 }
 
 export default function AeoPlanning() {
   const { user } = useAuth();
+  const { project } = useActiveProject();
+  const publishAnswer = usePublishAnswer();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [view, setView] = useState<"month" | "year">("month");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+
+  const handlePublishNow = async (item: ScheduledItem) => {
+    if (!project || item.type !== "answer") {
+      toast.error("Only answers can be published");
+      return;
+    }
+    setPublishingId(item.id);
+    try {
+      await publishAnswer.mutateAsync({ answerId: item.id, projectId: project.id });
+      // Refresh items
+      setScheduledItems(prev => prev.map(i => 
+        i.id === item.id ? { ...i, status: "published" as const } : i
+      ));
+    } finally {
+      setPublishingId(null);
+    }
+  };
 
   // Fetch scheduled answers and articles from database
   useEffect(() => {
@@ -243,7 +267,7 @@ export default function AeoPlanning() {
                     {getUpcomingItems().map(item => (
                       <div
                         key={item.id}
-                        className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                       >
                         <div className="flex items-start gap-3">
                           <div className={cn(
@@ -262,10 +286,45 @@ export default function AeoPlanning() {
                             <p className="text-xs text-muted-foreground">
                               {format(item.date, "d MMM yyyy", { locale: fr })}
                             </p>
+                            {item.status === "published" && (
+                              <Badge className="mt-1 bg-emerald-500/20 text-emerald-600 border-0 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Published
+                              </Badge>
+                            )}
                           </div>
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            {item.type === "answer" ? "Answer" : "Article"}
-                          </Badge>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Badge variant="secondary" className="text-xs">
+                              {item.type === "answer" ? "Answer" : "Article"}
+                            </Badge>
+                            {item.type === "answer" && item.status !== "published" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs gap-1 text-primary"
+                                onClick={() => handlePublishNow(item)}
+                                disabled={publishingId === item.id}
+                              >
+                                {publishingId === item.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Send className="h-3 w-3" />
+                                )}
+                                Publish
+                              </Button>
+                            )}
+                            {item.status === "published" && item.publishedUrl && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => window.open(item.publishedUrl, "_blank")}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

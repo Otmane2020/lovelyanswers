@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.aeo-sync]
 verify_jwt = false
+
+[functions.publish-scheduled-answers]
+verify_jwt = false

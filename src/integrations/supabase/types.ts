@@ -27,6 +27,8 @@ export type Database = {
           is_public: boolean | null
           platforms: string[] | null
           project_id: string
+          published_at: string | null
+          published_url: string | null
           question: string
           scheduled_date: string | null
           score: number | null
@@ -46,6 +48,8 @@ export type Database = {
           is_public?: boolean | null
           platforms?: string[] | null
           project_id: string
+          published_at?: string | null
+          published_url?: string | null
           question: string
           scheduled_date?: string | null
           score?: number | null
@@ -65,6 +69,8 @@ export type Database = {
           is_public?: boolean | null
           platforms?: string[] | null
           project_id?: string
+          published_at?: string | null
+          published_url?: string | null
           question?: string
           scheduled_date?: string | null
           score?: number | null
