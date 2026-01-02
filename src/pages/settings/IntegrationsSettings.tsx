@@ -19,6 +19,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import shopifyLogo from "@/assets/shopify-logo.png";
+import wixLogo from "@/assets/wix-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_INTEGRATIONS = [
   { id: "wordpress", name: "WordPress", icon: "🔵" },
@@ -75,6 +78,23 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-6">
+      {/* CMS Logos Header */}
+      <Card className="p-6 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 border-border/50">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 bg-background/80 backdrop-blur rounded-xl p-3 shadow-sm border border-border/50">
+            <img src={shopifyLogo} alt="Shopify" className="h-10 w-auto object-contain" />
+            <img src={wixLogo} alt="Wix" className="h-8 w-auto object-contain dark:invert" />
+            <img src={wordpressLogo} alt="WordPress" className="h-10 w-auto object-contain dark:invert" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">CMS Integrations</h2>
+            <p className="text-muted-foreground text-sm">
+              Connect your store to auto-publish AEO content
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Connected Integrations */}
       {integrations.length > 0 && (
         <Card className="p-6">
