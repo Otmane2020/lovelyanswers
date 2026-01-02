@@ -15,12 +15,25 @@ import {
   MessageCircle,
   CheckCircle,
   AlertCircle,
-  Search
+  Search,
+  Shield,
+  User,
+  EyeOff
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Brand visibility modes
+type VisibilityMode = "stealth" | "soft" | "profile-only";
 
 interface RedditPost {
   id: string;
@@ -56,6 +69,7 @@ export default function AeoReddit() {
   const [loading, setLoading] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>("soft");
 
   // Fetch real Reddit posts from edge function
   const fetchRedditPosts = async () => {
@@ -142,8 +156,23 @@ export default function AeoReddit() {
     }
   }, [activeProject?.id, initialLoadDone]);
 
+  // Get brand mention probability based on visibility mode
+  const getBrandMentionChance = (): boolean => {
+    switch (visibilityMode) {
+      case "stealth": return false; // 0% mention
+      case "soft": return Math.random() < 0.15; // 15% mention
+      case "profile-only": return false; // 0% in comments, bio only
+      default: return false;
+    }
+  };
+
   const generateReplyForPost = async (post: RedditPost, options?: { mentionBrand?: boolean; includeLink?: boolean }) => {
     setGeneratingId(post.id);
+    
+    // Use visibility mode to determine brand mention unless explicitly overridden
+    const shouldMentionBrand = options?.mentionBrand !== undefined 
+      ? options.mentionBrand 
+      : getBrandMentionChance();
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -154,11 +183,12 @@ export default function AeoReddit() {
           title: post.title,
           body: post.body || '',
           subreddit: post.subreddit.replace('r/', ''),
-          mention_brand: options?.mentionBrand ?? true, // Default to true
+          mention_brand: shouldMentionBrand,
           include_link: options?.includeLink ?? false,
           tone: 'expert_human',
           brand_name: activeProject?.brand_name || '',
-          brand_url: activeProject?.website_url || ''
+          brand_url: activeProject?.website_url || '',
+          visibility_mode: visibilityMode
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
@@ -267,7 +297,9 @@ export default function AeoReddit() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Reddit Engagement</h1>
-            <p className="text-muted-foreground mt-1">Generate human-like replies for brand visibility</p>
+            <p className="text-muted-foreground mt-1">
+              Generate human-like replies for {activeProject?.brand_name || "your brand"}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -288,6 +320,60 @@ export default function AeoReddit() {
             </Button>
           </div>
         </div>
+
+        {/* Brand Visibility Mode Selector */}
+        <Card className="p-4 border-primary/20 bg-primary/5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  Brand Visibility: {activeProject?.brand_name || "Not set"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {visibilityMode === "stealth" && "0% brand mentions in comments"}
+                  {visibilityMode === "soft" && "~15% soft brand mentions (safe)"}
+                  {visibilityMode === "profile-only" && "Brand in Reddit bio only (recommended)"}
+                </p>
+              </div>
+            </div>
+            <Select value={visibilityMode} onValueChange={(v) => setVisibilityMode(v as VisibilityMode)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stealth">
+                  <div className="flex items-center gap-2">
+                    <EyeOff className="w-4 h-4" />
+                    <span>Stealth (0%)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="soft">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span>Soft (15%)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="profile-only">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span>Profile Only</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {visibilityMode === "profile-only" && (
+            <div className="mt-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                <strong>💡 Recommended:</strong> Add "{activeProject?.brand_name || "YourBrand"}" to your Reddit profile bio. 
+                Curious users will click your profile after reading helpful comments.
+              </p>
+            </div>
+          )}
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -472,9 +558,14 @@ export default function AeoReddit() {
         </div>
 
         {/* Footer Text */}
-        <p className="text-center text-muted-foreground text-sm py-4">
-          Replies are generated with a human tone. No SEO jargon, no promotional language.
-        </p>
+        <div className="text-center py-4 space-y-2">
+          <p className="text-muted-foreground text-sm">
+            Replies are generated with a human tone. No SEO jargon, no promotional language.
+          </p>
+          <p className="text-xs text-muted-foreground/70">
+            💡 Pro tip: Real visibility comes from your Reddit profile bio and your AEO answer pages on {activeProject?.website_url || "your site"}.
+          </p>
+        </div>
       </div>
     </DashboardLayout>
   );
