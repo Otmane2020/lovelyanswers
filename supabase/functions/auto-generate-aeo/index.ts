@@ -10,18 +10,54 @@ const corsHeaders = {
 };
 
 /* =======================
-   TYPES
+   TYPES & CONSTANTS
 ======================= */
-type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
+const INTENTS = [
+  "price",
+  "duration", 
+  "criteria",
+  "comparison",
+  "howto",
+  "best",
+  "what",
+  "why",
+] as const;
+
+type IntentType = typeof INTENTS[number];
 
 type Platform = "chatgpt" | "gemini" | "claude" | "perplexity" | "copilot";
+
+// AEO Safe Mode: Forbidden marketing patterns
+const FORBIDDEN_PATTERNS = [
+  /meilleur choix/i,
+  /best choice/i,
+  /révolutionnaire/i,
+  /revolutionary/i,
+  /inégalé/i,
+  /unmatched/i,
+  /expertise unique/i,
+  /unique expertise/i,
+  /garantie de résultats/i,
+  /guaranteed results/i,
+  /\d+%\s*(de|more|boost|increase)/i,
+  /leader du marché/i,
+  /market leader/i,
+  /solution idéale/i,
+  /ideal solution/i,
+  /sans égal/i,
+  /unparalleled/i,
+];
 
 /* =======================
    HELPERS
 ======================= */
-function normalizeIntent(intent: string): IntentType {
-  const allowed: IntentType[] = ["price", "duration", "criteria", "comparison", "howto", "best", "what", "why"];
-  return allowed.includes(intent as IntentType) ? (intent as IntentType) : "what";
+function normalizeIntent(value: string | undefined | null): IntentType {
+  if (!value) return "what";
+  const lower = value.toLowerCase().trim();
+  if ((INTENTS as readonly string[]).includes(lower)) {
+    return lower as IntentType;
+  }
+  return "what";
 }
 
 function detectIntent(question: string): IntentType {
@@ -43,8 +79,27 @@ function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Check if answer contains forbidden marketing patterns
+function containsForbiddenPatterns(text: string): boolean {
+  return FORBIDDEN_PATTERNS.some(pattern => pattern.test(text));
+}
+
+// Clean answer by removing marketing language (returns cleaned version or null if unfixable)
+function cleanMarketingLanguage(answer: string): string {
+  let cleaned = answer;
+  // Remove common marketing superlatives
+  cleaned = cleaned.replace(/\b(meilleur|best|idéal|ideal|parfait|perfect|unique|révolutionnaire|revolutionary)\b/gi, '');
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  return cleaned;
+}
+
 function computeCitationScore(answer: string, brand: string): number {
   let score = 70;
+
+  // Penalize marketing language heavily
+  if (containsForbiddenPatterns(answer)) {
+    score -= 15;
+  }
 
   const firstSentence = answer.split(/[.!?]/)[0];
 
@@ -53,8 +108,11 @@ function computeCitationScore(answer: string, brand: string): number {
   if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 4;
   if (answer.length >= 200 && answer.length <= 600) score += 5;
   if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 5;
+  
+  // Bonus for factual/neutral tone indicators
+  if (/selon|d'après|en général|généralement|typiquement/i.test(answer)) score += 3;
 
-  return Math.min(95, Math.max(75, score));
+  return Math.min(95, Math.max(50, score)); // Min 50 to flag bad content
 }
 
 function generateAnswerSlug(question: string): string {
@@ -90,18 +148,29 @@ async function generateAIAnswer(
   bullets: string[];
   faq: Array<{ q: string; a: string }>;
 }> {
+  // AEO Safe Mode prompt - strictly factual, no marketing
   const systemPrompt =
     language === "fr"
-      ? `Tu es un expert AEO.
-- Réponse directe dès la première phrase
-- Mentionne ${brandName} UNE fois
-- Ton factuel, non marketing
-- 80 à 120 mots max`
-      : `You are an AEO expert.
-- Direct answer first sentence
-- Mention ${brandName} once
-- Factual, non-marketing tone
-- 80–120 words max`;
+      ? `Tu es un rédacteur AEO spécialisé dans les contenus citables par les IA.
+
+RÈGLES STRICTES:
+- Première phrase = réponse directe et factuelle
+- Mentionne ${brandName} UNE seule fois, naturellement
+- Ton encyclopédique type Wikipedia: neutre, informatif, sobre
+- INTERDIT: superlatifs (meilleur, unique, révolutionnaire), promesses, calls-to-action
+- INTERDIT: claims non vérifiables ("leader du marché", "expertise inégalée")
+- Utilise: "généralement", "typiquement", "selon", "permet de"
+- 80 à 120 mots maximum`
+      : `You are an AEO writer specialized in AI-citable content.
+
+STRICT RULES:
+- First sentence = direct, factual answer
+- Mention ${brandName} ONCE, naturally
+- Wikipedia-like tone: neutral, informative, sober
+- FORBIDDEN: superlatives (best, unique, revolutionary), promises, CTAs
+- FORBIDDEN: unverifiable claims ("market leader", "unmatched expertise")  
+- Use: "typically", "generally", "according to", "allows for"
+- 80–120 words maximum`;
 
   const userPrompt = `
 Question: ${question}
