@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2 } from "lucide-react";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -34,6 +34,7 @@ export default function Answers() {
   const [showNewAnswerModal, setShowNewAnswerModal] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [regeneratingAll, setRegeneratingAll] = useState(false);
 
   const filteredAnswers = answers.filter((answer) => {
     const matchesSearch = answer.question.toLowerCase().includes(searchQuery.toLowerCase());
@@ -117,6 +118,81 @@ export default function Answers() {
     }
   };
 
+  const regenerateAllAnswers = async () => {
+    if (!user || answers.length === 0) return;
+    
+    setRegeneratingAll(true);
+    let successCount = 0;
+    let failCount = 0;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Group answers by project_id
+      const answersByProject = answers.reduce((acc, answer) => {
+        const projectId = answer.project_id;
+        if (!acc[projectId]) acc[projectId] = [];
+        acc[projectId].push(answer);
+        return acc;
+      }, {} as Record<string, typeof answers>);
+      
+      // Process each project's answers
+      for (const [projectId, projectAnswers] of Object.entries(answersByProject)) {
+        const questions = projectAnswers.map(a => a.question);
+        const answerIds = projectAnswers.map(a => a.id);
+        
+        try {
+          // Delete old answers for this project
+          const { error: deleteError } = await supabase
+            .from('answers')
+            .delete()
+            .in('id', answerIds);
+          
+          if (deleteError) {
+            console.error('Error deleting answers:', deleteError);
+            failCount += projectAnswers.length;
+            continue;
+          }
+          
+          // Generate new answers
+          const { error } = await supabase.functions.invoke('generate-aeo-answers', {
+            body: { 
+              projectId,
+              questions,
+              language: 'fr'
+            },
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`
+            }
+          });
+          
+          if (error) {
+            failCount += projectAnswers.length;
+          } else {
+            successCount += projectAnswers.length;
+          }
+        } catch (err) {
+          console.error('Error regenerating project answers:', err);
+          failCount += projectAnswers.length;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} réponses régénérées avec succès!`);
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} réponses ont échoué`);
+      }
+      
+      refetch();
+    } catch (error) {
+      console.error('Error regenerating all answers:', error);
+      toast.error("Erreur lors de la régénération");
+    } finally {
+      setRegeneratingAll(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -125,9 +201,24 @@ export default function Answers() {
             <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
             <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
           </div>
-          <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
-            <Plus className="h-4 w-4" />New Answer
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={regenerateAllAnswers}
+              disabled={regeneratingAll || answers.length === 0}
+              className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+            >
+              {regeneratingAll ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Régénérer tout ({answers.length})
+            </Button>
+            <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
+              <Plus className="h-4 w-4" />New Answer
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
