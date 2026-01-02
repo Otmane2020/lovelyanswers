@@ -204,6 +204,120 @@ async function fetchRealRedditPosts(subreddit: string): Promise<RealRedditPost[]
   }
 }
 
+/* =======================
+   PROJECT CONTEXT LOADER
+======================= */
+interface ProjectContext {
+  projectId: string;
+  brandName: string;
+  language: string;
+  businessDescription: string;
+  targetAudiences: string[];
+  websiteUrl: string;
+  businessType: string;
+  competitors: string[];
+  tone: string;
+}
+
+async function loadProjectContext(supabase: any, projectId: string): Promise<ProjectContext> {
+  // Load project base info
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .single();
+
+  if (projectError || !project) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
+
+  // Load generation settings for extra context
+  const { data: settings } = await supabase
+    .from("generation_settings")
+    .select("*")
+    .eq("project_id", projectId)
+    .single();
+
+  return {
+    projectId,
+    brandName: project.brand_name || project.name,
+    language: project.language || "en",
+    businessDescription: project.business_description || settings?.business_description || "",
+    targetAudiences: settings?.target_audiences || [],
+    websiteUrl: project.website_url || "",
+    businessType: project.business_type || "General",
+    competitors: project.competitors || [],
+    tone: settings?.tone || "professional"
+  };
+}
+
+/* =======================
+   COHERENCE SCORING
+======================= */
+function computeCoherenceScore(content: string, context: ProjectContext): number {
+  let score = 100;
+
+  // Language check: detect wrong language
+  const frenchIndicators = /\b(le|la|les|de|du|des|et|ou|pour|avec|dans|sur|une?|est|sont|été)\b/gi;
+  const englishIndicators = /\b(the|and|or|for|with|in|on|is|are|was|were|been|have|has)\b/gi;
+  
+  const frenchMatches = (content.match(frenchIndicators) || []).length;
+  const englishMatches = (content.match(englishIndicators) || []).length;
+  
+  const detectedLanguage = frenchMatches > englishMatches ? "fr" : "en";
+  
+  if (detectedLanguage !== context.language) {
+    score -= 40; // Heavy penalty for wrong language
+    console.log(`[reddit-agent] Language mismatch: expected ${context.language}, detected ${detectedLanguage}`);
+  }
+
+  // Brand mention check
+  if (context.brandName && !new RegExp(escapeRegex(context.brandName), "i").test(content)) {
+    score -= 10; // Minor penalty if brand not mentioned when it should be
+  }
+
+  // Check for competing brand mentions (CRITICAL)
+  const competitorMentions = context.competitors.filter(comp => 
+    new RegExp(escapeRegex(comp), "i").test(content)
+  );
+  if (competitorMentions.length > 0) {
+    score -= 20 * competitorMentions.length;
+    console.log(`[reddit-agent] Competitor mentioned: ${competitorMentions.join(", ")}`);
+  }
+
+  // Check for off-topic content (SaaS in furniture context, etc.)
+  const offTopicPatterns = detectOffTopicPatterns(content, context);
+  score -= offTopicPatterns * 15;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function detectOffTopicPatterns(content: string, context: ProjectContext): number {
+  let offTopicCount = 0;
+  const lowerContent = content.toLowerCase();
+  const lowerBusiness = context.businessDescription.toLowerCase();
+  
+  // If business is furniture/home, SaaS/tech terms are off-topic
+  if (/meuble|canapé|décor|mobilier|furniture|sofa|home/i.test(lowerBusiness)) {
+    if (/saas|api|tech|startup|mvp|code|développeur|developer|software/i.test(lowerContent)) {
+      offTopicCount++;
+    }
+  }
+  
+  // If business is tech/SaaS, furniture terms are off-topic
+  if (/saas|tech|startup|software|application|développement/i.test(lowerBusiness)) {
+    if (/meuble|canapé|décor|mobilier|furniture|sofa|interior design/i.test(lowerContent)) {
+      offTopicCount++;
+    }
+  }
+
+  return offTopicCount;
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -222,8 +336,8 @@ serve(async (req) => {
       action, 
       subreddits = [], 
       keywords = [],
-      language = "en",
-      business_description = "",
+      language,
+      business_description,
       target_audiences = [],
       title,
       body,
@@ -238,11 +352,24 @@ serve(async (req) => {
 
     console.log(`[reddit-agent] Action: ${action}${projectId ? ` for project ${projectId}` : ""}`);
 
-    // Handle aeo-reply action (doesn't require project)
+    // Handle aeo-reply action
     if (action === "aeo-reply") {
       if (!title || !subreddit) {
         throw new Error("title and subreddit are required for aeo-reply action");
       }
+      
+      // 🔥 FIXED: Load full project context if projectId is provided
+      let contextForReply: ProjectContext | null = null;
+      if (projectId) {
+        contextForReply = await loadProjectContext(supabase, projectId);
+        console.log(`[reddit-agent] Loaded context for ${contextForReply.brandName} (${contextForReply.language})`);
+      }
+      
+      const effectiveLanguage = contextForReply?.language || language || "en";
+      const effectiveBrandName = contextForReply?.brandName || brand_name || "";
+      const effectiveBrandUrl = contextForReply?.websiteUrl || brand_url || "";
+      const effectiveBusinessDesc = contextForReply?.businessDescription || business_description || "";
+      const effectiveTone = contextForReply?.tone || tone;
       
       const result = await generateRedditReply(
         title, 
@@ -250,13 +377,24 @@ serve(async (req) => {
         subreddit, 
         mention_brand,
         include_link,
-        tone, 
-        brand_name || "",
-        brand_url || "",
-        language,
-        business_description,
-        Deno.env.get("LOVABLE_API_KEY")!
+        effectiveTone, 
+        effectiveBrandName,
+        effectiveBrandUrl,
+        effectiveLanguage,
+        effectiveBusinessDesc,
+        lovableApiKey
       );
+      
+      // 🔒 COHERENCE CHECK: Validate reply matches project context
+      if (contextForReply) {
+        const coherenceScore = computeCoherenceScore(result.reply, contextForReply);
+        console.log(`[reddit-agent] Coherence score: ${coherenceScore}/100`);
+        
+        if (coherenceScore < 60) {
+          console.warn(`[reddit-agent] Low coherence score (${coherenceScore}), content may be off-topic`);
+          // Could regenerate here, but for now just log warning
+        }
+      }
       
       // 🔥 Strategic: Reddit → AEO pipeline
       let aeoQuestionId: string | null = null;
@@ -268,7 +406,7 @@ serve(async (req) => {
             .insert({
               project_id: projectId,
               question: normalizedQuestion,
-              answer: "", // Will be generated separately via AEO flow
+              answer: "",
               slug: normalizedQuestion.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100),
               platforms: ["chatgpt", "gemini", "claude"],
               score: 0,
@@ -309,17 +447,13 @@ serve(async (req) => {
       throw new Error("projectId is required for this action");
     }
 
-    console.log(`[reddit-agent] Action: ${action} for project ${projectId}`);
+    // 🔥 FIXED: Load FULL project context (brand, language, business, tone)
+    const projectContext = await loadProjectContext(supabase, projectId);
+    console.log(`[reddit-agent] Loaded context: ${projectContext.brandName} | ${projectContext.language} | ${projectContext.businessType}`);
 
-    // Get project details
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .single();
-
-    if (projectError || !project) {
-      throw new Error("Project not found");
+    // Validate language consistency
+    if (language && language !== projectContext.language) {
+      console.warn(`[reddit-agent] Language override: request=${language}, project=${projectContext.language}`);
     }
 
     // 🔥 NEW: Fetch keywords from database if none provided
@@ -374,13 +508,18 @@ serve(async (req) => {
 
     switch (action) {
       case "find-opportunities":
-        result = await findOpportunities(project, effectiveKeywords, subreddits, language, business_description, target_audiences, lovableApiKey);
+        result = await findOpportunities(
+          projectContext, 
+          effectiveKeywords, 
+          subreddits, 
+          lovableApiKey
+        );
         break;
       case "generate-responses":
-        result = await generateResponses(project, subreddits, effectiveKeywords, lovableApiKey);
+        result = await generateResponses(projectContext, subreddits, effectiveKeywords, lovableApiKey);
         break;
       case "analyze-subreddits":
-        result = await analyzeSubreddits(project, subreddits, lovableApiKey);
+        result = await analyzeSubreddits(projectContext, subreddits, lovableApiKey);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -407,23 +546,24 @@ serve(async (req) => {
   }
 });
 
-// 🔥 FIXED: Use REAL Reddit posts with language and business context
+// 🔥 FIXED: Use REAL Reddit posts with LOCKED project context
 async function findOpportunities(
-  project: Record<string, unknown>,
+  context: ProjectContext,
   keywords: string[],
   subreddits: string[],
-  language: string,
-  businessDescription: string,
-  targetAudiences: string[],
   apiKey: string
 ): Promise<{ opportunities: any[] }> {
   
-  // Default subreddits based on context
+  // Default subreddits based on context and language
+  const defaultSubreddits = context.language === "fr"
+    ? ["france", "vosfinances", "entrepreneur", "startups"]
+    : ["startups", "Entrepreneur", "SideProject", "webdev", "smallbusiness"];
+    
   const targetSubreddits = subreddits.length > 0 
     ? subreddits.slice(0, 8) 
-    : ["startups", "Entrepreneur", "SideProject", "webdev", "smallbusiness"];
+    : defaultSubreddits;
 
-  console.log(`[reddit-agent] Fetching real posts from: ${targetSubreddits.join(", ")} (lang=${language})`);
+  console.log(`[reddit-agent] Finding opportunities for ${context.brandName} | lang=${context.language} | subs=${targetSubreddits.join(", ")}`);
 
   // 1. Fetch REAL posts from Reddit
   const allPosts: RealRedditPost[] = [];
@@ -461,36 +601,35 @@ async function findOpportunities(
     comments: p.comments
   }));
 
-  // Build context-aware prompt with language and business info
-  const businessContext = businessDescription 
-    ? `Business Description: ${businessDescription}` 
-    : "";
-  const audienceContext = targetAudiences.length > 0 
-    ? `Target Audiences: ${targetAudiences.join(", ")}` 
-    : "";
-
+  // 🔥 FIXED: Build LOCKED context prompt (no context mixing)
   const prompt = `You are analyzing REAL Reddit posts to find engagement opportunities.
 
-Business: ${project.brand_name || project.name}
-Industry: ${project.business_type || "General"}
-${businessContext}
-${audienceContext}
-Keywords: ${keywords.join(", ") || "general topics"}
-Language preference: ${language === "fr" ? "French" : "English"}
+🔒 LOCKED CONTEXT (DO NOT DEVIATE):
+- Brand: ${context.brandName}
+- Language: ${context.language === "fr" ? "FRENCH (répondre uniquement en français)" : "ENGLISH (respond only in English)"}
+- Industry: ${context.businessType}
+- Business Description: ${context.businessDescription}
+- Target Audiences: ${context.targetAudiences.join(", ") || "General"}
+- Keywords: ${keywords.join(", ") || "general topics"}
+
+FORBIDDEN:
+- Do NOT mention any other brand or business
+- Do NOT generate content in the wrong language
+- Do NOT suggest off-topic posts
 
 Here are REAL Reddit posts (with real URLs):
 ${JSON.stringify(postsForAI, null, 2)}
 
 Select the TOP 10 posts where replying would be:
-1. HIGHLY RELEVANT to the business expertise and keywords
+1. HIGHLY RELEVANT to "${context.brandName}"'s expertise: ${context.businessDescription.substring(0, 200)}
 2. Natural place to share knowledge (not promotional)
 3. Posts with < 50 comments (less competition)
 4. Questions, help requests, or discussions work best
-5. ${language === "fr" ? "Prefer French posts if available, but English is OK for tech topics" : "English posts preferred"}
+5. ${context.language === "fr" ? "PREFER French posts. Only suggest English posts if clearly tech-focused and no French alternatives" : "English posts preferred"}
 
 SCORING PRIORITY:
 - Posts mentioning keywords directly = HIGH priority
-- Posts about topics the business can genuinely help with = MEDIUM priority
+- Posts about topics ${context.brandName} can genuinely help with = MEDIUM priority
 - General industry posts = LOW priority
 
 Return JSON with ONLY these real posts (keep exact URLs):
@@ -505,7 +644,7 @@ Return JSON with ONLY these real posts (keep exact URLs):
       "score": number,
       "comments": number,
       "engagementPotential": "high|medium|low",
-      "reason": "Why this post is relevant to ${project.brand_name || "this business"}'s expertise"
+      "reason": "Why this post is relevant to ${context.brandName}'s expertise (in ${context.language === "fr" ? "French" : "English"})"
     }
   ]
 }
@@ -521,7 +660,12 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs or post IDs.`;
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are a Reddit analyst. Return valid JSON only. Never invent data." },
+        { 
+          role: "system", 
+          content: `You are a Reddit analyst working EXCLUSIVELY for ${context.brandName}. 
+Language: ${context.language === "fr" ? "FRENCH ONLY" : "ENGLISH ONLY"}.
+Return valid JSON only. Never invent data. Never mention competing brands.` 
+        },
         { role: "user", content: prompt }
       ],
     }),
@@ -581,25 +725,29 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs or post IDs.`;
 }
 
 async function generateResponses(
-  project: Record<string, unknown>,
+  context: ProjectContext,
   subreddits: string[],
   keywords: string[],
   apiKey: string
 ): Promise<{ responses: Array<{ subreddit: string; topic: string; response: string }> }> {
   const prompt = `Generate helpful Reddit responses for a brand:
 
-Business: ${project.brand_name || project.name}
-Website: ${project.website_url}
-Industry: ${project.business_type || "General"}
-Subreddits to target: ${subreddits.join(", ") || "general industry subreddits"}
-Topics/Keywords: ${keywords.join(", ") || "industry topics"}
+🔒 LOCKED CONTEXT:
+- Brand: ${context.brandName}
+- Website: ${context.websiteUrl}
+- Industry: ${context.businessType}
+- Business: ${context.businessDescription}
+- Language: ${context.language === "fr" ? "FRENCH (répondre en français uniquement)" : "ENGLISH only"}
+- Subreddits to target: ${subreddits.join(", ") || "general industry subreddits"}
+- Topics/Keywords: ${keywords.join(", ") || "industry topics"}
 
 Create 5 template responses that:
 1. Answer common questions in the industry
 2. Share useful tips and insights
 3. Are genuinely helpful, not promotional
-4. Build authority and trust
+4. Build authority and trust for ${context.brandName}
 5. Follow Reddit community guidelines
+6. Are written ENTIRELY in ${context.language === "fr" ? "French" : "English"}
 
 Return JSON:
 {
@@ -621,7 +769,11 @@ Return JSON:
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are a Reddit expert. Respond with valid JSON only." },
+        { 
+          role: "system", 
+          content: `You are a Reddit expert working EXCLUSIVELY for ${context.brandName}. 
+Write ONLY in ${context.language === "fr" ? "FRENCH" : "ENGLISH"}. Respond with valid JSON only.` 
+        },
         { role: "user", content: prompt }
       ],
     }),
@@ -643,25 +795,33 @@ Return JSON:
 }
 
 async function analyzeSubreddits(
-  project: Record<string, unknown>,
+  context: ProjectContext,
   subreddits: string[],
   apiKey: string
 ): Promise<{ analysis: Array<{ subreddit: string; relevance: number; audienceMatch: number; activityLevel: string; bestPostTypes: string[] }> }> {
+  
+  // Suggest subreddits based on language
+  const defaultSuggestions = context.language === "fr"
+    ? "france, vosfinances, entrepreneur, startups, developpeurs"
+    : "startups, Entrepreneur, SideProject, webdev, smallbusiness";
+
   const prompt = `Analyze subreddits for marketing potential:
 
-Business: ${project.brand_name || project.name}
-Industry: ${project.business_type || "General"}
-Target Audience: ${project.audience || "General audience"}
-Subreddits to analyze: ${subreddits.join(", ") || "suggest relevant subreddits"}
+🔒 LOCKED CONTEXT:
+- Brand: ${context.brandName}
+- Industry: ${context.businessType}
+- Target Audience: ${context.targetAudiences.join(", ") || "General audience"}
+- Language: ${context.language === "fr" ? "FRENCH (prioritize French-speaking subreddits)" : "ENGLISH"}
+- Subreddits to analyze: ${subreddits.join(", ") || defaultSuggestions}
 
 For each subreddit, analyze:
-1. Relevance to the business (0-100)
-2. Audience match (0-100)
+1. Relevance to ${context.brandName} (0-100)
+2. Audience match for ${context.businessDescription.substring(0, 100)} (0-100)
 3. Activity level (high/medium/low)
 4. Best types of posts for engagement
 5. Key topics discussed
 
-Return JSON:
+Return JSON (respond in ${context.language === "fr" ? "French" : "English"}):
 {
   "analysis": [
     {
@@ -685,7 +845,11 @@ Return JSON:
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are a Reddit analyst. Respond with valid JSON only." },
+        { 
+          role: "system", 
+          content: `You are a Reddit analyst working for ${context.brandName}. 
+Respond in ${context.language === "fr" ? "FRENCH" : "ENGLISH"} with valid JSON only.` 
+        },
         { role: "user", content: prompt }
       ],
     }),
