@@ -49,15 +49,68 @@ interface RedditPost {
   linkIncluded?: boolean;
 }
 
-// Keywords → Subreddits mapping for better targeting
-const KEYWORD_SUBREDDIT_MAP: Record<string, string[]> = {
-  "shopify": ["shopify", "ecommerce", "dropship", "smallbusiness"],
-  "seo": ["seo", "bigseo", "marketing", "juststart"],
-  "ai seo": ["seo", "artificialintelligence", "marketing", "bigseo"],
-  "ecommerce": ["ecommerce", "shopify", "entrepreneur", "smallbusiness"],
-  "marketing": ["marketing", "digitalmarketing", "seo", "socialmedia"],
-  "saas": ["saas", "startups", "entrepreneur", "webdev"],
-  "wordpress": ["wordpress", "webdev", "webdesign", "seo"],
+// Dynamic subreddit generation based on keyword categories
+const getSubredditsForKeywords = (keywords: string[], language: string): string[] => {
+  const subreddits = new Set<string>();
+  
+  // Keyword category mappings (supports both EN and FR keywords)
+  const categoryMappings: Record<string, string[]> = {
+    // AI/IA keywords
+    "ai|ia|artificial intelligence|intelligence artificielle|machine learning|gpt|llm|deep learning": 
+      ["artificialintelligence", "MachineLearning", "OpenAI", "LocalLLaMA", "ChatGPT"],
+    
+    // MVP/Startup keywords
+    "mvp|startup|entrepreneur|side project|lean|bootstrap|indie":
+      ["startups", "Entrepreneur", "SideProject", "indiehackers", "smallbusiness"],
+    
+    // No-code/Low-code keywords
+    "no-code|nocode|low-code|lowcode|lovable|bubble|webflow|framer|glide":
+      ["nocode", "lowcode", "webflow", "Bubble", "SideProject"],
+    
+    // SaaS keywords
+    "saas|subscription|b2b|recurring revenue":
+      ["SaaS", "startups", "indiehackers", "Entrepreneur"],
+    
+    // Development keywords
+    "dev|développement|development|coding|programming|react|web app|application web":
+      ["webdev", "reactjs", "programming", "learnprogramming"],
+    
+    // Marketing/SEO keywords
+    "seo|marketing|digital marketing|growth|traffic|référencement":
+      ["SEO", "bigseo", "marketing", "digitalmarketing", "GrowthHacking"],
+    
+    // E-commerce keywords
+    "ecommerce|e-commerce|shopify|boutique|store|vente en ligne":
+      ["ecommerce", "shopify", "dropship", "Entrepreneur"],
+    
+    // Freelance/Agency keywords
+    "freelance|agency|agence|consultant|client":
+      ["freelance", "webdev", "Entrepreneur", "DigitalNomad"],
+  };
+  
+  keywords.forEach(kw => {
+    const kwLower = kw.toLowerCase();
+    Object.entries(categoryMappings).forEach(([pattern, subs]) => {
+      const regex = new RegExp(pattern.split("|").map(p => p.trim()).join("|"), "i");
+      if (regex.test(kwLower)) {
+        subs.forEach(sub => subreddits.add(sub));
+      }
+    });
+  });
+  
+  // Add French subreddits if language is French
+  if (language === "fr") {
+    subreddits.add("france");
+    subreddits.add("vosfinances");
+    subreddits.add("AskFrance");
+  }
+  
+  // Default subreddits if no matches found
+  if (subreddits.size === 0) {
+    ["startups", "Entrepreneur", "smallbusiness", "SideProject", "webdev"].forEach(s => subreddits.add(s));
+  }
+  
+  return Array.from(subreddits);
 };
 
 export default function AeoReddit() {
@@ -70,6 +123,31 @@ export default function AeoReddit() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>("soft");
+  const [generationSettings, setGenerationSettings] = useState<{
+    language: string;
+    business_description: string;
+    target_audiences: string[];
+  } | null>(null);
+
+  // Fetch generation settings for language and business context
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!activeProject?.id) return;
+      
+      const { data } = await supabase
+        .from("generation_settings")
+        .select("language, business_description, target_audiences")
+        .eq("project_id", activeProject.id)
+        .single();
+      
+      if (data) {
+        setGenerationSettings(data);
+        console.log(`[Reddit] Loaded settings: language=${data.language}`);
+      }
+    };
+    
+    fetchSettings();
+  }, [activeProject?.id]);
 
   // Fetch real Reddit posts from edge function
   const fetchRedditPosts = async () => {
@@ -79,7 +157,7 @@ export default function AeoReddit() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // 🔥 FIX: Fetch REAL keywords from database instead of just brand_name
+      // Fetch keywords from database
       const { data: dbKeywords } = await supabase
         .from("keywords")
         .select("keyword")
@@ -88,40 +166,29 @@ export default function AeoReddit() {
       
       const projectKeywords: string[] = dbKeywords?.map(k => k.keyword.toLowerCase()) || [];
       
-      // Add brand_name and business_type as fallback
+      // Add brand_name and business_type as context
       if (activeProject.brand_name) projectKeywords.push(activeProject.brand_name.toLowerCase());
       if (activeProject.business_type) projectKeywords.push(activeProject.business_type.toLowerCase());
       
-      console.log(`[Reddit] Using ${projectKeywords.length} keywords:`, projectKeywords.slice(0, 5));
+      // Get language from generation settings or default to 'en'
+      const language = generationSettings?.language || "en";
       
-      // Map keywords to relevant subreddits
-      const targetSubreddits = new Set<string>();
-      projectKeywords.forEach(kw => {
-        // Check for exact matches first
-        const matchedSubs = KEYWORD_SUBREDDIT_MAP[kw] || [];
-        matchedSubs.forEach(sub => targetSubreddits.add(sub));
-        
-        // Also check for partial matches
-        Object.entries(KEYWORD_SUBREDDIT_MAP).forEach(([key, subs]) => {
-          if (kw.includes(key) || key.includes(kw)) {
-            subs.forEach(sub => targetSubreddits.add(sub));
-          }
-        });
-      });
+      console.log(`[Reddit] Using ${projectKeywords.length} keywords (lang=${language}):`, projectKeywords.slice(0, 5));
       
-      // Add defaults if no specific ones found
-      if (targetSubreddits.size === 0) {
-        ["seo", "marketing", "smallbusiness", "entrepreneur", "ecommerce"].forEach(s => targetSubreddits.add(s));
-      }
+      // Generate subreddits dynamically based on keywords and language
+      const targetSubreddits = getSubredditsForKeywords(projectKeywords, language);
       
-      console.log(`[Reddit] Target subreddits:`, Array.from(targetSubreddits));
+      console.log(`[Reddit] Target subreddits:`, targetSubreddits);
       
       const { data, error } = await supabase.functions.invoke('reddit-agent', {
         body: {
           action: 'find-opportunities',
           projectId: activeProject.id,
-          subreddits: Array.from(targetSubreddits).slice(0, 5),
-          keywords: projectKeywords.slice(0, 20) // Send actual keywords
+          subreddits: targetSubreddits.slice(0, 8),
+          keywords: projectKeywords.slice(0, 20),
+          language,
+          business_description: generationSettings?.business_description || "",
+          target_audiences: generationSettings?.target_audiences || []
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
@@ -208,7 +275,9 @@ export default function AeoReddit() {
           tone: 'expert_human',
           brand_name: activeProject?.brand_name || '',
           brand_url: activeProject?.website_url || '',
-          visibility_mode: visibilityMode
+          visibility_mode: visibilityMode,
+          language: generationSettings?.language || 'en',
+          business_description: generationSettings?.business_description || ''
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`

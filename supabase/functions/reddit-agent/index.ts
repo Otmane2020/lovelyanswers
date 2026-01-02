@@ -47,6 +47,10 @@ interface RedditRequest {
   action: "find-opportunities" | "generate-responses" | "analyze-subreddits" | "aeo-reply";
   subreddits?: string[];
   keywords?: string[];
+  // Language and business context
+  language?: string;
+  business_description?: string;
+  target_audiences?: string[];
   // For aeo-reply action
   title?: string;
   body?: string;
@@ -218,6 +222,9 @@ serve(async (req) => {
       action, 
       subreddits = [], 
       keywords = [],
+      language = "en",
+      business_description = "",
+      target_audiences = [],
       title,
       body,
       subreddit,
@@ -246,6 +253,8 @@ serve(async (req) => {
         tone, 
         brand_name || "",
         brand_url || "",
+        language,
+        business_description,
         Deno.env.get("LOVABLE_API_KEY")!
       );
       
@@ -365,7 +374,7 @@ serve(async (req) => {
 
     switch (action) {
       case "find-opportunities":
-        result = await findOpportunities(project, effectiveKeywords, subreddits, lovableApiKey);
+        result = await findOpportunities(project, effectiveKeywords, subreddits, language, business_description, target_audiences, lovableApiKey);
         break;
       case "generate-responses":
         result = await generateResponses(project, subreddits, effectiveKeywords, lovableApiKey);
@@ -398,27 +407,29 @@ serve(async (req) => {
   }
 });
 
-// 🔥 FIXED: Use REAL Reddit posts, not AI-generated fake ones
+// 🔥 FIXED: Use REAL Reddit posts with language and business context
 async function findOpportunities(
   project: Record<string, unknown>,
   keywords: string[],
   subreddits: string[],
+  language: string,
+  businessDescription: string,
+  targetAudiences: string[],
   apiKey: string
 ): Promise<{ opportunities: any[] }> {
   
-  // Default subreddits if none provided
+  // Default subreddits based on context
   const targetSubreddits = subreddits.length > 0 
-    ? subreddits.slice(0, 5) 
-    : ["seo", "marketing", "smallbusiness", "entrepreneur", "ecommerce"];
+    ? subreddits.slice(0, 8) 
+    : ["startups", "Entrepreneur", "SideProject", "webdev", "smallbusiness"];
 
-  console.log(`[reddit-agent] Fetching real posts from: ${targetSubreddits.join(", ")}`);
+  console.log(`[reddit-agent] Fetching real posts from: ${targetSubreddits.join(", ")} (lang=${language})`);
 
-  // 1. Fetch REAL posts from Reddit JSON API
+  // 1. Fetch REAL posts from Reddit
   const allPosts: RealRedditPost[] = [];
   for (const sub of targetSubreddits) {
     const posts = await fetchRealRedditPosts(sub);
     allPosts.push(...posts);
-    // Small delay to be nice to Reddit
     await new Promise(r => setTimeout(r, 200));
   }
 
@@ -428,8 +439,19 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
-  // 2. Use AI to QUALIFY which posts are worth responding to
-  const postsForAI = allPosts.slice(0, 30).map(p => ({
+  // 2. Pre-filter posts by keyword relevance (boost efficiency)
+  const keywordRegex = new RegExp(keywords.slice(0, 10).join("|"), "i");
+  const relevantPosts = allPosts.filter(p => 
+    keywordRegex.test(p.title) || keywordRegex.test(p.body)
+  );
+  
+  // Mix: relevant posts first, then some general ones
+  const postsToAnalyze = [
+    ...relevantPosts.slice(0, 20),
+    ...allPosts.filter(p => !relevantPosts.includes(p)).slice(0, 10)
+  ];
+
+  const postsForAI = postsToAnalyze.slice(0, 30).map(p => ({
     id: p.id,
     title: p.title,
     body: p.body.substring(0, 200),
@@ -439,21 +461,37 @@ async function findOpportunities(
     comments: p.comments
   }));
 
+  // Build context-aware prompt with language and business info
+  const businessContext = businessDescription 
+    ? `Business Description: ${businessDescription}` 
+    : "";
+  const audienceContext = targetAudiences.length > 0 
+    ? `Target Audiences: ${targetAudiences.join(", ")}` 
+    : "";
+
   const prompt = `You are analyzing REAL Reddit posts to find engagement opportunities.
 
 Business: ${project.brand_name || project.name}
 Industry: ${project.business_type || "General"}
-Target Audience: ${project.audience || "General audience"}
+${businessContext}
+${audienceContext}
 Keywords: ${keywords.join(", ") || "general topics"}
+Language preference: ${language === "fr" ? "French" : "English"}
 
 Here are REAL Reddit posts (with real URLs):
 ${JSON.stringify(postsForAI, null, 2)}
 
 Select the TOP 10 posts where replying would be:
-1. Natural and helpful (not promotional)
-2. Relevant to the business expertise
-3. Posts with < 50 comments are better (less competition)
-4. Questions or discussions work best
+1. HIGHLY RELEVANT to the business expertise and keywords
+2. Natural place to share knowledge (not promotional)
+3. Posts with < 50 comments (less competition)
+4. Questions, help requests, or discussions work best
+5. ${language === "fr" ? "Prefer French posts if available, but English is OK for tech topics" : "English posts preferred"}
+
+SCORING PRIORITY:
+- Posts mentioning keywords directly = HIGH priority
+- Posts about topics the business can genuinely help with = MEDIUM priority
+- General industry posts = LOW priority
 
 Return JSON with ONLY these real posts (keep exact URLs):
 {
@@ -467,7 +505,7 @@ Return JSON with ONLY these real posts (keep exact URLs):
       "score": number,
       "comments": number,
       "engagementPotential": "high|medium|low",
-      "reason": "Why this post is a good opportunity"
+      "reason": "Why this post is relevant to ${project.brand_name || "this business"}'s expertise"
     }
   ]
 }
@@ -668,7 +706,7 @@ Return JSON:
   }
 }
 
-// 🔒 PATCH 3 — Reddit tone: VRAIMENT humain (no SEO jargon)
+// 🔒 PATCH 3 — Reddit tone with language support
 async function generateRedditReply(
   title: string,
   body: string,
@@ -678,6 +716,8 @@ async function generateRedditReply(
   tone: string,
   brandName: string,
   brandUrl: string,
+  language: string,
+  businessDescription: string,
   apiKey: string
 ): Promise<{ reply: string; estimatedScore: number; brandMentioned: boolean; linkIncluded: boolean }> {
   
@@ -687,12 +727,22 @@ async function generateRedditReply(
     professional: "Write clearly but warmly. No corporate speak. Be direct and helpful."
   };
 
+  // Language-specific instructions
+  const languageInstructions = language === "fr" 
+    ? "Écris en français naturel et conversationnel. Utilise le tutoiement si approprié sur Reddit."
+    : "Write in natural, conversational English.";
+
   // 🔒 PATCH 2 — Brand mention = probabilistic (30% chance if enabled)
   const shouldMentionBrand = mentionBrand && brandName && Math.random() < 0.3;
-  const shouldIncludeLink = includeLink && brandUrl && shouldMentionBrand && Math.random() < 0.5; // Link only if brand mentioned
-  const actualBrandName = brandName || "a tool I tried";
+  const shouldIncludeLink = includeLink && brandUrl && shouldMentionBrand && Math.random() < 0.5;
+  const actualBrandName = brandName || (language === "fr" ? "un outil que j'ai testé" : "a tool I tried");
 
-  // 🔒 PATCH 3 — System prompt: real Reddit user, no SEO vocabulary
+  // Business context for more relevant replies
+  const businessContext = businessDescription 
+    ? `\nYour expertise context (use subtly): ${businessDescription}` 
+    : "";
+
+  // 🔒 System prompt with language awareness
   const systemPrompt = `You are a real Reddit user.
 You write like someone who has actually done the work.
 No jargon. No teaching. No SEO terms. No marketing language.
@@ -701,14 +751,15 @@ Short paragraphs. One idea per paragraph.
 Slight uncertainty is OK ("I think", "in my case", "YMMV").
 Never sound like an article or a blog post.
 Never mention AI, machine learning, or automation.
-Tone: ${toneInstructions[tone] || toneInstructions.expert_human}`;
+${languageInstructions}
+Tone: ${toneInstructions[tone] || toneInstructions.expert_human}${businessContext}`;
 
   const userPrompt = `Reddit post to respond to:
 Title: ${title}
 ${body ? `Body: ${body}` : "(No body text)"}
 Subreddit: r/${subreddit}
 
-Write a Reddit comment that:
+Write a Reddit comment ${language === "fr" ? "EN FRANÇAIS" : "in English"} that:
 - Answers practically as a fellow Redditor who's been there
 - Maximum 100 words (shorter is better)
 - Ends with a casual question or "curious what others think"
