@@ -19,7 +19,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.seo-audit]
-verify_jwt = true
+verify_jwt = false
 
 [functions.keyword-research]
 verify_jwt = true
