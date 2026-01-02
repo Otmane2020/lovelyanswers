@@ -24,16 +24,16 @@ import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_INTEGRATIONS = [
-  { id: "wordpress", name: "WordPress", icon: "🔵" },
-  { id: "duda", name: "Duda", icon: "🟠" },
-  { id: "api", name: "API", icon: "⚙️" },
-  { id: "webhook", name: "Webhook", icon: "🔗" },
-  { id: "webflow", name: "Webflow", icon: "🔷" },
-  { id: "shopify", name: "Shopify", icon: "🟢" },
-  { id: "wix", name: "Wix", icon: "🟡" },
-  { id: "bigcommerce", name: "BigCommerce", icon: "📦" },
-  { id: "snapps", name: "snapps", icon: "📱" },
-  { id: "framer", name: "Framer", icon: "⬛" },
+  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
+  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
+  { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
+  { id: "duda", name: "Duda", icon: "🟠", isImage: false },
+  { id: "api", name: "API", icon: "⚙️", isImage: false },
+  { id: "webhook", name: "Webhook", icon: "🔗", isImage: false },
+  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
+  { id: "bigcommerce", name: "BigCommerce", icon: "📦", isImage: false },
+  { id: "snapps", name: "snapps", icon: "📱", isImage: false },
+  { id: "framer", name: "Framer", icon: "⬛", isImage: false },
 ];
 
 const ANALYTICS_INTEGRATIONS = [
@@ -111,7 +111,11 @@ export function IntegrationsSettings() {
                   className="flex items-center justify-between p-4 rounded-lg border border-green-500/30 bg-green-500/5"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{cms?.icon || "🔗"}</span>
+                    {cms?.isImage ? (
+                      <img src={cms.icon} alt={cms.name} className="h-8 w-8 object-contain dark:invert" />
+                    ) : (
+                      <span className="text-2xl">{cms?.icon || "🔗"}</span>
+                    )}
                     <div>
                       <p className="font-medium">
                         {integration.config?.name || cms?.name || integration.platform}
@@ -172,7 +176,17 @@ export function IntegrationsSettings() {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                   </div>
                 )}
-                <div className="text-2xl mb-2">{integration.icon}</div>
+                <div className="h-8 w-8 mx-auto mb-2 flex items-center justify-center">
+                  {integration.isImage ? (
+                    <img 
+                      src={integration.icon} 
+                      alt={integration.name} 
+                      className="h-8 w-8 object-contain dark:invert" 
+                    />
+                  ) : (
+                    <span className="text-2xl">{integration.icon}</span>
+                  )}
+                </div>
                 <p className="font-medium text-sm">{integration.name}</p>
                 <p className={`text-xs mt-1 transition-opacity ${
                   isConnected ? "text-green-600 opacity-100" : "text-primary opacity-0 group-hover:opacity-100"

@@ -3,14 +3,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Check, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import shopifyLogo from "@/assets/shopify-logo.png";
+import wixLogo from "@/assets/wix-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_OPTIONS = [
-  { id: "wordpress", name: "WordPress", icon: "🔵" },
-  { id: "shopify", name: "Shopify", icon: "🟢" },
-  { id: "wix", name: "Wix", icon: "🟡" },
-  { id: "webflow", name: "Webflow", icon: "🔷" },
-  { id: "duda", name: "Duda", icon: "🟠" },
-  { id: "framer", name: "Framer", icon: "⬛" },
+  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
+  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
+  { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
+  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
+  { id: "duda", name: "Duda", icon: "🟠", isImage: false },
+  { id: "framer", name: "Framer", icon: "⬛", isImage: false },
 ];
 
 interface CmsConnectPopupProps {
@@ -57,7 +60,13 @@ export function CmsConnectPopup({ open, onOpenChange }: CmsConnectPopupProps) {
                   <Check className="w-2.5 h-2.5 text-primary-foreground" />
                 </div>
               )}
-              <div className="text-2xl mb-1">{cms.icon}</div>
+              <div className="h-8 w-8 mx-auto mb-1 flex items-center justify-center">
+                {cms.isImage ? (
+                  <img src={cms.icon} alt={cms.name} className="h-8 w-8 object-contain dark:invert" />
+                ) : (
+                  <span className="text-2xl">{cms.icon}</span>
+                )}
+              </div>
               <p className="text-xs font-medium">{cms.name}</p>
             </button>
           ))}
