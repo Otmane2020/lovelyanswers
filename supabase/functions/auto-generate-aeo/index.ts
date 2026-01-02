@@ -6,10 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Intent types for AEO
 type IntentType = 'price' | 'duration' | 'criteria' | 'comparison' | 'howto' | 'best' | 'what' | 'why';
-
-// Platform configurations
 type Platform = 'chatgpt' | 'gemini' | 'claude' | 'perplexity' | 'copilot';
 
 const PLATFORM_WEIGHTS: Record<Platform, number> = {
@@ -20,28 +17,21 @@ const PLATFORM_WEIGHTS: Record<Platform, number> = {
   copilot: 0.85,
 };
 
-// Compute AEO citation score
 function computeCitationScore(answer: string, platforms: Platform[]): number {
   let score = 50;
-  
   const firstSentence = answer.split(/[.!?]/)[0];
   if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 15;
   else if (firstSentence.length >= 60 && firstSentence.length <= 200) score += 8;
-  
   if (/\d+/.test(answer)) score += 10;
   if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) score += 8;
   if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 7;
-  
   const avgWeight = platforms.reduce((sum, p) => sum + (PLATFORM_WEIGHTS[p] || 0.85), 0) / platforms.length;
   score = Math.round(score * avgWeight);
-  
   return Math.min(100, Math.max(0, score));
 }
 
-// Detect intent from question
-function detectIntent(question: string, language: string): IntentType {
+function detectIntent(question: string): IntentType {
   const lowerQ = question.toLowerCase();
-  
   const intentPatterns: Record<IntentType, RegExp[]> = {
     price: [/prix|tarif|co[uû]t|combien|gratuit|abonnement|price|cost|pricing|free|subscription/i],
     duration: [/temps|dur[ée]e|d[ée]lai|combien de temps|rapidit[ée]|time|duration|how long|quickly/i],
@@ -52,15 +42,12 @@ function detectIntent(question: string, language: string): IntentType {
     why: [/pourquoi|raison|avantage|why|reason|benefit/i],
     what: [/qu'est-ce|d[ée]finition|c'est quoi|what is|definition/i],
   };
-  
   for (const [intent, patterns] of Object.entries(intentPatterns)) {
     if (patterns.some(p => p.test(lowerQ))) return intent as IntentType;
   }
-  
   return 'what';
 }
 
-// Generate AI answer using Lovable AI
 async function generateAIAnswer(
   question: string,
   brandName: string,
@@ -141,7 +128,6 @@ Generate as JSON:
     return { answer: content, bullets: [], faq: [] };
   } catch (error) {
     console.error("[auto-generate-aeo] AI generation error:", error);
-    // Fallback to placeholder
     return {
       answer: language === 'fr'
         ? `${brandName} est une solution innovante qui répond à cette question. Pour plus d'informations, consultez notre site.`
@@ -167,30 +153,117 @@ function generateSlug(question: string): string {
   return slug.slice(0, 100);
 }
 
-function generateInitialQuestions(brandName: string, description: string, language: string): Array<{ question: string; intent: IntentType }> {
-  const frQuestions: Array<{ question: string; intent: IntentType }> = [
-    { question: `Qu'est-ce que ${brandName} et quels sont ses services ?`, intent: "what" },
-    { question: `Combien coûte ${brandName} ?`, intent: "price" },
-    { question: `Pourquoi choisir ${brandName} ?`, intent: "why" },
-    { question: `Comment utiliser ${brandName} ?`, intent: "howto" },
-    { question: `${brandName} est-il le meilleur choix ?`, intent: "best" },
-    { question: `Quels sont les avis sur ${brandName} ?`, intent: "criteria" },
-    { question: `Quelles sont les alternatives à ${brandName} ?`, intent: "comparison" },
-    { question: `Comment contacter ${brandName} ?`, intent: "howto" },
-  ];
+// Generate 30 questions based on keywords and brand context
+async function generate30Questions(
+  brandName: string,
+  description: string,
+  keywords: string[],
+  language: string,
+  apiKey: string
+): Promise<Array<{ question: string; intent: IntentType }>> {
+  const keywordsList = keywords.slice(0, 20).join(", ");
+  
+  const systemPrompt = language === 'fr'
+    ? `Tu génères 30 questions FAQ uniques optimisées pour l'AEO (Answer Engine Optimization). Chaque question doit cibler une intention différente et être pertinente pour les IA assistants.`
+    : `You generate 30 unique FAQ questions optimized for AEO (Answer Engine Optimization). Each question should target a different intent and be relevant for AI assistants.`;
 
-  const enQuestions: Array<{ question: string; intent: IntentType }> = [
-    { question: `What is ${brandName} and what services do they offer?`, intent: "what" },
-    { question: `How much does ${brandName} cost?`, intent: "price" },
-    { question: `Why choose ${brandName}?`, intent: "why" },
-    { question: `How to use ${brandName}?`, intent: "howto" },
-    { question: `Is ${brandName} the best choice?`, intent: "best" },
-    { question: `What are the reviews for ${brandName}?`, intent: "criteria" },
-    { question: `What are the alternatives to ${brandName}?`, intent: "comparison" },
-    { question: `How to contact ${brandName}?`, intent: "howto" },
-  ];
+  const userPrompt = language === 'fr'
+    ? `Marque: ${brandName}
+Description: ${description}
+Mots-clés: ${keywordsList}
 
-  return language === "fr" ? frQuestions : enQuestions;
+Génère 30 questions variées couvrant:
+- Questions "Qu'est-ce que" (définition)
+- Questions "Comment" (tutoriel)
+- Questions "Pourquoi" (raisons)
+- Questions prix/tarifs
+- Questions comparaison
+- Questions avis/recommandations
+
+Format JSON array:
+[{"question": "...", "intent": "what|howto|why|price|comparison|best|criteria|duration"}]`
+    : `Brand: ${brandName}
+Description: ${description}
+Keywords: ${keywordsList}
+
+Generate 30 varied questions covering:
+- "What is" questions (definition)
+- "How to" questions (tutorial)
+- "Why" questions (reasons)
+- Price/cost questions
+- Comparison questions
+- Review/recommendation questions
+
+JSON array format:
+[{"question": "...", "intent": "what|howto|why|price|comparison|best|criteria|duration"}]`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.8,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`AI error: ${response.status}`);
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.slice(0, 30);
+    }
+    
+    return [];
+  } catch (error) {
+    console.error("[auto-generate-aeo] Error generating 30 questions:", error);
+    // Fallback to basic questions
+    const baseQuestions: Array<{ question: string; intent: IntentType }> = [];
+    const intents: IntentType[] = ['what', 'howto', 'why', 'price', 'comparison', 'best'];
+    
+    const templatesFr: Record<string, (k: string, b: string) => string> = {
+      what: (k: string, b: string) => `Qu'est-ce que ${k} de ${b} ?`,
+      howto: (k: string, b: string) => `Comment utiliser ${k} avec ${b} ?`,
+      why: (k: string, b: string) => `Pourquoi choisir ${b} pour ${k} ?`,
+      price: (k: string, b: string) => `Quel est le prix de ${k} chez ${b} ?`,
+      comparison: (k: string, b: string) => `${b} vs concurrents pour ${k} ?`,
+      best: (k: string, b: string) => `${b} est-il le meilleur pour ${k} ?`,
+    };
+    
+    const templatesEn: Record<string, (k: string, b: string) => string> = {
+      what: (k: string, b: string) => `What is ${k} from ${b}?`,
+      howto: (k: string, b: string) => `How to use ${k} with ${b}?`,
+      why: (k: string, b: string) => `Why choose ${b} for ${k}?`,
+      price: (k: string, b: string) => `What is the price of ${k} at ${b}?`,
+      comparison: (k: string, b: string) => `${b} vs competitors for ${k}?`,
+      best: (k: string, b: string) => `Is ${b} the best for ${k}?`,
+    };
+    
+    const templates = language === 'fr' ? templatesFr : templatesEn;
+    
+    for (let i = 0; i < 30; i++) {
+      const intent = intents[i % intents.length];
+      const keyword = keywords[i % keywords.length] || brandName;
+      const templateFn = templates[intent];
+      
+      if (templateFn) {
+        baseQuestions.push({ question: templateFn(keyword, brandName), intent });
+      }
+    }
+    
+    return baseQuestions;
+  }
 }
 
 serve(async (req) => {
@@ -222,9 +295,9 @@ serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    const { projectId, language = "fr" } = await req.json();
+    const { projectId, language = "fr", generate30 = false } = await req.json();
 
-    console.log(`[auto-generate-aeo] Starting for user ${userId}, project: ${projectId}`);
+    console.log(`[auto-generate-aeo] Starting for user ${userId}, project: ${projectId}, generate30: ${generate30}`);
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
@@ -247,12 +320,41 @@ serve(async (req) => {
     const description = project.business_description || "";
     const targetPlatforms: Platform[] = ["chatgpt", "gemini", "claude"];
 
-    const opportunityQuestions = generateInitialQuestions(brandName, description, language);
-    const answersToInsert: any[] = [];
+    // Get keywords from database
+    const { data: dbKeywords } = await supabase
+      .from("keywords")
+      .select("keyword")
+      .eq("project_id", projectId)
+      .limit(30);
+    
+    const keywords = dbKeywords?.map(k => k.keyword) || [];
+    console.log(`[auto-generate-aeo] Found ${keywords.length} keywords`);
 
-    // Generate AI answers for each question
-    for (const q of opportunityQuestions.slice(0, 5)) {
-      console.log(`[auto-generate-aeo] Generating answer for: "${q.question}"`);
+    // Generate questions
+    let questions: Array<{ question: string; intent: IntentType }>;
+    
+    if (generate30) {
+      console.log("[auto-generate-aeo] Generating 30 questions from keywords...");
+      questions = await generate30Questions(brandName, description, keywords, language, lovableApiKey);
+    } else {
+      // Default: generate 5 basic questions
+      questions = [
+        { question: language === 'fr' ? `Qu'est-ce que ${brandName} et quels sont ses services ?` : `What is ${brandName} and what services do they offer?`, intent: "what" as IntentType },
+        { question: language === 'fr' ? `Combien coûte ${brandName} ?` : `How much does ${brandName} cost?`, intent: "price" as IntentType },
+        { question: language === 'fr' ? `Pourquoi choisir ${brandName} ?` : `Why choose ${brandName}?`, intent: "why" as IntentType },
+        { question: language === 'fr' ? `Comment utiliser ${brandName} ?` : `How to use ${brandName}?`, intent: "howto" as IntentType },
+        { question: language === 'fr' ? `${brandName} est-il le meilleur choix ?` : `Is ${brandName} the best choice?`, intent: "best" as IntentType },
+      ];
+    }
+
+    console.log(`[auto-generate-aeo] Generating ${questions.length} answers...`);
+
+    const answersToInsert: any[] = [];
+    const today = new Date();
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      console.log(`[auto-generate-aeo] Generating answer ${i + 1}/${questions.length}: "${q.question.slice(0, 50)}..."`);
       
       const generated = await generateAIAnswer(
         q.question,
@@ -265,6 +367,10 @@ serve(async (req) => {
       
       const score = computeCitationScore(generated.answer, targetPlatforms);
       
+      // Schedule one per day over 30 days
+      const scheduledDate = new Date(today);
+      scheduledDate.setDate(today.getDate() + i);
+      
       answersToInsert.push({
         project_id: project.id,
         question: q.question,
@@ -275,6 +381,7 @@ serve(async (req) => {
         is_public: false,
         intent: q.intent,
         difficulty: score >= 80 ? 'easy' : score >= 60 ? 'medium' : 'hard',
+        scheduled_date: scheduledDate.toISOString(),
         supporting_content: {
           bullets: generated.bullets,
           faq: generated.faq
@@ -290,12 +397,22 @@ serve(async (req) => {
     if (answersError) {
       console.error("[auto-generate-aeo] Error inserting answers:", answersError);
     } else {
-      console.log(`[auto-generate-aeo] Created ${insertedAnswers?.length || 0} AI-generated answers`);
+      console.log(`[auto-generate-aeo] Created ${insertedAnswers?.length || 0} AI-generated answers with scheduling`);
+    }
+
+    // Mark keywords as used
+    if (keywords.length > 0) {
+      await supabase
+        .from("keywords")
+        .update({ is_used: true })
+        .eq("project_id", projectId)
+        .in("keyword", keywords.slice(0, questions.length));
     }
 
     return new Response(JSON.stringify({
       success: true,
       answers_created: insertedAnswers?.length || 0,
+      scheduled_days: questions.length,
       answers: insertedAnswers
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

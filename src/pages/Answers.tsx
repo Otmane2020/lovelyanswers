@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw } from "lucide-react";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import { useAnswers, useToggleAnswerPublic } from "@/hooks/useAnswers";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
@@ -35,7 +36,9 @@ export default function Answers() {
   const [newQuestion, setNewQuestion] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingAll, setRegeneratingAll] = useState(false);
+  const [generating30, setGenerating30] = useState(false);
   const [unusedKeywordsCount, setUnusedKeywordsCount] = useState(0);
+  const [showCmsPopup, setShowCmsPopup] = useState(false);
 
   // Fetch unused keywords count
   useEffect(() => {
@@ -207,7 +210,60 @@ export default function Answers() {
       console.error('Error regenerating all answers:', error);
       toast.error("Erreur lors de la régénération");
     } finally {
-      setRegeneratingAll(false);
+    setRegeneratingAll(false);
+    }
+  };
+
+  const generate30Answers = async () => {
+    if (!user) return;
+    
+    setGenerating30(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+      
+      if (!projects || projects.length === 0) {
+        toast.error("No active project found");
+        setGenerating30(false);
+        return;
+      }
+
+      const project = projects[0];
+      
+      toast.info("Génération de 30 Q/A planifiées sur 30 jours...");
+      
+      const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
+        body: { 
+          projectId: project.id,
+          generate30: true,
+          language: project.language || 'fr'
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
+      });
+      
+      if (error) {
+        console.error('Error generating 30 answers:', error);
+        toast.error("Erreur lors de la génération");
+      } else {
+        toast.success(`${data?.answers_created || 30} réponses générées et planifiées!`);
+        setShowCmsPopup(true); // Show CMS popup after generation
+      }
+      
+      refetch();
+    } catch (error) {
+      console.error('Error generating 30 answers:', error);
+      toast.error("Erreur lors de la génération");
+    } finally {
+      setGenerating30(false);
     }
   };
 
@@ -219,7 +275,20 @@ export default function Answers() {
             <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
             <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline"
+              onClick={generate30Answers}
+              disabled={generating30}
+              className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+            >
+              {generating30 ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Générer 30 Q/A (30 jours)
+            </Button>
             <Button 
               variant="outline"
               onClick={regenerateAllAnswers}
@@ -231,7 +300,7 @@ export default function Answers() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount} keywords)` : "Générer depuis contexte"}
+              {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount})` : "Régénérer"}
             </Button>
             <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
               <Plus className="h-4 w-4" />New Answer
@@ -379,6 +448,9 @@ export default function Answers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CMS Connect Popup */}
+      <CmsConnectPopup open={showCmsPopup} onOpenChange={setShowCmsPopup} />
     </DashboardLayout>
   );
 }
