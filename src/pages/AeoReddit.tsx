@@ -49,43 +49,52 @@ interface RedditPost {
   linkIncluded?: boolean;
 }
 
-// Dynamic subreddit generation based on keyword categories
+// 🔒 FIXED: Dynamic subreddit generation with STRICT language separation
 const getSubredditsForKeywords = (keywords: string[], language: string): string[] => {
   const subreddits = new Set<string>();
   
-  // Keyword category mappings (supports both EN and FR keywords)
-  const categoryMappings: Record<string, string[]> = {
-    // AI/IA keywords
-    "ai|ia|artificial intelligence|intelligence artificielle|machine learning|gpt|llm|deep learning": 
-      ["artificialintelligence", "MachineLearning", "OpenAI", "LocalLLaMA", "ChatGPT"],
-    
-    // MVP/Startup keywords
-    "mvp|startup|entrepreneur|side project|lean|bootstrap|indie":
-      ["startups", "Entrepreneur", "SideProject", "indiehackers", "smallbusiness"],
-    
-    // No-code/Low-code keywords
-    "no-code|nocode|low-code|lowcode|lovable|bubble|webflow|framer|glide":
-      ["nocode", "lowcode", "webflow", "Bubble", "SideProject"],
-    
-    // SaaS keywords
-    "saas|subscription|b2b|recurring revenue":
-      ["SaaS", "startups", "indiehackers", "Entrepreneur"],
-    
-    // Development keywords
-    "dev|développement|development|coding|programming|react|web app|application web":
-      ["webdev", "reactjs", "programming", "learnprogramming"],
-    
-    // Marketing/SEO keywords
-    "seo|marketing|digital marketing|growth|traffic|référencement":
-      ["SEO", "bigseo", "marketing", "digitalmarketing", "GrowthHacking"],
-    
-    // E-commerce keywords
-    "ecommerce|e-commerce|shopify|boutique|store|vente en ligne":
-      ["ecommerce", "shopify", "dropship", "Entrepreneur"],
-    
-    // Freelance/Agency keywords
-    "freelance|agency|agence|consultant|client":
-      ["freelance", "webdev", "Entrepreneur", "DigitalNomad"],
+  // Category mappings with SEPARATE French and English subreddits
+  const categoryMappings: Record<string, { fr: string[]; en: string[] }> = {
+    // Tech/SaaS/Startup
+    "ai|ia|artificial intelligence|intelligence artificielle|machine learning|gpt|llm|mvp|startup|saas|tech|software|logiciel": {
+      fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
+      en: ["artificialintelligence", "MachineLearning", "startups", "SideProject", "indiehackers", "SaaS"]
+    },
+    // Furniture/Home/Decor
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit": {
+      fr: ["france", "deco", "maison", "ameublement", "BricoDecoMaison"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace"]
+    },
+    // E-commerce/Retail
+    "ecommerce|e-commerce|shopify|boutique|store|vente|commerce|magasin": {
+      fr: ["ecommerce_france", "vosfinances", "entrepreneur", "france"],
+      en: ["ecommerce", "shopify", "dropship", "Entrepreneur", "FulfillmentByAmazon"]
+    },
+    // Marketing/SEO
+    "seo|marketing|digital marketing|growth|traffic|référencement|acquisition|leads": {
+      fr: ["SEOfr", "marketing_france", "vosfinances", "france"],
+      en: ["SEO", "bigseo", "marketing", "digitalmarketing", "GrowthHacking"]
+    },
+    // Development
+    "dev|développement|development|coding|programming|react|web app|application web": {
+      fr: ["developpeurs", "france", "AskFrance"],
+      en: ["webdev", "reactjs", "programming", "learnprogramming"]
+    },
+    // No-code/Low-code
+    "no-code|nocode|low-code|lowcode|bubble|webflow|framer|glide": {
+      fr: ["nocode_france", "france", "vosfinances"],
+      en: ["nocode", "lowcode", "webflow", "Bubble", "SideProject"]
+    },
+    // Freelance/Agency
+    "freelance|agency|agence|consultant|client|prestataire": {
+      fr: ["freelance_france", "vosfinances", "france", "AskFrance"],
+      en: ["freelance", "webdev", "Entrepreneur", "DigitalNomad"]
+    },
+    // Finance/Investment
+    "finance|investissement|argent|épargne|bourse|crypto|trading": {
+      fr: ["vosfinances", "france", "cryptoFR"],
+      en: ["personalfinance", "investing", "stocks", "CryptoCurrency"]
+    }
   };
   
   keywords.forEach(kw => {
@@ -93,23 +102,23 @@ const getSubredditsForKeywords = (keywords: string[], language: string): string[
     Object.entries(categoryMappings).forEach(([pattern, subs]) => {
       const regex = new RegExp(pattern.split("|").map(p => p.trim()).join("|"), "i");
       if (regex.test(kwLower)) {
-        subs.forEach(sub => subreddits.add(sub));
+        // 🔒 CRITICAL: Only add subreddits for the project's language
+        const langSubs = language === "fr" ? subs.fr : subs.en;
+        langSubs.forEach(sub => subreddits.add(sub));
       }
     });
   });
   
-  // Add French subreddits if language is French
-  if (language === "fr") {
-    subreddits.add("france");
-    subreddits.add("vosfinances");
-    subreddits.add("AskFrance");
-  }
-  
-  // Default subreddits if no matches found
+  // 🔒 Strict language-based fallback (NO MIXING)
   if (subreddits.size === 0) {
-    ["startups", "Entrepreneur", "smallbusiness", "SideProject", "webdev"].forEach(s => subreddits.add(s));
+    if (language === "fr") {
+      ["france", "vosfinances", "AskFrance", "entrepreneur"].forEach(s => subreddits.add(s));
+    } else {
+      ["startups", "Entrepreneur", "smallbusiness", "SideProject", "webdev"].forEach(s => subreddits.add(s));
+    }
   }
   
+  console.log(`[Reddit] Lang=${language}, Subreddits: ${Array.from(subreddits).join(", ")}`);
   return Array.from(subreddits);
 };
 
