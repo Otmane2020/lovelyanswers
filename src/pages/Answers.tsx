@@ -310,8 +310,8 @@ export default function Answers() {
         <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg border border-border/50">
-                <img src={chatGptLogo} alt="ChatGPT" className="h-12 w-12 object-contain" />
+              <div className="bg-[#10a37f] rounded-2xl p-3 shadow-lg border border-border/50 overflow-hidden">
+                <img src={chatGptLogo} alt="ChatGPT" className="h-12 w-12 object-cover object-left" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
