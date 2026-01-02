@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ChevronLeft, ChevronRight, Plus,
-  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2
+  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -24,6 +25,7 @@ interface ScheduledItem {
   date: Date;
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
+  answer?: string;
 }
 
 export default function AeoPlanning() {
@@ -36,6 +38,8 @@ export default function AeoPlanning() {
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
+  const [showDayPopup, setShowDayPopup] = useState(false);
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project || item.type !== "answer") {
@@ -79,7 +83,7 @@ export default function AeoPlanning() {
         // Fetch answers with scheduled_date
         const { data: answers } = await supabase
           .from("answers")
-          .select("id, question, scheduled_date, is_public")
+          .select("id, question, scheduled_date, is_public, answer")
           .eq("project_id", projectId)
           .not("scheduled_date", "is", null);
 
@@ -96,7 +100,8 @@ export default function AeoPlanning() {
             title: a.question,
             type: "answer" as const,
             date: new Date(a.scheduled_date!),
-            status: a.is_public ? "published" as const : "scheduled" as const
+            status: a.is_public ? "published" as const : "scheduled" as const,
+            answer: a.answer
           })),
           ...(articles || []).map(a => ({
             id: a.id,
@@ -126,6 +131,15 @@ export default function AeoPlanning() {
     return scheduledItems.filter(
       item => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
     );
+  };
+
+  const handleDayClick = (date: Date) => {
+    const items = getItemsForDate(date);
+    setSelectedDate(date);
+    if (items.length > 0) {
+      setSelectedDayItems(items);
+      setShowDayPopup(true);
+    }
   };
 
   const getUpcomingItems = () => {
@@ -208,40 +222,49 @@ export default function AeoPlanning() {
                   {monthDays.map(day => {
                     const items = getItemsForDate(day);
                     const isSelected = selectedDate && format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+                    const hasItems = items.length > 0;
                     
                     return (
                       <button
                         key={day.toISOString()}
-                        onClick={() => setSelectedDate(day)}
+                        onClick={() => handleDayClick(day)}
                         className={cn(
-                          "h-24 p-1 rounded-lg border transition-all text-left hover:bg-muted/50",
-                          isToday(day) && "border-primary",
+                          "h-28 p-2 rounded-lg border transition-all text-left hover:bg-muted/50 flex flex-col",
+                          isToday(day) && "border-primary ring-1 ring-primary/20",
                           isSelected && "bg-primary/10 border-primary",
-                          !isSameMonth(day, currentDate) && "opacity-50"
+                          !isSameMonth(day, currentDate) && "opacity-50",
+                          hasItems && "hover:shadow-md cursor-pointer"
                         )}
                       >
-                        <span className={cn(
-                          "text-sm font-medium",
-                          isToday(day) && "text-primary"
-                        )}>
-                          {format(day, "d")}
-                        </span>
-                        <div className="mt-1 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full",
+                            isToday(day) && "bg-primary text-primary-foreground"
+                          )}>
+                            {format(day, "d")}
+                          </span>
+                          {hasItems && (
+                            <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                              {items.length}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1 flex-1 overflow-hidden space-y-0.5">
                           {items.slice(0, 2).map(item => (
                             <div
                               key={item.id}
                               className={cn(
-                                "text-[10px] px-1 py-0.5 rounded truncate",
+                                "text-[10px] px-1.5 py-0.5 rounded truncate font-medium",
                                 item.type === "answer" 
-                                  ? "bg-blue-500/20 text-blue-600" 
-                                  : "bg-emerald-500/20 text-emerald-600"
+                                  ? "bg-blue-500/20 text-blue-700 dark:text-blue-400" 
+                                  : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                               )}
                             >
-                              {item.title}
+                              {item.title.slice(0, 25)}...
                             </div>
                           ))}
                           {items.length > 2 && (
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="text-[10px] text-muted-foreground font-medium">
                               +{items.length - 2} more
                             </span>
                           )}
@@ -404,6 +427,92 @@ export default function AeoPlanning() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Day Detail Popup */}
+        <Dialog open={showDayPopup} onOpenChange={setShowDayPopup}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                {selectedDate && format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {selectedDayItems.map(item => (
+                <Card key={item.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      item.type === "answer" 
+                        ? "bg-blue-500/20" 
+                        : "bg-emerald-500/20"
+                    )}>
+                      <FileText className={cn(
+                        "h-4 w-4",
+                        item.type === "answer" ? "text-blue-600" : "text-emerald-600"
+                      )} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {item.type === "answer" ? "Answer" : "Article"}
+                        </Badge>
+                        {item.status === "published" ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 border-0 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/20 text-amber-600 border-0 text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Scheduled
+                          </Badge>
+                        )}
+                      </div>
+                      <h4 className="font-medium text-sm">{item.title}</h4>
+                      {item.answer && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                          {item.answer}
+                        </p>
+                      )}
+                      <div className="flex gap-2 mt-3">
+                        {item.type === "answer" && item.status !== "published" && (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => {
+                              handlePublishNow(item);
+                              setShowDayPopup(false);
+                            }}
+                            disabled={publishingId === item.id}
+                          >
+                            {publishingId === item.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                            Publish Now
+                          </Button>
+                        )}
+                        {item.publishedUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => window.open(item.publishedUrl, "_blank")}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

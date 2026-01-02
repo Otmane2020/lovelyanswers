@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
+import chatGptLogo from "@/assets/chatgpt-logo.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
@@ -306,9 +307,12 @@ export default function Answers() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-            <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
+          <div className="flex items-center gap-3">
+            <img src={chatGptLogo} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
+              <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
+            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button 
