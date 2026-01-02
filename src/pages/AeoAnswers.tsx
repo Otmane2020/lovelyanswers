@@ -50,6 +50,7 @@ export default function AeoAnswers() {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [regeneratingAll, setRegeneratingAll] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -183,6 +184,81 @@ export default function AeoAnswers() {
       toast.error("Error regenerating answer");
     } finally {
       setRegeneratingId(null);
+    }
+  };
+
+  const regenerateAllAnswers = async () => {
+    if (!user || answers.length === 0) return;
+    
+    setRegeneratingAll(true);
+    let successCount = 0;
+    let failCount = 0;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Group answers by project_id
+      const answersByProject = answers.reduce((acc, answer) => {
+        const projectId = answer.project_id;
+        if (!acc[projectId]) acc[projectId] = [];
+        acc[projectId].push(answer);
+        return acc;
+      }, {} as Record<string, AeoAnswer[]>);
+      
+      // Process each project's answers
+      for (const [projectId, projectAnswers] of Object.entries(answersByProject)) {
+        const questions = projectAnswers.map(a => a.question);
+        const answerIds = projectAnswers.map(a => a.id);
+        
+        try {
+          // Delete old answers for this project
+          const { error: deleteError } = await supabase
+            .from('answers')
+            .delete()
+            .in('id', answerIds);
+          
+          if (deleteError) {
+            console.error('Error deleting answers:', deleteError);
+            failCount += projectAnswers.length;
+            continue;
+          }
+          
+          // Generate new answers
+          const { error } = await supabase.functions.invoke('generate-aeo-answers', {
+            body: { 
+              projectId,
+              questions,
+              language: 'fr'
+            },
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`
+            }
+          });
+          
+          if (error) {
+            failCount += projectAnswers.length;
+          } else {
+            successCount += projectAnswers.length;
+          }
+        } catch (err) {
+          console.error('Error regenerating project answers:', err);
+          failCount += projectAnswers.length;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} réponses régénérées avec succès!`);
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} réponses ont échoué`);
+      }
+      
+      fetchAnswers();
+    } catch (error) {
+      console.error('Error regenerating all answers:', error);
+      toast.error("Erreur lors de la régénération");
+    } finally {
+      setRegeneratingAll(false);
     }
   };
 
@@ -327,6 +403,19 @@ export default function AeoAnswers() {
             <Button onClick={fetchAnswers} variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={regenerateAllAnswers}
+              disabled={regeneratingAll || answers.length === 0}
+              className="border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+            >
+              {regeneratingAll ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Régénérer tout ({answers.length})
             </Button>
             <Button 
               onClick={() => window.location.href = '/onboarding'}
