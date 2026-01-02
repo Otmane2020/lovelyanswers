@@ -20,9 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
-import shopifyLogo from "@/assets/shopify-logo.png";
-import wixLogo from "@/assets/wix-logo.png";
-import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
@@ -313,16 +310,13 @@ export default function Answers() {
         <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-background/80 backdrop-blur rounded-xl p-2 shadow-sm border border-border/50">
-                <img src={chatGptLogo} alt="ChatGPT" className="h-10 w-10 rounded-lg object-contain" />
-                <img src={shopifyLogo} alt="Shopify" className="h-8 w-auto object-contain" />
-                <img src={wixLogo} alt="Wix" className="h-6 w-auto object-contain dark:invert" />
-                <img src={wordpressLogo} alt="WordPress" className="h-8 w-auto object-contain dark:invert" />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg border border-border/50">
+                <img src={chatGptLogo} alt="ChatGPT" className="h-12 w-12 object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-                  <Badge className="bg-primary/20 text-primary border-0 font-semibold">
+                  <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
                     Rank First!
                   </Badge>
                 </div>
