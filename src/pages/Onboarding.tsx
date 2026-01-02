@@ -36,6 +36,7 @@ interface OnboardingData {
   brandColor: string;
   exampleUrl: string;
   referralSource: string;
+  keywords: Array<{keyword: string; intent: string}>;
 }
 
 const languages = [
@@ -77,6 +78,7 @@ export default function Onboarding() {
     brandColor: "#000000",
     exampleUrl: "",
     referralSource: "",
+    keywords: [],
   });
 
   const totalSteps = 6;
@@ -130,7 +132,7 @@ export default function Onboarding() {
         return;
       }
 
-      const { brandName, description, language: detectedLang, audiences: scrapedAudiences, competitors: scrapedCompetitors } = scrapeResult.data;
+      const { brandName, description, language: detectedLang, audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
       
       // Detect language from content or domain
       let finalLanguage = detectedLang || "en";
@@ -148,6 +150,13 @@ export default function Onboarding() {
         ? scrapedCompetitors
         : generateCompetitors(url);
       
+      // Store extracted keywords
+      const finalKeywords = scrapedKeywords && scrapedKeywords.length > 0 
+        ? scrapedKeywords 
+        : [];
+      
+      console.log('[ONBOARDING] Extracted keywords:', finalKeywords.length);
+      
       setData(prev => ({
         ...prev,
         language: finalLanguage,
@@ -155,6 +164,7 @@ export default function Onboarding() {
         targetAudiences: finalAudiences,
         competitors: finalCompetitors,
         exampleUrl: url.startsWith("http") ? url : `https://${url}`,
+        keywords: finalKeywords,
       }));
       
       toast({
@@ -258,6 +268,28 @@ export default function Onboarding() {
         example_url: data.exampleUrl || undefined,
         competitors: data.competitors,
       });
+      
+      // Save extracted keywords to database
+      if (data.keywords && data.keywords.length > 0) {
+        console.log('[ONBOARDING] Saving', data.keywords.length, 'keywords to database');
+        const keywordsToInsert = data.keywords.map(k => ({
+          project_id: newProject.id,
+          keyword: k.keyword,
+          intent: k.intent || 'informational',
+          source_url: data.websiteUrl,
+          is_used: false,
+        }));
+        
+        const { error: keywordsError } = await supabase
+          .from('keywords')
+          .insert(keywordsToInsert);
+        
+        if (keywordsError) {
+          console.error('Keywords save error:', keywordsError);
+        } else {
+          console.log('[ONBOARDING] Keywords saved successfully');
+        }
+      }
       
       // Auto-generate initial AEO content
       try {
