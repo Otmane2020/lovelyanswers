@@ -25,6 +25,7 @@ interface SupportingContent {
 
 interface AeoAnswer {
   id: string;
+  project_id: string;
   question: string;
   answer: string;
   platforms: string[];
@@ -151,12 +152,22 @@ export default function AeoAnswers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // First delete the old answer
+      const { error: deleteError } = await supabase
+        .from('answers')
+        .delete()
+        .eq('id', answer.id);
+      
+      if (deleteError) {
+        console.error('Error deleting old answer:', deleteError);
+      }
+      
+      // Generate new answer with correct project_id
       const { data, error } = await supabase.functions.invoke('generate-aeo-answers', {
         body: { 
-          projectId: answer.id, // Using answer's project context
+          projectId: answer.project_id, // Use the actual project_id from the answer
           questions: [answer.question],
-          regenerate: true,
-          answerId: answer.id
+          language: 'fr'
         },
         headers: {
           Authorization: `Bearer ${session?.access_token}`
