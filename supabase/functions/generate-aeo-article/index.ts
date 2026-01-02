@@ -314,16 +314,25 @@ JSON format:
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";
   
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
-  }
-  
-  return { content, meta_description: "", keywords: [] };
+  return safeParseJSON<{ content: string; meta_description: string; keywords: string[] }>(
+    content, 
+    { content, meta_description: "", keywords: [] }
+  );
 }
 
-// Generate slug
-function generateSlug(text: string): string {
+// Safe JSON parsing with fallback
+function safeParseJSON<T>(raw: string, fallback: T): T {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return fallback;
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return fallback;
+  }
+}
+
+// Generate slug for articles
+function generateArticleSlug(text: string): string {
   let slug = text.toLowerCase();
   slug = slug.replace(/[àáâãäå]/g, 'a');
   slug = slug.replace(/[èéêë]/g, 'e');
@@ -422,7 +431,7 @@ serve(async (req) => {
       .insert({
         project_id: answer.project_id,
         title: answer.question,
-        slug: generateSlug(answer.question),
+        slug: generateArticleSlug(answer.question),
         content: articleContent.content,
         html_content: fullHtml,
         meta_description: articleContent.meta_description,

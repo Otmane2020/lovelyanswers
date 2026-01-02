@@ -38,6 +38,11 @@ function detectIntent(question: string): IntentType {
   return "what";
 }
 
+// Escape special regex characters for safe brand matching
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function computeCitationScore(answer: string, brand: string): number {
   let score = 70;
 
@@ -47,12 +52,12 @@ function computeCitationScore(answer: string, brand: string): number {
   if (/\d+/.test(answer)) score += 5;
   if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 4;
   if (answer.length >= 200 && answer.length <= 600) score += 5;
-  if (new RegExp(brand, "i").test(answer)) score += 5;
+  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 5;
 
   return Math.min(95, Math.max(75, score));
 }
 
-function generateSlug(question: string): string {
+function generateAnswerSlug(question: string): string {
   return question
     .toLowerCase()
     .normalize("NFD")
@@ -61,6 +66,13 @@ function generateSlug(question: string): string {
     .trim()
     .replace(/\s+/g, "-")
     .slice(0, 100);
+}
+
+// Safe JSON parsing with fallback
+function safeParseJSON<T>(raw: string): T {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Invalid AI JSON response");
+  return JSON.parse(match[0]);
 }
 
 /* =======================
@@ -123,10 +135,7 @@ Return ONLY valid JSON:
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content ?? "";
 
-  const json = content.match(/\{[\s\S]*\}/);
-  if (!json) throw new Error("Invalid AI JSON");
-
-  return JSON.parse(json[0]);
+  return safeParseJSON<{ answer: string; bullets: string[]; faq: Array<{ q: string; a: string }> }>(content);
 }
 
 /* =======================
@@ -174,7 +183,7 @@ serve(async (req) => {
     const questions: Array<{ question: string; intent: IntentType }> = generate30
       ? keywords.slice(0, 30).map((k) => ({
           question: `${brandName} ${k} : comment ça fonctionne ?`,
-          intent: detectIntent(k),
+          intent: normalizeIntent(detectIntent(k)),
         }))
       : [
           {
@@ -197,14 +206,15 @@ serve(async (req) => {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
 
-      const generated = await generateAIAnswer(q.question, brandName, description, q.intent, language, apiKey);
+      const intent = normalizeIntent(q.intent);
+      const generated = await generateAIAnswer(q.question, brandName, description, intent, language, apiKey);
 
       inserts.push({
         project_id: projectId,
         question: q.question,
         answer: generated.answer,
-        slug: generateSlug(q.question),
-        intent: q.intent,
+        slug: generateAnswerSlug(q.question),
+        intent: intent,
         score: computeCitationScore(generated.answer, brandName),
         is_public: false,
         scheduled_date: new Date(today.getTime() + i * 86400000).toISOString(),
