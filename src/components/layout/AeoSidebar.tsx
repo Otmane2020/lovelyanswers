@@ -42,6 +42,7 @@ export function AeoSidebar() {
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
     { title: "AEO Answers", url: "/answers", icon: FileText },
+    { title: "AEO Answers V2", url: "/aeo-answers", icon: FileText, badge: "Alt" },
     { title: "Planning", url: "/planning", icon: CalendarDays },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Integrations", url: "/integrations", icon: Link2 },
