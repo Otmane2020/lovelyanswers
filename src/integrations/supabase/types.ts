@@ -185,6 +185,74 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_settings: {
+        Row: {
+          answer_length: string | null
+          brand_color: string | null
+          brand_name: string | null
+          business_description: string | null
+          competitors: string[] | null
+          created_at: string
+          example_url: string | null
+          id: string
+          include_citations: boolean | null
+          language: string
+          project_id: string
+          referral_source: string | null
+          target_audiences: string[] | null
+          target_platforms: string[] | null
+          tone: string | null
+          updated_at: string
+          website_url: string
+        }
+        Insert: {
+          answer_length?: string | null
+          brand_color?: string | null
+          brand_name?: string | null
+          business_description?: string | null
+          competitors?: string[] | null
+          created_at?: string
+          example_url?: string | null
+          id?: string
+          include_citations?: boolean | null
+          language?: string
+          project_id: string
+          referral_source?: string | null
+          target_audiences?: string[] | null
+          target_platforms?: string[] | null
+          tone?: string | null
+          updated_at?: string
+          website_url: string
+        }
+        Update: {
+          answer_length?: string | null
+          brand_color?: string | null
+          brand_name?: string | null
+          business_description?: string | null
+          competitors?: string[] | null
+          created_at?: string
+          example_url?: string | null
+          id?: string
+          include_citations?: boolean | null
+          language?: string
+          project_id?: string
+          referral_source?: string | null
+          target_audiences?: string[] | null
+          target_platforms?: string[] | null
+          tone?: string | null
+          updated_at?: string
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           config: Json | null
