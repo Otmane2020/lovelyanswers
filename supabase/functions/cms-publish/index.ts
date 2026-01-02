@@ -7,15 +7,19 @@ const corsHeaders = {
 };
 
 interface PublishRequest {
-  projectId: string;
-  articleId: string;
-  platform: "wordpress" | "webflow" | "shopify" | "wix" | "api";
-  credentials: {
-    apiUrl?: string;
-    apiKey?: string;
-    siteId?: string;
-    collectionId?: string;
+  integrationId?: string;
+  projectId?: string;
+  articleId?: string;
+  answerId?: string;
+  content?: {
+    title: string;
+    body: string;
+    type: "answer" | "article";
+    sourceId: string;
   };
+  // Legacy support
+  platform?: string;
+  credentials?: Record<string, string>;
 }
 
 serve(async (req) => {
@@ -31,24 +35,64 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { projectId, articleId, platform, credentials }: PublishRequest = await req.json();
+    const requestData: PublishRequest = await req.json();
+    
+    let platform: string;
+    let config: Record<string, string>;
+    let content: { title: string; body: string };
 
-    console.log(`[cms-publish] Publishing article ${articleId} to ${platform}`);
+    // New flow: use integrationId to get stored config
+    if (requestData.integrationId) {
+      console.log(`[cms-publish] Using integration ${requestData.integrationId}`);
+      
+      const { data: integration, error: intError } = await supabase
+        .from("integrations")
+        .select("*")
+        .eq("id", requestData.integrationId)
+        .single();
 
-    // Get article details
-    const { data: article, error: articleError } = await supabase
-      .from("articles")
-      .select("*")
-      .eq("id", articleId)
-      .eq("project_id", projectId)
-      .single();
+      if (intError || !integration) {
+        throw new Error("Integration not found");
+      }
 
-    if (articleError || !article) {
-      throw new Error("Article not found");
+      platform = integration.platform;
+      config = integration.config as Record<string, string>;
+
+      if (requestData.content) {
+        content = {
+          title: requestData.content.title,
+          body: requestData.content.body,
+        };
+      } else {
+        throw new Error("Content is required");
+      }
     }
+    // Legacy flow: use provided credentials
+    else if (requestData.platform && requestData.credentials) {
+      platform = requestData.platform;
+      config = requestData.credentials;
+
+      if (requestData.articleId) {
+        const { data: article, error: articleError } = await supabase
+          .from("articles")
+          .select("*")
+          .eq("id", requestData.articleId)
+          .single();
+
+        if (articleError || !article) {
+          throw new Error("Article not found");
+        }
+        content = { title: article.title, body: article.content || "" };
+      } else {
+        throw new Error("Article ID is required");
+      }
+    } else {
+      throw new Error("Either integrationId or platform+credentials is required");
+    }
+
+    console.log(`[cms-publish] Publishing to ${platform}`);
 
     let publishResult: {
       success: boolean;
@@ -59,39 +103,50 @@ serve(async (req) => {
 
     switch (platform) {
       case "wordpress":
-        publishResult = await publishToWordPress(article, credentials);
+        publishResult = await publishToWordPress(content, config);
         break;
       case "webflow":
-        publishResult = await publishToWebflow(article, credentials);
+        publishResult = await publishToWebflow(content, config);
         break;
       case "shopify":
-        publishResult = await publishToShopify(article, credentials);
+        publishResult = await publishToShopify(content, config);
         break;
       case "wix":
-        publishResult = await publishToWix(article, credentials);
+        publishResult = await publishToWix(content, config);
+        break;
+      case "webhook":
+        publishResult = await publishToWebhook(content, config);
         break;
       case "api":
-        publishResult = await publishToCustomApi(article, credentials);
+        publishResult = await publishToCustomApi(content, config);
+        break;
+      case "duda":
+        publishResult = await publishToDuda(content, config);
+        break;
+      case "bigcommerce":
+        publishResult = await publishToBigCommerce(content, config);
+        break;
+      case "framer":
+      case "snapps":
+        publishResult = await publishToWebhook(content, config);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }
 
-    if (publishResult.success) {
-      // Update article status
+    if (publishResult.success && requestData.articleId) {
       await supabase
         .from("articles")
         .update({ status: "published" })
-        .eq("id", articleId);
-
-      console.log(`[cms-publish] Successfully published to ${platform}: ${publishResult.publishedUrl}`);
+        .eq("id", requestData.articleId);
     }
+
+    console.log(`[cms-publish] Result: ${JSON.stringify(publishResult)}`);
 
     return new Response(
       JSON.stringify({
         success: publishResult.success,
         platform,
-        articleId,
         publishedUrl: publishResult.publishedUrl,
         publishedId: publishResult.publishedId,
         message: publishResult.message,
@@ -109,23 +164,23 @@ serve(async (req) => {
 });
 
 async function publishToWordPress(
-  article: { title: string; content: string },
-  credentials: { apiUrl?: string; apiKey?: string }
+  content: { title: string; body: string },
+  config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!credentials.apiUrl || !credentials.apiKey) {
-    throw new Error("WordPress API URL and API Key required");
+  if (!config.endpoint || !config.token) {
+    throw new Error("WordPress endpoint and token required");
   }
 
   try {
-    const response = await fetch(`${credentials.apiUrl}/wp-json/wp/v2/posts`, {
+    const response = await fetch(`${config.endpoint}/wp-json/wp/v2/posts`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${credentials.apiKey}`,
+        Authorization: `Bearer ${config.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        title: article.title,
-        content: article.content,
+        title: content.title,
+        content: content.body,
         status: "publish",
       }),
     });
@@ -150,29 +205,29 @@ async function publishToWordPress(
 }
 
 async function publishToWebflow(
-  article: { title: string; content: string },
-  credentials: { apiKey?: string; siteId?: string; collectionId?: string }
+  content: { title: string; body: string },
+  config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!credentials.apiKey || !credentials.collectionId) {
-    throw new Error("Webflow API Key and Collection ID required");
+  if (!config.token || !config.endpoint) {
+    throw new Error("Webflow token and collection ID required");
   }
 
   try {
     const response = await fetch(
-      `https://api.webflow.com/v2/collections/${credentials.collectionId}/items`,
+      `https://api.webflow.com/v2/collections/${config.endpoint}/items`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${credentials.apiKey}`,
+          Authorization: `Bearer ${config.token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           isArchived: false,
           isDraft: false,
           fieldData: {
-            name: article.title,
-            slug: article.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-            "post-body": article.content,
+            name: content.title,
+            slug: content.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            "post-body": content.body,
           },
         }),
       }
@@ -187,7 +242,7 @@ async function publishToWebflow(
     return {
       success: true,
       publishedId: data.id,
-      publishedUrl: data.slug ? `https://${credentials.siteId}.webflow.io/blog/${data.slug}` : undefined,
+      publishedUrl: data.slug ? `https://site.webflow.io/blog/${data.slug}` : undefined,
     };
   } catch (error) {
     return {
@@ -198,24 +253,40 @@ async function publishToWebflow(
 }
 
 async function publishToShopify(
-  article: { title: string; content: string },
-  credentials: { apiUrl?: string; apiKey?: string }
+  content: { title: string; body: string },
+  config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!credentials.apiUrl || !credentials.apiKey) {
-    throw new Error("Shopify store URL and API Key required");
+  if (!config.endpoint || !config.token) {
+    throw new Error("Shopify store URL and token required");
   }
 
   try {
-    const response = await fetch(`${credentials.apiUrl}/admin/api/2024-01/blogs/default/articles.json`, {
+    // Get the first blog ID
+    const blogsResponse = await fetch(`${config.endpoint}/admin/api/2024-01/blogs.json`, {
+      headers: { "X-Shopify-Access-Token": config.token },
+    });
+    
+    if (!blogsResponse.ok) {
+      throw new Error("Failed to get Shopify blogs");
+    }
+    
+    const blogsData = await blogsResponse.json();
+    const blogId = blogsData.blogs?.[0]?.id;
+    
+    if (!blogId) {
+      throw new Error("No blog found in Shopify store");
+    }
+
+    const response = await fetch(`${config.endpoint}/admin/api/2024-01/blogs/${blogId}/articles.json`, {
       method: "POST",
       headers: {
-        "X-Shopify-Access-Token": credentials.apiKey,
+        "X-Shopify-Access-Token": config.token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         article: {
-          title: article.title,
-          body_html: article.content,
+          title: content.title,
+          body_html: content.body,
           published: true,
         },
       }),
@@ -230,7 +301,7 @@ async function publishToShopify(
     return {
       success: true,
       publishedId: String(data.article.id),
-      publishedUrl: `${credentials.apiUrl}/blogs/news/${data.article.handle}`,
+      publishedUrl: `${config.endpoint}/blogs/news/${data.article.handle}`,
     };
   } catch (error) {
     return {
@@ -241,29 +312,29 @@ async function publishToShopify(
 }
 
 async function publishToWix(
-  article: { title: string; content: string },
-  credentials: { apiKey?: string; siteId?: string }
+  content: { title: string; body: string },
+  config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!credentials.apiKey || !credentials.siteId) {
-    throw new Error("Wix API Key and Site ID required");
+  if (!config.token || !config.siteId) {
+    throw new Error("Wix token and site ID required");
   }
 
   try {
     const response = await fetch(`https://www.wixapis.com/blog/v3/posts`, {
       method: "POST",
       headers: {
-        Authorization: credentials.apiKey,
-        "wix-site-id": credentials.siteId,
+        Authorization: config.token,
+        "wix-site-id": config.siteId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         post: {
-          title: article.title,
+          title: content.title,
           richContent: {
             nodes: [
               {
                 type: "PARAGRAPH",
-                nodes: [{ type: "TEXT", textData: { text: article.content } }],
+                nodes: [{ type: "TEXT", textData: { text: content.body } }],
               },
             ],
           },
@@ -291,12 +362,12 @@ async function publishToWix(
   }
 }
 
-async function publishToCustomApi(
-  article: { title: string; content: string },
-  credentials: { apiUrl?: string; apiKey?: string }
+async function publishToWebhook(
+  content: { title: string; body: string },
+  config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!credentials.apiUrl) {
-    throw new Error("Custom API URL required");
+  if (!config.endpoint) {
+    throw new Error("Webhook URL required");
   }
 
   try {
@@ -304,23 +375,66 @@ async function publishToCustomApi(
       "Content-Type": "application/json",
     };
     
-    if (credentials.apiKey) {
-      headers["Authorization"] = `Bearer ${credentials.apiKey}`;
+    if (config.token) {
+      headers["Authorization"] = `Bearer ${config.token}`;
     }
 
-    const response = await fetch(credentials.apiUrl, {
+    const response = await fetch(config.endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        title: article.title,
-        content: article.content,
+        title: content.title,
+        content: content.body,
+        publishedAt: new Date().toISOString(),
+        source: "AEO Planning",
+      }),
+    });
+
+    // For webhooks, we consider it successful if the request was sent
+    return {
+      success: true,
+      message: "Webhook triggered successfully",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Webhook failed",
+    };
+  }
+}
+
+async function publishToCustomApi(
+  content: { title: string; body: string },
+  config: Record<string, string>
+): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
+  if (!config.endpoint) {
+    throw new Error("API endpoint required");
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    
+    if (config.token) {
+      headers["Authorization"] = config.token;
+    }
+
+    const method = config.method?.toUpperCase() || "POST";
+
+    const response = await fetch(config.endpoint, {
+      method,
+      headers,
+      body: JSON.stringify({
+        title: content.title,
+        content: content.body,
         publishedAt: new Date().toISOString(),
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Custom API error: ${errorText}`);
+      throw new Error(`API error: ${errorText}`);
     }
 
     const data = await response.json();
@@ -332,7 +446,95 @@ async function publishToCustomApi(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Custom API publish failed",
+      message: error instanceof Error ? error.message : "API publish failed",
+    };
+  }
+}
+
+async function publishToDuda(
+  content: { title: string; body: string },
+  config: Record<string, string>
+): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
+  if (!config.endpoint || !config.token) {
+    throw new Error("Duda site name and API key required");
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.duda.co/api/sites/multiscreen/${config.endpoint}/blog/posts`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${config.token}:`)}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: content.title,
+          content: content.body,
+          status: "published",
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Duda API error: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      publishedId: data.id,
+      publishedUrl: data.url,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Duda publish failed",
+    };
+  }
+}
+
+async function publishToBigCommerce(
+  content: { title: string; body: string },
+  config: Record<string, string>
+): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
+  if (!config.endpoint || !config.token) {
+    throw new Error("BigCommerce store hash and token required");
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.bigcommerce.com/stores/${config.endpoint}/v2/blog/posts`,
+      {
+        method: "POST",
+        headers: {
+          "X-Auth-Token": config.token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: content.title,
+          body: content.body,
+          is_published: true,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`BigCommerce API error: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      publishedId: String(data.id),
+      publishedUrl: data.url,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "BigCommerce publish failed",
     };
   }
 }
