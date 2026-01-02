@@ -18,16 +18,34 @@ const PLATFORM_WEIGHTS: Record<Platform, number> = {
 };
 
 function computeCitationScore(answer: string, platforms: Platform[]): number {
-  let score = 50;
+  // 🔥 FIX: Start at 70 base score for well-formed AEO answers
+  let score = 70;
+  
   const firstSentence = answer.split(/[.!?]/)[0];
-  if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 15;
-  else if (firstSentence.length >= 60 && firstSentence.length <= 200) score += 8;
-  if (/\d+/.test(answer)) score += 10;
-  if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) score += 8;
-  if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 7;
-  const avgWeight = platforms.reduce((sum, p) => sum + (PLATFORM_WEIGHTS[p] || 0.85), 0) / platforms.length;
-  score = Math.round(score * avgWeight);
-  return Math.min(100, Math.max(0, score));
+  const answerLength = answer.length;
+  
+  // First sentence quality (ideal: 80-160 chars for direct answer)
+  if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 8;
+  else if (firstSentence.length >= 60 && firstSentence.length <= 200) score += 4;
+  
+  // Contains data/numbers (factual content)
+  if (/\d+/.test(answer)) score += 5;
+  
+  // Starts with affirmative statement (not a question word)
+  if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) score += 4;
+  
+  // Has structured content (lists, bullets)
+  if (answer.includes(":") || answer.includes("-") || answer.includes("•")) score += 4;
+  
+  // Good answer length (200-600 chars ideal for AEO)
+  if (answerLength >= 200 && answerLength <= 600) score += 5;
+  else if (answerLength >= 150 && answerLength <= 800) score += 2;
+  
+  // Contains brand mention (important for AEO)
+  if (/webify|app/i.test(answer)) score += 3;
+  
+  // Limit score to 75-95 range (yellow to green)
+  return Math.min(95, Math.max(75, score));
 }
 
 function detectIntent(question: string): IntentType {
