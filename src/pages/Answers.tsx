@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -35,6 +35,31 @@ export default function Answers() {
   const [newQuestion, setNewQuestion] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingAll, setRegeneratingAll] = useState(false);
+  const [unusedKeywordsCount, setUnusedKeywordsCount] = useState(0);
+
+  // Fetch unused keywords count
+  useEffect(() => {
+    const fetchKeywordsCount = async () => {
+      if (!user) return;
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+      
+      if (projects && projects.length > 0) {
+        const { count } = await supabase
+          .from("keywords")
+          .select("id", { count: 'exact', head: true })
+          .eq("project_id", projects[0].id)
+          .eq("is_used", false);
+        
+        setUnusedKeywordsCount(count || 0);
+      }
+    };
+    fetchKeywordsCount();
+  }, [user]);
 
   const filteredAnswers = answers.filter((answer) => {
     const matchesSearch = answer.question.toLowerCase().includes(searchQuery.toLowerCase());
@@ -122,8 +147,6 @@ export default function Answers() {
     if (!user) return;
     
     setRegeneratingAll(true);
-    let successCount = 0;
-    let failCount = 0;
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -144,86 +167,39 @@ export default function Answers() {
 
       const project = projects[0];
       
-      // If there are existing answers, regenerate them
-      if (answers.length > 0) {
-        const answersByProject = answers.reduce((acc, answer) => {
-          const projectId = answer.project_id;
-          if (!acc[projectId]) acc[projectId] = [];
-          acc[projectId].push(answer);
-          return acc;
-        }, {} as Record<string, typeof answers>);
-        
-        for (const [projectId, projectAnswers] of Object.entries(answersByProject)) {
-          const questions = projectAnswers.map(a => a.question);
-          const answerIds = projectAnswers.map(a => a.id);
-          
-          try {
-            const { error: deleteError } = await supabase
-              .from('answers')
-              .delete()
-              .in('id', answerIds);
-            
-            if (deleteError) {
-              console.error('Error deleting answers:', deleteError);
-              failCount += projectAnswers.length;
-              continue;
-            }
-            
-            const { error } = await supabase.functions.invoke('generate-aeo-answers', {
-              body: { 
-                projectId,
-                questions,
-                language: project.language || 'fr'
-              },
-              headers: {
-                Authorization: `Bearer ${session?.access_token}`
-              }
-            });
-            
-            if (error) {
-              failCount += projectAnswers.length;
-            } else {
-              successCount += projectAnswers.length;
-            }
-          } catch (err) {
-            console.error('Error regenerating project answers:', err);
-            failCount += projectAnswers.length;
-          }
-        }
-      } else {
-        // No answers exist - generate from keywords
-        toast.info("Génération de nouvelles réponses depuis les keywords...");
-        
-        const { error } = await supabase.functions.invoke('generate-aeo-answers', {
-          body: { 
-            projectId: project.id,
-            useKeywords: true,
-            businessContext: {
-              name: project.brand_name || project.name,
-              description: project.business_description,
-              audience: project.audience,
-              language: project.language
-            }
-          },
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
-        });
-        
-        if (error) {
-          toast.error("Erreur lors de la génération");
-          failCount = 1;
-        } else {
-          toast.success("Réponses générées avec succès!");
-          successCount = 1;
-        }
-      }
+      // Check if there are unused keywords
+      const { data: unusedKeywords } = await supabase
+        .from("keywords")
+        .select("id, keyword")
+        .eq("project_id", project.id)
+        .eq("is_used", false)
+        .limit(10);
       
-      if (successCount > 0 && answers.length > 0) {
-        toast.success(`${successCount} réponses régénérées avec succès!`);
-      }
-      if (failCount > 0) {
-        toast.error(`${failCount} réponses ont échoué`);
+      const hasUnusedKeywords = unusedKeywords && unusedKeywords.length > 0;
+      console.log(`[ANSWERS] Found ${unusedKeywords?.length || 0} unused keywords`);
+      
+      // Generate from keywords (new questions from unused keywords)
+      toast.info(hasUnusedKeywords 
+        ? `Génération de ${unusedKeywords.length} nouvelles réponses depuis les keywords...`
+        : "Génération de nouvelles réponses depuis le contexte du projet...");
+      
+      const { data, error } = await supabase.functions.invoke('generate-aeo-answers', {
+        body: { 
+          projectId: project.id,
+          useKeywords: true,
+          language: project.language || 'fr'
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
+      });
+      
+      if (error) {
+        console.error('Error generating answers:', error);
+        toast.error("Erreur lors de la génération");
+      } else {
+        const count = data?.count || data?.answers?.length || 0;
+        toast.success(`${count} nouvelles réponses générées!`);
       }
       
       refetch();
@@ -255,7 +231,7 @@ export default function Answers() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {answers.length > 0 ? `Régénérer tout (${answers.length})` : "Générer depuis keywords"}
+              {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount} keywords)` : "Générer depuis contexte"}
             </Button>
             <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
               <Plus className="h-4 w-4" />New Answer
