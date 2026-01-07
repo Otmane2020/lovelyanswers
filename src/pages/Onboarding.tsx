@@ -177,6 +177,8 @@ export default function Onboarding() {
     } finally {
       setIsAutoFilling(false);
       setHasAnalyzed(true);
+      // Auto-advance to step 2 after successful analysis
+      setCurrentStep(2);
     }
   }, [toast]);
 
@@ -225,7 +227,7 @@ export default function Onboarding() {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl);
+      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl) && hasAnalyzed;
       case 2: return data.language.length > 0;
       case 3: return data.businessDescription.length > 0 && data.targetAudiences.length >= 2;
       case 4: return true;
