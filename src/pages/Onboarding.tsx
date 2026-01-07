@@ -435,7 +435,7 @@ export default function Onboarding() {
                       <h1 className="text-3xl font-bold tracking-tight">Choose Your Language</h1>
                       <p className="text-muted-foreground mt-2">Select the language for your AI-optimized content.</p>
                     </div>
-                    {isAutoFilling ? (
+                    {isAutoFilling && !data.language ? (
                       <div className="flex items-center gap-3 h-14 px-4 border border-border rounded-md bg-muted/50">
                         <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         <span className="text-muted-foreground">Detecting language...</span>
