@@ -134,11 +134,8 @@ export default function Onboarding() {
 
       const { brandName, description, language: detectedLang, audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
       
-      // Detect language from content or domain
-      let finalLanguage = detectedLang || "en";
-      if (url.includes(".fr") || url.includes("/fr")) finalLanguage = "fr";
-      else if (url.includes(".de") || url.includes("/de")) finalLanguage = "de";
-      else if (url.includes(".es") || url.includes("/es")) finalLanguage = "es";
+      // Use detected language from scraper (content-based detection)
+      const finalLanguage = detectedLang || "en";
       
       // Use scraped audiences or fallback
       const finalAudiences = scrapedAudiences && scrapedAudiences.length >= 2 
