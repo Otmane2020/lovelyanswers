@@ -177,8 +177,7 @@ export default function Onboarding() {
     } finally {
       setIsAutoFilling(false);
       setHasAnalyzed(true);
-      // Auto-advance to step 2 after successful analysis
-      setCurrentStep(2);
+      // Step advancement is now handled by handleNext
     }
   }, [toast]);
 
@@ -223,7 +222,7 @@ export default function Onboarding() {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl);
+      case 1: return data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
       case 2: return data.language.length > 0;
       case 3: return data.businessDescription.length > 0 && data.targetAudiences.length >= 2;
       case 4: return true;
@@ -236,9 +235,10 @@ export default function Onboarding() {
   const handleNext = () => {
     if (!validateAndProceed()) return;
     
-    // If on step 1 and not yet analyzed, trigger analysis (which auto-advances to step 2)
+    // If on step 1 and not yet analyzed, start background analysis and advance immediately
     if (currentStep === 1 && !hasAnalyzed) {
-      analyzeWebsite(data.websiteUrl);
+      analyzeWebsite(data.websiteUrl); // Non-blocking - runs in background
+      setCurrentStep(2); // Advance immediately
       return;
     }
     
@@ -433,30 +433,37 @@ export default function Onboarding() {
                       <h1 className="text-3xl font-bold tracking-tight">Choose Your Language</h1>
                       <p className="text-muted-foreground mt-2">Select the language for your AI-optimized content.</p>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full h-14 justify-between text-left font-normal">
-                          {data.language ? (
-                            <div className="flex items-center gap-2">
-                              <span>{languages.find(l => l.code === data.language)?.flag}</span>
-                              <span>{languages.find(l => l.code === data.language)?.name}</span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Select a language</span>
-                          )}
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-full min-w-[400px]">
-                        {languages.map((lang) => (
-                          <DropdownMenuItem key={lang.code} onClick={() => updateData("language", lang.code)} className="py-3">
-                            <span className="mr-2">{lang.flag}</span>
-                            <span>{lang.name}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {data.language && (
+                    {isAutoFilling ? (
+                      <div className="flex items-center gap-3 h-14 px-4 border border-border rounded-md bg-muted/50">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <span className="text-muted-foreground">Detecting language...</span>
+                      </div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full h-14 justify-between text-left font-normal">
+                            {data.language ? (
+                              <div className="flex items-center gap-2">
+                                <span>{languages.find(l => l.code === data.language)?.flag}</span>
+                                <span>{languages.find(l => l.code === data.language)?.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Select a language</span>
+                            )}
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-full min-w-[400px]">
+                          {languages.map((lang) => (
+                            <DropdownMenuItem key={lang.code} onClick={() => updateData("language", lang.code)} className="py-3">
+                              <span className="mr-2">{lang.flag}</span>
+                              <span>{lang.name}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    {data.language && !isAutoFilling && (
                       <div className="flex items-center gap-2 text-primary">
                         <Check className="h-4 w-4" />
                         <span className="text-sm">Potential audience: {languages.find(l => l.code === data.language)?.audience}</span>
@@ -608,20 +615,11 @@ export default function Onboarding() {
             {/* Continue Button */}
             <Button
               onClick={handleNext}
-              disabled={!canProceed() || isAutoFilling}
+              disabled={!canProceed()}
               className="w-full h-14 mt-8 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
             >
-              {isAutoFilling ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="h-5 w-5" />
-                </>
-              )}
+              Continue
+              <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
         </div>
