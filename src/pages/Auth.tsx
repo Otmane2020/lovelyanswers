@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Rocket, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -62,15 +63,37 @@ export default function Auth() {
     e.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
+    
     const { error } = await signUp(email, password, fullName);
-    setIsLoading(false);
+    
     if (error) {
+      setIsLoading(false);
       let message = error.message;
       if (error.message.includes("already registered")) message = "This email is already registered. Please sign in.";
       toast({ title: "Sign up failed", description: message, variant: "destructive" });
-    } else {
-      toast({ title: "Account created!", description: "Welcome to Aeoreply. Let's set up your project." });
-      navigate("/onboarding");
+      return;
+    }
+
+    // Account created - now redirect to Stripe checkout
+    toast({ title: "Account created!", description: "Redirecting to start your free trial..." });
+    
+    try {
+      const { data, error: checkoutError } = await supabase.functions.invoke("create-checkout");
+      
+      if (checkoutError || !data?.url) {
+        console.error("Checkout error:", checkoutError);
+        toast({ title: "Checkout error", description: "Please try again from the pricing page.", variant: "destructive" });
+        navigate("/pricing");
+        return;
+      }
+      
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      navigate("/pricing");
+    } finally {
+      setIsLoading(false);
     }
   };
 
