@@ -24,6 +24,7 @@ import AeoPlanning from "./pages/AeoPlanning";
 import AeoWizard from "./pages/AeoWizard";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
               <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
