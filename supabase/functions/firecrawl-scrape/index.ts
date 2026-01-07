@@ -134,21 +134,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ============= STEP 2: AI Analysis + Competitors + Keywords in PARALLEL =============
+    // ============= STEP 2: Extract Keywords FIRST (needed for competitor detection) =============
     const contentPreview = markdown.substring(0, 2000);
     
-    // Start AI and wait for competitors in parallel
-    const [audiences, dataForSeoCompetitors, keywords] = await Promise.all([
+    // Extract keywords first - they'll be used for AI competitor fallback
+    const keywords = lovableApiKey 
+      ? await extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) 
+      : [];
+    
+    // ============= STEP 3: Audiences + Competitors in PARALLEL =============
+    const [audiences, dataForSeoCompetitors] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
-      competitorsPromise || Promise.resolve([]),
-      lovableApiKey ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) : Promise.resolve([])
+      competitorsPromise || Promise.resolve([])
     ]);
 
-    // If DataForSEO returned no competitors, use AI to detect them
+    // If DataForSEO returned no competitors, use AI with keywords for better detection
     let competitors = dataForSeoCompetitors;
     if (competitors.length === 0 && lovableApiKey) {
-      console.log('[COMPETITORS] DataForSEO returned nothing, using AI fallback');
-      competitors = await detectCompetitorsWithAI(enrichedDescription, contentPreview, brandName, ownDomain, lovableApiKey);
+      console.log('[COMPETITORS] DataForSEO returned nothing, using AI fallback with keywords');
+      competitors = await detectCompetitorsWithAI(enrichedDescription, contentPreview, brandName, ownDomain, lovableApiKey, keywords);
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -226,11 +230,24 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
-// AI-based competitor detection fallback
-async function detectCompetitorsWithAI(description: string, content: string, brandName: string, domain: string, apiKey: string): Promise<string[]> {
+// AI-based competitor detection fallback - now uses extracted keywords for better accuracy
+async function detectCompetitorsWithAI(
+  description: string, 
+  content: string, 
+  brandName: string, 
+  domain: string, 
+  apiKey: string,
+  keywords: Array<{keyword: string, intent: string}> = []
+): Promise<string[]> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6000);
+
+    // Extract top keywords for the prompt
+    const topKeywords = keywords
+      .slice(0, 8)
+      .map(k => k.keyword)
+      .join(', ');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -242,18 +259,23 @@ async function detectCompetitorsWithAI(description: string, content: string, bra
         model: 'google/gemini-2.5-flash-lite',
         messages: [{
           role: 'user',
-          content: `Based on this business description and content, identify 3-5 REAL competitor domains that offer similar products/services.
+          content: `Based on this business description and keywords, identify 3-5 REAL competitor domains that offer similar products/services.
 
 Business: ${brandName}
 Domain: ${domain}
 Description: ${description}
-Content preview: ${content.substring(0, 800)}
+${topKeywords ? `Main keywords: ${topKeywords}` : ''}
+Content preview: ${content.substring(0, 600)}
 
 Rules:
+- Competitors MUST be in the SAME NICHE based on the keywords
+- For SEO tools/software → suggest SEO competitors (semrush.com, ahrefs.com, moz.com, etc.)
+- For Shopify apps → suggest Shopify app competitors
+- For AI writing tools → suggest AI writing competitors
+- For e-commerce → suggest e-commerce competitors in same vertical
 - Return ONLY real existing domains (e.g., "competitor.com")
 - No social media sites (facebook, instagram, linkedin, twitter)
 - No generic platforms (amazon, shopify, wordpress, wix)
-- Only direct business competitors in the same niche
 - If you're not sure about real competitors, return fewer items
 
 Return ONLY a JSON array: ["competitor1.com", "competitor2.com", "competitor3.com"]`
