@@ -3,6 +3,45 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Content-based language detection - more reliable than HTML meta tag
+function detectLanguageFromContent(content: string, metaLang: string): string {
+  const text = content.toLowerCase().substring(0, 3000);
+  
+  // Common words per language (high frequency, unique to each language)
+  const langPatterns: Record<string, string[]> = {
+    en: ['the', 'and', 'you', 'for', 'are', 'with', 'your', 'our', 'this', 'that', 'have', 'from', 'they', 'will', 'what'],
+    fr: ['les', 'des', 'pour', 'vous', 'avec', 'dans', 'notre', 'votre', 'cette', 'sont', 'nous', 'leurs', 'peut', 'faire', 'tout'],
+    de: ['und', 'die', 'der', 'für', 'mit', 'auf', 'ist', 'sie', 'werden', 'haben', 'das', 'auch', 'sind', 'oder', 'eine'],
+    es: ['los', 'las', 'para', 'con', 'por', 'del', 'una', 'sus', 'como', 'esta', 'que', 'son', 'más', 'pero', 'todo'],
+    it: ['che', 'per', 'non', 'con', 'una', 'sono', 'della', 'questo', 'anche', 'come', 'essere', 'loro', 'tutti', 'dalla'],
+    pt: ['que', 'para', 'com', 'uma', 'são', 'mais', 'como', 'pelo', 'pela', 'quando', 'seus', 'esse', 'esta', 'isso'],
+  };
+  
+  const scores: Record<string, number> = {};
+  
+  for (const [lang, words] of Object.entries(langPatterns)) {
+    scores[lang] = words.filter(w => {
+      // Match whole words with spaces around them
+      const regex = new RegExp(`\\s${w}\\s`, 'gi');
+      return regex.test(` ${text} `);
+    }).length;
+  }
+  
+  // Find the language with the highest score
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const best = sorted[0];
+  
+  // If significant score (>4 words found), use content detection
+  if (best && best[1] > 4) {
+    console.log('[LANG] Content scores:', scores, '-> detected:', best[0]);
+    return best[0];
+  }
+  
+  // Fallback to metadata language
+  console.log('[LANG] Low confidence, using meta:', metaLang);
+  return metaLang;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -105,7 +144,11 @@ Deno.serve(async (req) => {
     const markdown = data.data?.markdown || '';
     const title = metadata.title || '';
     let description = metadata.description || metadata.ogDescription || '';
-    const language = metadata.language?.substring(0, 2) || 'en';
+    
+    // Detect language from content (more reliable than metadata)
+    const metaLang = metadata.language?.substring(0, 2) || 'en';
+    const language = detectLanguageFromContent(markdown, metaLang);
+    console.log('[SCRAPE] Language: meta=' + metaLang + ', detected=' + language);
 
     // Extract brand name
     let brandName = title.split('|')[0].split('-')[0].split('—')[0].split(':')[0].trim();
