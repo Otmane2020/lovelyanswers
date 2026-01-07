@@ -309,7 +309,24 @@ export default function Onboarding() {
       }
       
       await new Promise(resolve => setTimeout(resolve, 1500));
-      navigate("/dashboard");
+      
+      // Redirect to Stripe checkout after onboarding
+      try {
+        const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke("create-checkout");
+        
+        if (checkoutError || !checkoutData?.url) {
+          console.error("Checkout error:", checkoutError);
+          toast({ title: "Project created!", description: "Redirecting to checkout..." });
+          navigate("/pricing");
+          return;
+        }
+        
+        // Redirect to Stripe checkout
+        window.location.href = checkoutData.url;
+      } catch (checkoutErr) {
+        console.error("Checkout failed:", checkoutErr);
+        navigate("/pricing");
+      }
     } catch (error) {
       toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
       setIsAnalyzing(false);
