@@ -219,15 +219,11 @@ export default function Onboarding() {
     return [];
   };
 
-  useEffect(() => {
-    if (data.websiteUrl.length < 5 || hasAnalyzed) return;
-    const timer = setTimeout(() => analyzeWebsite(data.websiteUrl), 1000);
-    return () => clearTimeout(timer);
-  }, [data.websiteUrl, analyzeWebsite, hasAnalyzed]);
+  // Removed auto-analysis useEffect - analysis is now triggered by Continue button
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl) && hasAnalyzed;
+      case 1: return data.websiteUrl.length > 0 && !isAutoFilling && isValidUrl(data.websiteUrl);
       case 2: return data.language.length > 0;
       case 3: return data.businessDescription.length > 0 && data.targetAudiences.length >= 2;
       case 4: return true;
@@ -239,6 +235,12 @@ export default function Onboarding() {
 
   const handleNext = () => {
     if (!validateAndProceed()) return;
+    
+    // If on step 1 and not yet analyzed, trigger analysis (which auto-advances to step 2)
+    if (currentStep === 1 && !hasAnalyzed) {
+      analyzeWebsite(data.websiteUrl);
+      return;
+    }
     
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
@@ -606,11 +608,20 @@ export default function Onboarding() {
             {/* Continue Button */}
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isAutoFilling}
               className="w-full h-14 mt-8 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
             >
-              Continue
-              <ArrowRight className="h-5 w-5" />
+              {isAutoFilling ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
             </Button>
           </div>
         </div>
