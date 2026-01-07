@@ -21,6 +21,7 @@ import AeoSeoAudit from "./pages/AeoSeoAudit";
 import AeoKeywords from "./pages/AeoKeywords";
 import AeoReddit from "./pages/AeoReddit";
 import AeoPlanning from "./pages/AeoPlanning";
+import AeoWizard from "./pages/AeoWizard";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
+              <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
               <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
