@@ -220,8 +220,8 @@ export default function Onboarding() {
   const canProceed = () => {
     switch (currentStep) {
       case 1: return data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
-      case 2: return data.language.length > 0;
-      case 3: return data.businessDescription.length > 0 && data.targetAudiences.length >= 2;
+      case 2: return true; // Allow proceeding even if language not yet detected (will default to 'en')
+      case 3: return true; // Allow proceeding even if analysis still running
       case 4: return true;
       case 5: return true;
       case 6: return true;
@@ -240,8 +240,14 @@ export default function Onboarding() {
     }
     
     if (currentStep < totalSteps) {
+      // If advancing from step 2 without language, default to English
+      if (currentStep === 2 && !data.language) {
+        updateData("language", "en");
+      }
       setCurrentStep(currentStep + 1);
     } else {
+      // Ensure we have minimum data before completing
+      if (!data.language) updateData("language", "en");
       handleComplete();
     }
   };
@@ -432,12 +438,7 @@ export default function Onboarding() {
                       <h1 className="text-3xl font-bold tracking-tight">Choose Your Language</h1>
                       <p className="text-muted-foreground mt-2">Select the language for your AI-optimized content.</p>
                     </div>
-                    {isAutoFilling && !data.language ? (
-                      <div className="flex items-center gap-3 h-14 px-4 border border-border rounded-md bg-muted/50">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <span className="text-muted-foreground">Detecting language...</span>
-                      </div>
-                    ) : (
+                    <div className="relative">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" className="w-full h-14 justify-between text-left font-normal">
@@ -449,7 +450,12 @@ export default function Onboarding() {
                             ) : (
                               <span className="text-muted-foreground">Select a language</span>
                             )}
-                            <ChevronDown className="h-4 w-4" />
+                            <div className="flex items-center gap-2">
+                              {isAutoFilling && !data.language && (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              )}
+                              <ChevronDown className="h-4 w-4" />
+                            </div>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-full min-w-[400px]">
@@ -461,13 +467,18 @@ export default function Onboarding() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    )}
-                    {data.language && !isAutoFilling && (
+                    </div>
+                    {isAutoFilling && !data.language ? (
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Detecting language from your website...
+                      </p>
+                    ) : data.language ? (
                       <div className="flex items-center gap-2 text-primary">
                         <Check className="h-4 w-4" />
                         <span className="text-sm">Potential audience: {languages.find(l => l.code === data.language)?.audience}</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
@@ -478,15 +489,24 @@ export default function Onboarding() {
                     </div>
                     <div className="space-y-2">
                       <Label>{getDescriptionLabel()}</Label>
-                      <Textarea
-                        value={data.businessDescription}
-                        onChange={(e) => updateData("businessDescription", e.target.value)}
-                        className="min-h-[150px] resize-none"
-                        placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
-                      />
+                      {isAutoFilling && !data.businessDescription ? (
+                        <div className="min-h-[150px] border border-border rounded-md bg-muted/30 p-4 flex items-center justify-center">
+                          <div className="flex items-center gap-3 text-muted-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                            <span>Analyzing your website content...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Textarea
+                          value={data.businessDescription}
+                          onChange={(e) => updateData("businessDescription", e.target.value)}
+                          className="min-h-[150px] resize-none"
+                          placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Target Audience (min 2)</Label>
+                      <Label>Target Audience</Label>
                       <div className="flex gap-2">
                         <Input
                           placeholder="e.g. business owners in Florida"
@@ -498,16 +518,23 @@ export default function Onboarding() {
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {data.targetAudiences.map((audience) => (
-                          <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
-                            {audience}
-                            <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
+                      {isAutoFilling && data.targetAudiences.length === 0 ? (
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mt-3">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Detecting target audiences...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {data.targetAudiences.map((audience) => (
+                            <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
+                              {audience}
+                              <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
