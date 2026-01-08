@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,64 +10,72 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ExternalLink, Youtube, CheckCircle2 } from "lucide-react";
+import { Loader2, ExternalLink, Youtube, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import shopifyLogo from "@/assets/shopify-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo.png";
 
-// CMS Platform configurations
+// CMS Platform configurations with detailed help
 const CMS_CONFIG: Record<string, {
   name: string;
   icon: string;
   isImage?: boolean;
   description: string;
   tutorialUrl?: string;
-  fields: { key: string; label: string; placeholder: string; type?: string }[];
+  helpText?: string;
+  fields: { key: string; label: string; placeholder: string; type?: string; helpText?: string }[];
 }> = {
   wordpress: {
     name: "WordPress",
     icon: wordpressLogo,
     isImage: true,
-    description: "Enter your webhook endpoint and access token to enable automatic content publishing to your WordPress site via the plugin.",
-    tutorialUrl: "https://example.com/wordpress-tutorial",
+    description: "Publish articles directly to your WordPress blog.",
+    tutorialUrl: "https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/",
+    helpText: "Use Application Passwords (Settings → Users → Application Passwords) or a JWT plugin.",
     fields: [
-      { key: "name", label: "Integration Name", placeholder: "Enter a name for this integration" },
-      { key: "endpoint", label: "Webhook Endpoint", placeholder: "https://your-domain.com/api/webhook" },
-      { key: "token", label: "Access Token (Bearer token)", placeholder: "Enter your access token", type: "password" },
+      { key: "name", label: "Integration Name", placeholder: "My WordPress Blog" },
+      { key: "endpoint", label: "Site URL", placeholder: "https://your-domain.com", helpText: "Your WordPress site URL (without /wp-json)" },
+      { key: "token", label: "Application Password", placeholder: "xxxx xxxx xxxx xxxx", type: "password", helpText: "Create one in Users → Your Profile → Application Passwords" },
     ],
   },
   shopify: {
     name: "Shopify",
     icon: shopifyLogo,
     isImage: true,
-    description: "Connect your Shopify store to publish blog articles directly.",
+    description: "Publish blog articles to your Shopify store.",
+    tutorialUrl: "https://help.shopify.com/en/manual/apps/app-types/custom-apps",
+    helpText: "Create a Custom App in Shopify Admin → Settings → Apps and sales channels → Develop apps.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Shopify Store" },
-      { key: "endpoint", label: "Store URL", placeholder: "https://your-store.myshopify.com" },
-      { key: "token", label: "Admin API Access Token", placeholder: "shpat_xxxxx", type: "password" },
+      { key: "endpoint", label: "Store URL", placeholder: "https://your-store.myshopify.com", helpText: "Your .myshopify.com URL" },
+      { key: "token", label: "Admin API Access Token", placeholder: "shpat_xxxxx", type: "password", helpText: "From your Custom App → API credentials" },
     ],
   },
   wix: {
     name: "Wix",
     icon: wixLogo,
     isImage: true,
-    description: "Connect your Wix site to publish blog posts automatically.",
+    description: "Publish blog posts to your Wix site.",
+    tutorialUrl: "https://dev.wix.com/docs/rest/articles/getting-started/authentication",
+    helpText: "Get your API key from Wix Developers → API Keys.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Wix Site" },
       { key: "endpoint", label: "API Endpoint", placeholder: "https://www.wixapis.com/blog/v3" },
       { key: "token", label: "API Key", placeholder: "Enter your Wix API key", type: "password" },
-      { key: "siteId", label: "Site ID", placeholder: "Enter your Wix Site ID" },
+      { key: "siteId", label: "Site ID", placeholder: "Enter your Wix Site ID", helpText: "Found in your Wix dashboard URL" },
     ],
   },
   webflow: {
     name: "Webflow",
     icon: "🔷",
-    description: "Publish CMS items directly to your Webflow collections.",
+    description: "Publish CMS items to your Webflow collections.",
+    tutorialUrl: "https://developers.webflow.com/docs/getting-started",
+    helpText: "Create an API token in Webflow → Site Settings → Integrations.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Webflow Site" },
-      { key: "endpoint", label: "Collection ID", placeholder: "Enter your collection ID" },
+      { key: "endpoint", label: "Collection ID", placeholder: "Enter your collection ID", helpText: "Found in CMS collection settings" },
       { key: "token", label: "API Token", placeholder: "Enter your Webflow API token", type: "password" },
       { key: "siteId", label: "Site ID", placeholder: "Enter your Webflow Site ID" },
     ],
@@ -75,28 +83,32 @@ const CMS_CONFIG: Record<string, {
   duda: {
     name: "Duda",
     icon: "🟠",
-    description: "Connect your Duda website for automatic blog publishing.",
+    description: "Publish blog posts to your Duda website.",
+    tutorialUrl: "https://developer.duda.co/docs/authentication",
+    helpText: "Get API credentials from Duda → Dashboard → API Access.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Duda Site" },
-      { key: "endpoint", label: "Site Name", placeholder: "Enter your Duda site name" },
+      { key: "endpoint", label: "Site Name", placeholder: "Enter your Duda site name", helpText: "The site name from your dashboard" },
       { key: "token", label: "API Key", placeholder: "Enter your Duda API key", type: "password" },
     ],
   },
   api: {
     name: "Custom API",
     icon: "⚙️",
-    description: "Connect to any REST API endpoint for custom publishing.",
+    description: "Connect to any REST API endpoint.",
+    helpText: "Send content to your own API endpoint.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Custom API" },
       { key: "endpoint", label: "API Endpoint", placeholder: "https://api.example.com/posts" },
-      { key: "token", label: "Authorization Header", placeholder: "Bearer your-token", type: "password" },
+      { key: "token", label: "Authorization Header", placeholder: "Bearer your-token", type: "password", helpText: "Full Authorization header value" },
       { key: "method", label: "HTTP Method", placeholder: "POST" },
     ],
   },
   webhook: {
     name: "Webhook",
     icon: "🔗",
-    description: "Send content to any webhook endpoint (Zapier, Make, n8n, etc.).",
+    description: "Send content to any webhook (Zapier, Make, n8n, etc.).",
+    helpText: "Perfect for automation workflows.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Zapier Webhook" },
       { key: "endpoint", label: "Webhook URL", placeholder: "https://hooks.zapier.com/..." },
@@ -106,9 +118,10 @@ const CMS_CONFIG: Record<string, {
     name: "BigCommerce",
     icon: "📦",
     description: "Publish blog content to your BigCommerce store.",
+    tutorialUrl: "https://developer.bigcommerce.com/docs/start/authentication",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My BigCommerce Store" },
-      { key: "endpoint", label: "Store Hash", placeholder: "Enter your store hash" },
+      { key: "endpoint", label: "Store Hash", placeholder: "Enter your store hash", helpText: "Found in your API account settings" },
       { key: "token", label: "API Token", placeholder: "Enter your API token", type: "password" },
     ],
   },
@@ -125,11 +138,11 @@ const CMS_CONFIG: Record<string, {
   framer: {
     name: "Framer",
     icon: "⬛",
-    description: "Connect your Framer site via API.",
+    description: "Connect your Framer site via webhook.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Framer Site" },
-      { key: "endpoint", label: "Site URL", placeholder: "https://your-site.framer.website" },
-      { key: "token", label: "API Token", placeholder: "Enter your API token", type: "password" },
+      { key: "endpoint", label: "Webhook URL", placeholder: "https://your-webhook-url" },
+      { key: "token", label: "API Token", placeholder: "Enter your API token (optional)", type: "password" },
     ],
   },
 };
@@ -156,7 +169,17 @@ export function IntegrationConfigModal({
   const [formData, setFormData] = useState<Record<string, string>>(existingConfig || {});
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [testSuccess, setTestSuccess] = useState(false);
+  const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
+  const [testMessage, setTestMessage] = useState<string>("");
+
+  // Reset form when modal opens with new data
+  useEffect(() => {
+    if (open) {
+      setFormData(existingConfig || {});
+      setTestResult(null);
+      setTestMessage("");
+    }
+  }, [open, existingConfig]);
 
   if (!platform || !CMS_CONFIG[platform]) return null;
 
@@ -164,36 +187,105 @@ export function IntegrationConfigModal({
 
   const handleFieldChange = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
-    setTestSuccess(false);
+    setTestResult(null);
   };
 
-  const handleTestWebhook = async () => {
+  const handleTestConnection = async () => {
     if (!formData.endpoint) {
       toast.error("Please enter an endpoint URL");
       return;
     }
 
     setIsTesting(true);
+    setTestResult(null);
+    setTestMessage("");
+
     try {
+      // For webhooks, we send a test ping
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (formData.token) {
+        // Handle different auth formats
+        if (platform === "shopify") {
+          headers["X-Shopify-Access-Token"] = formData.token;
+        } else {
+          headers["Authorization"] = formData.token.startsWith("Bearer ") 
+            ? formData.token 
+            : `Bearer ${formData.token}`;
+        }
+      }
+
+      // For Shopify, test by fetching blogs
+      if (platform === "shopify") {
+        const response = await fetch(`${formData.endpoint}/admin/api/2024-01/blogs.json`, {
+          headers: { "X-Shopify-Access-Token": formData.token },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setTestResult("success");
+          setTestMessage(`Found ${data.blogs?.length || 0} blog(s) in your store`);
+          toast.success("Shopify connection successful!");
+        } else if (response.status === 401) {
+          setTestResult("error");
+          setTestMessage("Invalid API token. Check your Admin API Access Token.");
+          toast.error("Authentication failed");
+        } else if (response.status === 404) {
+          setTestResult("error");
+          setTestMessage("Store not found. Check your Store URL.");
+          toast.error("Store not found");
+        } else {
+          setTestResult("error");
+          setTestMessage(`Error ${response.status}: ${response.statusText}`);
+          toast.error("Connection failed");
+        }
+        return;
+      }
+
+      // For WordPress, test the REST API
+      if (platform === "wordpress") {
+        const response = await fetch(`${formData.endpoint}/wp-json/wp/v2/posts?per_page=1`, {
+          headers,
+        });
+        
+        if (response.ok) {
+          setTestResult("success");
+          setTestMessage("WordPress API is accessible");
+          toast.success("WordPress connection successful!");
+        } else if (response.status === 401) {
+          setTestResult("error");
+          setTestMessage("Invalid credentials. Check your Application Password.");
+          toast.error("Authentication failed");
+        } else {
+          setTestResult("error");
+          setTestMessage(`Error ${response.status}: ${response.statusText}`);
+          toast.error("Connection failed");
+        }
+        return;
+      }
+
+      // For webhooks and other platforms, send a test POST
       const response = await fetch(formData.endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(formData.token ? { Authorization: `Bearer ${formData.token}` } : {}),
-        },
+        headers,
         mode: "no-cors",
         body: JSON.stringify({
           test: true,
           timestamp: new Date().toISOString(),
-          source: "AEO Planning",
+          source: "AEO Reply - Connection Test",
         }),
       });
 
-      setTestSuccess(true);
-      toast.success("Test request sent! Check your endpoint logs.");
+      setTestResult("success");
+      setTestMessage("Test request sent. Check your endpoint logs to confirm receipt.");
+      toast.success("Test request sent!");
     } catch (error) {
       console.error("Test failed:", error);
-      toast.error("Failed to send test request");
+      setTestResult("error");
+      setTestMessage(error instanceof Error ? error.message : "Connection failed");
+      toast.error("Failed to connect");
     } finally {
       setIsTesting(false);
     }
@@ -280,14 +372,16 @@ export function IntegrationConfigModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="rounded-lg border p-4 space-y-4">
-            <h4 className="font-medium">Webhook Configuration</h4>
-            <p className="text-sm text-muted-foreground">
-              Enter your webhook endpoint and access token to enable automatic content publishing.
+          {config.helpText && (
+            <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+              💡 {config.helpText}
             </p>
+          )}
+          <div className="rounded-lg border p-4 space-y-4">
+            <h4 className="font-medium">Configuration</h4>
 
             {config.fields.map((field) => (
-              <div key={field.key} className="space-y-2">
+              <div key={field.key} className="space-y-1.5">
                 <Label htmlFor={field.key}>{field.label}</Label>
                 <Input
                   id={field.key}
@@ -296,22 +390,32 @@ export function IntegrationConfigModal({
                   value={formData[field.key] || ""}
                   onChange={(e) => handleFieldChange(field.key, e.target.value)}
                 />
+                {field.helpText && (
+                  <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                )}
               </div>
             ))}
 
             <Button
               variant="outline"
-              onClick={handleTestWebhook}
+              onClick={handleTestConnection}
               disabled={isTesting || !formData.endpoint}
               className="gap-2"
             >
               {isTesting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : testSuccess ? (
+              ) : testResult === "success" ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
+              ) : testResult === "error" ? (
+                <AlertCircle className="h-4 w-4 text-destructive" />
               ) : null}
-              {testSuccess ? "Test Successful" : "Test Webhook"}
+              {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
             </Button>
+            {testMessage && (
+              <p className={`text-sm ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                {testMessage}
+              </p>
+            )}
           </div>
         </div>
 
