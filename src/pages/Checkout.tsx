@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -24,15 +24,59 @@ const highlights = [
   "20+ languages",
 ];
 
-const aeoExamples = [
-  { question: "What is the best CRM for small business?", score: 94 },
-  { question: "How to improve website SEO in 2025?", score: 91 },
-  { question: "What are the benefits of AI automation?", score: 88 },
-];
+interface AeoExample {
+  question: string;
+  score: number;
+}
 
 export default function Checkout() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [aeoExamples, setAeoExamples] = useState<AeoExample[]>([]);
+  const [brandName, setBrandName] = useState<string>("");
+
+  // Fetch real answers from user's project
+  useEffect(() => {
+    const fetchProjectAnswers = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Get user's active project
+        const { data: project } = await supabase
+          .from("projects")
+          .select("id, brand_name")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .single();
+
+        if (!project) return;
+        
+        setBrandName(project.brand_name || "");
+
+        // Get answers for this project
+        const { data: answers } = await supabase
+          .from("answers")
+          .select("question, score")
+          .eq("project_id", project.id)
+          .order("score", { ascending: false })
+          .limit(3);
+
+        if (answers && answers.length > 0) {
+          setAeoExamples(
+            answers.map(a => ({
+              question: a.question,
+              score: a.score || 85
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch project answers:", err);
+      }
+    };
+
+    fetchProjectAnswers();
+  }, []);
 
   const handleCheckout = async () => {
     setIsLoading(true);
