@@ -484,7 +484,7 @@ export default function Onboarding() {
                     {data.language && (
                       <div className="flex items-center gap-2 text-primary">
                         <Check className="h-4 w-4" />
-                        <span className="text-sm">Potential audience: {languages.find(l => l.code === data.language)?.audience}</span>
+                        <span className="text-sm">Speakers: {languages.find(l => l.code === data.language)?.audience}</span>
                       </div>
                     )}
                   </div>
