@@ -127,7 +127,21 @@ export default function Auth() {
             <Button
               variant="outline"
               className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
-              disabled
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: `${window.location.origin}/dashboard`,
+                  },
+                });
+                if (error) {
+                  toast({
+                    title: "Google sign in failed",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                }
+              }}
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
