@@ -448,9 +448,6 @@ export default function Onboarding() {
                               <span className="text-muted-foreground">Select a language</span>
                             )}
                             <div className="flex items-center gap-2">
-                              {isAutoFilling && !data.language && (
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              )}
                               <ChevronDown className="h-4 w-4" />
                             </div>
                           </Button>
@@ -465,17 +462,12 @@ export default function Onboarding() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    {isAutoFilling && !data.language ? (
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Detecting language from your website...
-                      </p>
-                    ) : data.language ? (
+                    {data.language && (
                       <div className="flex items-center gap-2 text-primary">
                         <Check className="h-4 w-4" />
                         <span className="text-sm">Potential audience: {languages.find(l => l.code === data.language)?.audience}</span>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 )}
 
@@ -486,21 +478,12 @@ export default function Onboarding() {
                     </div>
                     <div className="space-y-2">
                       <Label>{getDescriptionLabel()}</Label>
-                      {isAutoFilling && !data.businessDescription ? (
-                        <div className="min-h-[150px] border border-border rounded-md bg-muted/30 p-4 flex items-center justify-center">
-                          <div className="flex items-center gap-3 text-muted-foreground">
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                            <span>Auto-filling...</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <Textarea
-                          value={data.businessDescription}
-                          onChange={(e) => updateData("businessDescription", e.target.value)}
-                          className="min-h-[150px] resize-none"
-                          placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
-                        />
-                      )}
+                      <Textarea
+                        value={data.businessDescription}
+                        onChange={(e) => updateData("businessDescription", e.target.value)}
+                        className="min-h-[150px] resize-none"
+                        placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Target Audience</Label>
@@ -515,23 +498,16 @@ export default function Onboarding() {
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
-                      {isAutoFilling && data.targetAudiences.length === 0 ? (
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm mt-3">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span>Auto-filling...</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {data.targetAudiences.map((audience) => (
-                            <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
-                              {audience}
-                              <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {data.targetAudiences.map((audience) => (
+                          <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
+                            {audience}
+                            <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
