@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -68,6 +68,7 @@ export default function Onboarding() {
   const [urlError, setUrlError] = useState("");
   const [newAudience, setNewAudience] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
+  const analysisStartedRef = useRef<string | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
@@ -95,10 +96,30 @@ export default function Onboarding() {
     return urlPattern.test(url.trim());
   };
 
+  // Trigger analysis immediately when URL becomes valid
+  useEffect(() => {
+    const url = data.websiteUrl.trim();
+    if (isValidUrl(url) && analysisStartedRef.current !== url) {
+      // Debounce: wait 500ms after last keystroke
+      const timer = setTimeout(() => {
+        if (isValidUrl(url) && analysisStartedRef.current !== url) {
+          console.log('[ONBOARDING] Auto-triggering analysis for:', url);
+          analysisStartedRef.current = url;
+          analyzeWebsite(url);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [data.websiteUrl]);
+
   const handleUrlChange = (value: string) => {
     updateData("websiteUrl", value);
-    setHasAnalyzed(false);
     setUrlError("");
+    // Reset analysis flag if URL changes significantly
+    if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
+      setHasAnalyzed(false);
+      analysisStartedRef.current = null;
+    }
   };
 
   const validateAndProceed = () => {
@@ -211,13 +232,13 @@ export default function Onboarding() {
     return [];
   };
 
-  // Removed auto-analysis useEffect - analysis is now triggered by Continue button
+  // Analysis now auto-triggers on valid URL input (see useEffect above)
 
   const canProceed = () => {
     switch (currentStep) {
       case 1: return data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
-      case 2: return true; // Allow proceeding even if language not yet detected (will default to 'en')
-      case 3: return true; // Allow proceeding even if analysis still running
+      case 2: return true;
+      case 3: return true;
       case 4: return true;
       case 5: return true;
       case 6: return true;
@@ -227,13 +248,6 @@ export default function Onboarding() {
 
   const handleNext = () => {
     if (!validateAndProceed()) return;
-    
-    // If on step 1 and not yet analyzed, start background analysis and advance immediately
-    if (currentStep === 1 && !hasAnalyzed) {
-      analyzeWebsite(data.websiteUrl); // Non-blocking - runs in background
-      setCurrentStep(2); // Advance immediately
-      return;
-    }
     
     if (currentStep < totalSteps) {
       // If advancing from step 2 without language, default to English
