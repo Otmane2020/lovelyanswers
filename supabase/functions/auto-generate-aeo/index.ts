@@ -119,6 +119,90 @@ function safeParseJSON<T>(raw: string): T {
 }
 
 /* =======================
+   GENERATE CONTEXTUAL QUESTIONS
+======================= */
+async function generateContextualQuestions(
+  brandName: string,
+  description: string,
+  language: string,
+  apiKey: string,
+): Promise<{ question: string; intent: IntentType }[]> {
+  const systemPrompt = language === "fr"
+    ? `Tu génères 3 questions précises que des clients potentiels poseraient à un assistant IA.
+
+RÈGLES STRICTES:
+- Questions basées sur le MÉTIER RÉEL décrit
+- NE PAS utiliser le nom de marque dans les questions
+- Questions spécifiques au secteur d'activité
+- Format question naturelle (comme sur Google/ChatGPT)
+
+EXEMPLES par secteur:
+- Location meubles: "Comment louer des meubles pour un appartement meublé ?", "Quel est le prix moyen de la location de meubles ?"
+- SaaS SEO: "Comment améliorer le référencement de mon site ?", "Quels outils SEO utiliser en 2025 ?"
+- E-commerce: "Comment choisir [produit] de qualité ?", "Où acheter [produit] en ligne ?"
+
+Retourne UNIQUEMENT du JSON valide.`
+    : `Generate 3 precise questions potential customers would ask an AI assistant.
+
+STRICT RULES:
+- Questions based on the REAL business described
+- DO NOT use brand name in questions
+- Industry-specific questions
+- Natural question format (like Google/ChatGPT)
+
+Return ONLY valid JSON.`;
+
+  const userPrompt = `
+Business: ${brandName}
+Description: ${description}
+Language: ${language}
+
+Generate 3 questions. Return JSON:
+{
+  "questions": [
+    {"question": "...", "intent": "price|what|why|howto|comparison|best"},
+    {"question": "...", "intent": "..."},
+    {"question": "...", "intent": "..."}
+  ]
+}`;
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    const json = await res.json();
+    const content = json?.choices?.[0]?.message?.content ?? "";
+    const parsed = safeParseJSON<{ questions: { question: string; intent: string }[] }>(content);
+    
+    return parsed.questions.map(q => ({
+      question: q.question,
+      intent: normalizeIntent(q.intent),
+    }));
+  } catch (e) {
+    console.error("Failed to generate contextual questions:", e);
+    // Fallback to generic but still better questions
+    return [
+      { question: `Comment fonctionne ${brandName} ?`, intent: "howto" as IntentType },
+      { question: `Quels sont les tarifs de ${brandName} ?`, intent: "price" as IntentType },
+      { question: `Pourquoi choisir ${brandName} ?`, intent: "why" as IntentType },
+    ];
+  }
+}
+
+/* =======================
    AI GENERATION
 ======================= */
 async function generateAIAnswer(
@@ -135,18 +219,20 @@ async function generateAIAnswer(
 
 RÈGLES:
 - Réponse directe dès la première phrase
-- Mentionne ${brandName} UNE seule fois
+- Mentionne ${brandName} UNE seule fois comme exemple/solution
 - Ton encyclopédique, neutre, sans marketing
 - Aucun superlatif, aucune promesse
-- 80 à 120 mots maximum`
+- 80 à 120 mots maximum
+- Réponds à la question SPÉCIFIQUE posée`
       : `You are an AEO factual writer.
 
 RULES:
 - Direct factual first sentence
-- Mention ${brandName} ONCE
+- Mention ${brandName} ONCE as example/solution
 - Neutral encyclopedic tone
 - No superlatives, no promises
-- 80–120 words max`;
+- 80–120 words max
+- Answer the SPECIFIC question asked`;
 
   const userPrompt = `
 Question: ${question}
@@ -236,25 +322,23 @@ serve(async (req) => {
       .eq("project_id", projectId)
       .limit(30);
 
-    const questions = generate30
-      ? (keywordRows ?? []).map((k) => ({
-          question: k.keyword,
-          intent: normalizeIntent(k.intent ?? detectIntent(k.keyword)),
-        }))
-      : [
-          {
-            question: `Qu'est-ce que ${brandName} et à quoi sert-il ?`,
-            intent: "what" as IntentType,
-          },
-          {
-            question: `Combien coûte ${brandName} ?`,
-            intent: "price" as IntentType,
-          },
-          {
-            question: `Pourquoi utiliser ${brandName} ?`,
-            intent: "why" as IntentType,
-          },
-        ];
+    let questions: { question: string; intent: IntentType }[];
+    
+    if (generate30 && keywordRows && keywordRows.length > 0) {
+      // Use keywords if available
+      questions = keywordRows.map((k) => ({
+        question: k.keyword,
+        intent: normalizeIntent(k.intent ?? detectIntent(k.keyword)),
+      }));
+    } else {
+      // Generate contextual questions based on business description
+      questions = await generateContextualQuestions(
+        brandName,
+        description,
+        language,
+        apiKey,
+      );
+    }
 
     if (!questions.length) {
       return new Response(
