@@ -29,7 +29,7 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      const from = (location.state as any)?.from?.pathname || "/onboarding";
       navigate(from, { replace: true });
     }
   }, [user, navigate, location]);
