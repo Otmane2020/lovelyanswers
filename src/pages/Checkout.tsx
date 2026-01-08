@@ -134,7 +134,7 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-0">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
@@ -288,6 +288,27 @@ export default function Checkout() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Sticky bottom CTA for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border md:hidden z-50">
+        <Button 
+          onClick={handleCheckout}
+          disabled={isLoading}
+          className="w-full h-14 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium" 
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Redirecting...
+            </>
+          ) : (
+            <>
+              Start Free Trial
+              <ArrowRight className="h-5 w-5" />
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
