@@ -175,16 +175,12 @@ export default function Onboarding() {
           keywords: scrapedKeywords?.length
         });
         
+        // Phase 2: Only add competitors and keywords - DO NOT overwrite Phase 1 data
         setData(prev => ({
           ...prev,
-          // Only override if we have better data
-          language: detectedLang || prev.language,
-          businessDescription: description || prev.businessDescription,
-          // Don't override audiences if we already have them from fast scrape
-          targetAudiences: prev.targetAudiences.length > 0 ? prev.targetAudiences : (scrapedAudiences?.length >= 2 ? scrapedAudiences : ["business owners", "professionals", "decision makers"]),
-          competitors: scrapedCompetitors?.length > 0 ? scrapedCompetitors : prev.competitors,
-          keywords: scrapedKeywords?.length > 0 ? scrapedKeywords : prev.keywords,
-          exampleUrl: url.startsWith("http") ? url : `https://${url}`,
+          // Keep language, description, and audiences from Phase 1 - never overwrite!
+          competitors: prev.competitors.length > 0 ? prev.competitors : (scrapedCompetitors || []),
+          keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
         }));
       }
     }).catch(err => {
