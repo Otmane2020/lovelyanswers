@@ -191,11 +191,11 @@ Deno.serve(async (req) => {
       competitorsPromise || Promise.resolve([])
     ]);
 
-    // If DataForSEO returned no competitors, use AI with keywords for better detection
+    // If DataForSEO returned no competitors, use Google Search via Firecrawl
     let competitors = dataForSeoCompetitors;
-    if (competitors.length === 0 && lovableApiKey) {
-      console.log('[COMPETITORS] DataForSEO returned nothing, using AI fallback with keywords');
-      competitors = await detectCompetitorsWithAI(enrichedDescription, contentPreview, brandName, ownDomain, lovableApiKey, keywords);
+    if (competitors.length === 0 && apiKey) {
+      console.log('[COMPETITORS] DataForSEO returned nothing, using Google Search fallback');
+      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey);
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -273,126 +273,118 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
-// AI-based competitor detection fallback - uses extracted keywords for better accuracy
-async function detectCompetitorsWithAI(
-  description: string, 
-  content: string, 
-  brandName: string, 
-  domain: string, 
-  apiKey: string,
-  keywords: Array<{keyword: string, intent: string}> = []
+// Find competitors via Google Search using Firecrawl
+async function findCompetitorsViaGoogleSearch(
+  description: string,
+  brandName: string,
+  domain: string,
+  language: string,
+  firecrawlApiKey: string
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-    // Extract top keywords for the prompt
-    const topKeywords = keywords
-      .slice(0, 8)
-      .map(k => k.keyword)
-      .join(', ');
-
-    // Detect business type from content
-    const contentLower = (description + ' ' + content).toLowerCase();
-    let businessType = 'general';
-    let exampleCompetitors = '';
+    // Build search query based on business description
+    const descWords = description.toLowerCase();
+    let searchQuery = '';
     
-    // Location de meubles / Furniture rental
-    if (contentLower.includes('location') && (contentLower.includes('meuble') || contentLower.includes('furniture'))) {
-      businessType = 'furniture_rental';
-      exampleCompetitors = 'For furniture rental in France: leaseplan-furniture.fr, ubicuity.com, semeubler.com, loca-meubles.fr';
-    }
-    // E-commerce meubles
-    else if (contentLower.includes('meuble') || contentLower.includes('furniture') || contentLower.includes('canapé') || contentLower.includes('sofa')) {
-      businessType = 'furniture';
-      exampleCompetitors = 'For furniture: made.com, westwing.fr, camif.fr, alinea.com, maisondumonde.com';
-    }
-    // SEO Tools
-    else if (contentLower.includes('seo') || contentLower.includes('search engine')) {
-      businessType = 'seo_tools';
-      exampleCompetitors = 'For SEO tools: semrush.com, ahrefs.com, moz.com, ubersuggest.com';
-    }
-    // SaaS
-    else if (contentLower.includes('saas') || contentLower.includes('software')) {
-      businessType = 'saas';
+    // Detect business type and build appropriate query
+    if (descWords.includes('location') && (descWords.includes('meuble') || descWords.includes('furniture'))) {
+      searchQuery = language === 'fr' ? 'location meubles entreprise Paris' : 'furniture rental business';
+    } else if (descWords.includes('meuble') || descWords.includes('furniture')) {
+      searchQuery = language === 'fr' ? 'acheter meubles design en ligne' : 'buy furniture online';
+    } else if (descWords.includes('seo') || descWords.includes('référencement')) {
+      searchQuery = 'best SEO tools software';
+    } else {
+      // Extract key terms from description
+      const keyTerms = description
+        .split(/\s+/)
+        .filter(w => w.length > 4)
+        .slice(0, 5)
+        .join(' ');
+      searchQuery = keyTerms || brandName + ' alternatives';
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    console.log('[COMPETITORS] Google search query:', searchQuery);
+
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${firecrawlApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash', // Use better model for accuracy
-        messages: [{
-          role: 'user',
-          content: `You are a business analyst. Identify 3-5 REAL, EXISTING competitor websites for this business.
-
-Business: ${brandName}
-Domain: ${domain}
-Description: ${description}
-${topKeywords ? `Keywords: ${topKeywords}` : ''}
-Business type detected: ${businessType}
-${exampleCompetitors ? `\nExamples of real competitors in this space: ${exampleCompetitors}` : ''}
-
-CRITICAL RULES:
-1. ONLY return domains that ACTUALLY EXIST and are REAL businesses
-2. Competitors MUST offer the EXACT SAME type of service/product
-3. For "${brandName}": find companies that do the SAME THING
-4. DO NOT invent or guess domain names - only return domains you are CERTAIN exist
-5. If unsure, return FEWER competitors rather than fake ones
-6. NO social media, NO marketplaces (amazon, ebay), NO website builders
-
-If this is a furniture RENTAL company, return furniture RENTAL competitors (not furniture stores).
-If this is a furniture STORE, return furniture STORE competitors.
-
-Return ONLY a valid JSON array of 3-5 real domains:
-["real-competitor1.com", "real-competitor2.com", "real-competitor3.com"]
-
-If you cannot find real competitors, return an empty array: []`
-        }],
-        temperature: 0.1, // Lower temperature for more factual responses
-        max_tokens: 200,
+        query: searchQuery,
+        limit: 10,
+        lang: language === 'fr' ? 'fr' : 'en',
+        country: language === 'fr' ? 'FR' : 'US',
       }),
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.error('[COMPETITORS] Firecrawl search error:', response.status);
+      return [];
+    }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    const match = text.match(/\[[\s\S]*?\]/);
     
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      if (Array.isArray(parsed)) {
-        // Filter out obvious non-competitors
-        const blocked = new Set([
-          'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
-          'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com',
-          'amazon.com', 'ebay.com', 'wikipedia.org', 'shopify.com',
-          'wix.com', 'wordpress.com', 'squarespace.com', 'webflow.com',
-          'amazon.fr', 'ebay.fr', 'cdiscount.com', 'leboncoin.fr'
-        ]);
-        const filtered = parsed.filter((d: string) => {
-          if (!d || typeof d !== 'string') return false;
-          const lower = d.toLowerCase();
-          if (blocked.has(lower)) return false;
-          if (lower.includes(domain.split('.')[0])) return false;
-          // Filter out obvious fake domains
-          if (lower.includes('example') || lower.includes('test')) return false;
-          return true;
-        });
-        console.log('[COMPETITORS] AI detected:', filtered);
-        return filtered.slice(0, 5);
+    if (!data.success || !data.data) {
+      console.log('[COMPETITORS] No search results');
+      return [];
+    }
+
+    // Extract domains from search results
+    const blocked = new Set([
+      'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
+      'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com', 'google.fr',
+      'amazon.com', 'amazon.fr', 'ebay.com', 'ebay.fr', 'wikipedia.org', 
+      'shopify.com', 'wix.com', 'wordpress.com', 'squarespace.com', 
+      'webflow.com', 'cdiscount.com', 'leboncoin.fr', 'fnac.com',
+      'trustpilot.com', 'yelp.com', 'tripadvisor.com', 'pagesjaunes.fr'
+    ]);
+
+    const ownDomainBase = domain.split('.')[0].toLowerCase();
+    const competitors: string[] = [];
+    const seenDomains = new Set<string>();
+
+    for (const result of data.data) {
+      try {
+        const url = result.url || result.sourceURL || '';
+        if (!url) continue;
+        
+        const urlObj = new URL(url);
+        const resultDomain = urlObj.hostname.replace('www.', '').toLowerCase();
+        
+        // Skip blocked domains
+        if (blocked.has(resultDomain)) continue;
+        
+        // Skip own domain
+        if (resultDomain.includes(ownDomainBase)) continue;
+        
+        // Skip already seen
+        if (seenDomains.has(resultDomain)) continue;
+        
+        // Skip generic TLDs that are likely not competitors
+        if (resultDomain.endsWith('.gov') || resultDomain.endsWith('.edu')) continue;
+        
+        seenDomains.add(resultDomain);
+        competitors.push(resultDomain);
+        
+        if (competitors.length >= 5) break;
+      } catch {
+        // Invalid URL, skip
       }
     }
-    return [];
+
+    console.log('[COMPETITORS] Google search found:', competitors);
+    return competitors;
+
   } catch (e) {
-    console.error('[COMPETITORS AI] Error:', e);
+    console.error('[COMPETITORS] Google search error:', e);
     return [];
   }
 }
