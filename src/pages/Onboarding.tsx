@@ -180,7 +180,8 @@ export default function Onboarding() {
           // Only override if we have better data
           language: detectedLang || prev.language,
           businessDescription: description || prev.businessDescription,
-          targetAudiences: scrapedAudiences?.length >= 2 ? scrapedAudiences : prev.targetAudiences.length > 0 ? prev.targetAudiences : ["business owners", "professionals", "decision makers"],
+          // Don't override audiences if we already have them from fast scrape
+          targetAudiences: prev.targetAudiences.length > 0 ? prev.targetAudiences : (scrapedAudiences?.length >= 2 ? scrapedAudiences : ["business owners", "professionals", "decision makers"]),
           competitors: scrapedCompetitors?.length > 0 ? scrapedCompetitors : prev.competitors,
           keywords: scrapedKeywords?.length > 0 ? scrapedKeywords : prev.keywords,
           exampleUrl: url.startsWith("http") ? url : `https://${url}`,
