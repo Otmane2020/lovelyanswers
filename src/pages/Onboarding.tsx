@@ -64,6 +64,7 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isLoadingFast, setIsLoadingFast] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [urlError, setUrlError] = useState("");
   const [newAudience, setNewAudience] = useState("");
@@ -139,6 +140,8 @@ export default function Onboarding() {
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
     
+    setIsLoadingFast(true);
+    
     // PHASE 1: Fast scrape (3-4s) - gets language + description + audiences
     const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
       body: { url }
@@ -153,8 +156,10 @@ export default function Onboarding() {
           exampleUrl: fastResult.data.sourceUrl || prev.exampleUrl,
         }));
       }
+      setIsLoadingFast(false);
     }).catch(err => {
       console.error('[ONBOARDING] Fast scrape error:', err);
+      setIsLoadingFast(false);
     });
 
     // PHASE 2: Full enrichment (8-15s) - gets audiences, competitors, keywords
@@ -492,12 +497,20 @@ export default function Onboarding() {
                     </div>
                     <div className="space-y-2">
                       <Label>{getDescriptionLabel()}</Label>
-                      <Textarea
-                        value={data.businessDescription}
-                        onChange={(e) => updateData("businessDescription", e.target.value)}
-                        className="min-h-[150px] resize-none"
-                        placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
-                      />
+                      {isLoadingFast && !data.businessDescription ? (
+                        <div className="min-h-[150px] rounded-md border border-border bg-muted/30 p-3 animate-pulse">
+                          <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                          <div className="h-4 bg-muted rounded w-full mb-2" />
+                          <div className="h-4 bg-muted rounded w-5/6" />
+                        </div>
+                      ) : (
+                        <Textarea
+                          value={data.businessDescription}
+                          onChange={(e) => updateData("businessDescription", e.target.value)}
+                          className="min-h-[150px] resize-none"
+                          placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
+                        />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Target Audience</Label>
@@ -513,14 +526,22 @@ export default function Onboarding() {
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {data.targetAudiences.map((audience) => (
-                          <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
-                            {audience}
-                            <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
+                        {isLoadingFast && data.targetAudiences.length === 0 ? (
+                          <>
+                            <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
+                            <div className="h-8 w-28 bg-muted rounded-full animate-pulse" />
+                            <div className="h-8 w-36 bg-muted rounded-full animate-pulse" />
+                          </>
+                        ) : (
+                          data.targetAudiences.map((audience) => (
+                            <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
+                              {audience}
+                              <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
