@@ -46,7 +46,7 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://aeoreply.lovable.dev";
 
-    // Create checkout session with 3-day trial
+    // Create checkout session with 3-day trial and promo codes enabled
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -60,6 +60,7 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 3,
       },
+      allow_promotion_codes: true,
       success_url: `${origin}/wizard?subscription=success`,
       cancel_url: `${origin}/pricing?subscription=canceled`,
     });
