@@ -61,8 +61,8 @@ serve(async (req) => {
         trial_period_days: 3,
       },
       allow_promotion_codes: true,
-      success_url: `${origin}/wizard?subscription=success`,
-      cancel_url: `${origin}/pricing?subscription=canceled`,
+      success_url: `${origin}/dashboard?subscription=success`,
+      cancel_url: `${origin}/checkout?subscription=canceled`,
     });
 
     console.log("[CREATE-CHECKOUT] Session created:", session.id);
