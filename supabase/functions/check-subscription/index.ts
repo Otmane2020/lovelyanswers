@@ -15,6 +15,7 @@ const logStep = (step: string, details?: any) => {
 // VIP emails with permanent unlimited access
 const VIP_EMAILS = [
   "oben.rockman@gmail.com",
+  "oben.rocman@gmail.com",
 ];
 
 serve(async (req) => {
