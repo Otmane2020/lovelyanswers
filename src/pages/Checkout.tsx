@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Zap, 
@@ -11,6 +11,7 @@ import {
   MessageSquare,
   TrendingUp,
   Globe,
+  LogOut,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -31,9 +32,15 @@ interface AeoExample {
 
 export default function Checkout() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [aeoExamples, setAeoExamples] = useState<AeoExample[]>([]);
   const [brandName, setBrandName] = useState<string>("");
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   // Fetch real answers from user's project
   useEffect(() => {
@@ -130,7 +137,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container flex h-16 items-center justify-center">
+        <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
               <Rocket className="h-5 w-5 text-primary-foreground" />
@@ -139,6 +146,15 @@ export default function Checkout() {
               Aeo<span className="gradient-text">reply</span>
             </span>
           </Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </header>
 
