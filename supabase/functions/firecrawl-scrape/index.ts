@@ -273,7 +273,7 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
-// AI-based competitor detection fallback - now uses extracted keywords for better accuracy
+// AI-based competitor detection fallback - uses extracted keywords for better accuracy
 async function detectCompetitorsWithAI(
   description: string, 
   content: string, 
@@ -284,13 +284,38 @@ async function detectCompetitorsWithAI(
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     // Extract top keywords for the prompt
     const topKeywords = keywords
       .slice(0, 8)
       .map(k => k.keyword)
       .join(', ');
+
+    // Detect business type from content
+    const contentLower = (description + ' ' + content).toLowerCase();
+    let businessType = 'general';
+    let exampleCompetitors = '';
+    
+    // Location de meubles / Furniture rental
+    if (contentLower.includes('location') && (contentLower.includes('meuble') || contentLower.includes('furniture'))) {
+      businessType = 'furniture_rental';
+      exampleCompetitors = 'For furniture rental in France: leaseplan-furniture.fr, ubicuity.com, semeubler.com, loca-meubles.fr';
+    }
+    // E-commerce meubles
+    else if (contentLower.includes('meuble') || contentLower.includes('furniture') || contentLower.includes('canapé') || contentLower.includes('sofa')) {
+      businessType = 'furniture';
+      exampleCompetitors = 'For furniture: made.com, westwing.fr, camif.fr, alinea.com, maisondumonde.com';
+    }
+    // SEO Tools
+    else if (contentLower.includes('seo') || contentLower.includes('search engine')) {
+      businessType = 'seo_tools';
+      exampleCompetitors = 'For SEO tools: semrush.com, ahrefs.com, moz.com, ubersuggest.com';
+    }
+    // SaaS
+    else if (contentLower.includes('saas') || contentLower.includes('software')) {
+      businessType = 'saas';
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -299,31 +324,35 @@ async function detectCompetitorsWithAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'google/gemini-2.5-flash', // Use better model for accuracy
         messages: [{
           role: 'user',
-          content: `Based on this business description and keywords, identify 3-5 REAL competitor domains that offer similar products/services.
+          content: `You are a business analyst. Identify 3-5 REAL, EXISTING competitor websites for this business.
 
 Business: ${brandName}
 Domain: ${domain}
 Description: ${description}
-${topKeywords ? `Main keywords: ${topKeywords}` : ''}
-Content preview: ${content.substring(0, 600)}
+${topKeywords ? `Keywords: ${topKeywords}` : ''}
+Business type detected: ${businessType}
+${exampleCompetitors ? `\nExamples of real competitors in this space: ${exampleCompetitors}` : ''}
 
-Rules:
-- Competitors MUST be in the SAME NICHE based on the keywords
-- For SEO tools/software → suggest SEO competitors (semrush.com, ahrefs.com, moz.com, etc.)
-- For Shopify apps → suggest Shopify app competitors
-- For AI writing tools → suggest AI writing competitors
-- For e-commerce → suggest e-commerce competitors in same vertical
-- Return ONLY real existing domains (e.g., "competitor.com")
-- No social media sites (facebook, instagram, linkedin, twitter)
-- No generic platforms (amazon, shopify, wordpress, wix)
-- If you're not sure about real competitors, return fewer items
+CRITICAL RULES:
+1. ONLY return domains that ACTUALLY EXIST and are REAL businesses
+2. Competitors MUST offer the EXACT SAME type of service/product
+3. For "${brandName}": find companies that do the SAME THING
+4. DO NOT invent or guess domain names - only return domains you are CERTAIN exist
+5. If unsure, return FEWER competitors rather than fake ones
+6. NO social media, NO marketplaces (amazon, ebay), NO website builders
 
-Return ONLY a JSON array: ["competitor1.com", "competitor2.com", "competitor3.com"]`
+If this is a furniture RENTAL company, return furniture RENTAL competitors (not furniture stores).
+If this is a furniture STORE, return furniture STORE competitors.
+
+Return ONLY a valid JSON array of 3-5 real domains:
+["real-competitor1.com", "real-competitor2.com", "real-competitor3.com"]
+
+If you cannot find real competitors, return an empty array: []`
         }],
-        temperature: 0.3,
+        temperature: 0.1, // Lower temperature for more factual responses
         max_tokens: 200,
       }),
       signal: controller.signal,
@@ -345,13 +374,16 @@ Return ONLY a JSON array: ["competitor1.com", "competitor2.com", "competitor3.co
           'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
           'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com',
           'amazon.com', 'ebay.com', 'wikipedia.org', 'shopify.com',
-          'wix.com', 'wordpress.com', 'squarespace.com', 'webflow.com'
+          'wix.com', 'wordpress.com', 'squarespace.com', 'webflow.com',
+          'amazon.fr', 'ebay.fr', 'cdiscount.com', 'leboncoin.fr'
         ]);
         const filtered = parsed.filter((d: string) => {
           if (!d || typeof d !== 'string') return false;
           const lower = d.toLowerCase();
           if (blocked.has(lower)) return false;
           if (lower.includes(domain.split('.')[0])) return false;
+          // Filter out obvious fake domains
+          if (lower.includes('example') || lower.includes('test')) return false;
           return true;
         });
         console.log('[COMPETITORS] AI detected:', filtered);
