@@ -29,20 +29,34 @@ export default function Auth() {
 
   useEffect(() => {
     const checkUserAndRedirect = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log("[AUTH] No user, staying on auth page");
+        return;
+      }
+
+      console.log("[AUTH] User found, checking for projects...", user.id);
 
       // Check if user has an existing project
-      const { data: projects } = await supabase
+      const { data: projects, error } = await supabase
         .from("projects")
         .select("id")
         .eq("user_id", user.id)
         .limit(1);
 
+      if (error) {
+        console.error("[AUTH] Error fetching projects:", error);
+        return;
+      }
+
+      console.log("[AUTH] Projects found:", projects?.length);
+
       if (projects && projects.length > 0) {
         // Existing user with project → Dashboard (ProtectedRoute handles subscription check)
+        console.log("[AUTH] Redirecting to dashboard...");
         navigate("/dashboard", { replace: true });
       } else {
         // New user without project → Onboarding
+        console.log("[AUTH] No projects, redirecting to onboarding...");
         navigate("/onboarding", { replace: true });
       }
     };
