@@ -69,6 +69,7 @@ export default function Onboarding() {
   const [urlError, setUrlError] = useState("");
   const [newAudience, setNewAudience] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
+  const [isCheckingUser, setIsCheckingUser] = useState(true);
   const analysisStartedRef = useRef<string | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
@@ -84,6 +85,32 @@ export default function Onboarding() {
   });
 
   const totalSteps = 6;
+
+  // Redirect existing users with projects to dashboard
+  useEffect(() => {
+    const checkExistingProject = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsCheckingUser(false);
+        return;
+      }
+
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (projects && projects.length > 0) {
+        // User has a project, redirect to dashboard
+        navigate("/dashboard", { replace: true });
+      } else {
+        setIsCheckingUser(false);
+      }
+    };
+
+    checkExistingProject();
+  }, [navigate]);
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -377,6 +404,14 @@ export default function Onboarding() {
       default: return "Description";
     }
   };
+
+  if (isCheckingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (isAnalyzing) {
     return <AnalyzingScreen websiteUrl={data.websiteUrl} />;
