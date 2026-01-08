@@ -68,12 +68,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     checkSubscription();
   }, [checkSubscription]);
 
-  // Handle success redirect
+  // Handle success redirect - immediately recheck subscription
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("subscription") === "success") {
       window.history.replaceState({}, "", window.location.pathname);
-      setTimeout(checkSubscription, 1000);
+      // Immediate recheck for subscription status
+      checkSubscription();
     }
   }, [checkSubscription]);
 
