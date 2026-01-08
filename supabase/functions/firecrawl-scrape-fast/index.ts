@@ -49,26 +49,40 @@ function detectLanguageFromContent(content: string, metaLang: string): string {
 
 // Extract description from markdown content
 function extractDescription(markdown: string, metaDescription: string): string {
+  // Prefer meta description if it's meaningful
+  if (metaDescription && metaDescription.length > 50) {
+    console.log('[FAST] Using meta description:', metaDescription.substring(0, 100));
+    return metaDescription;
+  }
+  
   if (!markdown || markdown.length < 50) {
+    console.log('[FAST] No markdown content, returning meta:', metaDescription?.substring(0, 50));
     return metaDescription || '';
   }
   
-  // Clean up markdown and get first meaningful paragraph
-  const lines = markdown.split('\n').filter(line => {
+  // Clean markdown: remove links, bold, images, etc.
+  let cleanText = markdown
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [text](url) -> text
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '') // Remove images
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // **bold** -> bold
+    .replace(/\*([^*]+)\*/g, '$1') // *italic* -> italic
+    .replace(/#+\s*/g, '') // Remove headers
+    .replace(/\|[^\n]+\|/g, '') // Remove table rows
+    .replace(/[-*]\s+/g, '') // Remove list markers
+    .replace(/\n{2,}/g, '\n') // Multiple newlines -> single
+    .trim();
+  
+  // Get first meaningful paragraph (at least 20 chars)
+  const lines = cleanText.split('\n').filter(line => {
     const trimmed = line.trim();
-    // Skip headers, empty lines, short lines
-    if (!trimmed || trimmed.length < 40) return false;
-    if (trimmed.startsWith('#')) return false;
-    if (trimmed.startsWith('|')) return false; // Table rows
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return false; // List items
-    if (trimmed.startsWith('![')) return false; // Images
-    return true;
+    return trimmed.length >= 20;
   });
   
-  // Get first 2-3 paragraphs for description
-  const content = lines.slice(0, 3).join(' ').substring(0, 500);
+  // Join first 3 lines for description
+  const description = lines.slice(0, 3).join(' ').substring(0, 400).trim();
   
-  return content || metaDescription || '';
+  console.log('[FAST] Extracted description:', description.substring(0, 100));
+  return description || metaDescription || '';
 }
 
 // Extract brand name from URL and content
