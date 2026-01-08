@@ -32,13 +32,13 @@ async function extractAudiencesFast(
         model: 'google/gemini-2.5-flash-lite',
         messages: [{
           role: 'user',
-          content: `Extract 4 target audiences (2-3 words each). ${langInstruction}
+          content: `Extract 4 target audiences for this business. Each audience should be 2-4 words. ${langInstruction}
 Business: ${shortDesc}
-Site: ${shortContent}
-Return ONLY JSON array: ["audience1", "audience2", "audience3", "audience4"]`
+Site content: ${shortContent}
+Return ONLY a valid JSON array with exactly 4 strings: ["audience1", "audience2", "audience3", "audience4"]`
         }],
         temperature: 0.2,
-        max_tokens: 80,
+        max_tokens: 150,
       }),
       signal: controller.signal,
     });
