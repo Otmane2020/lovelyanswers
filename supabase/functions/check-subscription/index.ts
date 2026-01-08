@@ -12,6 +12,11 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+// VIP emails with permanent unlimited access
+const VIP_EMAILS = [
+  "oben.rockman@gmail.com",
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,6 +44,32 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
+
+    // Check if user is VIP (permanent unlimited access)
+    if (VIP_EMAILS.includes(user.email.toLowerCase())) {
+      logStep("VIP user detected - granting unlimited access", { email: user.email });
+      
+      // Give VIP users max credits
+      await supabaseClient
+        .from("credits")
+        .upsert({
+          user_id: user.id,
+          credits_total: 99999,
+          credits_used: 0,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "user_id" });
+
+      return new Response(JSON.stringify({
+        subscribed: true,
+        trial: false,
+        product_id: "vip_unlimited",
+        subscription_end: "2099-12-31T23:59:59.999Z",
+        credits_total: 99999
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
