@@ -71,7 +71,7 @@ export default function Onboarding() {
   
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
-    language: "",
+    language: "en", // Default to English before detection
     businessDescription: "",
     targetAudiences: [],
     competitors: [],
@@ -164,10 +164,7 @@ export default function Onboarding() {
         keywords: finalKeywords,
       }));
       
-      toast({
-        title: "Website analyzed!",
-        description: "All fields have been auto-filled based on your website.",
-      });
+      // Silent success - no toast needed, data auto-fills in background
     } catch (err) {
       console.error('Analysis error:', err);
       await fallbackAnalysis(url);
