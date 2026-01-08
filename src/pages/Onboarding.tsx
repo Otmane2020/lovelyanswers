@@ -97,45 +97,6 @@ export default function Onboarding() {
     return urlPattern.test(url.trim());
   };
 
-  // Trigger analysis immediately when URL becomes valid
-  useEffect(() => {
-    const url = data.websiteUrl.trim();
-    if (isValidUrl(url) && analysisStartedRef.current !== url) {
-      // Debounce: wait 500ms after last keystroke
-      const timer = setTimeout(() => {
-        if (isValidUrl(url) && analysisStartedRef.current !== url) {
-          console.log('[ONBOARDING] Auto-triggering analysis for:', url);
-          analysisStartedRef.current = url;
-          analyzeWebsite(url);
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [data.websiteUrl]);
-
-  const handleUrlChange = (value: string) => {
-    updateData("websiteUrl", value);
-    setUrlError("");
-    // Reset analysis flag if URL changes significantly
-    if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
-      setHasAnalyzed(false);
-      analysisStartedRef.current = null;
-    }
-  };
-
-  const validateAndProceed = () => {
-    if (currentStep === 1 && !isValidUrl(data.websiteUrl)) {
-      setUrlError("Please enter a valid URL (e.g., example.com or https://example.com)");
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid website URL format.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    return true;
-  };
-
   // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
@@ -197,6 +158,53 @@ export default function Onboarding() {
       setHasAnalyzed(true);
     }
   }, []);
+
+  // Trigger analysis when URL becomes valid
+  useEffect(() => {
+    const url = data.websiteUrl.trim();
+    
+    // Don't analyze our own domain
+    const isOwnDomain = url.toLowerCase().includes('aeoreply.com') || 
+                         url.toLowerCase().includes('lovableproject.com') ||
+                         url.toLowerCase().includes('localhost');
+    
+    if (isValidUrl(url) && !isOwnDomain && analysisStartedRef.current !== url) {
+      // Debounce: wait 800ms after last keystroke to ensure user finished typing
+      const timer = setTimeout(() => {
+        const currentUrl = data.websiteUrl.trim();
+        // Re-check that URL hasn't changed during debounce
+        if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
+          console.log('[ONBOARDING] Auto-triggering analysis for:', url);
+          analysisStartedRef.current = url;
+          analyzeWebsite(url);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [data.websiteUrl, analyzeWebsite]);
+
+  const handleUrlChange = (value: string) => {
+    updateData("websiteUrl", value);
+    setUrlError("");
+    // Reset analysis flag if URL changes significantly
+    if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
+      setHasAnalyzed(false);
+      analysisStartedRef.current = null;
+    }
+  };
+
+  const validateAndProceed = () => {
+    if (currentStep === 1 && !isValidUrl(data.websiteUrl)) {
+      setUrlError("Please enter a valid URL (e.g., example.com or https://example.com)");
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid website URL format.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
 
   const fallbackAnalysis = async (url: string) => {
     let domain = "";
