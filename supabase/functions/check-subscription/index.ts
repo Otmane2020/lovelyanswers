@@ -36,19 +36,43 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      logStep("No authorization header - returning unsubscribed");
+      return new Response(JSON.stringify({ 
+        subscribed: false,
+        trial: false,
+        product_id: null,
+        subscription_end: null
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    
+    // Handle auth errors gracefully (e.g., after logout)
+    if (userError || !userData.user?.email) {
+      logStep("Auth error or no user - returning unsubscribed", { error: userError?.message });
+      return new Response(JSON.stringify({ 
+        subscribed: false,
+        trial: false,
+        product_id: null,
+        subscription_end: null
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Check if user is VIP (permanent unlimited access)
-    if (VIP_EMAILS.includes(user.email.toLowerCase())) {
-      logStep("VIP user detected - granting unlimited access", { email: user.email });
+    const userEmail = user.email || "";
+    if (VIP_EMAILS.includes(userEmail.toLowerCase())) {
+      logStep("VIP user detected - granting unlimited access", { email: userEmail });
       
       // Give VIP users max credits
       await supabaseClient
