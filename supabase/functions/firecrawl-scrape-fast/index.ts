@@ -3,6 +3,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fast audience extraction with short prompts (2-3s)
+async function extractAudiencesFast(
+  description: string,
+  content: string,
+  language: string,
+  apiKey: string
+): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000); // 4s max
+
+    // Use very short content to minimize processing time
+    const shortDesc = description.substring(0, 150);
+    const shortContent = content.substring(0, 300);
+    
+    const langInstruction = language === 'fr' ? 'En français.' : 
+                            language === 'de' ? 'Auf Deutsch.' :
+                            language === 'es' ? 'En español.' : 'In English.';
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [{
+          role: 'user',
+          content: `Extract 4 target audiences (2-3 words each). ${langInstruction}
+Business: ${shortDesc}
+Site: ${shortContent}
+Return ONLY JSON array: ["audience1", "audience2", "audience3", "audience4"]`
+        }],
+        temperature: 0.2,
+        max_tokens: 80,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.error('[FAST] AI error:', response.status);
+      return [];
+    }
+
+    const result = await response.json();
+    const text = result.choices?.[0]?.message?.content || '';
+    
+    // Extract JSON array from response
+    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (jsonMatch) {
+      const audiences = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(audiences) && audiences.length > 0) {
+        console.log('[FAST] Extracted audiences:', audiences);
+        return audiences.slice(0, 4);
+      }
+    }
+    return [];
+  } catch (error) {
+    console.error('[FAST] Audience extraction error:', error);
+    return [];
+  }
+}
+
 // Fast language detection based on content analysis
 function detectLanguageFromContent(content: string, metaLang: string): string {
   if (!content || content.length < 100) {
@@ -129,8 +195,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!apiKey) {
+    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl connector not configured' }),
@@ -151,7 +219,7 @@ Deno.serve(async (req) => {
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${firecrawlApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -183,14 +251,23 @@ Deno.serve(async (req) => {
     const metaDescription = metadata.description || '';
     const metaLanguage = metadata.language || '';
 
-    // Fast local processing - no AI calls
+    // Fast local processing - no AI calls for basic extraction
     const language = detectLanguageFromContent(markdown, metaLanguage);
     const description = extractDescription(markdown, metaDescription);
     const brandName = extractBrandName(formattedUrl, title);
 
+    // Extract audiences with AI (runs in parallel-ish, adds ~2-3s)
+    let audiences: string[] = [];
+    if (lovableApiKey && description) {
+      console.log('[FAST] Starting audience extraction...');
+      const audienceStart = Date.now();
+      audiences = await extractAudiencesFast(description, markdown, language, lovableApiKey);
+      console.log(`[FAST] Audience extraction took ${Date.now() - audienceStart}ms`);
+    }
+
     const totalTime = Date.now() - startTime;
     console.log(`[FAST] Total processing time: ${totalTime}ms`);
-    console.log(`[FAST] Detected language: ${language}`);
+    console.log(`[FAST] Detected language: ${language}, Audiences: ${audiences.length}`);
 
     return new Response(
       JSON.stringify({
@@ -199,6 +276,7 @@ Deno.serve(async (req) => {
           brandName,
           description,
           language,
+          audiences,
           sourceUrl: formattedUrl,
         }
       }),

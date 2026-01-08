@@ -139,7 +139,7 @@ export default function Onboarding() {
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
     
-    // PHASE 1: Fast scrape (2-3s) - gets language + description immediately
+    // PHASE 1: Fast scrape (3-4s) - gets language + description + audiences
     const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
       body: { url }
     }).then(({ data: fastResult, error }) => {
@@ -149,6 +149,7 @@ export default function Onboarding() {
           ...prev,
           language: fastResult.data.language || prev.language,
           businessDescription: fastResult.data.description || prev.businessDescription,
+          targetAudiences: fastResult.data.audiences?.length > 0 ? fastResult.data.audiences : prev.targetAudiences,
           exampleUrl: fastResult.data.sourceUrl || prev.exampleUrl,
         }));
       }
