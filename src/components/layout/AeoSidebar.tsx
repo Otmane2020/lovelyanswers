@@ -9,8 +9,6 @@ import {
   CreditCard,
   LogOut,
   Rocket,
-  Gift,
-  Users,
   CalendarDays,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -159,34 +157,8 @@ export function AeoSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Referral Card & Footer */}
+      {/* Footer */}
       <SidebarFooter className="p-3 mt-auto">
-        {state === "expanded" && (
-          <div className="bg-primary/5 rounded-xl p-4 mb-3 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                <Gift className="w-3 h-3 text-primary" />
-              </div>
-              <span className="text-xs text-primary font-medium">Limited Offer</span>
-            </div>
-            <p className="font-semibold text-sm text-foreground mb-1">
-              Earn 100 Backlink Credits
-            </p>
-            <p className="text-xs text-muted-foreground mb-3">
-              Invite friends & get rewarded instantly!
-            </p>
-            <div className="flex -space-x-2 mb-3">
-              {['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'].map((color, i) => (
-                <div key={i} className={`w-6 h-6 rounded-full ${color} border-2 border-background flex items-center justify-center`}>
-                  <Users className="w-3 h-3 text-white" />
-                </div>
-              ))}
-            </div>
-            <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-              Start Now →
-            </Button>
-          </div>
-        )}
         
         {user && (
           <Button 
