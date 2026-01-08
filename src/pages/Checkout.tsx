@@ -40,27 +40,44 @@ export default function Checkout() {
     const fetchProjectAnswers = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          console.log("No user found for checkout");
+          return;
+        }
 
-        // Get user's active project
-        const { data: project } = await supabase
+        // Get user's most recent project (not just active)
+        const { data: projects, error: projectError } = await supabase
           .from("projects")
           .select("id, brand_name")
           .eq("user_id", user.id)
-          .eq("is_active", true)
-          .single();
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-        if (!project) return;
+        if (projectError) {
+          console.error("Project fetch error:", projectError);
+          return;
+        }
+
+        const project = projects?.[0];
+        if (!project) {
+          console.log("No project found for user");
+          return;
+        }
         
         setBrandName(project.brand_name || "");
 
         // Get answers for this project
-        const { data: answers } = await supabase
+        const { data: answers, error: answersError } = await supabase
           .from("answers")
           .select("question, score")
           .eq("project_id", project.id)
           .order("score", { ascending: false })
           .limit(3);
+
+        if (answersError) {
+          console.error("Answers fetch error:", answersError);
+          return;
+        }
 
         if (answers && answers.length > 0) {
           setAeoExamples(
@@ -69,6 +86,8 @@ export default function Checkout() {
               score: a.score || 85
             }))
           );
+        } else {
+          console.log("No answers found for project:", project.id);
         }
       } catch (err) {
         console.error("Failed to fetch project answers:", err);
