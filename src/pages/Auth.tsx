@@ -74,27 +74,10 @@ export default function Auth() {
       return;
     }
 
-    // Account created - now redirect to Stripe checkout
-    toast({ title: "Account created!", description: "Redirecting to start your free trial..." });
-    
-    try {
-      const { data, error: checkoutError } = await supabase.functions.invoke("create-checkout");
-      
-      if (checkoutError || !data?.url) {
-        console.error("Checkout error:", checkoutError);
-        toast({ title: "Checkout error", description: "Please try again from the pricing page.", variant: "destructive" });
-        navigate("/pricing");
-        return;
-      }
-      
-      // Redirect to Stripe checkout
-      window.location.href = data.url;
-    } catch (err) {
-      console.error("Checkout failed:", err);
-      navigate("/pricing");
-    } finally {
-      setIsLoading(false);
-    }
+    // Account created - redirect to onboarding
+    toast({ title: "Account created!", description: "Let's set up your project..." });
+    setIsLoading(false);
+    navigate("/onboarding");
   };
 
   if (authLoading) {
