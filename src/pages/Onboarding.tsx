@@ -114,66 +114,65 @@ export default function Onboarding() {
     return true;
   };
 
-  // Real website analysis using Firecrawl
+  // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
     
-    setIsAutoFilling(true);
-    
-    try {
-      // Call the Firecrawl edge function
-      const { data: scrapeResult, error } = await supabase.functions.invoke('firecrawl-scrape', {
-        body: { url }
-      });
-
-      if (error || !scrapeResult?.success) {
-        console.error('Scrape error:', error || scrapeResult?.error);
-        await fallbackAnalysis(url);
-        return;
+    // PHASE 1: Fast scrape (2-3s) - gets language + description immediately
+    const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
+      body: { url }
+    }).then(({ data: fastResult, error }) => {
+      if (!error && fastResult?.success) {
+        console.log('[ONBOARDING] Fast data received:', fastResult.data);
+        setData(prev => ({
+          ...prev,
+          language: fastResult.data.language || prev.language,
+          businessDescription: fastResult.data.description || prev.businessDescription,
+          exampleUrl: fastResult.data.sourceUrl || prev.exampleUrl,
+        }));
       }
+    }).catch(err => {
+      console.error('[ONBOARDING] Fast scrape error:', err);
+    });
 
-      const { brandName, description, language: detectedLang, audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
-      
-      // Use detected language from scraper (content-based detection)
-      const finalLanguage = detectedLang || "en";
-      
-      // Use scraped audiences or fallback
-      const finalAudiences = scrapedAudiences && scrapedAudiences.length >= 2 
-        ? scrapedAudiences 
-        : ["business owners", "professionals", "decision makers", "industry experts"];
-      
-      // Use scraped competitors or generate defaults
-      const finalCompetitors = scrapedCompetitors && scrapedCompetitors.length > 0
-        ? scrapedCompetitors
-        : generateCompetitors(url);
-      
-      // Store extracted keywords
-      const finalKeywords = scrapedKeywords && scrapedKeywords.length > 0 
-        ? scrapedKeywords 
-        : [];
-      
-      console.log('[ONBOARDING] Extracted keywords:', finalKeywords.length);
-      
-      setData(prev => ({
-        ...prev,
-        language: finalLanguage,
-        businessDescription: description || `${brandName} provides professional services and solutions for its target audience.`,
-        targetAudiences: finalAudiences,
-        competitors: finalCompetitors,
-        exampleUrl: url.startsWith("http") ? url : `https://${url}`,
-        keywords: finalKeywords,
-      }));
-      
-      // Silent success - no toast needed, data auto-fills in background
+    // PHASE 2: Full enrichment (8-15s) - gets audiences, competitors, keywords
+    const enrichPromise = supabase.functions.invoke('firecrawl-scrape', {
+      body: { url }
+    }).then(({ data: scrapeResult, error }) => {
+      if (!error && scrapeResult?.success) {
+        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords, description, language: detectedLang } = scrapeResult.data;
+        
+        console.log('[ONBOARDING] Enrichment data received:', {
+          audiences: scrapedAudiences?.length,
+          competitors: scrapedCompetitors?.length,
+          keywords: scrapedKeywords?.length
+        });
+        
+        setData(prev => ({
+          ...prev,
+          // Only override if we have better data
+          language: detectedLang || prev.language,
+          businessDescription: description || prev.businessDescription,
+          targetAudiences: scrapedAudiences?.length >= 2 ? scrapedAudiences : prev.targetAudiences.length > 0 ? prev.targetAudiences : ["business owners", "professionals", "decision makers"],
+          competitors: scrapedCompetitors?.length > 0 ? scrapedCompetitors : prev.competitors,
+          keywords: scrapedKeywords?.length > 0 ? scrapedKeywords : prev.keywords,
+          exampleUrl: url.startsWith("http") ? url : `https://${url}`,
+        }));
+      }
+    }).catch(err => {
+      console.error('[ONBOARDING] Enrichment error:', err);
+    });
+
+    // Run both in parallel - Phase 1 will complete much faster
+    try {
+      await Promise.all([fastPromise, enrichPromise]);
     } catch (err) {
-      console.error('Analysis error:', err);
+      console.error('[ONBOARDING] Analysis error:', err);
       await fallbackAnalysis(url);
     } finally {
-      setIsAutoFilling(false);
       setHasAnalyzed(true);
-      // Step advancement is now handled by handleNext
     }
-  }, [toast]);
+  }, []);
 
   const fallbackAnalysis = async (url: string) => {
     let domain = "";

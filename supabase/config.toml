@@ -3,6 +3,9 @@ project_id = "pnohfokjlhpzrkczruju"
 [functions.firecrawl-scrape]
 verify_jwt = false
 
+[functions.firecrawl-scrape-fast]
+verify_jwt = false
+
 [functions.analyze-website]
 verify_jwt = true
 
