@@ -47,7 +47,7 @@ export function ProtectedRoute({ children, requireSubscription = true }: Protect
   const isOnboardingPage = location.pathname === "/onboarding";
   
   if (requireSubscription && !isOnboardingPage && !isSubscribed && !isTrial) {
-    return <Navigate to="/pricing" replace />;
+    return <Navigate to="/checkout" replace />;
   }
 
   return <>{children}</>;
