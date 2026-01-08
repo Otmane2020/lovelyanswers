@@ -89,7 +89,7 @@ export default function Pricing() {
               <Link to="/auth">Sign In</Link>
             </Button>
             <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
-              <Link to="/auth">
+              <Link to="/checkout">
                 Try 3-day trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -141,7 +141,7 @@ export default function Pricing() {
               </div>
 
               <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-8" size="lg" asChild>
-                <Link to="/auth">
+                <Link to="/checkout">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
