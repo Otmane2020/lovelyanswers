@@ -201,86 +201,27 @@ export function IntegrationConfigModal({
     setTestMessage("");
 
     try {
-      // For webhooks, we send a test ping
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (formData.token) {
-        // Handle different auth formats
-        if (platform === "shopify") {
-          headers["X-Shopify-Access-Token"] = formData.token;
-        } else {
-          headers["Authorization"] = formData.token.startsWith("Bearer ") 
-            ? formData.token 
-            : `Bearer ${formData.token}`;
-        }
-      }
-
-      // For Shopify, test by fetching blogs
-      if (platform === "shopify") {
-        const response = await fetch(`${formData.endpoint}/admin/api/2024-01/blogs.json`, {
-          headers: { "X-Shopify-Access-Token": formData.token },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setTestResult("success");
-          setTestMessage(`Found ${data.blogs?.length || 0} blog(s) in your store`);
-          toast.success("Shopify connection successful!");
-        } else if (response.status === 401) {
-          setTestResult("error");
-          setTestMessage("Invalid API token. Check your Admin API Access Token.");
-          toast.error("Authentication failed");
-        } else if (response.status === 404) {
-          setTestResult("error");
-          setTestMessage("Store not found. Check your Store URL.");
-          toast.error("Store not found");
-        } else {
-          setTestResult("error");
-          setTestMessage(`Error ${response.status}: ${response.statusText}`);
-          toast.error("Connection failed");
-        }
-        return;
-      }
-
-      // For WordPress, test the REST API
-      if (platform === "wordpress") {
-        const response = await fetch(`${formData.endpoint}/wp-json/wp/v2/posts?per_page=1`, {
-          headers,
-        });
-        
-        if (response.ok) {
-          setTestResult("success");
-          setTestMessage("WordPress API is accessible");
-          toast.success("WordPress connection successful!");
-        } else if (response.status === 401) {
-          setTestResult("error");
-          setTestMessage("Invalid credentials. Check your Application Password.");
-          toast.error("Authentication failed");
-        } else {
-          setTestResult("error");
-          setTestMessage(`Error ${response.status}: ${response.statusText}`);
-          toast.error("Connection failed");
-        }
-        return;
-      }
-
-      // For webhooks and other platforms, send a test POST
-      const response = await fetch(formData.endpoint, {
-        method: "POST",
-        headers,
-        mode: "no-cors",
-        body: JSON.stringify({
-          test: true,
-          timestamp: new Date().toISOString(),
-          source: "AEO Reply - Connection Test",
-        }),
+      // Use edge function to test connection (avoids CORS issues)
+      const { data, error } = await supabase.functions.invoke("test-integration", {
+        body: {
+          platform,
+          config: formData,
+        },
       });
 
-      setTestResult("success");
-      setTestMessage("Test request sent. Check your endpoint logs to confirm receipt.");
-      toast.success("Test request sent!");
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success) {
+        setTestResult("success");
+        setTestMessage(data.message || "Connection successful!");
+        toast.success(`${config.name} connection successful!`);
+      } else {
+        setTestResult("error");
+        setTestMessage(data?.message || "Connection failed");
+        toast.error(data?.message || "Connection failed");
+      }
     } catch (error) {
       console.error("Test failed:", error);
       setTestResult("error");
