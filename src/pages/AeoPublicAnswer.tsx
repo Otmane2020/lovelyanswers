@@ -71,7 +71,7 @@ export default function AeoPublicAnswer() {
     if (!answer) return;
     await navigator.clipboard.writeText(answer.answer);
     setCopied(true);
-    toast.success("Réponse copiée !");
+    toast.success("Answer copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -86,11 +86,11 @@ export default function AeoPublicAnswer() {
         });
       } catch (error) {
         await navigator.clipboard.writeText(url);
-        toast.success("Lien copié !");
+        toast.success("Link copied!");
       }
     } else {
       await navigator.clipboard.writeText(url);
-      toast.success("Lien copié !");
+      toast.success("Link copied!");
     }
   };
 
@@ -107,12 +107,12 @@ export default function AeoPublicAnswer() {
       <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background flex items-center justify-center">
         <Card className="p-8 text-center max-w-md">
           <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Réponse non trouvée</h1>
-          <p className="text-muted-foreground mb-6">Cette réponse AEO n'existe pas ou n'est plus disponible.</p>
+          <h1 className="text-xl font-bold mb-2">Answer not found</h1>
+          <p className="text-muted-foreground mb-6">This AEO answer does not exist or is no longer available.</p>
           <Link to="/">
             <Button>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour à l'accueil
+              Back to home
             </Button>
           </Link>
         </Card>
@@ -218,7 +218,7 @@ export default function AeoPublicAnswer() {
           {/* Key Points / Bullets - Secondary AEO content */}
           {bullets.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Points clés</h2>
+              <h2 className="text-xl font-semibold mb-4">Key Points</h2>
               <ul className="space-y-3">
                 {bullets.map((bullet, i) => (
                   <li key={i} className="flex items-start gap-3">
@@ -233,7 +233,7 @@ export default function AeoPublicAnswer() {
           {/* FAQ Section - Additional AEO signals */}
           {faq.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Questions fréquentes</h2>
+              <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
               <div className="space-y-3">
                 {faq.map((item, i) => (
                   <div 
@@ -277,7 +277,7 @@ export default function AeoPublicAnswer() {
               Source: <strong>{brand}</strong>
             </p>
             <p className="text-muted-foreground text-sm mt-1">
-              Publié le {new Date(answer.created_at).toLocaleDateString('fr-FR', { 
+              Published on {new Date(answer.created_at).toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
@@ -290,11 +290,11 @@ export default function AeoPublicAnswer() {
         <footer className="border-t bg-background/80 py-8">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="text-muted-foreground mb-4">
-              Optimisez votre visibilité sur les assistants IA
+              Optimize your visibility on AI assistants
             </p>
             <Link to="/auth?mode=signup">
               <Button className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600">
-                Créer vos réponses AEO
+                Create your AEO answers
                 <ExternalLink className="w-4 h-4 ml-2" />
               </Button>
             </Link>

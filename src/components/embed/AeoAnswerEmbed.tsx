@@ -1,15 +1,15 @@
 /**
  * AEO Answer Embed Component
  * 
- * Ce composant peut être copié dans n'importe quel projet React/Lovable/Bolt
- * pour afficher automatiquement les réponses AEO publiées.
+ * This component can be copied into any React/Lovable/Bolt project
+ * to automatically display published AEO answers.
  * 
  * INSTALLATION:
- * 1. Copiez ce fichier dans votre projet client
- * 2. Ajoutez les variables d'environnement:
- *    - VITE_AEO_API_URL (URL de votre API AEO)
- *    - VITE_AEO_PROJECT_ID (ID de votre projet AEO)
- * 3. Utilisez le composant: <AeoAnswerEmbed slug="votre-question" />
+ * 1. Copy this file into your client project
+ * 2. Add environment variables:
+ *    - VITE_AEO_API_URL (URL of your AEO API)
+ *    - VITE_AEO_PROJECT_ID (ID of your AEO project)
+ * 3. Use the component: <AeoAnswerEmbed slug="your-question" />
  */
 
 import { useEffect, useState } from 'react';
@@ -227,7 +227,7 @@ export function AeoAnswerEmbed({
 
       {showFaq && faq.length > 0 && (
         <section style={styles.faqSection}>
-          <h3 style={styles.faqTitle}>Questions fréquentes</h3>
+          <h3 style={styles.faqTitle}>Frequently Asked Questions</h3>
           {faq.map((item, index) => (
             <div key={index} style={styles.faqItem}>
               <p style={styles.faqQuestion}>{item.q}</p>

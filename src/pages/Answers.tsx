@@ -233,8 +233,8 @@ export default function Answers() {
       
       // Generate from keywords (new questions from unused keywords)
       toast.info(hasUnusedKeywords 
-        ? `Génération de ${unusedKeywords.length} nouvelles réponses depuis les keywords...`
-        : "Génération de nouvelles réponses depuis le contexte du projet...");
+        ? `Generating ${unusedKeywords.length} new answers from keywords...`
+        : "Generating new answers from project context...");
       
       const { data, error } = await supabase.functions.invoke('generate-aeo-answers', {
         body: { 
@@ -249,16 +249,16 @@ export default function Answers() {
       
       if (error) {
         console.error('Error generating answers:', error);
-        toast.error("Erreur lors de la génération");
+        toast.error("Error during generation");
       } else {
         const count = data?.count || data?.answers?.length || 0;
-        toast.success(`${count} nouvelles réponses générées!`);
+        toast.success(`${count} new answers generated!`);
       }
       
       refetch();
     } catch (error) {
       console.error('Error regenerating all answers:', error);
-      toast.error("Erreur lors de la régénération");
+      toast.error("Error during regeneration");
     } finally {
     setRegeneratingAll(false);
     }
@@ -304,7 +304,7 @@ export default function Answers() {
       const project = projectWithKeywords || projects[0];
       console.log(`[generate30Answers] Using project: ${project.id} (${project.name})`);
       
-      toast.info("Génération de 30 Q/A planifiées sur 30 jours...");
+      toast.info("Generating 30 scheduled Q/A over 30 days...");
       
       const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
         body: { 
@@ -319,16 +319,16 @@ export default function Answers() {
       
       if (error) {
         console.error('Error generating 30 answers:', error);
-        toast.error("Erreur lors de la génération");
+        toast.error("Error during generation");
       } else {
-        toast.success(`${data?.answers_created || 30} réponses générées et planifiées!`);
+        toast.success(`${data?.answers_created || 30} answers generated and scheduled!`);
         setShowCmsPopup(true); // Show CMS popup after generation
       }
       
       refetch();
     } catch (error) {
       console.error('Error generating 30 answers:', error);
-      toast.error("Erreur lors de la génération");
+      toast.error("Error during generation");
     } finally {
       setGenerating30(false);
     }
@@ -367,7 +367,7 @@ export default function Answers() {
                 ) : (
                   <Zap className="h-4 w-4" />
                 )}
-                Générer 30 Q/A (30 jours)
+                Generate 30 Q/A (30 days)
               </Button>
               <Button 
                 variant="outline"
@@ -380,7 +380,7 @@ export default function Answers() {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                {unusedKeywordsCount > 0 ? `Générer (${unusedKeywordsCount})` : "Régénérer"}
+                {unusedKeywordsCount > 0 ? `Generate (${unusedKeywordsCount})` : "Regenerate"}
               </Button>
               <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
                 <Plus className="h-4 w-4" />New Answer
