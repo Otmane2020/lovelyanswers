@@ -490,7 +490,7 @@ export default function Onboarding() {
                         <div className="min-h-[150px] border border-border rounded-md bg-muted/30 p-4 flex items-center justify-center">
                           <div className="flex items-center gap-3 text-muted-foreground">
                             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                            <span>Analyzing your website content...</span>
+                            <span>Auto-filling...</span>
                           </div>
                         </div>
                       ) : (
@@ -518,7 +518,7 @@ export default function Onboarding() {
                       {isAutoFilling && data.targetAudiences.length === 0 ? (
                         <div className="flex items-center gap-2 text-muted-foreground text-sm mt-3">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          <span>Detecting target audiences...</span>
+                          <span>Auto-filling...</span>
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-2 mt-3">
