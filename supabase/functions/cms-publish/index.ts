@@ -168,10 +168,12 @@ async function publishToWordPress(
   config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
   if (!config.endpoint || !config.token) {
-    throw new Error("WordPress endpoint and token required");
+    return { success: false, message: "WordPress endpoint and token required. Check your configuration." };
   }
 
   try {
+    console.log(`[WordPress] Publishing to ${config.endpoint}`);
+    
     const response = await fetch(`${config.endpoint}/wp-json/wp/v2/posts`, {
       method: "POST",
       headers: {
@@ -186,20 +188,32 @@ async function publishToWordPress(
     });
 
     if (!response.ok) {
+      const status = response.status;
       const errorText = await response.text();
-      throw new Error(`WordPress API error: ${errorText}`);
+      console.error(`[WordPress] Error ${status}: ${errorText}`);
+      
+      if (status === 401 || status === 403) {
+        return { success: false, message: "Invalid credentials. Check your Application Password or JWT token." };
+      } else if (status === 404) {
+        return { success: false, message: "WordPress REST API not found. Verify the site URL is correct." };
+      } else if (status === 429) {
+        return { success: false, message: "Rate limit exceeded. Try again later." };
+      }
+      return { success: false, message: `WordPress API error (${status}): ${errorText.substring(0, 200)}` };
     }
 
     const data = await response.json();
+    console.log(`[WordPress] Published successfully: ${data.link}`);
     return {
       success: true,
       publishedUrl: data.link,
       publishedId: String(data.id),
     };
   } catch (error) {
+    console.error("[WordPress] Exception:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "WordPress publish failed",
+      message: error instanceof Error ? error.message : "WordPress publish failed - network error",
     };
   }
 }
@@ -257,26 +271,38 @@ async function publishToShopify(
   config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
   if (!config.endpoint || !config.token) {
-    throw new Error("Shopify store URL and token required");
+    return { success: false, message: "Shopify store URL and Admin API token required. Check your configuration." };
   }
 
   try {
+    console.log(`[Shopify] Publishing to ${config.endpoint}`);
+    
     // Get the first blog ID
     const blogsResponse = await fetch(`${config.endpoint}/admin/api/2024-01/blogs.json`, {
       headers: { "X-Shopify-Access-Token": config.token },
     });
     
     if (!blogsResponse.ok) {
-      throw new Error("Failed to get Shopify blogs");
+      const status = blogsResponse.status;
+      console.error(`[Shopify] Failed to get blogs: ${status}`);
+      
+      if (status === 401) {
+        return { success: false, message: "Invalid Admin API Access Token. Create a new token in your Shopify app." };
+      } else if (status === 404) {
+        return { success: false, message: "Store not found. Check your Store URL (must be your-store.myshopify.com)." };
+      }
+      return { success: false, message: `Failed to access Shopify store (${status})` };
     }
     
     const blogsData = await blogsResponse.json();
     const blogId = blogsData.blogs?.[0]?.id;
     
     if (!blogId) {
-      throw new Error("No blog found in Shopify store");
+      return { success: false, message: "No blog found in your Shopify store. Create a blog first in Online Store → Blog Posts." };
     }
 
+    console.log(`[Shopify] Using blog ID: ${blogId}`);
+    
     const response = await fetch(`${config.endpoint}/admin/api/2024-01/blogs/${blogId}/articles.json`, {
       method: "POST",
       headers: {
@@ -293,20 +319,28 @@ async function publishToShopify(
     });
 
     if (!response.ok) {
+      const status = response.status;
       const errorText = await response.text();
-      throw new Error(`Shopify API error: ${errorText}`);
+      console.error(`[Shopify] Article creation failed (${status}): ${errorText}`);
+      
+      if (status === 422) {
+        return { success: false, message: "Invalid article data. Check title and content format." };
+      }
+      return { success: false, message: `Shopify API error (${status}): ${errorText.substring(0, 200)}` };
     }
 
     const data = await response.json();
+    console.log(`[Shopify] Published successfully: ${data.article.id}`);
     return {
       success: true,
       publishedId: String(data.article.id),
       publishedUrl: `${config.endpoint}/blogs/news/${data.article.handle}`,
     };
   } catch (error) {
+    console.error("[Shopify] Exception:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Shopify publish failed",
+      message: error instanceof Error ? error.message : "Shopify publish failed - network error",
     };
   }
 }

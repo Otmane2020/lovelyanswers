@@ -5,19 +5,37 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Check } from "lucide-react";
+import { ExternalLink, Check, Settings, Trash2, Loader2 } from "lucide-react";
+import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
+import { useActiveProject } from "@/hooks/useProjects";
+import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
+import { TestPublishButton } from "@/components/integrations/TestPublishButton";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import shopifyLogo from "@/assets/shopify-logo.png";
+import wixLogo from "@/assets/wix-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_INTEGRATIONS = [
-  { id: "wordpress", name: "WordPress", icon: "🔵" },
-  { id: "duda", name: "Duda", icon: "🟠" },
-  { id: "api", name: "API", icon: "⚙️" },
-  { id: "webhook", name: "Webhook", icon: "🔗" },
-  { id: "webflow", name: "Webflow", icon: "🔷" },
-  { id: "shopify", name: "Shopify", icon: "🟢" },
-  { id: "wix", name: "Wix", icon: "🟡" },
-  { id: "bigcommerce", name: "BigCommerce", icon: "📦" },
-  { id: "snapps", name: "Snapps", icon: "📱" },
-  { id: "framer", name: "Framer", icon: "⬛" },
+  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
+  { id: "duda", name: "Duda", icon: "🟠", isImage: false },
+  { id: "api", name: "Custom API", icon: "⚙️", isImage: false },
+  { id: "webhook", name: "Webhook", icon: "🔗", isImage: false },
+  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
+  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
+  { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
+  { id: "bigcommerce", name: "BigCommerce", icon: "📦", isImage: false },
+  { id: "snapps", name: "Snapps", icon: "📱", isImage: false },
+  { id: "framer", name: "Framer", icon: "⬛", isImage: false },
 ];
 
 const ANALYTICS_INTEGRATIONS = [
@@ -45,16 +63,60 @@ const ANALYTICS_INTEGRATIONS = [
 ];
 
 export default function AeoIntegrations() {
+  const { project } = useActiveProject();
+  const { data: integrations, isLoading, refetch } = useIntegrations();
+  const deleteIntegration = useDeleteIntegration();
+  
   const [autoPublish, setAutoPublish] = useState(true);
-  const [connectedCms, setConnectedCms] = useState<string[]>([]);
   const [connectedAnalytics, setConnectedAnalytics] = useState<string[]>([]);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [editingIntegration, setEditingIntegration] = useState<{
+    id: string;
+    config: Record<string, string>;
+  } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [integrationToDelete, setIntegrationToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const handleConnectCms = (id: string) => {
-    if (connectedCms.includes(id)) {
-      setConnectedCms(connectedCms.filter(c => c !== id));
+  const connectedCmsIds = integrations?.map(i => i.platform) || [];
+
+  const handleCmsClick = (platformId: string) => {
+    const existingIntegration = integrations?.find(i => i.platform === platformId);
+    
+    if (existingIntegration) {
+      setEditingIntegration({
+        id: existingIntegration.id,
+        config: existingIntegration.config,
+      });
     } else {
-      setConnectedCms([...connectedCms, id]);
+      setEditingIntegration(null);
     }
+    
+    setSelectedPlatform(platformId);
+    setConfigModalOpen(true);
+  };
+
+  const handleDeleteClick = (integrationId: string, platformName: string) => {
+    setIntegrationToDelete({ id: integrationId, name: platformName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!integrationToDelete) return;
+    
+    try {
+      await deleteIntegration.mutateAsync(integrationToDelete.id);
+      toast.success(`${integrationToDelete.name} disconnected`);
+      refetch();
+    } catch (error) {
+      toast.error("Failed to disconnect integration");
+    }
+    
+    setDeleteDialogOpen(false);
+    setIntegrationToDelete(null);
   };
 
   const handleConnectAnalytics = (id: string) => {
@@ -64,6 +126,24 @@ export default function AeoIntegrations() {
       setConnectedAnalytics([...connectedAnalytics, id]);
     }
   };
+
+  const getIntegrationByPlatform = (platformId: string) => {
+    return integrations?.find(i => i.platform === platformId);
+  };
+
+  const getCmsName = (platformId: string) => {
+    return CMS_INTEGRATIONS.find(c => c.id === platformId)?.name || platformId;
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -76,6 +156,69 @@ export default function AeoIntegrations() {
           </p>
         </div>
 
+        {/* Connected Integrations */}
+        {integrations && integrations.length > 0 && (
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Connected Integrations</h3>
+            <div className="space-y-3">
+              {integrations.map((integration) => {
+                const cmsConfig = CMS_INTEGRATIONS.find(c => c.id === integration.platform);
+                const configName = integration.config?.name || getCmsName(integration.platform);
+                
+                return (
+                  <div 
+                    key={integration.id}
+                    className="flex items-center justify-between p-4 rounded-xl border border-primary/30 bg-primary/5"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center">
+                        {cmsConfig?.isImage ? (
+                          <img 
+                            src={cmsConfig.icon as string} 
+                            alt={cmsConfig.name} 
+                            className="h-6 w-6 object-contain dark:invert" 
+                          />
+                        ) : (
+                          <span className="text-xl">{cmsConfig?.icon || "🔗"}</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{configName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {integration.config?.endpoint || integration.platform}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TestPublishButton 
+                        integrationId={integration.id}
+                        platformName={getCmsName(integration.platform)}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCmsClick(integration.platform)}
+                        className="gap-1.5"
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClick(integration.id, getCmsName(integration.platform))}
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
         {/* CMS Integrations */}
         <Card className="p-6">
           <h3 className="font-semibold mb-4">CMS Integrations</h3>
@@ -84,12 +227,12 @@ export default function AeoIntegrations() {
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {CMS_INTEGRATIONS.map((integration) => {
-              const isConnected = connectedCms.includes(integration.id);
+              const isConnected = connectedCmsIds.includes(integration.id);
               
               return (
                 <button
                   key={integration.id}
-                  onClick={() => handleConnectCms(integration.id)}
+                  onClick={() => handleCmsClick(integration.id)}
                   className={`
                     p-4 rounded-xl border transition-all text-center group relative
                     ${isConnected 
@@ -103,10 +246,20 @@ export default function AeoIntegrations() {
                       <Check className="w-3 h-3 text-primary-foreground" />
                     </div>
                   )}
-                  <div className="text-2xl mb-2">{integration.icon}</div>
+                  <div className="mb-2 flex justify-center">
+                    {integration.isImage ? (
+                      <img 
+                        src={integration.icon as string} 
+                        alt={integration.name} 
+                        className="h-8 w-8 object-contain dark:invert" 
+                      />
+                    ) : (
+                      <span className="text-2xl">{integration.icon}</span>
+                    )}
+                  </div>
                   <p className="font-medium text-sm">{integration.name}</p>
                   <p className="text-xs text-primary mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isConnected ? 'Disconnect' : 'Configure'}
+                    {isConnected ? 'Edit' : 'Configure'}
                   </p>
                 </button>
               );
@@ -181,6 +334,44 @@ export default function AeoIntegrations() {
           </div>
         </Card>
       </div>
+
+      {/* Config Modal */}
+      {project && (
+        <IntegrationConfigModal
+          open={configModalOpen}
+          onOpenChange={setConfigModalOpen}
+          platform={selectedPlatform}
+          projectId={project.id}
+          existingConfig={editingIntegration?.config}
+          integrationId={editingIntegration?.id}
+          onSuccess={() => {
+            refetch();
+            setEditingIntegration(null);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {integrationToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the integration and stop automatic publishing to this platform. 
+              You can reconnect it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
