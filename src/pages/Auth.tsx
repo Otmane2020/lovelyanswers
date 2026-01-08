@@ -28,11 +28,27 @@ export default function Auth() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
-    if (user) {
-      const from = (location.state as any)?.from?.pathname || "/onboarding";
-      navigate(from, { replace: true });
-    }
-  }, [user, navigate, location]);
+    const checkUserAndRedirect = async () => {
+      if (!user) return;
+
+      // Check if user has an existing project
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (projects && projects.length > 0) {
+        // Existing user with project → Dashboard (ProtectedRoute handles subscription check)
+        navigate("/dashboard", { replace: true });
+      } else {
+        // New user without project → Onboarding
+        navigate("/onboarding", { replace: true });
+      }
+    };
+
+    checkUserAndRedirect();
+  }, [user, navigate]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -131,7 +147,7 @@ export default function Auth() {
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
-                    redirectTo: `${window.location.origin}/onboarding`,
+                    redirectTo: `${window.location.origin}/auth`,
                   },
                 });
                 if (error) {
