@@ -12,20 +12,17 @@ export function usePublishAnswer() {
 
   return useMutation({
     mutationFn: async ({ answerId, projectId }: PublishAnswerParams) => {
-      // Get active integration for project
+      // Get ALL active integrations for project (publish to all connected CMS)
       const { data: integrations, error: intError } = await supabase
         .from("integrations")
         .select("*")
         .eq("project_id", projectId)
-        .eq("is_connected", true)
-        .limit(1);
+        .eq("is_connected", true);
 
       if (intError) throw intError;
       if (!integrations || integrations.length === 0) {
         throw new Error("No CMS integration connected. Please configure an integration first.");
       }
-
-      const integration = integrations[0];
 
       // Get answer data
       const { data: answer, error: answerError } = await supabase
@@ -50,37 +47,69 @@ export function usePublishAnswer() {
       // Generate article HTML
       const articleHTML = generateArticleHTML(answer, { brandName, websiteUrl, language });
 
-      // Call cms-publish
-      const { data, error } = await supabase.functions.invoke("cms-publish", {
-        body: {
-          integrationId: integration.id,
-          content: {
-            title: answer.question,
-            body: articleHTML,
-            type: "answer",
-            sourceId: answerId
+      // Publish to ALL connected integrations
+      const results: { platform: string; success: boolean; url?: string; error?: string }[] = [];
+      
+      for (const integration of integrations) {
+        try {
+          const { data, error } = await supabase.functions.invoke("cms-publish", {
+            body: {
+              integrationId: integration.id,
+              content: {
+                title: answer.question,
+                body: articleHTML,
+                type: "answer",
+                sourceId: answerId
+              }
+            }
+          });
+
+          if (error) {
+            results.push({ platform: integration.platform, success: false, error: error.message });
+          } else if (!data.success) {
+            results.push({ platform: integration.platform, success: false, error: data.message || "Publication failed" });
+          } else {
+            results.push({ platform: integration.platform, success: true, url: data.publishedUrl });
           }
+        } catch (err) {
+          results.push({ platform: integration.platform, success: false, error: err instanceof Error ? err.message : "Unknown error" });
         }
-      });
+      }
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Publication failed");
+      // Check if at least one succeeded
+      const successfulPublishes = results.filter(r => r.success);
+      const failedPublishes = results.filter(r => !r.success);
+      
+      if (successfulPublishes.length === 0) {
+        throw new Error(`All publications failed: ${failedPublishes.map(f => `${f.platform}: ${f.error}`).join(", ")}`);
+      }
 
-      // Update answer as published
+      // Update answer as published with first successful URL
+      const firstSuccessUrl = successfulPublishes[0]?.url;
       await supabase
         .from("answers")
         .update({
           is_public: true,
-          published_url: data.url || null,
+          published_url: firstSuccessUrl || null,
           published_at: new Date().toISOString()
         })
         .eq("id", answerId);
 
-      return data;
+      return { 
+        results, 
+        successCount: successfulPublishes.length, 
+        failCount: failedPublishes.length 
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["answers"] });
-      toast.success("Answer published to CMS successfully!");
+      if (data.failCount > 0) {
+        toast.success(`Published to ${data.successCount} CMS`, {
+          description: `${data.failCount} failed - check integrations settings`
+        });
+      } else {
+        toast.success(`Published to ${data.successCount} CMS successfully!`);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
