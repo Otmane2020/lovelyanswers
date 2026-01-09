@@ -238,30 +238,31 @@ export default function AeoHistory() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/answers/${answer.id}/edit`)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
+                              <DropdownMenuItem onClick={() => navigate(`/answers/${answer.id}/edit`)} className="flex items-center gap-2">
+                                <Pencil className="h-4 w-4" />
+                                <span>Edit</span>
                               </DropdownMenuItem>
                               {answer.is_public && (
-                                <DropdownMenuItem onClick={() => window.open(`/answers/${answer.slug}`, "_blank")}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Public
+                                <DropdownMenuItem onClick={() => window.open(`/answers/${answer.slug}`, "_blank")} className="flex items-center gap-2">
+                                  <Eye className="h-4 w-4" />
+                                  <span>View Public</span>
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleCopyLink(answer.slug)}>
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy Link
+                              <DropdownMenuItem onClick={() => handleCopyLink(answer.slug)} className="flex items-center gap-2">
+                                <Copy className="h-4 w-4" />
+                                <span>Copy Link</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handlePublish(answer.id)}
                                 disabled={publishingId === answer.id}
+                                className="flex items-center gap-2"
                               >
                                 {publishingId === answer.id ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <Send className="h-4 w-4 mr-2" />
+                                  <Send className="h-4 w-4" />
                                 )}
-                                Publish to CMS
+                                <span>Publish to CMS</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -333,17 +334,17 @@ export default function AeoHistory() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}`)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
+                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}`)} className="flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                <span>View</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}/edit`)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
+                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}/edit`)} className="flex items-center gap-2">
+                                <Pencil className="h-4 w-4" />
+                                <span>Edit</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Send className="h-4 w-4 mr-2" />
-                                Publish
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                <Send className="h-4 w-4" />
+                                <span>Publish</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
