@@ -95,8 +95,20 @@ function generateArticleHTML(
   const { question, answer: answerText, supporting_content } = answer;
   const { brandName, websiteUrl, language } = settings;
 
-  const bullets = (supporting_content as any)?.bullets || [];
-  const faq = (supporting_content as any)?.faq || [];
+  // Safely extract bullets - handle different structures
+  const rawBullets = (supporting_content as any)?.bullets || [];
+  const bullets = rawBullets.filter((b: any) => b && typeof b === 'string' && b.trim());
+
+  // Safely extract FAQ - filter out empty/invalid items
+  const rawFaq = (supporting_content as any)?.faq || [];
+  const faq = rawFaq.filter((item: any) => 
+    item && 
+    typeof item === 'object' && 
+    item.question && 
+    item.answer && 
+    item.question.trim() && 
+    item.answer.trim()
+  );
 
   const qaJsonLd = {
     "@context": "https://schema.org",
@@ -107,15 +119,19 @@ function generateArticleHTML(
       "acceptedAnswer": {
         "@type": "Answer",
         "text": answerText,
-        "author": {
+        "author": websiteUrl ? {
           "@type": "Organization",
           "name": brandName,
           "url": websiteUrl
+        } : {
+          "@type": "Organization",
+          "name": brandName
         }
       }
     }
   };
 
+  // Only create FAQ JSON-LD if we have valid FAQ items
   const faqJsonLd = faq.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -134,6 +150,11 @@ function generateArticleHTML(
     ? `<section class="faq-section"><h2>${language === 'fr' ? 'Questions Fréquentes' : 'FAQ'}</h2>${faq.map((item: any) => `<details><summary>${item.question}</summary><p>${item.answer}</p></details>`).join('')}</section>` 
     : '';
 
+  // Only show footer if we have brand info
+  const footer = brandName && brandName !== 'Brand' 
+    ? `<footer class="source"><p>${language === 'fr' ? 'Source' : 'Source'}: ${websiteUrl ? `<a href="${websiteUrl}" rel="author">${brandName}</a>` : brandName}</p></footer>`
+    : '';
+
   return `
 <article class="aeo-article">
   <script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>
@@ -142,6 +163,6 @@ function generateArticleHTML(
   <div class="answer-box"><p>${answerText}</p></div>
   ${bulletsList}
   ${faqSection}
-  <footer class="source"><p>${language === 'fr' ? 'Source' : 'Source'}: <a href="${websiteUrl}" rel="author">${brandName}</a></p></footer>
+  ${footer}
 </article>`;
 }
