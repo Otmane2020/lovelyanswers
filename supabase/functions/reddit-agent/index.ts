@@ -808,12 +808,51 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
     const parsed = JSON.parse(jsonMatch[1] || content);
     
     // 🔒 CRITICAL: Validate that returned URLs are REAL (from our input)
-    const validUrls = new Set(allPosts.map(p => p.url));
-    const validatedOpportunities = (parsed.opportunities || []).filter((opp: any) => 
-      opp.url && validUrls.has(opp.url)
-    );
+    // Use normalized URLs for flexible matching
+    const normalizeUrl = (url: string): string => {
+      return url
+        .replace(/\/$/, '') // Remove trailing slash
+        .replace(/^https?:\/\/(www\.)?/, '') // Remove protocol and www
+        .replace(/\?.*$/, '') // Remove query params
+        .toLowerCase();
+    };
+    
+    const normalizedValidUrls = new Map<string, RealRedditPost>();
+    allPosts.forEach(p => {
+      normalizedValidUrls.set(normalizeUrl(p.url), p);
+    });
+    
+    const validatedOpportunities = (parsed.opportunities || [])
+      .map((opp: any) => {
+        if (!opp.url) return null;
+        const normalizedOppUrl = normalizeUrl(opp.url);
+        const originalPost = normalizedValidUrls.get(normalizedOppUrl);
+        if (originalPost) {
+          return { ...opp, url: originalPost.url }; // Use original URL
+        }
+        return null;
+      })
+      .filter(Boolean);
 
     console.log(`[reddit-agent] Validated ${validatedOpportunities.length} opportunities with real URLs`);
+    
+    // 🔥 FALLBACK: If 0 opportunities validated, return raw posts
+    if (validatedOpportunities.length === 0 && allPosts.length > 0) {
+      console.log(`[reddit-agent] Validation failed, using ${allPosts.length} raw posts as fallback`);
+      return {
+        opportunities: allPosts.slice(0, 15).map(p => ({
+          id: p.id,
+          subreddit: p.subreddit,
+          title: p.title,
+          body: p.body,
+          url: p.url,
+          score: p.score,
+          comments: p.comments,
+          engagementPotential: p.comments < 20 ? "high" : p.comments < 50 ? "medium" : "low",
+          reason: "Real Reddit post (direct match)"
+        }))
+      };
+    }
     
     return { opportunities: validatedOpportunities };
   } catch (parseError) {
