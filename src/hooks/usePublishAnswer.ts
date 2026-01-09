@@ -40,9 +40,17 @@ export function usePublishAnswer() {
         .eq("project_id", projectId)
         .single();
 
-      const brandName = settings?.brand_name || "Brand";
-      const websiteUrl = settings?.website_url || "";
-      const language = settings?.language || "en";
+      // Get project language as fallback
+      const { data: project } = await supabase
+        .from("projects")
+        .select("language, brand_name, website_url")
+        .eq("id", projectId)
+        .single();
+
+      // Use settings first, then project fallback
+      const brandName = settings?.brand_name || project?.brand_name || "Brand";
+      const websiteUrl = settings?.website_url || project?.website_url || "";
+      const language = settings?.language || project?.language || "fr";
 
       // Generate article HTML
       const articleHTML = generateArticleHTML(answer, { brandName, websiteUrl, language });
