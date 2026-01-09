@@ -458,19 +458,6 @@ export default function Answers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Progress Bar at Top */}
-        {isGeneratingWithProgress && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-2">
-            <div className="container flex items-center gap-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <div className="flex-1">
-                <Progress value={generationProgress} className="h-2" />
-              </div>
-              <span className="text-sm text-muted-foreground">{generationProgress}%</span>
-            </div>
-          </div>
-        )}
-
         {/* ChatGPT Logo + Badge - Separate Line */}
         <div className="flex items-center gap-3">
           <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
@@ -522,6 +509,19 @@ export default function Answers() {
             </div>
           </div>
         </div>
+
+        {/* Progress Bar - After AEO Answers Banner */}
+        {isGeneratingWithProgress && (
+          <div className="rounded-lg bg-background/80 backdrop-blur-sm border px-4 py-3">
+            <div className="flex items-center gap-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex-1">
+                <Progress value={generationProgress} className="h-2" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">{generationProgress}%</span>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
