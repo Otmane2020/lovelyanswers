@@ -574,6 +574,12 @@ serve(async (req) => {
     }
 
     let result;
+    let storeInDb = false;
+    
+    try {
+      const body = await req.json();
+      storeInDb = body.storeInDb === true;
+    } catch {}
 
     switch (action) {
       case "find-opportunities":
@@ -583,6 +589,40 @@ serve(async (req) => {
           subreddits, 
           lovableApiKey
         );
+        
+        // 🔥 NEW: Store opportunities in database if requested
+        if (storeInDb && result.opportunities && result.opportunities.length > 0) {
+          console.log(`[reddit-agent] Storing ${result.opportunities.length} opportunities in database`);
+          
+          for (const opp of result.opportunities.slice(0, 20)) {
+            try {
+              // Check if this post already exists (by URL)
+              const { data: existing } = await supabase
+                .from("reddit_responses")
+                .select("id")
+                .eq("project_id", projectId)
+                .eq("reddit_post_url", opp.url)
+                .limit(1);
+              
+              if (!existing || existing.length === 0) {
+                await supabase
+                  .from("reddit_responses")
+                  .insert({
+                    project_id: projectId,
+                    subreddit: opp.subreddit?.replace("r/", "") || "unknown",
+                    reddit_post_title: opp.title || "Untitled",
+                    reddit_post_url: opp.url,
+                    generated_reply: "", // Empty until user generates
+                    original_question: opp.title,
+                    is_posted_to_reddit: false,
+                    is_shared: false
+                  });
+              }
+            } catch (insertErr) {
+              console.error(`[reddit-agent] Failed to insert opportunity:`, insertErr);
+            }
+          }
+        }
         break;
       case "generate-responses":
         result = await generateResponses(projectContext, subreddits, effectiveKeywords, lovableApiKey);
