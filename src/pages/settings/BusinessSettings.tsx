@@ -13,6 +13,7 @@ export function BusinessSettings() {
   const { project, isLoading } = useActiveProject();
   const updateProject = useUpdateProject();
 
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
   const [audienceTags, setAudienceTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
@@ -23,6 +24,7 @@ export function BusinessSettings() {
   // Load data from project when it's available
   useEffect(() => {
     if (project) {
+      setWebsiteUrl(project.website_url || "");
       setDescription(project.business_description || "");
       // Parse audience - it's stored as a string, could be comma-separated or JSON
       if (project.audience) {
@@ -58,6 +60,7 @@ export function BusinessSettings() {
       await updateProject.mutateAsync({
         projectId: project.id,
         updates: {
+          website_url: websiteUrl,
           business_description: description,
           audience: JSON.stringify(audienceTags),
           brand_color: brandColor,
@@ -91,6 +94,15 @@ export function BusinessSettings() {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="websiteUrl">Website URL</Label>
+            <Input
+              id="websiteUrl"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://example.com"
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <div className="relative">
