@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useRedditPreload } from "@/hooks/useRedditPreload";
 import {
   MessageSquare,
   TrendingUp,
@@ -25,6 +26,9 @@ export default function AeoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { subscribed, startCheckout, isLoading } = useSubscription();
+  
+  // Preload Reddit posts in background on first dashboard visit
+  useRedditPreload();
   
   const [answersStats, setAnswersStats] = useState({
     total: 0,

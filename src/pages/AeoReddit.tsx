@@ -158,12 +158,61 @@ export default function AeoReddit() {
     fetchSettings();
   }, [activeProject?.id]);
 
+  // Load posts from database first, then fetch new ones if needed
+  const loadPostsFromDatabase = async () => {
+    if (!activeProject?.id) return false;
+    
+    try {
+      const { data: storedPosts, error } = await supabase
+        .from("reddit_responses")
+        .select("*")
+        .eq("project_id", activeProject.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      
+      if (error) throw error;
+      
+      if (storedPosts && storedPosts.length > 0) {
+        const transformedPosts: RedditPost[] = storedPosts.map((post, index) => ({
+          id: post.id,
+          subreddit: `r/${post.subreddit}`,
+          title: post.reddit_post_title,
+          body: post.original_question || "",
+          views: "—",
+          trending: false,
+          url: post.reddit_post_url,
+          suggestedComment: post.generated_reply || undefined,
+          brandMentioned: post.brand_mentioned ?? undefined,
+          linkIncluded: post.link_included ?? undefined
+        }));
+        
+        setPosts(transformedPosts);
+        console.log(`[Reddit] Loaded ${transformedPosts.length} posts from database`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("[Reddit] Error loading from database:", error);
+      return false;
+    }
+  };
+
   // Fetch real Reddit posts from edge function
-  const fetchRedditPosts = async () => {
+  const fetchRedditPosts = async (forceRefresh = false) => {
     if (!activeProject?.id) return;
     
     setLoading(true);
     try {
+      // First try to load from database (unless forcing refresh)
+      if (!forceRefresh) {
+        const hasStoredPosts = await loadPostsFromDatabase();
+        if (hasStoredPosts) {
+          setLoading(false);
+          setInitialLoadDone(true);
+          return;
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       // Fetch keywords from database
@@ -197,7 +246,8 @@ export default function AeoReddit() {
           keywords: projectKeywords.slice(0, 20),
           language,
           business_description: generationSettings?.business_description || "",
-          target_audiences: generationSettings?.target_audiences || []
+          target_audiences: generationSettings?.target_audiences || [],
+          storeInDb: true // Store in database for next time
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
@@ -345,7 +395,7 @@ export default function AeoReddit() {
 
   const refreshPosts = async () => {
     setInitialLoadDone(false);
-    await fetchRedditPosts();
+    await fetchRedditPosts(true); // Force refresh from Reddit
   };
 
   const handleCopyAndOpen = (post: RedditPost) => {
