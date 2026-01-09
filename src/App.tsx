@@ -22,6 +22,7 @@ import AeoKeywords from "./pages/AeoKeywords";
 import AeoReddit from "./pages/AeoReddit";
 import AeoPlanning from "./pages/AeoPlanning";
 import AeoWizard from "./pages/AeoWizard";
+import AeoHistory from "./pages/AeoHistory";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
               <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
               <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
+              <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
               <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
               <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />

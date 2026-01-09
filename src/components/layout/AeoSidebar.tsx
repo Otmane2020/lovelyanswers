@@ -10,6 +10,7 @@ import {
   LogOut,
   Rocket,
   CalendarDays,
+  History,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -41,6 +42,7 @@ export function AeoSidebar() {
     { title: "Overview", url: "/dashboard", icon: Home },
     { title: "AEO Answers", url: "/answers", icon: FileText },
     { title: "Planning", url: "/planning", icon: CalendarDays },
+    { title: "History", url: "/history", icon: History },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Integrations", url: "/integrations", icon: Link2 },
     { title: "GEO Audit", url: "/seo-audit", icon: Search, badge: "New" },
