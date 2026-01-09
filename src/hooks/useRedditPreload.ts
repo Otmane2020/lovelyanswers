@@ -49,7 +49,8 @@ export function useRedditPreload() {
           .eq("project_id", project.id)
           .single();
         
-        const language = settings?.language || "en";
+        // 🔒 CRITICAL: Use project.language as fallback (detected from URL)
+        const language = settings?.language || project.language || "fr";
 
         // Generate subreddits dynamically
         const targetSubreddits = getSubredditsForKeywords(projectKeywords, language);

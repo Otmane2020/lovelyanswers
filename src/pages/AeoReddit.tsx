@@ -131,6 +131,7 @@ export default function AeoReddit() {
   const [loading, setLoading] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>("soft");
   const [generationSettings, setGenerationSettings] = useState<{
     language: string;
@@ -143,6 +144,8 @@ export default function AeoReddit() {
     const fetchSettings = async () => {
       if (!activeProject?.id) return;
       
+      setSettingsLoaded(false);
+      
       const { data } = await supabase
         .from("generation_settings")
         .select("language, business_description, target_audiences")
@@ -152,7 +155,12 @@ export default function AeoReddit() {
       if (data) {
         setGenerationSettings(data);
         console.log(`[Reddit] Loaded settings: language=${data.language}`);
+      } else {
+        console.log(`[Reddit] No settings found, using project language: ${activeProject.language}`);
       }
+      
+      // Mark as loaded even if no data (will use project fallback)
+      setSettingsLoaded(true);
     };
     
     fetchSettings();
@@ -228,8 +236,9 @@ export default function AeoReddit() {
       if (activeProject.brand_name) projectKeywords.push(activeProject.brand_name.toLowerCase());
       if (activeProject.business_type) projectKeywords.push(activeProject.business_type.toLowerCase());
       
-      // Get language from generation settings or default to 'en'
-      const language = generationSettings?.language || "en";
+      // 🔒 CRITICAL: Use language from settings → project → 'fr' (French default for Movala)
+      const language = generationSettings?.language || activeProject?.language || "fr";
+      console.log(`[Reddit] Language cascade: settings=${generationSettings?.language}, project=${activeProject?.language}, final=${language}`);
       
       console.log(`[Reddit] Using ${projectKeywords.length} keywords (lang=${language}):`, projectKeywords.slice(0, 5));
       
@@ -295,12 +304,13 @@ export default function AeoReddit() {
     }
   };
 
-  // Load posts on mount when project is available
+  // 🔒 CRITICAL: Load posts ONLY when settings are loaded (to get correct language)
   useEffect(() => {
-    if (activeProject?.id && !initialLoadDone) {
+    if (activeProject?.id && settingsLoaded && !initialLoadDone) {
+      console.log(`[Reddit] Settings loaded, triggering fetch with lang=${generationSettings?.language || activeProject?.language}`);
       fetchRedditPosts();
     }
-  }, [activeProject?.id, initialLoadDone]);
+  }, [activeProject?.id, settingsLoaded, initialLoadDone]);
 
   // Get brand mention probability based on visibility mode
   const getBrandMentionChance = (): boolean => {
@@ -575,7 +585,12 @@ export default function AeoReddit() {
 
         {/* Reddit Posts List */}
         <div className="space-y-4">
-          {loading && !initialLoadDone ? (
+          {!settingsLoaded ? (
+            <Card className="p-8 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Loading project settings...</p>
+            </Card>
+          ) : loading && !initialLoadDone ? (
             <Card className="p-8 text-center">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Searching for Reddit opportunities...</p>
