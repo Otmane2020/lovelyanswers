@@ -141,9 +141,38 @@ function generateAnswerSlug(question: string): string {
 }
 
 function safeParseJSON<T>(raw: string): T {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("Invalid AI JSON response");
-  return JSON.parse(match[0]);
+  // Try to extract JSON from markdown code blocks first
+  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch (e) {
+      // Fall through to other methods
+    }
+  }
+  
+  // Try to find JSON object directly
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch (e) {
+      // Fall through to error
+    }
+  }
+  
+  // Try to find JSON array
+  const arrayMatch = raw.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    try {
+      return JSON.parse(arrayMatch[0]);
+    } catch (e) {
+      // Fall through to error
+    }
+  }
+  
+  console.error("Failed to parse JSON from:", raw.substring(0, 500));
+  throw new Error("Invalid AI JSON response");
 }
 
 /* =======================
@@ -250,12 +279,19 @@ Generate 5 decision-oriented questions. Return JSON:
     }));
   } catch (e) {
     console.error("Failed to generate contextual questions:", e);
-    // Fallback to generic but still better questions
-    return [
-      { question: `Comment fonctionne ${brandName} ?`, intent: "howto" as IntentType },
-      { question: `Quels sont les tarifs de ${brandName} ?`, intent: "price" as IntentType },
-      { question: `Pourquoi choisir ${brandName} ?`, intent: "why" as IntentType },
-    ];
+    // Fallback to generic but still better questions based on language
+    const fallbackQuestions = language === "fr" 
+      ? [
+          { question: `Comment choisir un bon service de ${description?.split(' ').slice(0, 3).join(' ') || 'qualité'} ?`, intent: "criteria" as IntentType },
+          { question: `Quel budget prévoir pour ${description?.split(' ').slice(0, 3).join(' ') || 'ce service'} en ${new Date().getFullYear()} ?`, intent: "price" as IntentType },
+          { question: `Quelles erreurs éviter lors du choix ?`, intent: "howto" as IntentType },
+        ]
+      : [
+          { question: `How to choose a good ${description?.split(' ').slice(0, 3).join(' ') || 'service'} provider?`, intent: "criteria" as IntentType },
+          { question: `What budget to plan for ${description?.split(' ').slice(0, 3).join(' ') || 'this service'} in ${new Date().getFullYear()}?`, intent: "price" as IntentType },
+          { question: `What mistakes to avoid when choosing?`, intent: "howto" as IntentType },
+        ];
+    return fallbackQuestions;
   }
 }
 

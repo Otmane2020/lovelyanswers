@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,10 +12,13 @@ import {
   Eye,
   Plus,
   X,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -77,15 +81,95 @@ export default function Dashboard() {
   const [languageCount, setLanguageCount] = useState([1]);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [geoExpanded, setGeoExpanded] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const hasTriggeredGeneration = useRef(false);
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const domainRating = 1;
   const redditOpportunities = 10;
   const geoScore = 83;
 
+  // Auto-trigger generation on dashboard open
+  useEffect(() => {
+    const triggerAutoGeneration = async () => {
+      if (!project || !user || hasTriggeredGeneration.current) return;
+      
+      // Check if there are any existing answers
+      const { count } = await supabase
+        .from("answers")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      
+      // Only auto-generate if no answers exist
+      if (count && count > 0) return;
+      
+      hasTriggeredGeneration.current = true;
+      setIsGenerating(true);
+      setGenerationProgress(0);
+      
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 8, 90));
+      }, 500);
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        toast.info("Generating initial AEO content...");
+        
+        const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
+          body: { 
+            projectId: project.id,
+            generate30: false,
+            language: project.language || 'fr'
+          },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        clearInterval(progressInterval);
+        setGenerationProgress(100);
+        
+        if (error) {
+          console.error('Error generating answers:', error);
+          toast.error("Error during generation");
+        } else {
+          const count = data?.count || data?.answers?.length || 0;
+          if (count > 0) {
+            toast.success(`${count} AEO answers generated!`);
+          }
+        }
+      } catch (error) {
+        console.error('Error generating content:', error);
+        clearInterval(progressInterval);
+      } finally {
+        setTimeout(() => {
+          setIsGenerating(false);
+          setGenerationProgress(0);
+        }, 1000);
+      }
+    };
+
+    triggerAutoGeneration();
+  }, [project, user]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Progress Bar at Top */}
+        {isGenerating && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-2">
+            <div className="container flex items-center gap-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex-1">
+                <Progress value={generationProgress} className="h-2" />
+              </div>
+              <span className="text-sm text-muted-foreground">{generationProgress}%</span>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Header */}
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
