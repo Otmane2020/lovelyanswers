@@ -259,6 +259,111 @@ export type Database = {
           },
         ]
       }
+      google_search_console_domains: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      gsc_alerts: {
+        Row: {
+          change_percentage: number
+          created_at: string | null
+          current_value: number
+          detection_date: string | null
+          domain: string
+          id: string
+          is_read: boolean | null
+          is_resolved: boolean | null
+          metric_name: string
+          previous_value: number
+          resolved_at: string | null
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          change_percentage: number
+          created_at?: string | null
+          current_value: number
+          detection_date?: string | null
+          domain: string
+          id?: string
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          metric_name: string
+          previous_value: number
+          resolved_at?: string | null
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          change_percentage?: number
+          created_at?: string | null
+          current_value?: number
+          detection_date?: string | null
+          domain?: string
+          id?: string
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          metric_name?: string
+          previous_value?: number
+          resolved_at?: string | null
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gsc_sync_config: {
+        Row: {
+          auto_sync_enabled: boolean | null
+          created_at: string | null
+          id: string
+          last_sync_at: string | null
+          notification_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          notification_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          notification_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json | null
@@ -385,6 +490,10 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string | null
+          google_console_email: string | null
+          google_oauth_token: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
           id: string
           updated_at: string | null
         }
@@ -392,6 +501,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          google_console_email?: string | null
+          google_oauth_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
           id: string
           updated_at?: string | null
         }
@@ -399,6 +512,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          google_console_email?: string | null
+          google_oauth_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
           id?: string
           updated_at?: string | null
         }
