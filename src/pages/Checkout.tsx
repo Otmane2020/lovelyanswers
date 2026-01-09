@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 
 const highlights = [
@@ -33,9 +34,17 @@ interface AeoExample {
 export default function Checkout() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
   const [isLoading, setIsLoading] = useState(false);
   const [aeoExamples, setAeoExamples] = useState<AeoExample[]>([]);
   const [brandName, setBrandName] = useState<string>("");
+
+  // Redirect subscribed users to dashboard
+  useEffect(() => {
+    if (!subLoading && (isSubscribed || isTrial)) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isSubscribed, isTrial, subLoading, navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -132,6 +141,18 @@ export default function Checkout() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking subscription
+  if (subLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking subscription...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-0">
