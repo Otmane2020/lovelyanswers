@@ -14,13 +14,18 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isTrial, setIsTrial] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
 
   const checkSubscription = useCallback(async () => {
+    // Don't check if auth is still loading
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       setIsSubscribed(false);
       setIsTrial(false);
@@ -29,23 +34,31 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log("[SubscriptionContext] Checking subscription for user:", user.email);
       const { data, error } = await supabase.functions.invoke("check-subscription");
       
       if (error) {
-        console.error("Error checking subscription:", error);
+        console.error("[SubscriptionContext] Error checking subscription:", error);
         setIsLoading(false);
         return;
       }
 
-      setIsSubscribed(data.subscribed || false);
-      setIsTrial(data.trial || false);
-      setSubscriptionEnd(data.subscription_end || null);
+      console.log("[SubscriptionContext] Subscription response:", data);
+      
+      const subscribed = data?.subscribed || false;
+      const trial = data?.trial || false;
+      
+      setIsSubscribed(subscribed);
+      setIsTrial(trial);
+      setSubscriptionEnd(data?.subscription_end || null);
+      
+      console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
     } catch (err) {
-      console.error("Subscription check failed:", err);
+      console.error("[SubscriptionContext] Subscription check failed:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const startCheckout = async (): Promise<string | null> => {
     try {
@@ -63,10 +76,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check on mount and user change
+  // Check on mount and when auth finishes loading
   useEffect(() => {
-    checkSubscription();
-  }, [checkSubscription]);
+    // Only check when auth is done loading
+    if (!authLoading) {
+      checkSubscription();
+    }
+  }, [checkSubscription, authLoading]);
 
   // Handle success redirect - immediately recheck subscription
   useEffect(() => {
