@@ -139,7 +139,17 @@ serve(async (req) => {
       });
     }
 
-    const subscriptionEnd = new Date(activeOrTrialingSub.current_period_end * 1000).toISOString();
+    // Safely parse subscription end date
+    let subscriptionEnd: string | null = null;
+    try {
+      const endTimestamp = activeOrTrialingSub.current_period_end;
+      if (endTimestamp && typeof endTimestamp === 'number') {
+        subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
+      }
+    } catch (dateError) {
+      logStep("Error parsing subscription end date", { error: dateError });
+    }
+    
     const productId = activeOrTrialingSub.items.data[0]?.price?.product as string;
     const isTrialing = activeOrTrialingSub.status === "trialing";
 
