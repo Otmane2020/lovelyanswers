@@ -12,12 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { 
   History, 
   MessageSquare, 
@@ -28,7 +22,6 @@ import {
   ExternalLink,
   Eye,
   Pencil,
-  MoreHorizontal,
   Send,
   Globe,
   Loader2,
@@ -231,41 +224,51 @@ export default function AeoHistory() {
                           {format(new Date(answer.created_at), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/answers/${answer.id}/edit`)} className="flex items-center gap-2">
-                                <Pencil className="h-4 w-4" />
-                                <span>Edit</span>
-                              </DropdownMenuItem>
-                              {answer.is_public && (
-                                <DropdownMenuItem onClick={() => window.open(`/answers/${answer.slug}`, "_blank")} className="flex items-center gap-2">
-                                  <Eye className="h-4 w-4" />
-                                  <span>View Public</span>
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleCopyLink(answer.slug)} className="flex items-center gap-2">
-                                <Copy className="h-4 w-4" />
-                                <span>Copy Link</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handlePublish(answer.id)}
-                                disabled={publishingId === answer.id}
-                                className="flex items-center gap-2"
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => navigate(`/answers/${answer.id}/edit`)}
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            {answer.is_public && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => window.open(`/answers/${answer.slug}`, "_blank")}
+                                title="View Public"
                               >
-                                {publishingId === answer.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Send className="h-4 w-4" />
-                                )}
-                                <span>Publish to CMS</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleCopyLink(answer.slug)}
+                              title="Copy Link"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handlePublish(answer.id)}
+                              disabled={publishingId === answer.id}
+                              title="Publish to CMS"
+                            >
+                              {publishingId === answer.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -327,27 +330,34 @@ export default function AeoHistory() {
                           {format(new Date(article.created_at || new Date()), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}`)} className="flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                <span>View</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/articles/${article.id}/edit`)} className="flex items-center gap-2">
-                                <Pencil className="h-4 w-4" />
-                                <span>Edit</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="flex items-center gap-2">
-                                <Send className="h-4 w-4" />
-                                <span>Publish</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => navigate(`/articles/${article.id}`)}
+                              title="View"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => navigate(`/articles/${article.id}/edit`)}
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              title="Publish"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
