@@ -10,12 +10,125 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ExternalLink, Youtube, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, ExternalLink, BookOpen, CheckCircle2, AlertCircle, ChevronRight } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import shopifyLogo from "@/assets/shopify-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo.png";
+
+// Guide steps for each platform
+const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
+  wordpress: {
+    title: "Comment obtenir vos identifiants WordPress",
+    steps: [
+      "Connectez-vous à votre tableau de bord WordPress admin",
+      "Allez dans Utilisateurs → Votre profil",
+      "Faites défiler jusqu'à la section 'Mots de passe d'application'",
+      "Entrez un nom (ex: 'AeoRocket') et cliquez sur 'Ajouter un nouveau mot de passe'",
+      "Copiez le mot de passe généré (format: xxxx xxxx xxxx xxxx)",
+      "Dans AeoRocket, entrez votre nom d'utilisateur WordPress suivi de ':' puis le mot de passe",
+      "Exemple: monuser:xxxx xxxx xxxx xxxx",
+    ],
+  },
+  shopify: {
+    title: "Comment créer une Custom App Shopify",
+    steps: [
+      "Connectez-vous à votre Shopify Admin",
+      "Allez dans Paramètres → Apps et canaux de vente",
+      "Cliquez sur 'Développer des apps' en haut à droite",
+      "Cliquez sur 'Créer une app' et donnez-lui un nom",
+      "Dans l'onglet Configuration, cliquez sur 'Configurer les scopes API Admin'",
+      "Activez les permissions: 'write_content', 'read_content' (pour le blog)",
+      "Cliquez sur 'Sauvegarder' puis 'Installer l'app'",
+      "Copiez l'Admin API access token (commence par shpat_)",
+    ],
+  },
+  wix: {
+    title: "Comment obtenir votre clé API Wix",
+    steps: [
+      "Connectez-vous à votre compte Wix",
+      "Allez sur dev.wix.com et connectez-vous",
+      "Cliquez sur 'API Keys' dans le menu",
+      "Cliquez sur 'Generate API Key'",
+      "Sélectionnez les permissions nécessaires pour le Blog",
+      "Copiez la clé API générée",
+      "Pour le Site ID, allez dans votre tableau de bord Wix → l'ID est dans l'URL",
+    ],
+  },
+  webflow: {
+    title: "Comment obtenir votre token API Webflow",
+    steps: [
+      "Connectez-vous à votre compte Webflow",
+      "Allez dans Paramètres du site → Integrations → API Access",
+      "Cliquez sur 'Generate API Token'",
+      "Copiez le token généré",
+      "Pour le Collection ID: allez dans le CMS → cliquez sur votre collection",
+      "Le Collection ID est visible dans l'URL ou les paramètres de la collection",
+      "Le Site ID est dans Paramètres du site → Général",
+    ],
+  },
+  duda: {
+    title: "Comment obtenir vos identifiants API Duda",
+    steps: [
+      "Connectez-vous à votre tableau de bord Duda",
+      "Allez dans Compte → API Access",
+      "Générez une nouvelle paire API Key / API Secret",
+      "Copiez la clé API",
+      "Le nom du site est visible dans votre tableau de bord (sous le site)",
+    ],
+  },
+  bigcommerce: {
+    title: "Comment obtenir votre token API BigCommerce",
+    steps: [
+      "Connectez-vous à votre BigCommerce Admin",
+      "Allez dans Paramètres avancés → API Accounts",
+      "Cliquez sur 'Create API Account' → 'Create V2/V3 API Token'",
+      "Donnez un nom à l'account et sélectionnez les permissions (Content: modify)",
+      "Cliquez sur 'Save' et copiez l'Access Token",
+      "Le Store Hash est visible dans l'URL de votre admin (après /manage/)",
+    ],
+  },
+  api: {
+    title: "Configuration d'une API personnalisée",
+    steps: [
+      "Entrez l'URL complète de votre endpoint API",
+      "Format attendu: https://api.example.com/posts",
+      "Pour l'Authorization, entrez la valeur complète du header",
+      "Exemples: 'Bearer votre-token' ou 'Basic base64-credentials'",
+      "La méthode HTTP est généralement POST pour créer du contenu",
+    ],
+  },
+  webhook: {
+    title: "Configuration d'un Webhook",
+    steps: [
+      "Dans Zapier: Créez un Zap → Trigger 'Webhooks by Zapier' → 'Catch Hook'",
+      "Copiez l'URL du webhook fournie",
+      "Dans Make: Créez un scénario → Webhook → 'Custom webhook'",
+      "Dans n8n: Ajoutez un nœud Webhook et copiez l'URL de test/production",
+      "Collez l'URL dans le champ 'Webhook URL' ci-dessus",
+    ],
+  },
+  snapps: {
+    title: "Comment connecter Snapps",
+    steps: [
+      "Connectez-vous à votre tableau de bord Snapps",
+      "Allez dans Paramètres → API",
+      "Générez une nouvelle clé API",
+      "Copiez la clé et l'URL de votre site",
+    ],
+  },
+  framer: {
+    title: "Comment connecter Framer",
+    steps: [
+      "Framer ne supporte pas nativement les API de publication",
+      "Utilisez un service tiers comme Zapier ou Make",
+      "Créez un webhook qui déclenche une action Framer",
+      "Ou utilisez Framer CMS avec une intégration personnalisée",
+    ],
+  },
+};
 
 // CMS Platform configurations with detailed help
 const CMS_CONFIG: Record<string, {
@@ -32,12 +145,11 @@ const CMS_CONFIG: Record<string, {
     icon: wordpressLogo,
     isImage: true,
     description: "Publish articles directly to your WordPress blog.",
-    tutorialUrl: "https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/",
     helpText: "Use Application Passwords (Settings → Users → Application Passwords) or a JWT plugin.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My WordPress Blog" },
       { key: "endpoint", label: "Site URL", placeholder: "https://your-domain.com", helpText: "Your WordPress site URL (without /wp-json)" },
-      { key: "token", label: "Application Password", placeholder: "xxxx xxxx xxxx xxxx", type: "password", helpText: "Create one in Users → Your Profile → Application Passwords" },
+      { key: "token", label: "Application Password", placeholder: "username:xxxx xxxx xxxx xxxx", type: "password", helpText: "Format: username:application_password" },
     ],
   },
   shopify: {
@@ -45,7 +157,6 @@ const CMS_CONFIG: Record<string, {
     icon: shopifyLogo,
     isImage: true,
     description: "Publish blog articles to your Shopify store.",
-    tutorialUrl: "https://help.shopify.com/en/manual/apps/app-types/custom-apps",
     helpText: "Create a Custom App in Shopify Admin → Settings → Apps and sales channels → Develop apps.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Shopify Store" },
@@ -58,7 +169,6 @@ const CMS_CONFIG: Record<string, {
     icon: wixLogo,
     isImage: true,
     description: "Publish blog posts to your Wix site.",
-    tutorialUrl: "https://dev.wix.com/docs/rest/articles/getting-started/authentication",
     helpText: "Get your API key from Wix Developers → API Keys.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Wix Site" },
@@ -71,7 +181,6 @@ const CMS_CONFIG: Record<string, {
     name: "Webflow",
     icon: "🔷",
     description: "Publish CMS items to your Webflow collections.",
-    tutorialUrl: "https://developers.webflow.com/docs/getting-started",
     helpText: "Create an API token in Webflow → Site Settings → Integrations.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Webflow Site" },
@@ -84,7 +193,6 @@ const CMS_CONFIG: Record<string, {
     name: "Duda",
     icon: "🟠",
     description: "Publish blog posts to your Duda website.",
-    tutorialUrl: "https://developer.duda.co/docs/authentication",
     helpText: "Get API credentials from Duda → Dashboard → API Access.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Duda Site" },
@@ -118,7 +226,6 @@ const CMS_CONFIG: Record<string, {
     name: "BigCommerce",
     icon: "📦",
     description: "Publish blog content to your BigCommerce store.",
-    tutorialUrl: "https://developer.bigcommerce.com/docs/start/authentication",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My BigCommerce Store" },
       { key: "endpoint", label: "Store Hash", placeholder: "Enter your store hash", helpText: "Found in your API account settings" },
@@ -171,6 +278,7 @@ export function IntegrationConfigModal({
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
   const [testMessage, setTestMessage] = useState<string>("");
+  const [showGuide, setShowGuide] = useState(false);
 
   // Reset form when modal opens with new data
   useEffect(() => {
@@ -178,12 +286,14 @@ export function IntegrationConfigModal({
       setFormData(existingConfig || {});
       setTestResult(null);
       setTestMessage("");
+      setShowGuide(false);
     }
   }, [open, existingConfig]);
 
   if (!platform || !CMS_CONFIG[platform]) return null;
 
   const config = CMS_CONFIG[platform];
+  const guide = PLATFORM_GUIDES[platform];
 
   const handleFieldChange = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -296,24 +406,47 @@ export function IntegrationConfigModal({
             )}
             {config.name} Integration
           </DialogTitle>
-          {config.tutorialUrl && (
-            <a
-              href={config.tutorialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-red-500 hover:underline"
-            >
-              <Youtube className="h-4 w-4" />
-              Watch tutorial on how to connect
-            </a>
-          )}
           <DialogDescription className="pt-2">
             {config.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {config.helpText && (
+          {/* Guide Button */}
+          {guide && (
+            <Button
+              variant="outline"
+              onClick={() => setShowGuide(!showGuide)}
+              className="w-full justify-between gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10"
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="font-medium">📖 Guide: Comment obtenir les clés API</span>
+              </span>
+              <ChevronRight className={`h-4 w-4 transition-transform ${showGuide ? "rotate-90" : ""}`} />
+            </Button>
+          )}
+
+          {/* Guide Content */}
+          {showGuide && guide && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <h4 className="font-semibold text-primary">{guide.title}</h4>
+              <ScrollArea className="max-h-[200px]">
+                <ol className="space-y-2 text-sm">
+                  {guide.steps.map((step, index) => (
+                    <li key={index} className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
+                        {index + 1}
+                      </span>
+                      <span className="text-muted-foreground pt-0.5">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </ScrollArea>
+            </div>
+          )}
+
+          {config.helpText && !showGuide && (
             <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
               💡 {config.helpText}
             </p>
