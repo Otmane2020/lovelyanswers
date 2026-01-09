@@ -94,6 +94,7 @@ function generateArticleHTML(
 ): string {
   const { question, answer: answerText, supporting_content } = answer;
   const { brandName, websiteUrl, language } = settings;
+  const currentYear = new Date().getFullYear();
 
   // Safely extract bullets - handle different structures
   const rawBullets = (supporting_content as any)?.bullets || [];
@@ -110,23 +111,25 @@ function generateArticleHTML(
     item.answer.trim()
   );
 
+  // Build proper author object
+  const authorObj = websiteUrl && brandName && brandName !== 'Brand' 
+    ? { "@type": "Organization", "name": brandName, "url": websiteUrl }
+    : brandName && brandName !== 'Brand'
+    ? { "@type": "Organization", "name": brandName }
+    : null;
+
   const qaJsonLd = {
     "@context": "https://schema.org",
     "@type": "QAPage",
     "mainEntity": {
       "@type": "Question",
       "name": question,
+      "dateCreated": new Date().toISOString(),
       "acceptedAnswer": {
         "@type": "Answer",
         "text": answerText,
-        "author": websiteUrl ? {
-          "@type": "Organization",
-          "name": brandName,
-          "url": websiteUrl
-        } : {
-          "@type": "Organization",
-          "name": brandName
-        }
+        "dateCreated": new Date().toISOString(),
+        ...(authorObj && { author: authorObj })
       }
     }
   };
@@ -142,25 +145,81 @@ function generateArticleHTML(
     }))
   } : null;
 
+  // Inline CSS for consistent styling across CMS platforms
+  const inlineStyles = `
+    <style>
+      .aeo-article { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.7; color: #1a1a1a; }
+      .aeo-article h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.3; }
+      .aeo-answer-box { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 4px solid #3b82f6; padding: 1.5rem; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
+      .aeo-answer-box p { margin: 0; font-size: 1.1rem; }
+      .aeo-key-points { background: #fefce8; border: 1px solid #fef08a; padding: 1.5rem; margin: 2rem 0; border-radius: 8px; }
+      .aeo-key-points h2 { font-size: 1.25rem; margin: 0 0 1rem 0; color: #854d0e; }
+      .aeo-key-points ul { margin: 0; padding-left: 1.25rem; }
+      .aeo-key-points li { margin-bottom: 0.5rem; color: #713f12; }
+      .aeo-faq { margin: 2rem 0; }
+      .aeo-faq h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+      .aeo-faq details { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+      .aeo-faq summary { padding: 1rem; background: #f9fafb; cursor: pointer; font-weight: 500; }
+      .aeo-faq summary:hover { background: #f3f4f6; }
+      .aeo-faq details[open] summary { border-bottom: 1px solid #e5e7eb; }
+      .aeo-faq details p { padding: 1rem; margin: 0; background: white; }
+      .aeo-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280; }
+      .aeo-footer a { color: #3b82f6; text-decoration: none; }
+      .aeo-footer a:hover { text-decoration: underline; }
+      .aeo-meta { display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: #9ca3af; }
+    </style>
+  `;
+
+  const keyPointsTitle = language === 'fr' ? 'Points Clés' : 'Key Points';
+  const faqTitle = language === 'fr' ? 'Questions Fréquentes' : 'Frequently Asked Questions';
+  const sourceLabel = language === 'fr' ? 'Source' : 'Source';
+  const lastUpdatedLabel = language === 'fr' ? 'Mis à jour' : 'Last updated';
+
   const bulletsList = bullets.length > 0 
-    ? `<section class="key-points"><h2>${language === 'fr' ? 'Points Clés' : 'Key Points'}</h2><ul>${bullets.map((b: string) => `<li>${b}</li>`).join('')}</ul></section>` 
+    ? `<section class="aeo-key-points">
+        <h2>${keyPointsTitle}</h2>
+        <ul>${bullets.map((b: string) => `<li>${b}</li>`).join('')}</ul>
+      </section>` 
     : '';
 
   const faqSection = faq.length > 0 
-    ? `<section class="faq-section"><h2>${language === 'fr' ? 'Questions Fréquentes' : 'FAQ'}</h2>${faq.map((item: any) => `<details><summary>${item.question}</summary><p>${item.answer}</p></details>`).join('')}</section>` 
+    ? `<section class="aeo-faq">
+        <h2>${faqTitle}</h2>
+        ${faq.map((item: any) => `
+          <details>
+            <summary>${item.question}</summary>
+            <p>${item.answer}</p>
+          </details>
+        `).join('')}
+      </section>` 
     : '';
 
-  // Only show footer if we have brand info
-  const footer = brandName && brandName !== 'Brand' 
-    ? `<footer class="source"><p>${language === 'fr' ? 'Source' : 'Source'}: ${websiteUrl ? `<a href="${websiteUrl}" rel="author">${brandName}</a>` : brandName}</p></footer>`
+  // Build footer with proper attribution
+  const footerContent = [];
+  if (brandName && brandName !== 'Brand') {
+    const sourceLink = websiteUrl 
+      ? `<a href="${websiteUrl}" rel="author">${brandName}</a>` 
+      : brandName;
+    footerContent.push(`<p>${sourceLabel}: ${sourceLink}</p>`);
+  }
+  footerContent.push(`<div class="aeo-meta"><span>${lastUpdatedLabel}: ${currentYear}</span></div>`);
+  
+  const footer = footerContent.length > 0 
+    ? `<footer class="aeo-footer">${footerContent.join('')}</footer>` 
     : '';
 
   return `
-<article class="aeo-article">
+<article class="aeo-article" itemscope itemtype="https://schema.org/Article">
+  ${inlineStyles}
   <script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>
   ${faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : ''}
-  <h1>${question}</h1>
-  <div class="answer-box"><p>${answerText}</p></div>
+  
+  <h1 itemprop="headline">${question}</h1>
+  
+  <div class="aeo-answer-box" itemprop="articleBody">
+    <p>${answerText}</p>
+  </div>
+  
   ${bulletsList}
   ${faqSection}
   ${footer}
