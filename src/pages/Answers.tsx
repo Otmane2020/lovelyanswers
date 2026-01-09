@@ -46,6 +46,7 @@ export default function Answers() {
   const [unusedKeywordsCount, setUnusedKeywordsCount] = useState(0);
   const [showCmsPopup, setShowCmsPopup] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [generatedArticle, setGeneratedArticle] = useState<{ id: string; title: string; html: string; answerId: string } | null>(null);
 
   const handlePublishToCms = async (answerId: string) => {
     if (!project) {
@@ -128,13 +129,38 @@ export default function Answers() {
       
       if (error) throw error;
       
-      toast.success("Article generated successfully!");
+      // Show preview popup with article
+      if (data?.article && data?.html) {
+        setGeneratedArticle({
+          id: data.article.id,
+          title: data.article.title,
+          html: data.html,
+          answerId
+        });
+      }
+      
+      toast.success("Article generated!");
       refetch();
     } catch (error) {
       console.error("Error generating article:", error);
       toast.error("Failed to generate article");
     } finally {
       setGeneratingArticleId(null);
+    }
+  };
+
+  const handlePublishGeneratedArticle = async () => {
+    if (!generatedArticle || !project) return;
+    
+    setPublishingId(generatedArticle.answerId);
+    try {
+      await publishAnswer.mutateAsync({ 
+        answerId: generatedArticle.answerId, 
+        projectId: project.id 
+      });
+      setGeneratedArticle(null);
+    } finally {
+      setPublishingId(null);
     }
   };
 
@@ -554,6 +580,47 @@ export default function Answers() {
             >
               {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Generate Answer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generated Article Preview Dialog */}
+      <Dialog open={!!generatedArticle} onOpenChange={() => setGeneratedArticle(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Newspaper className="h-5 w-5 text-primary" />
+              Article Generated
+            </DialogTitle>
+            <DialogDescription>
+              Preview your AEO-optimized article before publishing to your CMS.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto border rounded-lg bg-background">
+            {generatedArticle?.html && (
+              <iframe
+                srcDoc={generatedArticle.html}
+                className="w-full h-[400px] border-0"
+                title="Article Preview"
+              />
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setGeneratedArticle(null)}>
+              Close
+            </Button>
+            <Button 
+              onClick={handlePublishGeneratedArticle}
+              disabled={publishingId === generatedArticle?.answerId}
+              className="gradient-bg text-primary-foreground gap-2"
+            >
+              {publishingId === generatedArticle?.answerId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Publish to CMS
             </Button>
           </DialogFooter>
         </DialogContent>
