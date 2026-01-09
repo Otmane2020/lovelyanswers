@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://aeoreply.com/sitemap.xml
+Sitemap: https://aeorocket.io/sitemap.xml
