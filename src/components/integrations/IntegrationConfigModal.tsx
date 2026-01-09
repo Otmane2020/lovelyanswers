@@ -14,9 +14,11 @@ import { Loader2, ExternalLink, BookOpen, CheckCircle2, AlertCircle, ChevronRigh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import shopifyLogo from "@/assets/shopify-logo.png";
+import shopifyLogo from "@/assets/shopify-logo-new.png";
 import wixLogo from "@/assets/wix-logo.png";
-import wordpressLogo from "@/assets/wordpress-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo-new.png";
+import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
+import framerLogo from "@/assets/framer-logo.png";
 
 // Guide steps for each platform
 const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
@@ -135,6 +137,7 @@ const CMS_CONFIG: Record<string, {
   name: string;
   icon: string;
   isImage?: boolean;
+  color?: string;
   description: string;
   tutorialUrl?: string;
   helpText?: string;
@@ -144,19 +147,21 @@ const CMS_CONFIG: Record<string, {
     name: "WordPress",
     icon: wordpressLogo,
     isImage: true,
+    color: "from-slate-600 to-slate-800",
     description: "Publish articles directly to your WordPress blog.",
-    helpText: "Use Application Passwords (Settings → Users → Application Passwords) or a JWT plugin.",
+    helpText: "Use Application Passwords (Users → Profile → Application Passwords).",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My WordPress Blog" },
       { key: "endpoint", label: "Site URL", placeholder: "https://your-domain.com", helpText: "Your WordPress site URL (without /wp-json)" },
       { key: "username", label: "WordPress Username", placeholder: "admin", helpText: "Your WordPress login username" },
-      { key: "token", label: "Application Password", placeholder: "xxxx xxxx xxxx xxxx", type: "password", helpText: "Generated from Users → Application Passwords" },
+      { key: "token", label: "Application Password", placeholder: "xxxx xxxx xxxx xxxx", type: "password", helpText: "Generated from Users → Application Passwords (spaces are OK)" },
     ],
   },
   shopify: {
     name: "Shopify",
     icon: shopifyLogo,
     isImage: true,
+    color: "from-green-500 to-green-600",
     description: "Publish blog articles to your Shopify store.",
     helpText: "Create a Custom App in Shopify Admin → Settings → Apps and sales channels → Develop apps.",
     fields: [
@@ -169,6 +174,7 @@ const CMS_CONFIG: Record<string, {
     name: "Wix",
     icon: wixLogo,
     isImage: true,
+    color: "from-yellow-500 to-yellow-600",
     description: "Publish blog posts to your Wix site.",
     helpText: "Get your API key from Wix Developers → API Keys.",
     fields: [
@@ -181,6 +187,7 @@ const CMS_CONFIG: Record<string, {
   webflow: {
     name: "Webflow",
     icon: "🔷",
+    color: "from-blue-500 to-indigo-600",
     description: "Publish CMS items to your Webflow collections.",
     helpText: "Create an API token in Webflow → Site Settings → Integrations.",
     fields: [
@@ -193,6 +200,7 @@ const CMS_CONFIG: Record<string, {
   duda: {
     name: "Duda",
     icon: "🟠",
+    color: "from-orange-500 to-orange-600",
     description: "Publish blog posts to your Duda website.",
     helpText: "Get API credentials from Duda → Dashboard → API Access.",
     fields: [
@@ -204,6 +212,7 @@ const CMS_CONFIG: Record<string, {
   api: {
     name: "Custom API",
     icon: "⚙️",
+    color: "from-gray-500 to-gray-600",
     description: "Connect to any REST API endpoint.",
     helpText: "Send content to your own API endpoint.",
     fields: [
@@ -216,6 +225,7 @@ const CMS_CONFIG: Record<string, {
   webhook: {
     name: "Webhook",
     icon: "🔗",
+    color: "from-purple-500 to-purple-600",
     description: "Send content to any webhook (Zapier, Make, n8n, etc.).",
     helpText: "Perfect for automation workflows.",
     fields: [
@@ -225,7 +235,9 @@ const CMS_CONFIG: Record<string, {
   },
   bigcommerce: {
     name: "BigCommerce",
-    icon: "📦",
+    icon: bigcommerceLogo,
+    isImage: true,
+    color: "from-gray-700 to-black",
     description: "Publish blog content to your BigCommerce store.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My BigCommerce Store" },
@@ -236,6 +248,7 @@ const CMS_CONFIG: Record<string, {
   snapps: {
     name: "Snapps",
     icon: "📱",
+    color: "from-pink-500 to-pink-600",
     description: "Connect your Snapps site for content publishing.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Snapps Site" },
@@ -245,7 +258,9 @@ const CMS_CONFIG: Record<string, {
   },
   framer: {
     name: "Framer",
-    icon: "⬛",
+    icon: framerLogo,
+    isImage: true,
+    color: "from-sky-400 to-blue-500",
     description: "Connect your Framer site via webhook.",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Framer Site" },

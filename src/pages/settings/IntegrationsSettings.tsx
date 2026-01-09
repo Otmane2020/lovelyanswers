@@ -19,21 +19,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import shopifyLogo from "@/assets/shopify-logo.png";
+import shopifyLogo from "@/assets/shopify-logo-new.png";
 import wixLogo from "@/assets/wix-logo.png";
-import wordpressLogo from "@/assets/wordpress-logo.png";
+import wordpressLogo from "@/assets/wordpress-logo-new.png";
+import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
+import framerLogo from "@/assets/framer-logo.png";
 
 const CMS_INTEGRATIONS = [
   { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
   { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
   { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
+  { id: "framer", name: "Framer", icon: framerLogo, isImage: true },
+  { id: "bigcommerce", name: "BigCommerce", icon: bigcommerceLogo, isImage: true },
   { id: "duda", name: "Duda", icon: "🟠", isImage: false },
   { id: "api", name: "API", icon: "⚙️", isImage: false },
   { id: "webhook", name: "Webhook", icon: "🔗", isImage: false },
   { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
-  { id: "bigcommerce", name: "BigCommerce", icon: "📦", isImage: false },
-  { id: "snapps", name: "snapps", icon: "📱", isImage: false },
-  { id: "framer", name: "Framer", icon: "⬛", isImage: false },
+  { id: "snapps", name: "Snapps", icon: "📱", isImage: false },
 ];
 
 const ANALYTICS_INTEGRATIONS = [
