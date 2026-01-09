@@ -98,7 +98,7 @@ export default function AeoSubscription() {
 
         <div className="text-center text-sm text-muted-foreground">
           <p>We limit monthly admissions to maintain backlink quality and network balance.</p>
-          <p className="mt-1">Questions? Contact support@aeoreply.com</p>
+          <p className="mt-1">Questions? Contact support@aeorocket.io</p>
         </div>
       </div>
     </DashboardLayout>

@@ -129,7 +129,7 @@ export default function Auth() {
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">reply</span>
+              Aeo<span className="gradient-text">Rocket</span>
             </span>
           </Link>
 
@@ -327,7 +327,7 @@ export default function Auth() {
             {/* Quote */}
             <blockquote className="space-y-4">
               <p className="text-primary font-medium text-lg leading-relaxed">
-                "Aeoreply transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently. The ROI has been incredible."
+                "AeoRocket transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently. The ROI has been incredible."
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Within 3 months, we saw a 340% increase in AI-driven traffic. The auto-generated answers are perfectly optimized for LLM citation.

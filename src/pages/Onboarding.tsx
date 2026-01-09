@@ -191,7 +191,7 @@ export default function Onboarding() {
     const url = data.websiteUrl.trim();
     
     // Don't analyze our own domain
-    const isOwnDomain = url.toLowerCase().includes('aeoreply.com') || 
+    const isOwnDomain = url.toLowerCase().includes('aeorocket.io') || 
                          url.toLowerCase().includes('lovableproject.com') ||
                          url.toLowerCase().includes('localhost');
     
@@ -427,7 +427,7 @@ export default function Onboarding() {
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">reply</span>
+              Aeo<span className="gradient-text">Rocket</span>
             </span>
           </div>
         </div>
@@ -661,7 +661,7 @@ export default function Onboarding() {
                 {currentStep === 6 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">How did you hear about Aeoreply?</h1>
+                      <h1 className="text-3xl font-bold tracking-tight">How did you hear about AeoRocket?</h1>
                       <p className="text-muted-foreground mt-2">Your answer helps us improve our marketing strategies.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">

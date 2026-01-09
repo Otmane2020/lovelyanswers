@@ -122,7 +122,7 @@ export default function AeoPublicAnswer() {
 
   const bullets = answer.supporting_content?.bullets || [];
   const faq = answer.supporting_content?.faq || [];
-  const brand = answer.supporting_content?.brand || "AEOReply";
+  const brand = answer.supporting_content?.brand || "AeoRocket";
 
   // JSON-LD structured data for AEO - Enhanced for AI citation
   const structuredData = {
