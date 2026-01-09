@@ -28,8 +28,8 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
       "Scroll down to the 'Application Passwords' section",
       "Enter a name (e.g., 'AeoRocket') and click 'Add New Application Password'",
       "Copy the generated password (format: xxxx xxxx xxxx xxxx)",
-      "In AeoRocket, enter your WordPress username followed by ':' then the password",
-      "Example: myuser:xxxx xxxx xxxx xxxx",
+      "Enter your WordPress username in the 'Username' field",
+      "Paste the application password in the 'Application Password' field",
     ],
   },
   shopify: {
@@ -149,7 +149,8 @@ const CMS_CONFIG: Record<string, {
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My WordPress Blog" },
       { key: "endpoint", label: "Site URL", placeholder: "https://your-domain.com", helpText: "Your WordPress site URL (without /wp-json)" },
-      { key: "token", label: "Application Password", placeholder: "username:xxxx xxxx xxxx xxxx", type: "password", helpText: "Format: username:application_password" },
+      { key: "username", label: "WordPress Username", placeholder: "admin", helpText: "Your WordPress login username" },
+      { key: "token", label: "Application Password", placeholder: "xxxx xxxx xxxx xxxx", type: "password", helpText: "Generated from Users → Application Passwords" },
     ],
   },
   shopify: {

@@ -190,10 +190,27 @@ async function publishToWordPress(
   try {
     console.log(`[WordPress] Publishing to ${config.endpoint}`);
     
+    // Build authorization header
+    let authHeader: string;
+    
+    // Check if we have separate username field (new format)
+    if (config.username) {
+      // Use Basic Auth with username:application_password
+      const basicAuth = btoa(`${config.username}:${config.token}`);
+      authHeader = `Basic ${basicAuth}`;
+    } else if (config.token.includes(":")) {
+      // Legacy format: token contains "username:password"
+      const basicAuth = btoa(config.token);
+      authHeader = `Basic ${basicAuth}`;
+    } else {
+      // Assume JWT token
+      authHeader = `Bearer ${config.token}`;
+    }
+    
     const response = await fetch(`${config.endpoint}/wp-json/wp/v2/posts`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        Authorization: authHeader,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -209,7 +226,7 @@ async function publishToWordPress(
       console.error(`[WordPress] Error ${status}: ${errorText}`);
       
       if (status === 401 || status === 403) {
-        return { success: false, message: "Invalid credentials. Check your Application Password or JWT token." };
+        return { success: false, message: "Invalid credentials. Check your username and Application Password." };
       } else if (status === 404) {
         return { success: false, message: "WordPress REST API not found. Verify the site URL is correct." };
       } else if (status === 429) {
