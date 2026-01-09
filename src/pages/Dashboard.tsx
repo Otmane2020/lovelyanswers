@@ -17,6 +17,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
+import { useGeneration } from "@/contexts/GenerationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -81,9 +82,10 @@ export default function Dashboard() {
   const [languageCount, setLanguageCount] = useState([1]);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const [geoExpanded, setGeoExpanded] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const hasTriggeredGeneration = useRef(false);
+  
+  // Use global generation context
+  const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const domainRating = 1;
@@ -105,17 +107,17 @@ export default function Dashboard() {
       if (count && count > 0) return;
       
       hasTriggeredGeneration.current = true;
-      setIsGenerating(true);
-      setGenerationProgress(0);
+      
+      // Use global context for progress - persists across route changes
+      startGeneration("🚀 Generating your 30-day content plan...");
       
       const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 2, 95)); // Slower for 30-day generation
+        setGenerationProgress((prev: number) => Math.min(prev + 2, 95));
       }, 1500);
       
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        // 🔥 NEW: Déclencher la génération 30 jours complète
         toast.info("🚀 Generating your 30-day content plan...", { duration: 5000 });
         
         const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
@@ -130,7 +132,6 @@ export default function Dashboard() {
         });
         
         clearInterval(progressInterval);
-        setGenerationProgress(100);
         
         if (error) {
           console.error('Error generating 30-day content:', error);
@@ -144,31 +145,17 @@ export default function Dashboard() {
         console.error('Error generating content:', error);
         clearInterval(progressInterval);
       } finally {
-        setTimeout(() => {
-          setIsGenerating(false);
-          setGenerationProgress(0);
-        }, 1500);
+        stopGeneration();
       }
     };
 
     triggerAutoGeneration();
-  }, [project, user]);
+  }, [project, user, startGeneration, stopGeneration, setGenerationProgress]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Progress Bar at Top */}
-        {isGenerating && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-2">
-            <div className="container flex items-center gap-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <div className="flex-1">
-                <Progress value={generationProgress} className="h-2" />
-              </div>
-              <span className="text-sm text-muted-foreground">{generationProgress}%</span>
-            </div>
-          </div>
-        )}
+        {/* Progress bar is now in DashboardLayout - global and persistent */}
 
         {/* Welcome Header */}
         <div>
