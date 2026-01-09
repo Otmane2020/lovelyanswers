@@ -1,18 +1,14 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
 import {
-  ChevronDown,
-  ChevronUp,
   ArrowRight,
   TrendingUp,
   Eye,
   Plus,
-  X,
-  Loader2,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,35 +58,70 @@ const languages = [
   { code: "PT", name: "Portuguese", reach: "280M", flag: "🇵🇹" },
 ];
 
-// GEO Score issues
-const geoIssues = [
-  { id: "1", title: "Missing llms.txt", severity: "High" },
-  { id: "2", title: "Missing JSON-LD schema", severity: "High" },
-  { id: "3", title: "Duplicated H1s", severity: "Medium" },
-];
-
-// Mock Reddit post
-const redditPost = {
-  title: "What is a good SEO tool for beginners?",
-  subreddit: "r/seo",
-  views: "11K",
-};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { project } = useActiveProject();
   const [languageCount, setLanguageCount] = useState([1]);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
-  const [geoExpanded, setGeoExpanded] = useState(false);
   const hasTriggeredGeneration = useRef(false);
+  
+  // Real stats from database
+  const [realStats, setRealStats] = useState({
+    answersCount: 0,
+    articlesCount: 0,
+    redditOpportunities: 0,
+    avgScore: 0
+  });
   
   // Use global generation context
   const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
-  const domainRating = 1;
-  const redditOpportunities = 10;
-  const geoScore = 83;
+
+  // Fetch real stats from database
+  useEffect(() => {
+    const fetchRealStats = async () => {
+      if (!project?.id) return;
+      
+      // Count answers
+      const { count: answersCount } = await supabase
+        .from("answers")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      
+      // Count articles
+      const { count: articlesCount } = await supabase
+        .from("articles")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      
+      // Count Reddit opportunities
+      const { count: redditCount } = await supabase
+        .from("reddit_responses")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      
+      // Average score
+      const { data: scores } = await supabase
+        .from("answers")
+        .select("score")
+        .eq("project_id", project.id);
+      
+      const avgScore = scores?.length 
+        ? Math.round(scores.reduce((sum, a) => sum + (a.score || 0), 0) / scores.length)
+        : 0;
+      
+      setRealStats({
+        answersCount: answersCount || 0,
+        articlesCount: articlesCount || 0,
+        redditOpportunities: redditCount || 0,
+        avgScore
+      });
+    };
+    
+    fetchRealStats();
+  }, [project?.id]);
 
   // Auto-trigger FULL 30-day generation on first signup
   useEffect(() => {
@@ -295,82 +326,52 @@ export default function Dashboard() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Your Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Domain Rating Card */}
+            {/* Answers Generated Card */}
             <Card className="p-5 border border-border/50">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Domain Rating</p>
-                  <p className="text-3xl font-bold text-foreground">{domainRating}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Answers Generated</p>
+                  <p className="text-3xl font-bold text-foreground">{realStats.answersCount}</p>
                 </div>
-                <div className="w-16 h-12">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[{ v: 0 }, { v: 1 }, { v: 1 }]}>
-                      <Area
-                        type="monotone"
-                        dataKey="v"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        fill="hsl(var(--primary))"
-                        fillOpacity={0.2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-primary" />
                 </div>
               </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Avg. score: <span className="text-foreground font-medium">{realStats.avgScore}/100</span>
+              </p>
+            </Card>
+
+            {/* Articles Created Card */}
+            <Card className="p-5 border border-border/50">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Articles Created</p>
+                  <p className="text-3xl font-bold text-foreground">{realStats.articlesCount}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-emerald-500" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Ready to publish
+              </p>
             </Card>
 
             {/* Reddit Opportunities Card */}
             <Card className="p-5 border border-border/50">
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Reddit Opportunities</p>
-                  <p className="text-3xl font-bold text-foreground">{redditOpportunities}</p>
+                  <p className="text-3xl font-bold text-foreground">{realStats.redditOpportunities}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-orange-500" />
                 </div>
               </div>
-              <div className="bg-muted/50 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">r/</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{redditPost.subreddit}</span>
-                  <TrendingUp className="w-3 h-3 text-emerald-500" />
-                </div>
-                <p className="text-sm text-foreground line-clamp-1">{redditPost.title}</p>
-                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                  <Eye className="w-3 h-3" />
-                  <span>{redditPost.views} views</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* GEO Score Card */}
-            <Card className="p-5 border border-border/50">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">GEO Score</p>
-                  <p className="text-3xl font-bold text-foreground">{geoScore}<span className="text-lg text-muted-foreground">/100</span></p>
-                </div>
-                <button 
-                  onClick={() => setGeoExpanded(!geoExpanded)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {geoExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-              </div>
-              <p className="text-sm text-destructive mb-2">{geoIssues.length} Issues found</p>
-              
-              {geoExpanded && (
-                <div className="space-y-2 mt-3 pt-3 border-t border-border/50">
-                  {geoIssues.map((issue) => (
-                    <div key={issue.id} className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">{issue.title}</span>
-                      <span className={issue.severity === "High" ? "text-destructive" : "text-amber-500"}>
-                        {issue.severity}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                Engagement ready
+              </p>
             </Card>
           </div>
         </div>
