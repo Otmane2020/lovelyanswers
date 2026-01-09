@@ -11,11 +11,22 @@ interface Answer {
   question: string;
   answer: string;
   slug: string;
+  article_id: string | null;
   supporting_content: {
     bullets?: string[];
-    faq?: { question: string; answer: string }[];
+    faq?: { question?: string; q?: string; answer?: string; a?: string }[];
   };
   scheduled_date: string;
+}
+
+interface Article {
+  id: string;
+  project_id: string;
+  title: string;
+  content: string | null;
+  html_content: string | null;
+  scheduled_date: string;
+  linked_answer_id: string | null;
 }
 
 interface Integration {
@@ -25,23 +36,59 @@ interface Integration {
   is_connected: boolean;
 }
 
-interface GenerationSettings {
-  brand_name: string;
+interface Project {
+  id: string;
+  brand_name: string | null;
+  name: string;
   website_url: string;
   language: string;
 }
 
-function generateArticleHTML(
+interface ProjectSettings {
+  auto_publish_enabled: boolean;
+  publish_hour: string;
+}
+
+function generateAnswerHTML(
   answer: Answer,
-  settings: GenerationSettings
+  project: Project
 ): { title: string; body: string } {
   const { question, answer: answerText, supporting_content } = answer;
-  const { brand_name, website_url, language } = settings;
+  const brandName = project.brand_name || project.name;
+  const websiteUrl = project.website_url;
+  const language = project.language || "fr";
 
   const bullets = supporting_content?.bullets || [];
-  const faq = supporting_content?.faq || [];
+  const rawFaq = supporting_content?.faq || [];
+  const faq = rawFaq.map(item => ({
+    question: item.question || item.q || "",
+    answer: item.answer || item.a || ""
+  })).filter(item => item.question && item.answer);
 
-  // Generate FAQ JSON-LD
+  const currentYear = new Date().getFullYear();
+
+  const qaJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "QAPage",
+    "mainEntity": {
+      "@type": "Question",
+      "name": question,
+      "text": question,
+      "dateCreated": new Date().toISOString(),
+      "answerCount": 1,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": answerText,
+        "dateCreated": new Date().toISOString(),
+        "author": {
+          "@type": "Organization",
+          "name": brandName,
+          "url": websiteUrl
+        }
+      }
+    }
+  };
+
   const faqJsonLd = faq.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -55,89 +102,92 @@ function generateArticleHTML(
     }))
   } : null;
 
-  // Generate QAPage JSON-LD
-  const qaJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "QAPage",
-    "mainEntity": {
-      "@type": "Question",
-      "name": question,
-      "text": question,
-      "answerCount": 1,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": answerText,
-        "author": {
-          "@type": "Organization",
-          "name": brand_name,
-          "url": website_url
-        }
-      }
-    }
-  };
-
   const bulletsList = bullets.length > 0 
-    ? `<section class="key-points">
-        <h2>${language === 'fr' ? 'Points Clés' : 'Key Points'}</h2>
-        <ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+    ? `<section class="aeo-key-points" style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
+        <h2 style="font-size: 18px; margin-bottom: 16px; color: #1a1a1a; font-weight: 600;">${language === 'fr' ? '🎯 Points Clés' : '🎯 Key Points'}</h2>
+        <ul style="padding-left: 20px; margin: 0;">
+          ${bullets.map(b => `<li style="margin-bottom: 10px; line-height: 1.6;">${b}</li>`).join('')}
+        </ul>
        </section>` 
     : '';
 
   const faqSection = faq.length > 0 
-    ? `<section class="faq-section">
-        <h2>${language === 'fr' ? 'Questions Fréquentes' : 'Frequently Asked Questions'}</h2>
+    ? `<section class="aeo-faq" style="margin: 24px 0;">
+        <h2 style="font-size: 18px; margin-bottom: 16px; color: #1a1a1a; font-weight: 600;">${language === 'fr' ? '❓ Questions Fréquentes' : '❓ FAQ'}</h2>
         ${faq.map(item => `
-          <details>
-            <summary>${item.question}</summary>
-            <p>${item.answer}</p>
+          <details style="margin-bottom: 12px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background: #fff;">
+            <summary style="cursor: pointer; font-weight: 500; color: #333;">${item.question}</summary>
+            <p style="margin-top: 12px; color: #555; line-height: 1.6;">${item.answer}</p>
           </details>
         `).join('')}
        </section>` 
     : '';
 
   const body = `
-<!DOCTYPE html>
-<html lang="${language}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${question} | ${brand_name}</title>
-  <meta name="description" content="${answerText.substring(0, 155)}...">
+<article class="aeo-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: #1a1a1a;">
   <script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>
   ${faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : ''}
-  <style>
-    .aeo-article { max-width: 800px; margin: 0 auto; padding: 2rem; font-family: system-ui, sans-serif; line-height: 1.6; }
-    .aeo-article h1 { font-size: 2rem; margin-bottom: 1.5rem; color: #1a1a1a; }
-    .aeo-article .answer-box { background: #f8f9fa; border-left: 4px solid #0066cc; padding: 1.5rem; margin-bottom: 2rem; border-radius: 0 8px 8px 0; }
-    .aeo-article .key-points { margin: 2rem 0; }
-    .aeo-article .key-points h2 { font-size: 1.25rem; margin-bottom: 1rem; }
-    .aeo-article .key-points ul { padding-left: 1.5rem; }
-    .aeo-article .key-points li { margin-bottom: 0.5rem; }
-    .aeo-article .faq-section { margin: 2rem 0; }
-    .aeo-article .faq-section h2 { font-size: 1.25rem; margin-bottom: 1rem; }
-    .aeo-article details { margin-bottom: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; }
-    .aeo-article summary { cursor: pointer; font-weight: 500; }
-    .aeo-article details p { margin-top: 0.75rem; color: #444; }
-    .aeo-article .source { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; font-size: 0.875rem; color: #666; }
-    .aeo-article .source a { color: #0066cc; text-decoration: none; }
-  </style>
-</head>
-<body>
-  <article class="aeo-article">
-    <h1>${question}</h1>
-    <div class="answer-box">
-      <p>${answerText}</p>
-    </div>
-    ${bulletsList}
-    ${faqSection}
-    <footer class="source">
-      <p>${language === 'fr' ? 'Source' : 'Source'}: <a href="${website_url}" rel="author">${brand_name}</a></p>
-    </footer>
-  </article>
-</body>
-</html>`;
+  
+  <h1 style="font-size: 28px; margin-bottom: 24px; color: #0a0a0a; font-weight: 700; line-height: 1.3;">${question}</h1>
+  
+  <div class="aeo-answer-box" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-left: 4px solid #667eea; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
+    <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #2d2d2d;">${answerText}</p>
+  </div>
+  
+  ${bulletsList}
+  ${faqSection}
+  
+  <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
+    <p style="margin: 0;">${language === 'fr' ? 'Source' : 'Source'}: <a href="${websiteUrl}" style="color: #667eea; text-decoration: none; font-weight: 500;">${brandName}</a> • ${language === 'fr' ? 'Mis à jour' : 'Updated'}: ${currentYear}</p>
+  </footer>
+</article>`;
 
   return { title: question, body };
+}
+
+function generateArticleHTML(
+  article: Article,
+  project: Project
+): { title: string; body: string } {
+  const brandName = project.brand_name || project.name;
+  const websiteUrl = project.website_url;
+  const language = project.language || "fr";
+  const currentYear = new Date().getFullYear();
+
+  // Use existing HTML content if available
+  if (article.html_content) {
+    return {
+      title: article.title,
+      body: `
+<article class="aeo-blog-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
+  <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
+  ${article.html_content}
+  <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
+    <p>Source: <a href="${websiteUrl}" style="color: #667eea;">${brandName}</a> • ${currentYear}</p>
+  </footer>
+</article>`
+    };
+  }
+
+  // Fallback to content
+  const content = article.content || "";
+  const htmlContent = content
+    .replace(/### (.*)/g, '<h3>$1</h3>')
+    .replace(/## (.*)/g, '<h2>$1</h2>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>');
+
+  return {
+    title: article.title,
+    body: `
+<article class="aeo-blog-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
+  <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
+  <div class="article-content"><p>${htmlContent}</p></div>
+  <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
+    <p>Source: <a href="${websiteUrl}" style="color: #667eea;">${brandName}</a> • ${currentYear}</p>
+  </footer>
+</article>`
+  };
 }
 
 Deno.serve(async (req) => {
@@ -150,69 +200,107 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const today = new Date().toISOString().split('T')[0];
-    console.log(`[publish-scheduled-answers] Running for date: ${today}`);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const currentHour = today.getUTCHours().toString().padStart(2, '0');
+    
+    console.log(`[publish-scheduled] Running for date: ${todayStr}, hour: ${currentHour} UTC`);
 
-    // Fetch answers scheduled for today or earlier that haven't been published
+    // Get projects with auto-publish enabled for current hour
+    const { data: projectSettings, error: settingsError } = await supabase
+      .from("project_settings")
+      .select("project_id, publish_hour")
+      .eq("auto_publish_enabled", true);
+
+    if (settingsError) {
+      console.error("Error fetching project settings:", settingsError);
+      throw settingsError;
+    }
+
+    // Filter projects for current hour
+    const projectsToPublish = projectSettings?.filter(
+      ps => ps.publish_hour === currentHour
+    ) || [];
+
+    console.log(`Found ${projectsToPublish.length} projects to publish this hour`);
+
+    if (projectsToPublish.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: "No projects to publish this hour", published: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const projectIds = projectsToPublish.map(ps => ps.project_id);
+    
+    // Fetch answers scheduled for today
     const { data: answers, error: answersError } = await supabase
       .from("answers")
       .select("*")
-      .lte("scheduled_date", today)
+      .in("project_id", projectIds)
+      .lte("scheduled_date", todayStr + "T23:59:59Z")
       .eq("is_public", false)
       .not("scheduled_date", "is", null);
 
     if (answersError) {
       console.error("Error fetching answers:", answersError);
-      throw answersError;
     }
 
-    if (!answers || answers.length === 0) {
-      console.log("No scheduled answers to publish");
-      return new Response(
-        JSON.stringify({ success: true, message: "No answers to publish", published: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Fetch articles scheduled for today
+    const { data: articles, error: articlesError } = await supabase
+      .from("articles")
+      .select("*")
+      .in("project_id", projectIds)
+      .lte("scheduled_date", todayStr + "T23:59:59Z")
+      .eq("status", "scheduled")
+      .not("scheduled_date", "is", null);
+
+    if (articlesError) {
+      console.error("Error fetching articles:", articlesError);
     }
 
-    console.log(`Found ${answers.length} answers to publish`);
+    console.log(`Found ${answers?.length || 0} answers and ${articles?.length || 0} articles to publish`);
 
-    const results: { answerId: string; success: boolean; url?: string; error?: string }[] = [];
+    const results: { id: string; type: string; success: boolean; url?: string; error?: string }[] = [];
 
-    for (const answer of answers) {
+    // Process answers
+    for (const answer of answers || []) {
       try {
-        // Get project integration
-        const { data: integrations, error: intError } = await supabase
+        // Get project info
+        const { data: project } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", answer.project_id)
+          .single();
+
+        if (!project) {
+          results.push({ id: answer.id, type: "answer", success: false, error: "Project not found" });
+          continue;
+        }
+
+        // Get integration
+        const { data: integrations } = await supabase
           .from("integrations")
           .select("*")
           .eq("project_id", answer.project_id)
           .eq("is_connected", true)
           .limit(1);
 
-        if (intError || !integrations || integrations.length === 0) {
-          console.log(`No active integration for project ${answer.project_id}`);
-          results.push({ answerId: answer.id, success: false, error: "No active CMS integration" });
+        if (!integrations || integrations.length === 0) {
+          // Just mark as public without CMS publishing
+          await supabase
+            .from("answers")
+            .update({ is_public: true, published_at: new Date().toISOString() })
+            .eq("id", answer.id);
+          
+          results.push({ id: answer.id, type: "answer", success: true, url: "internal" });
           continue;
         }
 
         const integration = integrations[0] as Integration;
+        const { title, body } = generateAnswerHTML(answer, project);
 
-        // Get generation settings for brand info
-        const { data: settings } = await supabase
-          .from("generation_settings")
-          .select("brand_name, website_url, language")
-          .eq("project_id", answer.project_id)
-          .single();
-
-        const genSettings: GenerationSettings = {
-          brand_name: settings?.brand_name || "Brand",
-          website_url: settings?.website_url || "",
-          language: settings?.language || "en"
-        };
-
-        // Generate article HTML
-        const { title, body } = generateArticleHTML(answer, genSettings);
-
-        // Call cms-publish function
+        // Call cms-publish
         const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
           method: "POST",
           headers: {
@@ -221,19 +309,13 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             integrationId: integration.id,
-            content: {
-              title,
-              body,
-              type: "answer",
-              sourceId: answer.id
-            }
+            content: { title, body, type: "answer", sourceId: answer.id }
           })
         });
 
         const publishResult = await publishResponse.json();
 
         if (publishResult.success) {
-          // Update answer as published
           await supabase
             .from("answers")
             .update({
@@ -243,26 +325,95 @@ Deno.serve(async (req) => {
             })
             .eq("id", answer.id);
 
-          console.log(`Published answer ${answer.id} to ${integration.platform}`);
-          results.push({ answerId: answer.id, success: true, url: publishResult.url });
+          results.push({ id: answer.id, type: "answer", success: true, url: publishResult.url });
         } else {
-          console.error(`Failed to publish answer ${answer.id}:`, publishResult.error);
-          results.push({ answerId: answer.id, success: false, error: publishResult.error });
+          results.push({ id: answer.id, type: "answer", success: false, error: publishResult.error });
         }
       } catch (err) {
-        console.error(`Error processing answer ${answer.id}:`, err);
-        results.push({ answerId: answer.id, success: false, error: String(err) });
+        results.push({ id: answer.id, type: "answer", success: false, error: String(err) });
+      }
+    }
+
+    // Process articles
+    for (const article of articles || []) {
+      try {
+        // Get project info
+        const { data: project } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", article.project_id)
+          .single();
+
+        if (!project) {
+          results.push({ id: article.id, type: "article", success: false, error: "Project not found" });
+          continue;
+        }
+
+        // Get integration
+        const { data: integrations } = await supabase
+          .from("integrations")
+          .select("*")
+          .eq("project_id", article.project_id)
+          .eq("is_connected", true)
+          .limit(1);
+
+        if (!integrations || integrations.length === 0) {
+          // Just mark as published without CMS
+          await supabase
+            .from("articles")
+            .update({ status: "published" })
+            .eq("id", article.id);
+          
+          results.push({ id: article.id, type: "article", success: true, url: "internal" });
+          continue;
+        }
+
+        const integration = integrations[0] as Integration;
+        const { title, body } = generateArticleHTML(article, project);
+
+        // Call cms-publish
+        const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`
+          },
+          body: JSON.stringify({
+            integrationId: integration.id,
+            content: { title, body, type: "article", sourceId: article.id }
+          })
+        });
+
+        const publishResult = await publishResponse.json();
+
+        if (publishResult.success) {
+          await supabase
+            .from("articles")
+            .update({ status: "published" })
+            .eq("id", article.id);
+
+          results.push({ id: article.id, type: "article", success: true, url: publishResult.url });
+        } else {
+          results.push({ id: article.id, type: "article", success: false, error: publishResult.error });
+        }
+      } catch (err) {
+        results.push({ id: article.id, type: "article", success: false, error: String(err) });
       }
     }
 
     const successCount = results.filter(r => r.success).length;
-    console.log(`Published ${successCount}/${answers.length} answers`);
+    const answerCount = results.filter(r => r.type === "answer" && r.success).length;
+    const articleCount = results.filter(r => r.type === "article" && r.success).length;
+
+    console.log(`Published ${answerCount} answers and ${articleCount} articles`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Published ${successCount} answers`,
+        message: `Published ${answerCount} answers and ${articleCount} articles`,
         published: successCount,
+        answers: answerCount,
+        articles: articleCount,
         results 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
