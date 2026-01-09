@@ -122,8 +122,13 @@ serve(async (req) => {
       limit: 10,
     });
 
+    logStep("Fetched subscriptions", { 
+      count: subscriptions.data.length,
+      statuses: subscriptions.data.map((s: any) => s.status)
+    });
+
     const activeOrTrialingSub = subscriptions.data.find(
-      (sub: { status: string }) => sub.status === "active" || sub.status === "trialing"
+      (sub: any) => sub.status === "active" || sub.status === "trialing"
     );
 
     if (!activeOrTrialingSub) {
@@ -139,25 +144,30 @@ serve(async (req) => {
       });
     }
 
-    // Safely parse subscription end date
-    let subscriptionEnd: string | null = null;
-    try {
-      const endTimestamp = activeOrTrialingSub.current_period_end;
-      if (endTimestamp && typeof endTimestamp === 'number') {
-        subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
-      }
-    } catch (dateError) {
-      logStep("Error parsing subscription end date", { error: dateError });
-    }
+    // Access subscription properties directly
+    const sub = activeOrTrialingSub as any;
+    const isTrialing = sub.status === "trialing";
+    const productId = sub.items?.data?.[0]?.price?.product as string || null;
     
-    const productId = activeOrTrialingSub.items.data[0]?.price?.product as string;
-    const isTrialing = activeOrTrialingSub.status === "trialing";
+    // Parse subscription end date - handle both trial_end and current_period_end
+    let subscriptionEnd: string | null = null;
+    const endTimestamp = isTrialing ? sub.trial_end : sub.current_period_end;
+    
+    if (endTimestamp && typeof endTimestamp === 'number') {
+      try {
+        subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
+      } catch (dateError) {
+        logStep("Error parsing subscription end date", { error: String(dateError) });
+      }
+    }
 
     logStep("Active subscription found", { 
-      subscriptionId: activeOrTrialingSub.id, 
-      status: activeOrTrialingSub.status,
+      subscriptionId: sub.id, 
+      status: sub.status,
+      isTrialing,
       productId,
-      endDate: subscriptionEnd 
+      endDate: subscriptionEnd,
+      rawEndTimestamp: endTimestamp
     });
 
     // Update credits based on subscription
