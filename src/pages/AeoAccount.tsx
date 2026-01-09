@@ -81,16 +81,16 @@ export default function AeoAccount() {
         </Card>
       </div>
 
-      {/* Link to Aeoreply.com */}
+      {/* Link to AeoRocket.io */}
       <div className="text-center pt-4">
         <a 
-          href="https://aeoreply.com" 
+          href="https://aeorocket.io" 
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm"
         >
           <ExternalLink className="h-4 w-4" />
-          aeoreply.com
+          aeorocket.io
         </a>
       </div>
     </div>
