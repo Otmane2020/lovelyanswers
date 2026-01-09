@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
-  Rocket,
+  Heart,
   ArrowRight,
   Check,
   Sparkles,
@@ -73,24 +73,24 @@ const faqs = [
     answer: "AEO is a new approach to content optimization that focuses on making your content citable by AI assistants like ChatGPT, Gemini, Claude, and Perplexity. Unlike traditional SEO which targets search engine rankings, AEO ensures AI models understand and recommend your content to users.",
   },
   {
-    question: "How does AeoRocket generate content?",
-    answer: "AeoRocket uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
+    question: "How does LovelyAnswers generate content?",
+    answer: "LovelyAnswers uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
   },
   {
-    question: "What platforms does AeoRocket integrate with?",
-    answer: "AeoRocket integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
+    question: "What platforms does LovelyAnswers integrate with?",
+    answer: "LovelyAnswers integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
   },
   {
     question: "How do the backlinks work?",
     answer: "Through our exclusive network, we provide automatic quality backlinks valued at $800+ per month. We limit monthly admissions to maintain backlink quality and network balance, ensuring maximum value for all members.",
   },
   {
-    question: "Can I try AeoRocket before committing?",
-    answer: "Yes! We offer a 3-day free trial so you can experience the full power of AeoRocket. No credit card required to start. Cancel anytime if it's not the right fit.",
+    question: "Can I try LovelyAnswers before committing?",
+    answer: "Yes! We offer a 3-day free trial so you can experience the full power of LovelyAnswers. No credit card required to start. Cancel anytime if it's not the right fit.",
   },
   {
     question: "What languages are supported?",
-    answer: "AeoRocket generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
+    answer: "LovelyAnswers generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
   },
 ];
 
@@ -101,11 +101,11 @@ export default function Index() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Rocket className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+              <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">Rocket</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -115,7 +115,7 @@ export default function Index() {
             <Button variant="ghost" asChild>
               <Link to="/auth">Login</Link>
             </Button>
-            <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
+            <Button className="gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90" asChild>
               <Link to="/auth">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
@@ -128,18 +128,18 @@ export default function Index() {
       {/* Hero */}
       <section className="relative overflow-hidden pt-32 pb-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px] opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full blur-[120px] opacity-30" />
         
         <div className="container relative">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
+            <Badge className="mb-6 bg-pink-500/10 text-pink-600 border-pink-500/20">
               <Bot className="mr-1 h-3 w-3" />
               Answer Engine Optimization
             </Badge>
             
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Be cited by{" "}
-              <span className="gradient-text">ChatGPT, Gemini</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">ChatGPT, Gemini</span>
               {" "}& AI assistants
             </h1>
             
@@ -148,7 +148,7 @@ export default function Index() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Button size="lg" className="gap-2 gradient-bg text-primary-foreground shadow-glow text-lg px-8" asChild>
+              <Button size="lg" className="gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90 text-lg px-8" asChild>
                 <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
@@ -186,13 +186,13 @@ export default function Index() {
               <div className="grid grid-cols-3 text-center font-semibold border-b border-border p-4">
                 <div></div>
                 <div className="text-muted-foreground">Traditional SEO</div>
-                <div className="gradient-text">AEO (AeoRocket)</div>
+                <div className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">AEO (LovelyAnswers)</div>
               </div>
               {comparisons.map((row, i) => (
                 <div key={row.feature} className={`grid grid-cols-3 text-center p-4 ${i !== comparisons.length - 1 ? "border-b border-border" : ""}`}>
                   <div className="font-medium">{row.feature}</div>
                   <div className="text-muted-foreground">{row.seo}</div>
-                  <div className="text-primary font-medium">{row.aeo}</div>
+                  <div className="text-pink-600 font-medium">{row.aeo}</div>
                 </div>
               ))}
             </GlassCard>
@@ -204,7 +204,7 @@ export default function Index() {
       <section className="py-20">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">How AeoRocket Works</h2>
+            <h2 className="text-3xl font-bold mb-4">How LovelyAnswers Works</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               A complete platform to make your content AI-citable
             </p>
@@ -213,8 +213,8 @@ export default function Index() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <GlassCard key={feature.title} hover gradient className="p-6">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl gradient-bg shadow-glow-sm">
-                  <feature.icon className="h-6 w-6 text-primary-foreground" />
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+                  <feature.icon className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -235,17 +235,17 @@ export default function Index() {
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Main Plan */}
             <GlassCard gradient className="p-8">
-              <Badge className="mb-4 gradient-bg text-primary-foreground border-0">All-in-One</Badge>
+              <Badge className="mb-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0">All-in-One</Badge>
               <div className="mt-2 mb-2">
                 <span className="text-2xl text-muted-foreground line-through mr-2">$247</span>
                 <span className="text-5xl font-bold">$99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
-              <p className="text-primary font-medium text-sm mb-2">Only 34 spots left in January</p>
+              <p className="text-pink-600 font-medium text-sm mb-2">Only 34 spots left in January</p>
               <p className="text-xs text-muted-foreground mb-6">
                 We limit monthly admissions to maintain backlink quality and network balance.
               </p>
-              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-6" size="lg" asChild>
+              <Button className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90 mb-6" size="lg" asChild>
                 <Link to="/auth">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-4 w-4" />
@@ -291,7 +291,7 @@ export default function Index() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to know about AeoRocket and Answer Engine Optimization
+              Everything you need to know about LovelyAnswers and Answer Engine Optimization
             </p>
           </div>
 
@@ -313,7 +313,7 @@ export default function Index() {
       {/* CTA */}
       <section className="py-20 bg-muted/30">
         <div className="container">
-          <GlassCard className="p-12 text-center gradient-bg text-primary-foreground overflow-hidden relative">
+          <GlassCard className="p-12 text-center bg-gradient-to-r from-pink-500 to-rose-500 text-white overflow-hidden relative">
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
             <div className="relative">
               <h2 className="text-3xl font-bold mb-4">
@@ -322,7 +322,7 @@ export default function Index() {
               <p className="text-white/80 max-w-xl mx-auto mb-8">
                 Join businesses optimizing for the AI-first future. Start generating citable answers in minutes.
               </p>
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
+              <Button size="lg" className="bg-white text-pink-600 hover:bg-white/90 shadow-lg" asChild>
                 <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />

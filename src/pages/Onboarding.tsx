@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Globe, 
   ArrowRight,
-  Rocket,
+  Heart,
   Loader2,
   X,
   Plus,
@@ -191,7 +191,7 @@ export default function Onboarding() {
     const url = data.websiteUrl.trim();
     
     // Don't analyze our own domain
-    const isOwnDomain = url.toLowerCase().includes('aeorocket.io') || 
+    const isOwnDomain = url.toLowerCase().includes('lovelyanswers.io') || 
                          url.toLowerCase().includes('lovableproject.com') ||
                          url.toLowerCase().includes('localhost');
     
@@ -423,11 +423,11 @@ export default function Onboarding() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-center">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Rocket className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+              <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">Rocket</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           </div>
         </div>
@@ -786,8 +786,8 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="max-w-md w-full text-center space-y-8">
         <div className="flex justify-center">
-          <div className="h-20 w-20 rounded-2xl gradient-bg flex items-center justify-center shadow-glow animate-pulse">
-            <Rocket className="h-10 w-10 text-primary-foreground" />
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg animate-pulse">
+            <Heart className="h-10 w-10 text-white fill-white" />
           </div>
         </div>
         <div>

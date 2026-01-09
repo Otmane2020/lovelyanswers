@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Rocket, ArrowLeft } from "lucide-react";
+import { Heart, ArrowLeft } from "lucide-react";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 
 export default function Privacy() {
@@ -10,11 +10,11 @@ export default function Privacy() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Rocket className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+              <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">Rocket</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           </Link>
           <Button variant="ghost" asChild>
@@ -107,8 +107,8 @@ export default function Privacy() {
             <h2 className="text-2xl font-semibold">7. Contact</h2>
             <p className="text-muted-foreground">
               For privacy inquiries, contact us at{" "}
-              <a href="mailto:support@aeorocket.io" className="text-primary hover:underline">
-                support@aeorocket.io
+              <a href="mailto:support@lovelyanswers.io" className="text-pink-600 hover:underline">
+                support@lovelyanswers.io
               </a>
             </p>
           </section>
@@ -116,7 +116,7 @@ export default function Privacy() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">8. Company Information</h2>
             <p className="text-muted-foreground">
-              AeoRocket Ltd<br />
+              LovelyAnswers Ltd<br />
               Suite 4, Piccadilly House<br />
               Manchester, M1 1AB<br />
               United Kingdom
