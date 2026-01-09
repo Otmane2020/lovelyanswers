@@ -10,6 +10,7 @@ export interface Article {
   content: string | null;
   status: string;
   word_count: number;
+  aeo_score: number | null;
   created_at: string;
   updated_at: string;
 }
