@@ -113,119 +113,76 @@ function detectLanguageFromContent(content: string, metaLang: string): string {
   return detectedLang;
 }
 
-// Generate a clean, concise business description using AI
-async function generateBusinessDescription(
-  markdown: string,
-  metaDescription: string,
-  brandName: string,
-  language: string,
-  apiKey: string
-): Promise<string> {
-  try {
-    // If no content, return a simple default
-    if (!markdown && !metaDescription) {
-      return `${brandName} offers quality products and services.`;
+// Fast local description extraction - no AI, instant
+function extractDescriptionFast(markdown: string, metaDescription: string, brandName: string): string {
+  // Try meta description first if it's clean
+  if (metaDescription && metaDescription.length > 30 && metaDescription.length < 400) {
+    const cleaned = cleanDescription(metaDescription);
+    if (cleaned.length > 30) {
+      console.log('[FAST] Using cleaned meta description');
+      return cleaned;
     }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-
-    // Get a sample of the content (not too much to avoid noise)
-    const contentSample = markdown.substring(0, 1500);
-    
-    const langInstruction = language === 'fr' ? 'Réponds en FRANÇAIS.' : 
-                            language === 'de' ? 'Auf Deutsch antworten.' :
-                            language === 'es' ? 'Responde en ESPAÑOL.' : 
-                            language === 'it' ? 'Rispondi in ITALIANO.' :
-                            language === 'pt' ? 'Responda em PORTUGUÊS.' : 'Respond in ENGLISH.';
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
-        messages: [{
-          role: 'user',
-          content: `Write a clean business description. ${langInstruction}
-
-Brand: ${brandName}
-Website content: ${metaDescription ? metaDescription + ' ' : ''}${contentSample.substring(0, 800)}
-
-Rules:
-- 2-4 sentences maximum
-- DO NOT start with the brand name
-- Focus on what they sell/offer and their value
-- No prices, no promotions, no product lists
-- No emojis, no special characters
-- Professional and factual tone
-
-Return ONLY the description text.`
-        }],
-        temperature: 0.2,
-        max_tokens: 120,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error('[FAST] AI description error:', response.status);
-      // Fallback to cleaned meta description
-      return cleanFallbackDescription(metaDescription, brandName);
-    }
-
-    const result = await response.json();
-    let description = result.choices?.[0]?.message?.content?.trim() || '';
-    
-    // Clean up AI output - remove quotes, special chars, markdown
-    description = description
-      .replace(/^["'`]+|["'`]+$/g, '') // Remove surrounding quotes
-      .replace(/[^\w\s.,!?àâäéèêëïîôùûüçœæÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ''-]/g, '') // Keep only valid chars
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    if (description && description.length > 20) {
-      console.log('[FAST] AI-generated description:', description.substring(0, 100));
-      return description;
-    }
-    
-    return cleanFallbackDescription(metaDescription, brandName);
-  } catch (error) {
-    console.error('[FAST] Description generation error:', error);
-    return cleanFallbackDescription(metaDescription, brandName);
-  }
-}
-
-// Fallback: clean up meta description if AI fails
-function cleanFallbackDescription(metaDescription: string, brandName: string): string {
-  if (!metaDescription) {
-    return `${brandName} offers quality products and services to its customers.`;
   }
   
-  // Remove common e-commerce noise patterns
-  let cleaned = metaDescription
-    .replace(/\d+[,.]?\d*\s*€/g, '') // Remove prices
-    .replace(/\d+%\s*(off|de réduction)?/gi, '') // Remove discounts
-    .replace(/(promo|soldes?|sale|discount)/gi, '') // Remove promo keywords
+  // Extract from markdown - find meaningful paragraphs
+  if (markdown && markdown.length > 50) {
+    // Remove common e-commerce noise
+    const noisePatterns = [
+      /\d+[,.]?\d*\s*€/g,           // Prices: 249,00 €
+      /\d+%\s*(off|de réduction)?/gi, // Discounts
+      /(promo|soldes?|sale|discount|ajouter au panier|add to cart)/gi,
+      /\bx[234]\b/gi,               // Payment installments x3 x4
+      /livraison|garantie|paiement/gi, // Shipping, warranty, payment
+      /!\[[^\]]*\]\([^)]+\)/g,      // Markdown images
+      /\[([^\]]+)\]\([^)]+\)/g,     // Markdown links -> text only
+      /#{1,6}\s*/g,                 // Headers
+      /\|[^|]+\|/g,                 // Tables
+      /[-*]\s+/g,                   // List markers
+    ];
+    
+    let cleanText = markdown;
+    for (const pattern of noisePatterns) {
+      cleanText = cleanText.replace(pattern, ' ');
+    }
+    
+    // Split into sentences and filter
+    const sentences = cleanText
+      .split(/[.!?]+/)
+      .map(s => s.replace(/\s+/g, ' ').trim())
+      .filter(s => {
+        // Keep sentences that are meaningful
+        return s.length > 20 && 
+               s.length < 200 &&
+               !/^\d+$/.test(s) &&
+               !s.toLowerCase().includes('cookie') &&
+               !s.toLowerCase().includes('aperçu') &&
+               !s.toLowerCase().includes('choix des options');
+      });
+    
+    if (sentences.length > 0) {
+      // Take first 2-3 good sentences
+      const description = sentences.slice(0, 3).join('. ').trim();
+      if (description.length > 30) {
+        console.log('[FAST] Extracted from markdown:', description.substring(0, 80));
+        return description + '.';
+      }
+    }
+  }
+  
+  // Ultimate fallback
+  return `${brandName} propose des produits et services de qualité.`;
+}
+
+// Clean a description string
+function cleanDescription(text: string): string {
+  return text
+    .replace(/\d+[,.]?\d*\s*€/g, '')
+    .replace(/\d+%/g, '')
+    .replace(/(promo|soldes?|sale|discount)/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
-  
-  // If cleaned is too short, return a simple default
-  if (cleaned.length < 30) {
-    return `${brandName} offers quality products and services to its customers.`;
-  }
-  
-  // Truncate to reasonable length
-  if (cleaned.length > 300) {
-    cleaned = cleaned.substring(0, 297) + '...';
-  }
-  
-  return cleaned;
 }
+
 
 // Extract brand name from URL and content
 function extractBrandName(url: string, title: string): string {
@@ -350,26 +307,16 @@ Deno.serve(async (req) => {
     const language = detectLanguageFromContent(markdown, metaLanguage);
     const brandName = extractBrandName(formattedUrl, title);
 
-    // Generate clean description and extract audiences in parallel
-    let description = '';
-    let audiences: string[] = [];
+    // Extract description FAST (no AI) - instant
+    const description = extractDescriptionFast(markdown, metaDescription, brandName);
     
+    // Extract audiences with AI (only this uses AI now)
+    let audiences: string[] = [];
     if (lovableApiKey) {
-      console.log('[FAST] Starting AI processing...');
+      console.log('[FAST] Starting audience extraction...');
       const aiStart = Date.now();
-      
-      // Run description generation and audience extraction in parallel
-      const [descResult, audienceResult] = await Promise.all([
-        generateBusinessDescription(markdown, metaDescription, brandName, language, lovableApiKey),
-        extractAudiencesFast(metaDescription || markdown.substring(0, 500), markdown, language, lovableApiKey),
-      ]);
-      
-      description = descResult;
-      audiences = audienceResult;
-      console.log(`[FAST] AI processing took ${Date.now() - aiStart}ms`);
-    } else {
-      // Fallback without AI
-      description = cleanFallbackDescription(metaDescription, brandName);
+      audiences = await extractAudiencesFast(description, markdown, language, lovableApiKey);
+      console.log(`[FAST] Audience extraction took ${Date.now() - aiStart}ms`);
     }
 
     const totalTime = Date.now() - startTime;
