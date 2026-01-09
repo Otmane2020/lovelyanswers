@@ -334,7 +334,20 @@ export default function AeoPlanning() {
                             )}
                           </div>
                           <div className="flex flex-col gap-1 shrink-0">
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge 
+                              variant="secondary" 
+                              className={cn(
+                                "text-xs gap-1",
+                                item.type === "answer" 
+                                  ? "bg-violet-500/20 text-violet-600 dark:text-violet-400" 
+                                  : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              )}
+                            >
+                              {item.type === "answer" ? (
+                                <MessageSquare className="h-3 w-3" />
+                              ) : (
+                                <FileText className="h-3 w-3" />
+                              )}
                               {item.type === "answer" ? "Answer" : "Article"}
                             </Badge>
                             {item.type === "answer" && item.status !== "published" && (
@@ -429,13 +442,13 @@ export default function AeoPlanning() {
                   >
                     <p className="font-medium">{format(date, "MMM", { locale: fr })}</p>
                     <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="w-2 h-2 rounded-full bg-violet-500" />
-                        {items.filter(i => i.type === "answer").length} answers
+                      <div className="flex items-center gap-2 text-xs text-violet-600 dark:text-violet-400">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>{items.filter(i => i.type === "answer").length} answers</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        {items.filter(i => i.type === "article").length} articles
+                      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                        <FileText className="h-3 w-3" />
+                        <span>{items.filter(i => i.type === "article").length} articles</span>
                       </div>
                     </div>
                   </button>
@@ -472,7 +485,20 @@ export default function AeoPlanning() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "text-xs gap-1",
+                            item.type === "answer" 
+                              ? "bg-violet-500/20 text-violet-600 dark:text-violet-400" 
+                              : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                          )}
+                        >
+                          {item.type === "answer" ? (
+                            <MessageSquare className="h-3 w-3" />
+                          ) : (
+                            <FileText className="h-3 w-3" />
+                          )}
                           {item.type === "answer" ? "Answer" : "Article"}
                         </Badge>
                         {item.status === "published" ? (
