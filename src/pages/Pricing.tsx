@@ -39,7 +39,7 @@ const features = [
 const faqs = [
   {
     question: "I am not an SEO expert?",
-    answer: "Don't worry! Aeoreply is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content."
+    answer: "Don't worry! AeoRocket is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content."
   },
   {
     question: "Will Google penalize AI written content?",
@@ -78,7 +78,7 @@ export default function Pricing() {
               <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">reply</span>
+              Aeo<span className="gradient-text">Rocket</span>
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -192,7 +192,7 @@ export default function Pricing() {
             <h2 className="text-3xl font-bold mb-4">FAQs</h2>
             <p className="text-muted-foreground">
               Haven't found what you are looking for?{" "}
-              <a href="mailto:support@aeoreply.com" className="text-primary hover:underline">
+              <a href="mailto:support@aeorocket.io" className="text-primary hover:underline">
                 Send us an email
               </a>
             </p>
@@ -220,10 +220,10 @@ export default function Pricing() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
               <Zap className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold">Aeoreply</span>
+            <span className="font-bold">AeoRocket</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Aeoreply. Answer Engine Optimization platform.
+            © 2026 AeoRocket. Answer Engine Optimization platform.
           </p>
         </div>
       </footer>

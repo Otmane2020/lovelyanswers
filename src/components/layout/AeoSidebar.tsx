@@ -79,7 +79,7 @@ export function AeoSidebar() {
           </div>
           {state === "expanded" && (
             <span className="font-bold text-lg text-foreground">
-              Aeoreply<span className="text-primary">.ai</span>
+              AeoRocket<span className="text-primary">.io</span>
             </span>
           )}
         </NavLink>

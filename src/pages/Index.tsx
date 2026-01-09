@@ -72,24 +72,24 @@ const faqs = [
     answer: "AEO is a new approach to content optimization that focuses on making your content citable by AI assistants like ChatGPT, Gemini, Claude, and Perplexity. Unlike traditional SEO which targets search engine rankings, AEO ensures AI models understand and recommend your content to users.",
   },
   {
-    question: "How does Aeoreply generate content?",
-    answer: "Aeoreply uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
+    question: "How does AeoRocket generate content?",
+    answer: "AeoRocket uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
   },
   {
-    question: "What platforms does Aeoreply integrate with?",
-    answer: "Aeoreply integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
+    question: "What platforms does AeoRocket integrate with?",
+    answer: "AeoRocket integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
   },
   {
     question: "How do the backlinks work?",
     answer: "Through our exclusive network, we provide automatic quality backlinks valued at $800+ per month. We limit monthly admissions to maintain backlink quality and network balance, ensuring maximum value for all members.",
   },
   {
-    question: "Can I try Aeoreply before committing?",
-    answer: "Yes! We offer a 3-day free trial so you can experience the full power of Aeoreply. No credit card required to start. Cancel anytime if it's not the right fit.",
+    question: "Can I try AeoRocket before committing?",
+    answer: "Yes! We offer a 3-day free trial so you can experience the full power of AeoRocket. No credit card required to start. Cancel anytime if it's not the right fit.",
   },
   {
     question: "What languages are supported?",
-    answer: "Aeoreply generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
+    answer: "AeoRocket generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
   },
 ];
 
@@ -104,7 +104,7 @@ export default function Index() {
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">reply</span>
+              Aeo<span className="gradient-text">Rocket</span>
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -185,7 +185,7 @@ export default function Index() {
               <div className="grid grid-cols-3 text-center font-semibold border-b border-border p-4">
                 <div></div>
                 <div className="text-muted-foreground">Traditional SEO</div>
-                <div className="gradient-text">AEO (Aeoreply)</div>
+                <div className="gradient-text">AEO (AeoRocket)</div>
               </div>
               {comparisons.map((row, i) => (
                 <div key={row.feature} className={`grid grid-cols-3 text-center p-4 ${i !== comparisons.length - 1 ? "border-b border-border" : ""}`}>
@@ -203,7 +203,7 @@ export default function Index() {
       <section className="py-20">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">How Aeoreply Works</h2>
+            <h2 className="text-3xl font-bold mb-4">How AeoRocket Works</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               A complete platform to make your content AI-citable
             </p>
@@ -290,7 +290,7 @@ export default function Index() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to know about Aeoreply and Answer Engine Optimization
+              Everything you need to know about AeoRocket and Answer Engine Optimization
             </p>
           </div>
 
@@ -339,10 +339,10 @@ export default function Index() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
               <Rocket className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold">Aeoreply</span>
+            <span className="font-bold">AeoRocket</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Aeoreply. Answer Engine Optimization platform.
+            © 2026 AeoRocket. Answer Engine Optimization platform.
           </p>
         </div>
       </footer>
