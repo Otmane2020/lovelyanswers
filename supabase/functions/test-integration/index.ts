@@ -118,34 +118,58 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 
   try {
     let siteUrl = config.endpoint.trim().replace(/\/$/, "");
-    
-    // Try fetching posts with auth
-    const response = await fetch(`${siteUrl}/wp-json/wp/v2/posts?per_page=1`, {
+    if (!siteUrl.startsWith("http")) {
+      siteUrl = `https://${siteUrl}`;
+    }
+
+    // WordPress Application Password format: username:password
+    // Token can be "username:password" or just password (we'll try to extract)
+    let username = config.username || "admin";
+    let password = config.token;
+
+    // If token contains ':', split it
+    if (config.token.includes(":")) {
+      const parts = config.token.split(":");
+      username = parts[0];
+      password = parts.slice(1).join(":");
+    }
+
+    const basicAuth = btoa(`${username}:${password}`);
+
+    // Test with /wp-json/wp/v2/users/me - requires authentication
+    const response = await fetch(`${siteUrl}/wp-json/wp/v2/users/me`, {
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
       },
     });
 
     if (response.ok) {
-      return { success: true, message: "WordPress REST API connected successfully!" };
+      const user = await response.json();
+      return { 
+        success: true, 
+        message: `Connected as "${user.name || user.slug}"! Ready to publish.` 
+      };
     }
 
-    // Try with Basic Auth (Application Password format)
-    const basicResponse = await fetch(`${siteUrl}/wp-json/wp/v2/users/me`, {
-      headers: {
-        Authorization: `Basic ${btoa(`admin:${config.token}`)}`,
-      },
-    });
-
-    if (basicResponse.ok) {
-      return { success: true, message: "WordPress connected with Application Password!" };
+    if (response.status === 401) {
+      return { 
+        success: false, 
+        message: "Invalid credentials. Use format 'username:application_password' or check Users → Your Profile → Application Passwords." 
+      };
     }
 
-    if (response.status === 401 || basicResponse.status === 401) {
-      return { success: false, message: "Invalid credentials. Use an Application Password from Users → Your Profile." };
+    if (response.status === 404) {
+      // Try to check if REST API is available
+      const apiCheck = await fetch(`${siteUrl}/wp-json/`);
+      if (!apiCheck.ok) {
+        return { success: false, message: "WordPress REST API not found. Ensure permalinks are enabled." };
+      }
+      return { success: false, message: "Authentication endpoint not found. Check your WordPress version." };
     }
 
-    return { success: false, message: `WordPress error (${response.status}): Check your site URL and credentials.` };
+    const errorText = await response.text().catch(() => response.statusText);
+    return { success: false, message: `WordPress error (${response.status}): ${errorText.slice(0, 100)}` };
   } catch (error) {
     return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
   }
