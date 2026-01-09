@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ChevronLeft, ChevronRight, Plus,
-  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar
+  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
+import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 
 interface ScheduledItem {
   id: string;
@@ -40,6 +41,7 @@ export default function AeoPlanning() {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project || item.type !== "answer") {
@@ -174,10 +176,19 @@ export default function AeoPlanning() {
               Schedule and manage your AEO content for the next 30 days
             </p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
-            <Plus className="w-4 h-4 mr-2" />
-            Schedule Content
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowSettingsModal(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Auto-Publish
+            </Button>
+            <Button className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule Content
+            </Button>
+          </div>
         </div>
 
         {/* View Tabs */}
@@ -254,13 +265,18 @@ export default function AeoPlanning() {
                             <div
                               key={item.id}
                               className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded truncate font-medium",
+                                "text-[10px] px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1",
                                 item.type === "answer" 
-                                  ? "bg-blue-500/20 text-blue-700 dark:text-blue-400" 
+                                  ? "bg-violet-500/20 text-violet-700 dark:text-violet-400" 
                                   : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                               )}
                             >
-                              {item.title.slice(0, 25)}...
+                              {item.type === "answer" ? (
+                                <MessageSquare className="h-2.5 w-2.5 shrink-0" />
+                              ) : (
+                                <FileText className="h-2.5 w-2.5 shrink-0" />
+                              )}
+                              <span className="truncate">{item.title.slice(0, 20)}...</span>
                             </div>
                           ))}
                           {items.length > 2 && (
@@ -296,13 +312,14 @@ export default function AeoPlanning() {
                           <div className={cn(
                             "p-2 rounded-lg",
                             item.type === "answer" 
-                              ? "bg-blue-500/20" 
+                              ? "bg-violet-500/20" 
                               : "bg-emerald-500/20"
                           )}>
-                            <FileText className={cn(
-                              "h-4 w-4",
-                              item.type === "answer" ? "text-blue-600" : "text-emerald-600"
-                            )} />
+                            {item.type === "answer" ? (
+                              <MessageSquare className={cn("h-4 w-4 text-violet-600")} />
+                            ) : (
+                              <FileText className={cn("h-4 w-4 text-emerald-600")} />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{item.title}</p>
@@ -413,7 +430,7 @@ export default function AeoPlanning() {
                     <p className="font-medium">{format(date, "MMM", { locale: fr })}</p>
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="w-2 h-2 rounded-full bg-violet-500" />
                         {items.filter(i => i.type === "answer").length} answers
                       </div>
                       <div className="flex items-center gap-2 text-xs">
@@ -444,13 +461,14 @@ export default function AeoPlanning() {
                     <div className={cn(
                       "p-2 rounded-lg shrink-0",
                       item.type === "answer" 
-                        ? "bg-blue-500/20" 
+                        ? "bg-violet-500/20" 
                         : "bg-emerald-500/20"
                     )}>
-                      <FileText className={cn(
-                        "h-4 w-4",
-                        item.type === "answer" ? "text-blue-600" : "text-emerald-600"
-                      )} />
+                      {item.type === "answer" ? (
+                        <MessageSquare className="h-4 w-4 text-violet-600" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-emerald-600" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -513,6 +531,15 @@ export default function AeoPlanning() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Auto-Publish Settings Modal */}
+        {project && (
+          <AutoPublishSettings
+            projectId={project.id}
+            open={showSettingsModal}
+            onOpenChange={setShowSettingsModal}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

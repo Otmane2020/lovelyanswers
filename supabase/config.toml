@@ -47,6 +47,7 @@ verify_jwt = false
 
 [functions.publish-scheduled-answers]
 verify_jwt = false
+schedule = "0 8 * * *"
 
 [functions.get-public-answer]
 verify_jwt = false
