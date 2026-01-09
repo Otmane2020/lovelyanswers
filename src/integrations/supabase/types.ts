@@ -410,6 +410,7 @@ export type Database = {
           article_schedule: string[] | null
           article_types: string | null
           auto_publish: boolean | null
+          auto_publish_enabled: boolean | null
           citations_region: string | null
           created_at: string | null
           cta_link: string | null
@@ -424,6 +425,7 @@ export type Database = {
           include_toc: boolean | null
           include_youtube: boolean | null
           project_id: string
+          publish_hour: string | null
           special_instructions: string | null
           text_overlay: boolean | null
           trailing_slash: boolean | null
@@ -436,6 +438,7 @@ export type Database = {
           article_schedule?: string[] | null
           article_types?: string | null
           auto_publish?: boolean | null
+          auto_publish_enabled?: boolean | null
           citations_region?: string | null
           created_at?: string | null
           cta_link?: string | null
@@ -450,6 +453,7 @@ export type Database = {
           include_toc?: boolean | null
           include_youtube?: boolean | null
           project_id: string
+          publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null
           trailing_slash?: boolean | null
@@ -462,6 +466,7 @@ export type Database = {
           article_schedule?: string[] | null
           article_types?: string | null
           auto_publish?: boolean | null
+          auto_publish_enabled?: boolean | null
           citations_region?: string | null
           created_at?: string | null
           cta_link?: string | null
@@ -476,6 +481,7 @@ export type Database = {
           include_toc?: boolean | null
           include_youtube?: boolean | null
           project_id?: string
+          publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null
           trailing_slash?: boolean | null
