@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -24,6 +26,16 @@ import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
 
+interface Article {
+  id: string;
+  title: string;
+  status: string | null;
+  word_count: number | null;
+  aeo_score: number | null;
+  created_at: string | null;
+  linked_answer_id: string | null;
+}
+
 export default function Answers() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -36,6 +48,15 @@ export default function Answers() {
   const [showHighCitation, setShowHighCitation] = useState(false);
   const [showPublishedOnly, setShowPublishedOnly] = useState(false);
   const [viewingAnswer, setViewingAnswer] = useState<typeof answers[0] | null>(null);
+  const [activeTab, setActiveTab] = useState("answers");
+  
+  // Articles state
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
+  
+  // Progress bar state
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isGeneratingWithProgress, setIsGeneratingWithProgress] = useState(false);
   
   // New Answer Modal State
   const [showNewAnswerModal, setShowNewAnswerModal] = useState(false);
@@ -47,6 +68,29 @@ export default function Answers() {
   const [showCmsPopup, setShowCmsPopup] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [generatedArticle, setGeneratedArticle] = useState<{ id: string; title: string; html: string; answerId: string } | null>(null);
+
+  // Fetch articles
+  useEffect(() => {
+    const fetchArticles = async () => {
+      if (!project) return;
+      setLoadingArticles(true);
+      try {
+        const { data, error } = await supabase
+          .from("articles")
+          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id")
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        setArticles(data || []);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+      } finally {
+        setLoadingArticles(false);
+      }
+    };
+    fetchArticles();
+  }, [project]);
 
   const handlePublishToCms = async (answerId: string) => {
     if (!project) {
@@ -91,6 +135,10 @@ export default function Answers() {
     const matchesHighCitation = !showHighCitation || answer.high_citation;
     const matchesPublished = !showPublishedOnly || answer.is_public;
     return matchesSearch && matchesPlatform && matchesHighCitation && matchesPublished;
+  });
+
+  const filteredArticles = articles.filter((article) => {
+    return article.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleTogglePublish = (id: string, currentState: boolean) => {
@@ -226,6 +274,8 @@ export default function Answers() {
     if (!user) return;
     
     setRegeneratingAll(true);
+    setIsGeneratingWithProgress(true);
+    setGenerationProgress(0);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -241,10 +291,16 @@ export default function Answers() {
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
         setRegeneratingAll(false);
+        setIsGeneratingWithProgress(false);
         return;
       }
 
       const project = projects[0];
+      
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
       
       // Check if there are unused keywords
       const { data: unusedKeywords } = await supabase
@@ -262,7 +318,7 @@ export default function Answers() {
         ? `Generating ${unusedKeywords.length} new answers from keywords...`
         : "Generating new answers from project context...");
       
-      const { data, error } = await supabase.functions.invoke('generate-aeo-answers', {
+      const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
         body: { 
           projectId: project.id,
           useKeywords: true,
@@ -272,6 +328,9 @@ export default function Answers() {
           Authorization: `Bearer ${session?.access_token}`
         }
       });
+      
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
       
       if (error) {
         console.error('Error generating answers:', error);
@@ -286,7 +345,11 @@ export default function Answers() {
       console.error('Error regenerating all answers:', error);
       toast.error("Error during regeneration");
     } finally {
-    setRegeneratingAll(false);
+      setRegeneratingAll(false);
+      setTimeout(() => {
+        setIsGeneratingWithProgress(false);
+        setGenerationProgress(0);
+      }, 1000);
     }
   };
 
@@ -294,6 +357,8 @@ export default function Answers() {
     if (!user) return;
     
     setGenerating30(true);
+    setIsGeneratingWithProgress(true);
+    setGenerationProgress(0);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -309,6 +374,7 @@ export default function Answers() {
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
         setGenerating30(false);
+        setIsGeneratingWithProgress(false);
         return;
       }
 
@@ -332,6 +398,11 @@ export default function Answers() {
       
       toast.info("Generating 30 Q/A + 30 Articles over 30 days...");
       
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 3, 90));
+      }, 1000);
+      
       const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
         body: { 
           projectId: activeProject.id,
@@ -343,6 +414,9 @@ export default function Answers() {
         }
       });
       
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      
       if (error) {
         console.error('Error generating content:', error);
         toast.error("Error during generation");
@@ -352,17 +426,51 @@ export default function Answers() {
       }
       
       refetch();
+      // Refresh articles list
+      if (project) {
+        const { data: newArticles } = await supabase
+          .from("articles")
+          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id")
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: false });
+        setArticles(newArticles || []);
+      }
     } catch (error) {
       console.error('Error generating content:', error);
       toast.error("Error during generation");
     } finally {
       setGenerating30(false);
+      setTimeout(() => {
+        setIsGeneratingWithProgress(false);
+        setGenerationProgress(0);
+      }, 1000);
+    }
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'published': return 'bg-emerald-500/20 text-emerald-500';
+      case 'draft': return 'bg-amber-500/20 text-amber-500';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Progress Bar at Top */}
+        {isGeneratingWithProgress && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-2">
+            <div className="container flex items-center gap-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex-1">
+                <Progress value={generationProgress} className="h-2" />
+              </div>
+              <span className="text-sm text-muted-foreground">{generationProgress}%</span>
+            </div>
+          </div>
+        )}
+
         {/* ChatGPT Logo + Badge - Separate Line */}
         <div className="flex items-center gap-3">
           <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
@@ -415,110 +523,179 @@ export default function Answers() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search answers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />Platform
-                {selectedPlatforms.length > 0 && <Badge variant="secondary" className="ml-1">{selectedPlatforms.length}</Badge>}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              {platforms.map((platform) => (
-                <DropdownMenuCheckboxItem key={platform} checked={selectedPlatforms.includes(platform)} onCheckedChange={(checked) => {
-                  if (checked) setSelectedPlatforms([...selectedPlatforms, platform]);
-                  else setSelectedPlatforms(selectedPlatforms.filter((p) => p !== platform));
-                }}>{platform}</DropdownMenuCheckboxItem>
-              ))}
-              {selectedPlatforms.length > 0 && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setSelectedPlatforms([])}>Clear all</DropdownMenuItem></>)}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant={showHighCitation ? "default" : "outline"} size="sm" onClick={() => setShowHighCitation(!showHighCitation)} className={showHighCitation ? "gradient-bg text-primary-foreground" : ""}>High Citation</Button>
-          <Button variant={showPublishedOnly ? "default" : "outline"} size="sm" onClick={() => setShowPublishedOnly(!showPublishedOnly)} className={showPublishedOnly ? "gradient-bg text-primary-foreground" : ""}>Published Only</Button>
-        </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="answers" className="gap-2">
+              <Search className="h-4 w-4" />
+              AEO Answers ({answers.length})
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Articles ({articles.length})
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-4">
-          {filteredAnswers.map((answer, index) => (
-            <GlassCard key={answer.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}>
-              <div className="flex gap-6">
-                <div className="flex-shrink-0"><ScoreRing score={answer.score} size="lg" /></div>
-                <div className="flex-1 min-w-0 space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="text-lg font-semibold leading-tight">{answer.question}</h3>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={answer.is_public} onCheckedChange={() => handleTogglePublish(answer.id, answer.is_public ?? false)} />
-                      <span className="text-sm text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
+          {/* Search and Filters */}
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+            </div>
+            {activeTab === "answers" && (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="h-4 w-4" />Platform
+                      {selectedPlatforms.length > 0 && <Badge variant="secondary" className="ml-1">{selectedPlatforms.length}</Badge>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {platforms.map((platform) => (
+                      <DropdownMenuCheckboxItem key={platform} checked={selectedPlatforms.includes(platform)} onCheckedChange={(checked) => {
+                        if (checked) setSelectedPlatforms([...selectedPlatforms, platform]);
+                        else setSelectedPlatforms(selectedPlatforms.filter((p) => p !== platform));
+                      }}>{platform}</DropdownMenuCheckboxItem>
+                    ))}
+                    {selectedPlatforms.length > 0 && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setSelectedPlatforms([])}>Clear all</DropdownMenuItem></>)}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant={showHighCitation ? "default" : "outline"} size="sm" onClick={() => setShowHighCitation(!showHighCitation)} className={showHighCitation ? "gradient-bg text-primary-foreground" : ""}>High Citation</Button>
+                <Button variant={showPublishedOnly ? "default" : "outline"} size="sm" onClick={() => setShowPublishedOnly(!showPublishedOnly)} className={showPublishedOnly ? "gradient-bg text-primary-foreground" : ""}>Published Only</Button>
+              </>
+            )}
+          </div>
+
+          {/* Answers Tab Content */}
+          <TabsContent value="answers" className="mt-4 space-y-4">
+            {filteredAnswers.map((answer, index) => (
+              <GlassCard key={answer.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}>
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0"><ScoreRing score={answer.score} size="lg" /></div>
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="text-lg font-semibold leading-tight">{answer.question}</h3>
+                      <div className="flex items-center gap-2">
+                        <Switch checked={answer.is_public} onCheckedChange={() => handleTogglePublish(answer.id, answer.is_public ?? false)} />
+                        <span className="text-sm text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-muted-foreground line-clamp-2">{answer.answer}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {answer.platforms?.map((p) => <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>)}
-                    {answer.high_citation && <Badge className="bg-emerald-500/20 text-emerald-500 border-0">High Citation</Badge>}
-                    {answer.is_public && <Badge className="bg-blue-500/20 text-blue-500 border-0"><Globe className="mr-1 h-3 w-3" />Public</Badge>}
-                    {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
-                  </div>
-                  <div className="flex items-center gap-2 pt-2 flex-wrap">
-                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View Answer</Button>
-                    {answer.has_article && (
-                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${answer.article_id}`)}><Newspaper className="h-4 w-4" />View Blog</Button>
-                    )}
-                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
-                    {!answer.has_article && (
+                    <p className="text-muted-foreground line-clamp-2">{answer.answer}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {answer.platforms?.map((p) => <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>)}
+                      {answer.high_citation && <Badge className="bg-emerald-500/20 text-emerald-500 border-0">High Citation</Badge>}
+                      {answer.is_public && <Badge className="bg-blue-500/20 text-blue-500 border-0"><Globe className="mr-1 h-3 w-3" />Public</Badge>}
+                      {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 flex-wrap">
+                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View Answer</Button>
+                      {answer.has_article && (
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${answer.article_id}`)}><Newspaper className="h-4 w-4" />View Blog</Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
+                      {!answer.has_article && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="gap-2" 
+                          onClick={() => handleGenerateArticle(answer.id)}
+                          disabled={generatingArticleId === answer.id}
+                        >
+                          {generatingArticleId === answer.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Newspaper className="h-4 w-4" />
+                          )}
+                          Generate Article
+                        </Button>
+                      )}
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="gap-2" 
-                        onClick={() => handleGenerateArticle(answer.id)}
-                        disabled={generatingArticleId === answer.id}
+                        className="gap-2 text-primary hover:text-primary" 
+                        onClick={() => handlePublishToCms(answer.id)}
+                        disabled={publishingId === answer.id}
                       >
-                        {generatingArticleId === answer.id ? (
+                        {publishingId === answer.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Newspaper className="h-4 w-4" />
+                          <Send className="h-4 w-4" />
                         )}
-                        Generate Article
+                        Publish to CMS
                       </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="gap-2 text-primary hover:text-primary" 
-                      onClick={() => handlePublishToCms(answer.id)}
-                      disabled={publishingId === answer.id}
-                    >
-                      {publishingId === answer.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
+                      {answer.is_public && (
+                        <>
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyLink(answer.slug)}><Copy className="h-4 w-4" />Copy Link</Button>
+                        </>
                       )}
-                      Publish to CMS
-                    </Button>
-                    {answer.is_public && (
-                      <>
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyLink(answer.slug)}><Copy className="h-4 w-4" />Copy Link</Button>
-                      </>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </GlassCard>
-          ))}
+              </GlassCard>
+            ))}
 
-          {filteredAnswers.length === 0 && (
-            <GlassCard className="p-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><Search className="h-8 w-8 text-muted-foreground" /></div>
-                <div><h3 className="text-lg font-semibold">No answers found</h3><p className="text-muted-foreground">{answers.length === 0 ? "Generate your first AI-ready answer" : "Try adjusting your filters"}</p></div>
-                <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground"><Plus className="h-4 w-4" />Create Answer</Button>
+            {filteredAnswers.length === 0 && (
+              <GlassCard className="p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><Search className="h-8 w-8 text-muted-foreground" /></div>
+                  <div><h3 className="text-lg font-semibold">No answers found</h3><p className="text-muted-foreground">{answers.length === 0 ? "Generate your first AI-ready answer" : "Try adjusting your filters"}</p></div>
+                  <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground"><Plus className="h-4 w-4" />Create Answer</Button>
+                </div>
+              </GlassCard>
+            )}
+          </TabsContent>
+
+          {/* Articles Tab Content */}
+          <TabsContent value="articles" className="mt-4 space-y-4">
+            {loadingArticles ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            </GlassCard>
-          )}
-        </div>
+            ) : filteredArticles.length === 0 ? (
+              <GlassCard className="p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><FileText className="h-8 w-8 text-muted-foreground" /></div>
+                  <div><h3 className="text-lg font-semibold">No articles found</h3><p className="text-muted-foreground">Generate articles from your AEO answers</p></div>
+                </div>
+              </GlassCard>
+            ) : (
+              filteredArticles.map((article, index) => (
+                <GlassCard key={article.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}>
+                  <div className="flex gap-6">
+                    <div className="flex-shrink-0">
+                      <ScoreRing score={article.aeo_score || 0} size="lg" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-lg font-semibold leading-tight">{article.title}</h3>
+                        <Badge className={getStatusColor(article.status)}>
+                          {article.status || 'draft'}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <span>{article.word_count || 0} words</span>
+                        <span>•</span>
+                        <span>AEO Score: {article.aeo_score || 0}</span>
+                        <span>•</span>
+                        <span>{new Date(article.created_at || '').toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${article.id}`)}>
+                          <Eye className="h-4 w-4" />View Article
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${article.id}/edit`)}>
+                          <Pencil className="h-4 w-4" />Edit
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* View Answer Dialog */}
