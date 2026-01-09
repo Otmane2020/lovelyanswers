@@ -275,23 +275,26 @@ async function publishToShopify(
   }
 
   try {
-    console.log(`[Shopify] Publishing to ${config.endpoint}`);
+    // Clean up endpoint - remove trailing slashes
+    const storeUrl = config.endpoint.replace(/\/+$/, '');
+    console.log(`[Shopify] Publishing to ${storeUrl}`);
     
     // Get the first blog ID
-    const blogsResponse = await fetch(`${config.endpoint}/admin/api/2024-01/blogs.json`, {
+    const blogsResponse = await fetch(`${storeUrl}/admin/api/2024-01/blogs.json`, {
       headers: { "X-Shopify-Access-Token": config.token },
     });
     
     if (!blogsResponse.ok) {
       const status = blogsResponse.status;
-      console.error(`[Shopify] Failed to get blogs: ${status}`);
+      const errorText = await blogsResponse.text();
+      console.error(`[Shopify] Failed to get blogs: ${status} - ${errorText}`);
       
       if (status === 401) {
         return { success: false, message: "Invalid Admin API Access Token. Create a new token in your Shopify app." };
       } else if (status === 404) {
         return { success: false, message: "Store not found. Check your Store URL (must be your-store.myshopify.com)." };
       }
-      return { success: false, message: `Failed to access Shopify store (${status})` };
+      return { success: false, message: `Failed to access Shopify store (${status}): ${errorText.substring(0, 100)}` };
     }
     
     const blogsData = await blogsResponse.json();
@@ -303,7 +306,7 @@ async function publishToShopify(
 
     console.log(`[Shopify] Using blog ID: ${blogId}`);
     
-    const response = await fetch(`${config.endpoint}/admin/api/2024-01/blogs/${blogId}/articles.json`, {
+    const response = await fetch(`${storeUrl}/admin/api/2024-01/blogs/${blogId}/articles.json`, {
       method: "POST",
       headers: {
         "X-Shopify-Access-Token": config.token,
@@ -334,7 +337,7 @@ async function publishToShopify(
     return {
       success: true,
       publishedId: String(data.article.id),
-      publishedUrl: `${config.endpoint}/blogs/news/${data.article.handle}`,
+      publishedUrl: `${storeUrl}/blogs/news/${data.article.handle}`,
     };
   } catch (error) {
     console.error("[Shopify] Exception:", error);
