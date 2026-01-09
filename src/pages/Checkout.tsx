@@ -164,10 +164,10 @@ export default function Checkout() {
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">reply</span>
+              Aeo<span className="gradient-text">Rocket</span>
             </span>
           </Link>
-          <Button 
+          <Button
             variant="ghost" 
             size="sm" 
             onClick={handleLogout}
