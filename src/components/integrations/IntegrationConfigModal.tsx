@@ -396,111 +396,115 @@ export function IntegrationConfigModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-2">
+          <DialogTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg">
             {config.isImage ? (
-              <img src={config.icon} alt={config.name} className="h-8 w-8 object-contain dark:invert" />
+              <img src={config.icon} alt={config.name} className="h-6 w-6 sm:h-8 sm:w-8 object-contain dark:invert" />
             ) : (
-              <span className="text-2xl">{config.icon}</span>
+              <span className="text-xl sm:text-2xl">{config.icon}</span>
             )}
-            {config.name} Integration
+            <span className="truncate">{config.name} Integration</span>
           </DialogTitle>
-          <DialogDescription className="pt-2">
+          <DialogDescription className="pt-1 sm:pt-2 text-sm">
             {config.description}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Guide Button */}
-          {guide && (
-            <Button
-              variant="outline"
-              onClick={() => setShowGuide(!showGuide)}
-              className="w-full justify-between gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10"
-            >
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                <span className="font-medium">📖 Guide: Comment obtenir les clés API</span>
-              </span>
-              <ChevronRight className={`h-4 w-4 transition-transform ${showGuide ? "rotate-90" : ""}`} />
-            </Button>
-          )}
+        <ScrollArea className="flex-1 px-4 sm:px-6">
+          <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
+            {/* Guide Button */}
+            {guide && (
+              <Button
+                variant="outline"
+                onClick={() => setShowGuide(!showGuide)}
+                className="w-full justify-between gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10 h-auto py-2.5 px-3"
+              >
+                <span className="flex items-center gap-2 text-left">
+                  <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                  <span className="font-medium text-xs sm:text-sm">📖 Guide: Comment obtenir les clés API</span>
+                </span>
+                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${showGuide ? "rotate-90" : ""}`} />
+              </Button>
+            )}
 
-          {/* Guide Content */}
-          {showGuide && guide && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
-              <h4 className="font-semibold text-primary">{guide.title}</h4>
-              <ScrollArea className="max-h-[200px]">
-                <ol className="space-y-2 text-sm">
-                  {guide.steps.map((step, index) => (
-                    <li key={index} className="flex gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
-                        {index + 1}
-                      </span>
-                      <span className="text-muted-foreground pt-0.5">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </ScrollArea>
-            </div>
-          )}
-
-          {config.helpText && !showGuide && (
-            <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-              💡 {config.helpText}
-            </p>
-          )}
-          <div className="rounded-lg border p-4 space-y-4">
-            <h4 className="font-medium">Configuration</h4>
-
-            {config.fields.map((field) => (
-              <div key={field.key} className="space-y-1.5">
-                <Label htmlFor={field.key}>{field.label}</Label>
-                <Input
-                  id={field.key}
-                  type={field.type || "text"}
-                  placeholder={field.placeholder}
-                  value={formData[field.key] || ""}
-                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                />
-                {field.helpText && (
-                  <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                )}
+            {/* Guide Content */}
+            {showGuide && guide && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <h4 className="font-semibold text-primary text-sm sm:text-base">{guide.title}</h4>
+                <div className="max-h-[150px] sm:max-h-[200px] overflow-y-auto">
+                  <ol className="space-y-2 text-xs sm:text-sm">
+                    {guide.steps.map((step, index) => (
+                      <li key={index} className="flex gap-2 sm:gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-primary-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium">
+                          {index + 1}
+                        </span>
+                        <span className="text-muted-foreground pt-0.5 leading-relaxed">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               </div>
-            ))}
+            )}
 
-            <Button
-              variant="outline"
-              onClick={handleTestConnection}
-              disabled={isTesting || !formData.endpoint}
-              className="gap-2"
-            >
-              {isTesting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : testResult === "success" ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : testResult === "error" ? (
-                <AlertCircle className="h-4 w-4 text-destructive" />
-              ) : null}
-              {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
-            </Button>
-            {testMessage && (
-              <p className={`text-sm ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
-                {testMessage}
+            {config.helpText && !showGuide && (
+              <p className="text-xs sm:text-sm text-muted-foreground bg-muted/50 p-2.5 sm:p-3 rounded-lg">
+                💡 {config.helpText}
               </p>
             )}
-          </div>
-        </div>
+            
+            <div className="rounded-lg border p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <h4 className="font-medium text-sm sm:text-base">Configuration</h4>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {config.fields.map((field) => (
+                <div key={field.key} className="space-y-1 sm:space-y-1.5">
+                  <Label htmlFor={field.key} className="text-xs sm:text-sm">{field.label}</Label>
+                  <Input
+                    id={field.key}
+                    type={field.type || "text"}
+                    placeholder={field.placeholder}
+                    value={formData[field.key] || ""}
+                    onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                    className="text-sm h-9 sm:h-10"
+                  />
+                  {field.helpText && (
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{field.helpText}</p>
+                  )}
+                </div>
+              ))}
+
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={isTesting || !formData.endpoint}
+                className="gap-2 w-full sm:w-auto h-9 text-sm"
+              >
+                {isTesting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : testResult === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : testResult === "error" ? (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                ) : null}
+                {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
+              </Button>
+              {testMessage && (
+                <p className={`text-xs sm:text-sm ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                  {testMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="flex-col sm:flex-row gap-2 px-4 pb-4 sm:px-6 sm:pb-6 pt-2 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto order-2 sm:order-1">
             Cancel
           </Button>
           <Button
             onClick={handleConnect}
             disabled={isSaving}
-            className="bg-foreground text-background hover:bg-foreground/90"
+            className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto order-1 sm:order-2"
           >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Connect
