@@ -327,16 +327,16 @@ export default function Answers() {
         }
       }
 
-      const project = projectWithKeywords || projects[0];
-      console.log(`[generate30Answers] Using project: ${project.id} (${project.name})`);
+      const activeProject = projectWithKeywords || projects[0];
+      console.log(`[generate30Answers] Using project: ${activeProject.id} (${activeProject.name})`);
       
-      toast.info("Generating 30 scheduled Q/A over 30 days...");
+      toast.info("Generating 30 Q/A + 30 Articles over 30 days...");
       
-      const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
+      const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
         body: { 
-          projectId: project.id,
-          generate30: true,
-          language: project.language || 'fr'
+          projectId: activeProject.id,
+          days: 30,
+          language: activeProject.language || 'fr'
         },
         headers: {
           Authorization: `Bearer ${session?.access_token}`
@@ -344,16 +344,16 @@ export default function Answers() {
       });
       
       if (error) {
-        console.error('Error generating 30 answers:', error);
+        console.error('Error generating content:', error);
         toast.error("Error during generation");
       } else {
-        toast.success(`${data?.answers_created || 30} answers generated and scheduled!`);
+        toast.success(`${data?.answers_created || 0} answers + ${data?.articles_created || 0} articles scheduled!`);
         setShowCmsPopup(true); // Show CMS popup after generation
       }
       
       refetch();
     } catch (error) {
-      console.error('Error generating 30 answers:', error);
+      console.error('Error generating content:', error);
       toast.error("Error during generation");
     } finally {
       setGenerating30(false);
@@ -393,7 +393,7 @@ export default function Answers() {
                 ) : (
                   <Zap className="h-4 w-4" />
                 )}
-                Generate 30 Q/A (30 days)
+                Generate 30 Q/A & Articles (30 days)
               </Button>
               <Button 
                 variant="outline"
