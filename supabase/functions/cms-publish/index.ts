@@ -28,13 +28,29 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Get auth token from header
+    const authHeader = req.headers.get("Authorization");
+    
+    // Verify user is authenticated
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const authClient = createClient(supabaseUrl, anonKey);
+      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.error("[cms-publish] Auth error:", authError?.message);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log(`[cms-publish] Authenticated user: ${user.email}`);
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const requestData: PublishRequest = await req.json();
