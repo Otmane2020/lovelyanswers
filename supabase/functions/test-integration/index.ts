@@ -176,27 +176,54 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 }
 
 async function testWix(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  if (!config.token || !config.siteId) {
-    return { success: false, message: "API Key and Site ID required" };
+  if (!config.token) {
+    return { success: false, message: "API Key required" };
   }
 
   try {
-    const response = await fetch(`https://www.wixapis.com/blog/v3/posts?limit=1`, {
-      headers: {
-        Authorization: config.token,
-        "wix-site-id": config.siteId,
-      },
+    // Wix API requires account-level or site-level token
+    const headers: Record<string, string> = {
+      Authorization: config.token.startsWith("Bearer ") ? config.token : config.token,
+      "Content-Type": "application/json",
+    };
+
+    // Add site ID if provided
+    if (config.siteId) {
+      headers["wix-site-id"] = config.siteId;
+    }
+
+    // Try the blog API first
+    const response = await fetch(`https://www.wixapis.com/blog/v3/posts?paging.limit=1`, {
+      headers,
     });
 
     if (response.ok) {
-      return { success: true, message: "Wix Blog API connected successfully!" };
+      const data = await response.json();
+      const postCount = data.posts?.length || 0;
+      return { 
+        success: true, 
+        message: postCount > 0 
+          ? `Connected! Found blog posts.` 
+          : "Connected! Blog is empty - ready to publish." 
+      };
     }
 
-    if (response.status === 401) {
-      return { success: false, message: "Invalid API Key. Check your Wix developer credentials." };
+    if (response.status === 401 || response.status === 403) {
+      return { 
+        success: false, 
+        message: "Invalid API Key. Get it from Wix Developer Center → OAuth Apps or API Keys." 
+      };
     }
 
-    return { success: false, message: `Wix error (${response.status}): ${response.statusText}` };
+    if (response.status === 404) {
+      return { success: false, message: "Blog not found. Ensure Wix Blog is installed on your site." };
+    }
+
+    const errorData = await response.json().catch(() => ({}));
+    return { 
+      success: false, 
+      message: `Wix error (${response.status}): ${errorData.message || response.statusText}` 
+    };
   } catch (error) {
     return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
   }
@@ -208,45 +235,94 @@ async function testWebflow(config: Record<string, string>): Promise<{ success: b
   }
 
   try {
-    const response = await fetch(`https://api.webflow.com/v2/sites`, {
+    const token = config.token.replace(/^Bearer\s+/i, "");
+    
+    // First get authorized sites
+    const sitesResponse = await fetch(`https://api.webflow.com/v2/sites`, {
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        Authorization: `Bearer ${token}`,
+        "accept-version": "1.0.0",
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      return { success: true, message: `Connected! Found ${data.sites?.length || 0} site(s).` };
+    if (sitesResponse.ok) {
+      const data = await sitesResponse.json();
+      const siteCount = data.sites?.length || 0;
+      
+      if (siteCount === 0) {
+        return { success: true, message: "Connected! No sites found - authorize a site in Webflow." };
+      }
+
+      // Try to get collections for the first site
+      const siteId = config.siteId || data.sites[0].id;
+      const collectionsResponse = await fetch(`https://api.webflow.com/v2/sites/${siteId}/collections`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "accept-version": "1.0.0",
+        },
+      });
+
+      if (collectionsResponse.ok) {
+        const collectionsData = await collectionsResponse.json();
+        const collectionCount = collectionsData.collections?.length || 0;
+        return { 
+          success: true, 
+          message: `Connected! Found ${siteCount} site(s) with ${collectionCount} collection(s).` 
+        };
+      }
+
+      return { success: true, message: `Connected! Found ${siteCount} site(s).` };
     }
 
-    if (response.status === 401) {
-      return { success: false, message: "Invalid API Token. Check your Webflow site settings." };
+    if (sitesResponse.status === 401) {
+      return { success: false, message: "Invalid API Token. Generate a new one in Webflow → Site Settings → Integrations." };
     }
 
-    return { success: false, message: `Webflow error (${response.status}): ${response.statusText}` };
+    if (sitesResponse.status === 403) {
+      return { success: false, message: "Token lacks permissions. Ensure CMS access is enabled." };
+    }
+
+    return { success: false, message: `Webflow error (${sitesResponse.status}): ${sitesResponse.statusText}` };
   } catch (error) {
     return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
   }
 }
 
 async function testDuda(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  if (!config.endpoint || !config.token) {
-    return { success: false, message: "Site Name and API Key required" };
+  if (!config.endpoint) {
+    return { success: false, message: "Site Name required" };
+  }
+
+  if (!config.token || !config.apiUser) {
+    return { success: false, message: "API User and API Password required" };
   }
 
   try {
-    const response = await fetch(`https://api.duda.co/api/sites/multiscreen/${config.endpoint}`, {
+    const siteName = config.endpoint.trim();
+    // Duda uses HTTP Basic Auth with api_user:api_pass
+    const basicAuth = btoa(`${config.apiUser}:${config.token}`);
+
+    const response = await fetch(`https://api.duda.co/api/sites/multiscreen/${siteName}`, {
       headers: {
-        Authorization: `Basic ${btoa(`${config.token}:`)}`,
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
       },
     });
 
     if (response.ok) {
-      return { success: true, message: "Duda site connected successfully!" };
+      const data = await response.json();
+      return { 
+        success: true, 
+        message: `Connected to "${data.site_name || siteName}"!` 
+      };
     }
 
     if (response.status === 401) {
-      return { success: false, message: "Invalid API credentials." };
+      return { success: false, message: "Invalid API credentials. Check your Duda Partner Portal → API Access." };
+    }
+
+    if (response.status === 404) {
+      return { success: false, message: "Site not found. Check the site name in your Duda dashboard." };
     }
 
     return { success: false, message: `Duda error (${response.status}): ${response.statusText}` };
@@ -256,24 +332,60 @@ async function testDuda(config: Record<string, string>): Promise<{ success: bool
 }
 
 async function testBigCommerce(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  if (!config.endpoint || !config.token) {
-    return { success: false, message: "Store Hash and API Token required" };
+  if (!config.endpoint) {
+    return { success: false, message: "Store Hash required (found in your store URL)" };
+  }
+
+  if (!config.token) {
+    return { success: false, message: "API Access Token required" };
   }
 
   try {
-    const response = await fetch(`https://api.bigcommerce.com/stores/${config.endpoint}/v2/blog/posts?limit=1`, {
+    // Clean store hash (remove any URL parts)
+    let storeHash = config.endpoint.trim();
+    const hashMatch = storeHash.match(/stores\/([a-z0-9]+)/i);
+    if (hashMatch) {
+      storeHash = hashMatch[1];
+    }
+    storeHash = storeHash.replace(/[^a-z0-9]/gi, "");
+
+    const response = await fetch(`https://api.bigcommerce.com/stores/${storeHash}/v2/blog/posts?limit=1`, {
       headers: {
         "X-Auth-Token": config.token,
-        Accept: "application/json",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
       },
     });
 
     if (response.ok) {
-      return { success: true, message: "BigCommerce store connected successfully!" };
+      const posts = await response.json();
+      const hasBlogs = Array.isArray(posts) && posts.length > 0;
+      return { 
+        success: true, 
+        message: hasBlogs 
+          ? "Connected! Found existing blog posts." 
+          : "Connected! Blog is ready for new posts." 
+      };
     }
 
     if (response.status === 401) {
-      return { success: false, message: "Invalid API Token." };
+      return { success: false, message: "Invalid API Token. Create one in Settings → API Accounts." };
+    }
+
+    if (response.status === 404) {
+      // Check if store exists
+      const storeCheck = await fetch(`https://api.bigcommerce.com/stores/${storeHash}/v2/store`, {
+        headers: {
+          "X-Auth-Token": config.token,
+          "Accept": "application/json",
+        },
+      });
+
+      if (storeCheck.ok) {
+        return { success: true, message: "Connected! Blog API may not be enabled on this plan." };
+      }
+
+      return { success: false, message: "Store not found. Check your Store Hash." };
     }
 
     return { success: false, message: `BigCommerce error (${response.status}): ${response.statusText}` };
@@ -288,53 +400,123 @@ async function testWebhook(config: Record<string, string>): Promise<{ success: b
   }
 
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    // Validate URL format
+    const url = new URL(config.endpoint);
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return { success: false, message: "Invalid URL. Must start with http:// or https://" };
+    }
+
+    const headers: Record<string, string> = { 
+      "Content-Type": "application/json",
+      "User-Agent": "AEO-Reply-Webhook/1.0",
+    };
+    
     if (config.token) {
-      headers["Authorization"] = `Bearer ${config.token}`;
+      headers["Authorization"] = config.token.startsWith("Bearer ") 
+        ? config.token 
+        : `Bearer ${config.token}`;
     }
 
     const response = await fetch(config.endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
+        event: "connection_test",
         test: true,
         timestamp: new Date().toISOString(),
-        source: "AEO Reply - Connection Test",
+        source: "AEO Reply",
       }),
     });
 
-    // Consider any response (even errors) as "received" for webhooks
-    return { success: true, message: "Test payload sent! Check your webhook logs." };
+    // For webhooks, any response means the endpoint is reachable
+    if (response.ok) {
+      return { success: true, message: "Webhook endpoint verified! Test payload sent successfully." };
+    }
+
+    // Even non-2xx responses mean the endpoint exists
+    if (response.status < 500) {
+      return { 
+        success: true, 
+        message: `Endpoint reachable (returned ${response.status}). Check your webhook logs.` 
+      };
+    }
+
+    return { success: false, message: `Webhook error (${response.status}): Server error` };
   } catch (error) {
-    return { success: false, message: `Webhook failed: ${error instanceof Error ? error.message : "Network error"}` };
+    if (error instanceof TypeError && error.message.includes("URL")) {
+      return { success: false, message: "Invalid webhook URL format" };
+    }
+    return { success: false, message: `Webhook unreachable: ${error instanceof Error ? error.message : "Network error"}` };
   }
 }
 
 async function testCustomApi(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
   if (!config.endpoint) {
-    return { success: false, message: "API Endpoint required" };
+    return { success: false, message: "API Endpoint URL required" };
   }
 
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (config.token) {
-      headers["Authorization"] = config.token;
+    // Validate URL
+    const url = new URL(config.endpoint);
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return { success: false, message: "Invalid URL. Must start with http:// or https://" };
     }
 
-    const method = config.method?.toUpperCase() || "GET";
+    const headers: Record<string, string> = { 
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    };
     
-    const response = await fetch(config.endpoint, {
-      method: method === "GET" ? "GET" : "POST",
+    if (config.token) {
+      // Support various auth formats
+      if (config.token.toLowerCase().startsWith("bearer ") || 
+          config.token.toLowerCase().startsWith("basic ") ||
+          config.token.toLowerCase().startsWith("apikey ")) {
+        headers["Authorization"] = config.token;
+      } else {
+        headers["Authorization"] = `Bearer ${config.token}`;
+      }
+    }
+
+    // Add custom header if provided
+    if (config.headerName && config.headerValue) {
+      headers[config.headerName] = config.headerValue;
+    }
+
+    const method = (config.method?.toUpperCase() || "GET") as string;
+    
+    const fetchOptions: RequestInit = {
+      method: method === "GET" || method === "HEAD" ? method : "POST",
       headers,
-      ...(method !== "GET" && { body: JSON.stringify({ test: true }) }),
-    });
+    };
+
+    if (method !== "GET" && method !== "HEAD") {
+      fetchOptions.body = JSON.stringify({ 
+        test: true,
+        source: "AEO Reply",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const response = await fetch(config.endpoint, fetchOptions);
 
     if (response.ok) {
       return { success: true, message: "API endpoint connected successfully!" };
     }
 
+    if (response.status === 401 || response.status === 403) {
+      return { success: false, message: "Authentication failed. Check your API credentials." };
+    }
+
+    if (response.status === 404) {
+      return { success: false, message: "Endpoint not found (404). Verify the URL." };
+    }
+
     return { success: false, message: `API error (${response.status}): ${response.statusText}` };
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes("URL")) {
+      return { success: false, message: "Invalid API endpoint URL format" };
+    }
     return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
   }
 }
