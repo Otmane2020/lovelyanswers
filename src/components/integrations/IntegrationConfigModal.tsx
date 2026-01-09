@@ -412,23 +412,23 @@ export function IntegrationConfigModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-2">
+      <DialogContent className="w-[calc(100vw-32px)] max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0 mx-4 rounded-xl">
+        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg">
             {config.isImage ? (
-              <img src={config.icon} alt={config.name} className="h-6 w-6 sm:h-8 sm:w-8 object-contain dark:invert" />
+              <img src={config.icon} alt={config.name} className="h-6 w-6 sm:h-8 sm:w-8 object-contain dark:invert shrink-0" />
             ) : (
-              <span className="text-xl sm:text-2xl">{config.icon}</span>
+              <span className="text-xl sm:text-2xl shrink-0">{config.icon}</span>
             )}
             <span className="truncate">{config.name} Integration</span>
           </DialogTitle>
-          <DialogDescription className="pt-1 sm:pt-2 text-sm">
+          <DialogDescription className="pt-1 sm:pt-2 text-xs sm:text-sm">
             {config.description}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-4 sm:px-6">
-          <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
+        <ScrollArea className="flex-1 min-h-0 px-4 sm:px-6">
+          <div className="space-y-3 sm:space-y-4 py-2 sm:py-4 pb-4">
             {/* Guide Button */}
             {guide && (
               <Button
@@ -447,15 +447,15 @@ export function IntegrationConfigModal({
             {/* Guide Content */}
             {showGuide && guide && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 sm:p-4 space-y-2 sm:space-y-3">
-                <h4 className="font-semibold text-primary text-sm sm:text-base">{guide.title}</h4>
-                <div className="max-h-[150px] sm:max-h-[200px] overflow-y-auto">
-                  <ol className="space-y-2 text-xs sm:text-sm">
+                <h4 className="font-semibold text-primary text-xs sm:text-sm">{guide.title}</h4>
+                <div className="max-h-[120px] sm:max-h-[180px] overflow-y-auto">
+                  <ol className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-sm">
                     {guide.steps.map((step, index) => (
-                      <li key={index} className="flex gap-2 sm:gap-3">
-                        <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-primary-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium">
+                      <li key={index} className="flex gap-2">
+                        <span className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary text-primary-foreground text-[9px] sm:text-[10px] flex items-center justify-center font-medium">
                           {index + 1}
                         </span>
-                        <span className="text-muted-foreground pt-0.5 leading-relaxed">{step}</span>
+                        <span className="text-muted-foreground leading-relaxed flex-1">{step}</span>
                       </li>
                     ))}
                   </ol>
@@ -513,14 +513,14 @@ export function IntegrationConfigModal({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2 px-4 pb-4 sm:px-6 sm:pb-6 pt-2 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto order-2 sm:order-1">
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 px-4 pb-4 sm:px-6 sm:pb-6 pt-3 border-t bg-background shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-10">
             Cancel
           </Button>
           <Button
             onClick={handleConnect}
             disabled={isSaving}
-            className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto order-1 sm:order-2"
+            className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto h-10"
           >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Connect
