@@ -406,21 +406,69 @@ serve(async (req) => {
 
     console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days`);
 
-    // Step 1: Generate questions
-    console.log(`[generate-30-days] Generating ${days} questions...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, days);
+    // Check existing scheduled items to avoid duplicates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { data: existingAnswers } = await supabase
+      .from("answers")
+      .select("scheduled_date")
+      .eq("project_id", projectId)
+      .gte("scheduled_date", today.toISOString());
+    
+    // Get dates that already have content
+    const existingDates = new Set(
+      (existingAnswers || []).map(a => {
+        const d = new Date(a.scheduled_date);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      })
+    );
+    
+    console.log(`[generate-30-days] Found ${existingDates.size} days with existing content`);
+
+    // Calculate how many NEW days we need to fill
+    const daysToGenerate = days - existingDates.size;
+    
+    if (daysToGenerate <= 0) {
+      console.log(`[generate-30-days] All ${days} days already scheduled, nothing to generate`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `All ${days} days already have scheduled content`,
+          answers_created: 0,
+          articles_created: 0,
+          days,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Step 1: Generate questions only for empty days
+    console.log(`[generate-30-days] Generating ${daysToGenerate} questions for empty days...`);
+    const questions = await generateQuestions(brandName, description, language, apiKey, daysToGenerate);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
-    const baseDate = Date.now();
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Step 2: Generate answers and articles for each question
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      const scheduledDate = new Date(baseDate + i * 86400000).toISOString(); // +1 day each
+    // Step 2: Find next available dates (skip days that already have content)
+    let dayOffset = 0;
+    let questionsProcessed = 0;
+    
+    while (questionsProcessed < questions.length && dayOffset < days + 30) {
+      const scheduledDate = new Date(today.getTime() + dayOffset * 86400000);
+      const dateKey = `${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`;
+      
+      // Skip if this day already has content
+      if (existingDates.has(dateKey)) {
+        dayOffset++;
+        continue;
+      }
 
-      console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 50)}...`);
+      const q = questions[questionsProcessed];
+
+      console.log(`[generate-30-days] Processing ${questionsProcessed + 1}/${questions.length}: ${q.question.substring(0, 50)}... for ${scheduledDate.toISOString().split('T')[0]}`);
+      const scheduledDateStr = scheduledDate.toISOString();
 
       try {
         // Generate answer
@@ -446,7 +494,7 @@ serve(async (req) => {
             intent: q.intent,
             score,
             is_public: false,
-            scheduled_date: scheduledDate,
+            scheduled_date: scheduledDateStr,
             supporting_content: {
               bullets: answerData.bullets,
               faq: answerData.faq,
@@ -487,7 +535,7 @@ serve(async (req) => {
             word_count: articleData.wordCount,
             slug: generateSlug(articleData.title),
             status: "scheduled",
-            scheduled_date: scheduledDate,
+            scheduled_date: scheduledDateStr,
             aeo_score: score,
           })
           .select()
@@ -506,12 +554,15 @@ serve(async (req) => {
         }
 
         // Small delay to avoid rate limits
-        if (i < questions.length - 1) {
+        if (questionsProcessed < questions.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (err) {
-        console.error(`Error processing question ${i + 1}:`, err);
+        console.error(`Error processing question ${questionsProcessed + 1}:`, err);
       }
+      
+      questionsProcessed++;
+      dayOffset++;
     }
 
     console.log(`[generate-30-days] Completed: ${answersCreated.length} answers, ${articlesCreated.length} articles`);
