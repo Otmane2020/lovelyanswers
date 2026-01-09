@@ -112,26 +112,25 @@ async function testShopify(config: Record<string, string>): Promise<{ success: b
 }
 
 async function testWordPress(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  if (!config.endpoint || !config.token) {
-    return { success: false, message: "Site URL and Application Password required" };
+  if (!config.endpoint) {
+    return { success: false, message: "Site URL is required" };
   }
 
   try {
-    let siteUrl = config.endpoint.trim().replace(/\/$/, "");
+    let siteUrl = config.endpoint.trim().replace(/\/+$/, "");
     if (!siteUrl.startsWith("http")) {
       siteUrl = `https://${siteUrl}`;
     }
 
-    // WordPress Application Password format: username:password
-    // Token can be "username:password" or just password (we'll try to extract)
-    let username = config.username || "admin";
-    let password = config.token;
-
-    // If token contains ':', split it
-    if (config.token.includes(":")) {
-      const parts = config.token.split(":");
-      username = parts[0];
-      password = parts.slice(1).join(":");
+    // Get username and password
+    let username = config.username?.trim() || "";
+    let password = config.token?.trim() || "";
+    
+    // Application passwords can have spaces - remove them
+    password = password.replace(/\s+/g, "");
+    
+    if (!username || !password) {
+      return { success: false, message: "Username and Application Password are required" };
     }
 
     const basicAuth = btoa(`${username}:${password}`);
@@ -155,7 +154,7 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
     if (response.status === 401) {
       return { 
         success: false, 
-        message: "Invalid credentials. Use format 'username:application_password' or check Users → Your Profile → Application Passwords." 
+        message: "Invalid credentials. Check your username and Application Password in Users → Profile → Application Passwords." 
       };
     }
 

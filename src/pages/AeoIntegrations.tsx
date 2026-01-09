@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Check, Settings, Trash2, Loader2 } from "lucide-react";
+import { ExternalLink, Check, Settings, Trash2, Loader2, Plug, Zap } from "lucide-react";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
@@ -21,21 +21,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import shopifyLogo from "@/assets/shopify-logo.png";
+
+// New logos
+import shopifyLogo from "@/assets/shopify-logo-new.png";
+import wordpressLogo from "@/assets/wordpress-logo-new.png";
+import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
+import framerLogo from "@/assets/framer-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
-import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_INTEGRATIONS = [
-  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
-  { id: "duda", name: "Duda", icon: "🟠", isImage: false },
-  { id: "api", name: "Custom API", icon: "⚙️", isImage: false },
-  { id: "webhook", name: "Webhook", icon: "🔗", isImage: false },
-  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
-  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
-  { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
-  { id: "bigcommerce", name: "BigCommerce", icon: "📦", isImage: false },
-  { id: "snapps", name: "Snapps", icon: "📱", isImage: false },
-  { id: "framer", name: "Framer", icon: "⬛", isImage: false },
+  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true, color: "from-slate-500 to-slate-700" },
+  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true, color: "from-green-500 to-green-600" },
+  { id: "wix", name: "Wix", icon: wixLogo, isImage: true, color: "from-yellow-500 to-yellow-600" },
+  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false, color: "from-blue-500 to-indigo-600" },
+  { id: "framer", name: "Framer", icon: framerLogo, isImage: true, color: "from-sky-400 to-blue-500" },
+  { id: "bigcommerce", name: "BigCommerce", icon: bigcommerceLogo, isImage: true, color: "from-gray-700 to-black" },
+  { id: "duda", name: "Duda", icon: "🟠", isImage: false, color: "from-orange-500 to-orange-600" },
+  { id: "api", name: "Custom API", icon: "⚙️", isImage: false, color: "from-gray-500 to-gray-600" },
+  { id: "webhook", name: "Webhook", icon: "🔗", isImage: false, color: "from-purple-500 to-purple-600" },
+  { id: "snapps", name: "Snapps", icon: "📱", isImage: false, color: "from-pink-500 to-pink-600" },
 ];
 
 const ANALYTICS_INTEGRATIONS = [
@@ -44,21 +48,21 @@ const ANALYTICS_INTEGRATIONS = [
     name: "Google Search Console", 
     icon: "🔍", 
     description: "Track search performance & impressions",
-    color: "bg-blue-500/10"
+    color: "from-blue-500/20 to-blue-600/20"
   },
   { 
     id: "ga4", 
     name: "Google Analytics 4", 
     icon: "📊", 
     description: "Website traffic & user behavior",
-    color: "bg-orange-500/10"
+    color: "from-orange-500/20 to-orange-600/20"
   },
   { 
     id: "merchant", 
     name: "Google Merchant Center", 
     icon: "🛒", 
     description: "Product listings & shopping data",
-    color: "bg-green-500/10"
+    color: "from-green-500/20 to-green-600/20"
   },
 ];
 
@@ -127,12 +131,12 @@ export default function AeoIntegrations() {
     }
   };
 
-  const getIntegrationByPlatform = (platformId: string) => {
-    return integrations?.find(i => i.platform === platformId);
-  };
-
   const getCmsName = (platformId: string) => {
     return CMS_INTEGRATIONS.find(c => c.id === platformId)?.name || platformId;
+  };
+
+  const getCmsConfig = (platformId: string) => {
+    return CMS_INTEGRATIONS.find(c => c.id === platformId);
   };
 
   if (isLoading) {
@@ -147,43 +151,53 @@ export default function AeoIntegrations() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-5xl">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Integrations</h1>
-          <p className="text-muted-foreground mt-1">
-            Connect your CMS and analytics platforms
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+            <Plug className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Integrations</h1>
+            <p className="text-muted-foreground">
+              Connect your CMS and analytics platforms
+            </p>
+          </div>
         </div>
 
         {/* Connected Integrations */}
         {integrations && integrations.length > 0 && (
-          <Card className="p-6">
-            <h3 className="font-semibold mb-4">Connected Integrations</h3>
-            <div className="space-y-3">
+          <Card className="overflow-hidden border-primary/20">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4 border-b border-primary/10">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                Active Connections
+              </h3>
+            </div>
+            <div className="p-4 space-y-3">
               {integrations.map((integration) => {
-                const cmsConfig = CMS_INTEGRATIONS.find(c => c.id === integration.platform);
+                const cmsConfig = getCmsConfig(integration.platform);
                 const configName = integration.config?.name || getCmsName(integration.platform);
                 
                 return (
                   <div 
                     key={integration.id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-primary/30 bg-primary/5"
+                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-background to-muted/30 border border-border/50 hover:border-primary/30 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cmsConfig?.color || 'from-gray-500 to-gray-600'} flex items-center justify-center shadow-lg`}>
                         {cmsConfig?.isImage ? (
                           <img 
                             src={cmsConfig.icon as string} 
                             alt={cmsConfig.name} 
-                            className="h-6 w-6 object-contain dark:invert" 
+                            className="h-7 w-7 object-contain brightness-0 invert" 
                           />
                         ) : (
                           <span className="text-xl">{cmsConfig?.icon || "🔗"}</span>
                         )}
                       </div>
                       <div>
-                        <p className="font-medium">{configName}</p>
+                        <p className="font-semibold">{configName}</p>
                         <p className="text-sm text-muted-foreground">
                           {integration.config?.endpoint || integration.platform}
                         </p>
@@ -195,21 +209,20 @@ export default function AeoIntegrations() {
                         platformName={getCmsName(integration.platform)}
                       />
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleCmsClick(integration.platform)}
-                        className="gap-1.5"
+                        className="h-9 w-9"
                       >
-                        <Settings className="h-3.5 w-3.5" />
-                        Edit
+                        <Settings className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDeleteClick(integration.id, getCmsName(integration.platform))}
-                        className="gap-1.5 text-destructive hover:text-destructive"
+                        className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -220,60 +233,64 @@ export default function AeoIntegrations() {
         )}
 
         {/* CMS Integrations */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">CMS Integrations</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Connect your content management system to publish articles directly
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {CMS_INTEGRATIONS.map((integration) => {
-              const isConnected = connectedCmsIds.includes(integration.id);
-              
-              return (
-                <button
-                  key={integration.id}
-                  onClick={() => handleCmsClick(integration.id)}
-                  className={`
-                    p-4 rounded-xl border transition-all text-center group relative
-                    ${isConnected 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/50'
-                    }
-                  `}
-                >
-                  {isConnected && (
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
-                    </div>
-                  )}
-                  <div className="mb-2 flex justify-center">
-                    {integration.isImage ? (
-                      <img 
-                        src={integration.icon as string} 
-                        alt={integration.name} 
-                        className="h-8 w-8 object-contain dark:invert" 
-                      />
-                    ) : (
-                      <span className="text-2xl">{integration.icon}</span>
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b">
+            <h3 className="font-semibold">CMS Integrations</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Connect your content management system to publish articles directly
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {CMS_INTEGRATIONS.map((integration) => {
+                const isConnected = connectedCmsIds.includes(integration.id);
+                
+                return (
+                  <button
+                    key={integration.id}
+                    onClick={() => handleCmsClick(integration.id)}
+                    className={`
+                      group relative p-5 rounded-2xl border-2 transition-all duration-200 text-center
+                      ${isConnected 
+                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10' 
+                        : 'border-border hover:border-primary/50 hover:shadow-md'
+                      }
+                    `}
+                  >
+                    {isConnected && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                      </div>
                     )}
-                  </div>
-                  <p className="font-medium text-sm">{integration.name}</p>
-                  <p className="text-xs text-primary mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isConnected ? 'Edit' : 'Configure'}
-                  </p>
-                </button>
-              );
-            })}
+                    <div className={`mx-auto mb-3 w-14 h-14 rounded-xl bg-gradient-to-br ${integration.color} flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow`}>
+                      {integration.isImage ? (
+                        <img 
+                          src={integration.icon as string} 
+                          alt={integration.name} 
+                          className="h-8 w-8 object-contain brightness-0 invert" 
+                        />
+                      ) : (
+                        <span className="text-2xl">{integration.icon}</span>
+                      )}
+                    </div>
+                    <p className="font-medium text-sm">{integration.name}</p>
+                    <p className="text-xs text-primary mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isConnected ? 'Edit →' : 'Connect →'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Card>
 
         {/* Publishing Settings */}
         <Card className="p-6">
           <h3 className="font-semibold mb-4">Publishing Settings</h3>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
             <div>
-              <Label>Automatically Publish</Label>
-              <p className="text-sm text-muted-foreground">
+              <Label className="text-base">Automatically Publish</Label>
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Automatically publish articles when they're ready
               </p>
             </div>
@@ -282,12 +299,14 @@ export default function AeoIntegrations() {
         </Card>
 
         {/* Analytics Integrations */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Analytics & Search</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Connect Google services to track performance and optimize for search
-          </p>
-          <div className="space-y-4">
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b">
+            <h3 className="font-semibold">Analytics & Search</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Connect Google services to track performance and optimize for search
+            </p>
+          </div>
+          <div className="p-4 space-y-3">
             {ANALYTICS_INTEGRATIONS.map((integration) => {
               const isConnected = connectedAnalytics.includes(integration.id);
               
@@ -295,7 +314,7 @@ export default function AeoIntegrations() {
                 <div 
                   key={integration.id} 
                   className={`
-                    flex items-center justify-between p-4 rounded-xl border transition-colors
+                    flex items-center justify-between p-4 rounded-xl border transition-all
                     ${isConnected 
                       ? 'border-primary/50 bg-primary/5' 
                       : 'border-border hover:border-primary/30'
@@ -303,7 +322,7 @@ export default function AeoIntegrations() {
                   `}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl ${integration.color} flex items-center justify-center`}>
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${integration.color} flex items-center justify-center`}>
                       <span className="text-2xl">{integration.icon}</span>
                     </div>
                     <div>

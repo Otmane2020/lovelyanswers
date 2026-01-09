@@ -183,31 +183,41 @@ async function publishToWordPress(
   content: { title: string; body: string },
   config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!config.endpoint || !config.token) {
-    return { success: false, message: "WordPress endpoint and token required. Check your configuration." };
+  if (!config.endpoint) {
+    return { success: false, message: "WordPress site URL is required. Check your configuration." };
   }
 
   try {
-    console.log(`[WordPress] Publishing to ${config.endpoint}`);
+    // Clean up endpoint URL
+    let siteUrl = config.endpoint.trim().replace(/\/+$/, '');
+    if (!siteUrl.startsWith("http")) {
+      siteUrl = `https://${siteUrl}`;
+    }
+    
+    console.log(`[WordPress] Publishing to ${siteUrl}`);
     
     // Build authorization header
     let authHeader: string;
     
-    // Check if we have separate username field (new format)
-    if (config.username) {
-      // Use Basic Auth with username:application_password
-      const basicAuth = btoa(`${config.username}:${config.token}`);
-      authHeader = `Basic ${basicAuth}`;
-    } else if (config.token.includes(":")) {
-      // Legacy format: token contains "username:password"
-      const basicAuth = btoa(config.token);
-      authHeader = `Basic ${basicAuth}`;
-    } else {
-      // Assume JWT token
-      authHeader = `Bearer ${config.token}`;
+    // Get username and password
+    let username = config.username?.trim() || "";
+    let password = config.token?.trim() || "";
+    
+    // Application passwords can have spaces - remove them for the auth header
+    // WordPress returns them with spaces but they work without
+    password = password.replace(/\s+/g, "");
+    
+    if (!username || !password) {
+      return { success: false, message: "WordPress username and Application Password are required." };
     }
     
-    const response = await fetch(`${config.endpoint}/wp-json/wp/v2/posts`, {
+    // Use Basic Auth with username:application_password
+    const basicAuth = btoa(`${username}:${password}`);
+    authHeader = `Basic ${basicAuth}`;
+    
+    console.log(`[WordPress] Using Basic Auth for user: ${username}`);
+    
+    const response = await fetch(`${siteUrl}/wp-json/wp/v2/posts`, {
       method: "POST",
       headers: {
         Authorization: authHeader,
@@ -226,9 +236,9 @@ async function publishToWordPress(
       console.error(`[WordPress] Error ${status}: ${errorText}`);
       
       if (status === 401 || status === 403) {
-        return { success: false, message: "Invalid credentials. Check your username and Application Password." };
+        return { success: false, message: "Invalid credentials. Check your username and Application Password in Users → Profile → Application Passwords." };
       } else if (status === 404) {
-        return { success: false, message: "WordPress REST API not found. Verify the site URL is correct." };
+        return { success: false, message: "WordPress REST API not found. Verify the site URL is correct and permalinks are enabled." };
       } else if (status === 429) {
         return { success: false, message: "Rate limit exceeded. Try again later." };
       }
