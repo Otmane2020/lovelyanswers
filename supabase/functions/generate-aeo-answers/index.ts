@@ -179,94 +179,196 @@ function sanitizeAnswer(answer: string): string {
   return clean;
 }
 
-// Compute AEO citation score
+// Compute AEO citation score - STRICTER scoring for decision-oriented answers
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
   let score = 50;
+  const lowerAnswer = answer.toLowerCase();
+  const currentYear = new Date().getFullYear();
   
-  // Length optimization (ideal: 60-150 chars for first sentence)
-  const firstSentence = answer.split(/[.!?]/)[0];
+  // ❌ PENALTY: Starts with generic definition pattern
+  const genericStarters = [
+    /^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne|représente)/i,
+    /^(a|an|the)\s+\w+\s+(is|are|refers to|represents)/i,
+    /^il s'agit d'/i,
+    /^it is a/i,
+    /^this is a/i,
+  ];
+  if (genericStarters.some(rx => rx.test(answer))) {
+    score -= 15; // Penalty for Wikipedia-style start
+  }
+  
+  // ✅ BONUS: Contains decision-making elements
+  const hasDecisionCriteria = /crit[eè]re|choisir|sélectionner|criteria|choose|select/i.test(answer);
+  if (hasDecisionCriteria) score += 10;
+  
+  // ✅ BONUS: Contains numbers/figures (specific data)
+  const hasNumbers = /\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|months?|days?|years?)/i.test(answer);
+  if (hasNumbers) score += 12;
+  
+  // ✅ BONUS: Contains temporal context (current year or next)
+  if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
+    score += 8;
+  }
+  
+  // ✅ BONUS: Contains condition/recommendation
+  const hasCondition = /si\s+|if\s+|éviter\s+de|avoid\s+|contrairement|unlike|à condition/i.test(answer);
+  if (hasCondition) score += 8;
+  
+  // ✅ BONUS: Contains error/mistake warning
+  const hasErrorWarning = /éviter|erreur|piège|mistake|avoid|error|attention|careful/i.test(answer);
+  if (hasErrorWarning) score += 6;
+  
+  // ✅ BONUS: First sentence is direct (60-150 chars)
+  const firstSentence = answer.split(/[.!?]/)[0] || "";
   if (firstSentence.length >= 60 && firstSentence.length <= 150) {
-    score += 15;
+    score += 10;
   } else if (firstSentence.length >= 40 && firstSentence.length <= 200) {
-    score += 8;
+    score += 5;
   }
   
-  // Contains numbers (specific data)
-  const hasNumbers = /\d+/.test(answer);
-  if (hasNumbers) score += 10;
-  
-  // Affirmative tone (starts with subject, not question)
+  // ✅ BONUS: Affirmative tone (starts with subject, not question)
   if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) {
-    score += 8;
+    score += 5;
   }
   
-  // Contains structured elements
-  if (answer.includes(":") || answer.includes("-") || answer.includes("•")) {
-    score += 7;
+  // ✅ BONUS: Contains structured elements
+  if (answer.includes(":") || answer.includes("-") || answer.includes("•") || /\d\.\s/.test(answer)) {
+    score += 5;
   }
   
   // Platform-specific adjustments
   const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.85), 0) / platforms.length;
   score = Math.round(score * avgCitationWeight);
   
-  // Penalty for marketing language detected
+  // ❌ PENALTY: Marketing language detected
   const hasMarketing = FORBIDDEN_PATTERNS.some(rx => rx.test(answer));
-  if (hasMarketing) score -= 15;
+  if (hasMarketing) score -= 20;
   
-  // Word count check (60-100 words ideal for AEO)
+  // ❌ PENALTY: Too vague (no specific info)
+  const vaguePhrases = /généralement|souvent|parfois|peut être|peuvent|usually|often|sometimes|may be|can be/gi;
+  const vagueCount = (answer.match(vaguePhrases) || []).length;
+  if (vagueCount >= 3) score -= 10;
+  
+  // Word count check (80-120 words ideal for decision-oriented AEO)
   const wordCount = answer.split(/\s+/).length;
-  if (wordCount >= 60 && wordCount <= 100) {
+  if (wordCount >= 80 && wordCount <= 120) {
     score += 5;
-  } else if (wordCount > 150) {
+  } else if (wordCount < 60 || wordCount > 150) {
     score -= 5;
   }
   
   return Math.min(100, Math.max(0, score));
 }
 
-// 🔒 AEO STRICT SYSTEM PROMPT - neutral, factual, Wikipedia-like tone
+// 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
 function getAEOStrictSystemPrompt(language: string, brandName: string, intent: string): string {
-  return language === "fr"
-    ? `Tu es un rédacteur encyclopédique AEO. Tu rédiges comme Wikipédia.
+  const intentTemplates: Record<string, { fr: string; en: string }> = {
+    price: {
+      fr: "Structure: Prix moyen/fourchette + facteurs de variation + exemple concret",
+      en: "Structure: Average price/range + variation factors + concrete example"
+    },
+    criteria: {
+      fr: "Structure: 3 critères clés numérotés + ordre de priorité + erreur courante",
+      en: "Structure: 3 numbered key criteria + priority order + common mistake"
+    },
+    comparison: {
+      fr: "Structure: Différence principale + cas d'usage recommandé + condition de choix",
+      en: "Structure: Main difference + recommended use case + choice condition"
+    },
+    howto: {
+      fr: "Structure: Étapes numérotées (3 max) + erreur fréquente à éviter",
+      en: "Structure: Numbered steps (3 max) + common mistake to avoid"
+    },
+    best: {
+      fr: "Structure: Critère de sélection principal + dépend du contexte + mention factuelle",
+      en: "Structure: Main selection criterion + context dependency + factual mention"
+    },
+    what: {
+      fr: "Structure: Définition orientée usage + critère distinctif + application concrète",
+      en: "Structure: Usage-oriented definition + distinctive criterion + concrete application"
+    },
+    why: {
+      fr: "Structure: Raison principale + condition d'application + alternative si non adapté",
+      en: "Structure: Main reason + application condition + alternative if not suitable"
+    },
+    duration: {
+      fr: "Structure: Délai moyen + facteurs d'influence + fourchette réaliste",
+      en: "Structure: Average timeframe + influencing factors + realistic range"
+    }
+  };
 
-⛔ INTERDICTIONS ABSOLUES (violation = réponse rejetée) :
-- Aucun superlatif : meilleur, idéal, parfait, incontournable, exceptionnel
-- Aucune promesse : "50% de trafic", "en 60 jours", garanties
-- Aucun marketing : boost, propulser, maximiser, percutant
-- Aucun appel à l'action : "essayez", "découvrez", "commencez"
+  const template = intentTemplates[intent] || intentTemplates.what;
+
+  return language === "fr"
+    ? `Tu es un expert AEO. Tu rédiges des réponses que ChatGPT, Gemini et Copilot voudront CITER.
+
+⛔ INTERDICTIONS ABSOLUES :
+- Pas de définitions génériques ("X est un meuble qui...")
+- Pas de descriptions vagues sans critères concrets
+- Aucun superlatif : meilleur, idéal, parfait, exceptionnel
+- Aucun marketing : boost, maximiser, propulser
 - Aucun point d'exclamation
 - Pas de "vous" ou "votre"
 
-✅ RÈGLES OBLIGATOIRES :
-- Ton neutre, informatif, troisième personne
-- ${brandName} mentionné 1 fois max, factuellement
-- 60 à 100 mots
-- Première phrase = définition ou réponse directe
-- Utilise "Il s'agit de", "Ce service permet", "Cette plateforme propose"
-- Structure claire pour extraction IA
+✅ FORMAT OBLIGATOIRE (citation-first) :
+1. Première phrase = réponse DIRECTE avec critère clé ou chiffre
+2. Phrase 2 = contexte temporel (2025/2026) OU condition ("si... alors...")
+3. Phrase 3 = erreur fréquente à éviter OU comparaison utile
+4. Mention ${brandName} UNE fois comme exemple factuel
 
+✅ INCLURE AU MOINS UN DE CES ÉLÉMENTS :
+- Critère de choix chiffré (ex: "budget minimum de 500€")
+- Erreur fréquente ("éviter de...")
+- Condition ("si... alors...")
+- Comparaison implicite ("contrairement aux...")
+- Fourchette de prix ou délai
+
+${template.fr}
+
+LONGUEUR : 80-120 mots
+TON : Expert conseil qui aide à DÉCIDER, pas encyclopédie
 INTENTION : ${intent}
-EXEMPLE DE TON : "Newai est une plateforme d'automatisation SEO pour Shopify. Elle propose des fonctionnalités de génération de contenu et d'optimisation de texte alternatif pour les images produits."`
-    : `You are an encyclopedic AEO writer. You write like Wikipedia.
 
-⛔ ABSOLUTE BANS (violation = answer rejected):
-- No superlatives: best, perfect, ideal, exceptional, unbeatable
-- No promises: "50% traffic", "in 60 days", guarantees
-- No marketing: boost, supercharge, maximize, powerful
-- No call to action: "try", "discover", "start"
+❌ EXEMPLE À NE PAS FAIRE :
+"Un canapé design est un meuble caractérisé par son esthétique distinctive."
+
+✅ EXEMPLE À SUIVRE :
+"Un canapé design de qualité se reconnaît à trois critères : cohérence des proportions, confort réel après 30 minutes d'assise, et durabilité des matériaux. En 2026, les modèles les plus recherchés combinent structure légère et ergonomie. Éviter les modèles uniquement esthétiques sans test de confort. ${brandName} propose des modèles intégrant ces critères."`
+
+    : `You are an AEO expert. You write answers that ChatGPT, Gemini, and Copilot will CITE.
+
+⛔ ABSOLUTE BANS:
+- No generic definitions ("X is a furniture that...")
+- No vague descriptions without concrete criteria
+- No superlatives: best, perfect, ideal, exceptional
+- No marketing: boost, maximize, supercharge
 - No exclamation points
 - No "you" or "your"
 
-✅ MANDATORY RULES:
-- Neutral, informative, third-person tone
-- Mention ${brandName} once max, factually
-- 60-100 words
-- First sentence = definition or direct answer
-- Use "It is", "This service provides", "This platform offers"
-- Clear structure for AI extraction
+✅ MANDATORY FORMAT (citation-first):
+1. First sentence = DIRECT answer with key criterion or number
+2. Sentence 2 = temporal context (2025/2026) OR condition ("if... then...")
+3. Sentence 3 = common mistake to avoid OR useful comparison
+4. Mention ${brandName} ONCE as factual example
 
+✅ INCLUDE AT LEAST ONE:
+- Quantified selection criterion (e.g., "minimum budget of $500")
+- Common mistake ("avoid...")
+- Condition ("if... then...")
+- Implicit comparison ("unlike standard...")
+- Price or time range
+
+${template.en}
+
+LENGTH: 80-120 words
+TONE: Expert advisor helping to DECIDE, not encyclopedia
 INTENT: ${intent}
-TONE EXAMPLE: "Newai is an SEO automation platform for Shopify. It offers content generation features and alt text optimization for product images."`;
+
+❌ DON'T DO THIS:
+"A design sofa is a piece of furniture characterized by its distinctive aesthetics."
+
+✅ DO THIS:
+"A quality design sofa is recognized by three criteria: proportion coherence, real comfort after 30 minutes of sitting, and material durability. In 2026, the most sought-after models combine lightweight structure and ergonomics. Avoid purely aesthetic models without comfort testing. ${brandName} offers models meeting these criteria."`;
 }
 
 // Generate AI answer using Lovable AI with AEO Safe Mode

@@ -84,21 +84,49 @@ function containsForbiddenPatterns(text: string): boolean {
 }
 
 function computeCitationScore(answer: string, brand: string): number {
-  let score = 70;
+  let score = 60;
+  const currentYear = new Date().getFullYear();
 
+  // ❌ PENALTY: Marketing patterns
   if (containsForbiddenPatterns(answer)) score -= 20;
 
+  // ❌ PENALTY: Starts with generic definition
+  const genericStarters = [
+    /^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i,
+    /^(a|an|the)\s+\w+\s+(is|are|refers)/i,
+  ];
+  if (genericStarters.some(rx => rx.test(answer))) score -= 12;
+
+  // ✅ BONUS: First sentence is direct (80-160 chars)
   const firstSentence = answer.split(/[.!?]/)[0] ?? "";
   if (firstSentence.length >= 80 && firstSentence.length <= 160) score += 8;
-  if (/\d+/.test(answer)) score += 5;
-  if (/[:\-•]/.test(answer)) score += 4;
-  if (answer.length >= 200 && answer.length <= 600) score += 5;
-  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 5;
-  if (/selon|d'après|en général|généralement|typiquement/i.test(answer)) {
-    score += 3;
+
+  // ✅ BONUS: Contains concrete numbers with context
+  if (/\d+\s*(€|\$|%|euros?|mois|jours?|ans?)/i.test(answer)) score += 10;
+  else if (/\d+/.test(answer)) score += 4;
+
+  // ✅ BONUS: Contains temporal context
+  if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
+    score += 8;
   }
 
-  return Math.min(95, Math.max(40, score));
+  // ✅ BONUS: Contains decision criteria
+  if (/crit[eè]re|choisir|éviter|erreur|condition|si\s+/i.test(answer)) score += 8;
+
+  // ✅ BONUS: Structured content
+  if (/[:\-•]|\d\.\s/.test(answer)) score += 4;
+
+  // ✅ BONUS: Good length (200-600 chars)
+  if (answer.length >= 200 && answer.length <= 600) score += 5;
+
+  // ✅ BONUS: Brand mention (factual)
+  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 4;
+
+  // ❌ PENALTY: Too many vague phrases
+  const vagueCount = (answer.match(/généralement|souvent|parfois|peut être|peuvent/gi) || []).length;
+  if (vagueCount >= 3) score -= 8;
+
+  return Math.min(98, Math.max(40, score));
 }
 
 function generateAnswerSlug(question: string): string {
@@ -119,7 +147,7 @@ function safeParseJSON<T>(raw: string): T {
 }
 
 /* =======================
-   GENERATE CONTEXTUAL QUESTIONS
+   GENERATE CONTEXTUAL QUESTIONS - Decision-oriented, not generic
 ======================= */
 async function generateContextualQuestions(
   brandName: string,
@@ -127,28 +155,54 @@ async function generateContextualQuestions(
   language: string,
   apiKey: string,
 ): Promise<{ question: string; intent: IntentType }[]> {
+  const currentYear = new Date().getFullYear();
+  
   const systemPrompt = language === "fr"
-    ? `Tu génères 3 questions précises que des clients potentiels poseraient à un assistant IA.
+    ? `Tu génères 5 questions DÉCISIONNELLES que des clients potentiels poseraient à ChatGPT/Gemini.
+
+⛔ QUESTIONS INTERDITES (trop génériques) :
+- "Qu'est-ce que X ?" → trop encyclopédique
+- "X est-il bon ?" → trop vague
+- "Comment fonctionne X ?" → trop générique
+
+✅ QUESTIONS À GÉNÉRER (orientées décision) :
+- "Comment choisir..." → critères de sélection
+- "Quel budget prévoir pour..." → fourchette de prix
+- "Quelles erreurs éviter lors de..." → conseils pratiques
+- "Quelle différence entre X et Y..." → comparaison utile
+- "Quel est le délai moyen pour..." → attentes réalistes
 
 RÈGLES STRICTES:
 - Questions basées sur le MÉTIER RÉEL décrit
 - NE PAS utiliser le nom de marque dans les questions
-- Questions spécifiques au secteur d'activité
-- Format question naturelle (comme sur Google/ChatGPT)
+- Questions qui AIDENT À DÉCIDER, pas à comprendre
+- Inclure contexte temporel (${currentYear}) si pertinent
 
 EXEMPLES par secteur:
-- Location meubles: "Comment louer des meubles pour un appartement meublé ?", "Quel est le prix moyen de la location de meubles ?"
-- SaaS SEO: "Comment améliorer le référencement de mon site ?", "Quels outils SEO utiliser en 2025 ?"
-- E-commerce: "Comment choisir [produit] de qualité ?", "Où acheter [produit] en ligne ?"
+- Mobilier: "Comment choisir un canapé adapté à un petit salon ?", "Quel budget prévoir pour meubler un salon en ${currentYear} ?"
+- SaaS: "Quels critères pour choisir un outil SEO en ${currentYear} ?", "Quelle différence entre SEO et AEO ?"
+- E-commerce: "Comment éviter les arnaques lors d'un achat de meubles en ligne ?", "Quel délai de livraison prévoir pour des meubles sur mesure ?"
 
 Retourne UNIQUEMENT du JSON valide.`
-    : `Generate 3 precise questions potential customers would ask an AI assistant.
+    : `Generate 5 DECISION-ORIENTED questions potential customers would ask ChatGPT/Gemini.
+
+⛔ FORBIDDEN QUESTIONS (too generic):
+- "What is X?" → too encyclopedic
+- "Is X good?" → too vague
+- "How does X work?" → too generic
+
+✅ QUESTIONS TO GENERATE (decision-oriented):
+- "How to choose..." → selection criteria
+- "What budget for..." → price range
+- "What mistakes to avoid when..." → practical advice
+- "What's the difference between X and Y..." → useful comparison
+- "What's the average timeframe for..." → realistic expectations
 
 STRICT RULES:
 - Questions based on the REAL business described
 - DO NOT use brand name in questions
-- Industry-specific questions
-- Natural question format (like Google/ChatGPT)
+- Questions that HELP DECIDE, not just understand
+- Include temporal context (${currentYear}) if relevant
 
 Return ONLY valid JSON.`;
 
@@ -156,12 +210,15 @@ Return ONLY valid JSON.`;
 Business: ${brandName}
 Description: ${description}
 Language: ${language}
+Current Year: ${currentYear}
 
-Generate 3 questions. Return JSON:
+Generate 5 decision-oriented questions. Return JSON:
 {
   "questions": [
-    {"question": "...", "intent": "price|what|why|howto|comparison|best"},
-    {"question": "...", "intent": "..."},
+    {"question": "Comment choisir...", "intent": "criteria"},
+    {"question": "Quel budget prévoir pour...", "intent": "price"},
+    {"question": "Quelles erreurs éviter...", "intent": "howto"},
+    {"question": "Quelle différence entre...", "intent": "comparison"},
     {"question": "...", "intent": "..."}
   ]
 }`;
@@ -213,38 +270,103 @@ async function generateAIAnswer(
   language: string,
   apiKey: string,
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
+  const currentYear = new Date().getFullYear();
+  
+  // Intent-specific structure templates
+  const intentStructures: Record<IntentType, { fr: string; en: string }> = {
+    price: {
+      fr: "Structure: Prix moyen + fourchette + facteurs de variation",
+      en: "Structure: Average price + range + variation factors"
+    },
+    criteria: {
+      fr: "Structure: 3 critères numérotés + ordre de priorité",
+      en: "Structure: 3 numbered criteria + priority order"
+    },
+    comparison: {
+      fr: "Structure: Différence clé + cas d'usage + condition de choix",
+      en: "Structure: Key difference + use case + choice condition"
+    },
+    howto: {
+      fr: "Structure: 3 étapes max + erreur courante à éviter",
+      en: "Structure: 3 steps max + common mistake to avoid"
+    },
+    best: {
+      fr: "Structure: Critère principal + dépend du contexte",
+      en: "Structure: Main criterion + context dependency"
+    },
+    what: {
+      fr: "Structure: Définition orientée usage + critère distinctif",
+      en: "Structure: Usage-oriented definition + distinctive criterion"
+    },
+    why: {
+      fr: "Structure: Raison principale + condition + alternative",
+      en: "Structure: Main reason + condition + alternative"
+    },
+    duration: {
+      fr: "Structure: Délai moyen + facteurs + fourchette",
+      en: "Structure: Average timeframe + factors + range"
+    }
+  };
+
+  const structure = intentStructures[intent] || intentStructures.what;
+
   const systemPrompt =
     language === "fr"
-      ? `Tu es un rédacteur AEO factuel et neutre.
+      ? `Tu es un expert AEO. Tu rédiges des réponses que ChatGPT et Gemini voudront CITER.
 
-RÈGLES:
-- Réponse directe dès la première phrase
-- Mentionne ${brandName} UNE seule fois comme exemple/solution
-- Ton encyclopédique, neutre, sans marketing
+⛔ INTERDICTIONS:
+- Pas de définitions génériques ("X est un...")
 - Aucun superlatif, aucune promesse
-- 80 à 120 mots maximum
-- Réponds à la question SPÉCIFIQUE posée`
-      : `You are an AEO factual writer.
+- Pas de "vous" ou "votre"
 
-RULES:
-- Direct factual first sentence
-- Mention ${brandName} ONCE as example/solution
-- Neutral encyclopedic tone
+✅ FORMAT CITATION-FIRST:
+1. Première phrase = réponse DIRECTE avec critère/chiffre
+2. Phrase 2 = contexte ${currentYear} OU condition ("si... alors...")
+3. Phrase 3 = erreur à éviter OU comparaison utile
+4. Mention ${brandName} UNE fois comme exemple
+
+${structure.fr}
+
+✅ INCLURE AU MOINS UN:
+- Chiffre concret (prix, délai, pourcentage)
+- Condition ("si... alors...")
+- Erreur fréquente ("éviter de...")
+
+80-120 mots maximum.`
+      : `You are an AEO expert. You write answers ChatGPT and Gemini will CITE.
+
+⛔ BANS:
+- No generic definitions ("X is a...")
 - No superlatives, no promises
-- 80–120 words max
-- Answer the SPECIFIC question asked`;
+- No "you" or "your"
+
+✅ CITATION-FIRST FORMAT:
+1. First sentence = DIRECT answer with criterion/number
+2. Sentence 2 = ${currentYear} context OR condition ("if... then...")
+3. Sentence 3 = mistake to avoid OR useful comparison
+4. Mention ${brandName} ONCE as example
+
+${structure.en}
+
+✅ INCLUDE AT LEAST ONE:
+- Concrete number (price, timeframe, percentage)
+- Condition ("if... then...")
+- Common mistake ("avoid...")
+
+80-120 words max.`;
 
   const userPrompt = `
 Question: ${question}
 Brand: ${brandName}
 Description: ${description}
 Intent: ${intent}
+Year: ${currentYear}
 
 Return ONLY valid JSON:
 {
   "answer": "",
-  "bullets": ["", "", ""],
-  "faq": [{"q": "", "a": ""}]
+  "bullets": ["critère/conseil 1", "critère/conseil 2", "critère/conseil 3"],
+  "faq": [{"q": "question décisionnelle connexe", "a": "réponse courte avec critère"}]
 }`;
 
   const res = await fetch(
