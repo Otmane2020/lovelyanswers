@@ -165,13 +165,18 @@ export default function AeoPlanning() {
     return { date, items };
   });
 
+  // Stats calculation
+  const totalAnswers = scheduledItems.filter(i => i.type === "answer").length;
+  const totalArticles = scheduledItems.filter(i => i.type === "article").length;
+  const publishedItems = scheduledItems.filter(i => i.status === "published").length;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Planning AEO</h1>
+            <h1 className="text-3xl font-bold">Content Planning</h1>
             <p className="text-muted-foreground mt-1">
               Schedule and manage your AEO content for the next 30 days
             </p>
@@ -190,6 +195,46 @@ export default function AeoPlanning() {
             </Button>
           </div>
         </div>
+
+        {/* Legend & Stats */}
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Legend */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-medium text-muted-foreground">Legend:</span>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-violet-500" />
+                <span className="flex items-center gap-1 text-sm">
+                  <MessageSquare className="h-3.5 w-3.5 text-violet-600" />
+                  AEO Answers
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-emerald-500" />
+                <span className="flex items-center gap-1 text-sm">
+                  <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                  Blog Articles
+                </span>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10">
+                <MessageSquare className="h-4 w-4 text-violet-600" />
+                <span className="font-medium text-violet-700 dark:text-violet-400">{totalAnswers} Answers</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10">
+                <FileText className="h-4 w-4 text-emerald-600" />
+                <span className="font-medium text-emerald-700 dark:text-emerald-400">{totalArticles} Articles</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="font-medium text-primary">{publishedItems} Published</span>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* View Tabs */}
         <Tabs value={view} onValueChange={(v) => setView(v as "month" | "year")}>
