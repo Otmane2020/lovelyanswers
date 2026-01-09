@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, CreditCard } from "lucide-react";
+import { Download, CreditCard, Loader2 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 interface Invoice {
@@ -23,23 +26,42 @@ interface Invoice {
 }
 
 export default function AeoBilling() {
+  const { user } = useAuth();
   const { subscribed, trial, subscriptionEnd, openCustomerPortal } = useSubscription();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(true);
 
-  // Mock invoices for display
-  const invoices: Invoice[] = [
-    {
-      id: "INV-001",
-      date: "2025-12-04",
-      amount: "$49.00",
-      status: "paid",
-    },
-    {
-      id: "INV-002",
-      date: "2025-11-04",
-      amount: "$49.00",
-      status: "paid",
-    },
-  ];
+  // Fetch real invoices from database
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      if (!user?.id) {
+        setLoadingInvoices(false);
+        return;
+      }
+      
+      setLoadingInvoices(true);
+      
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("billing_date", { ascending: false });
+      
+      if (data && !error) {
+        setInvoices(data.map(inv => ({
+          id: inv.stripe_invoice_id || inv.id,
+          date: inv.billing_date || new Date().toISOString(),
+          amount: `$${(inv.amount || 0).toFixed(2)}`,
+          status: (inv.status as "paid" | "pending" | "failed") || "paid",
+          pdfUrl: inv.pdf_url || undefined
+        })));
+      }
+      
+      setLoadingInvoices(false);
+    };
+    
+    fetchInvoices();
+  }, [user?.id]);
 
   const getStatusBadge = (status: Invoice["status"]) => {
     switch (status) {
@@ -121,7 +143,11 @@ export default function AeoBilling() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Payment History</h3>
           
-          {invoices.length > 0 ? (
+          {loadingInvoices ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : invoices.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -135,14 +161,20 @@ export default function AeoBilling() {
               <TableBody>
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.id}</TableCell>
+                    <TableCell className="font-medium">{invoice.id.slice(0, 12)}...</TableCell>
                     <TableCell>
                       {format(new Date(invoice.date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>{invoice.amount}</TableCell>
                     <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2"
+                        disabled={!invoice.pdfUrl}
+                        onClick={() => invoice.pdfUrl && window.open(invoice.pdfUrl, '_blank')}
+                      >
                         <Download className="w-4 h-4" />
                         Download
                       </Button>

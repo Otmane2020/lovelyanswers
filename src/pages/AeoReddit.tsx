@@ -60,10 +60,10 @@ const getSubredditsForKeywords = (keywords: string[], language: string): string[
       fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
       en: ["artificialintelligence", "MachineLearning", "startups", "SideProject", "indiehackers", "SaaS"]
     },
-    // Furniture/Home/Decor
-    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit": {
-      fr: ["france", "deco", "maison", "ameublement", "BricoDecoMaison"],
-      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace"]
+    // Furniture/Home/Decor - ENHANCED for Movala-style projects
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur": {
+      fr: ["france", "deco", "maison", "ameublement", "BricoDecoMaison", "AskFrance", "vosfinances", "conseilachat"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom", "homedecorating", "AmateurRoomPorn", "CozyPlaces"]
     },
     // E-commerce/Retail
     "ecommerce|e-commerce|shopify|boutique|store|vente|commerce|magasin": {
