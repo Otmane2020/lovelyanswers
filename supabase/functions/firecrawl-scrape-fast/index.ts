@@ -149,23 +149,23 @@ async function generateBusinessDescription(
         model: 'google/gemini-2.5-flash-lite',
         messages: [{
           role: 'user',
-          content: `Write a clean, professional business description for "${brandName}". ${langInstruction}
+          content: `Write a clean business description. ${langInstruction}
+
+Brand: ${brandName}
+Website content: ${metaDescription ? metaDescription + ' ' : ''}${contentSample.substring(0, 800)}
 
 Rules:
-- Maximum 3-5 sentences (under 300 characters)
-- Focus on what the business does and its value proposition
-- No prices, promotions, or product lists
-- No marketing fluff or superlatives
-- Clear and direct language
+- 2-4 sentences maximum
+- DO NOT start with the brand name
+- Focus on what they sell/offer and their value
+- No prices, no promotions, no product lists
+- No emojis, no special characters
+- Professional and factual tone
 
-Website content:
-${metaDescription ? `Meta: ${metaDescription}` : ''}
-${contentSample}
-
-Return ONLY the description text, nothing else.`
+Return ONLY the description text.`
         }],
-        temperature: 0.3,
-        max_tokens: 150,
+        temperature: 0.2,
+        max_tokens: 120,
       }),
       signal: controller.signal,
     });
@@ -179,7 +179,14 @@ Return ONLY the description text, nothing else.`
     }
 
     const result = await response.json();
-    const description = result.choices?.[0]?.message?.content?.trim() || '';
+    let description = result.choices?.[0]?.message?.content?.trim() || '';
+    
+    // Clean up AI output - remove quotes, special chars, markdown
+    description = description
+      .replace(/^["'`]+|["'`]+$/g, '') // Remove surrounding quotes
+      .replace(/[^\w\s.,!?àâäéèêëïîôùûüçœæÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ''-]/g, '') // Keep only valid chars
+      .replace(/\s+/g, ' ')
+      .trim();
     
     if (description && description.length > 20) {
       console.log('[FAST] AI-generated description:', description.substring(0, 100));
@@ -222,27 +229,46 @@ function cleanFallbackDescription(metaDescription: string, brandName: string): s
 
 // Extract brand name from URL and content
 function extractBrandName(url: string, title: string): string {
+  // Generic page titles to ignore (in multiple languages)
+  const genericTitles = [
+    'accueil', 'home', 'homepage', 'inicio', 'startseite', 'pagina inicial',
+    'bienvenue', 'welcome', 'willkommen', 'bienvenido', 'bem-vindo',
+    'page d\'accueil', 'home page', 'main page'
+  ];
+  
   // Try to get from title first
   if (title) {
-    // Common patterns: "Brand Name - Tagline" or "Brand Name | Description"
-    const separators = [' - ', ' | ', ' – ', ' — ', ': '];
-    for (const sep of separators) {
-      if (title.includes(sep)) {
-        return title.split(sep)[0].trim();
+    const titleLower = title.toLowerCase().trim();
+    
+    // Skip if title is a generic page name
+    if (genericTitles.includes(titleLower)) {
+      console.log('[FAST] Skipping generic title:', title);
+      // Fall through to domain extraction
+    } else {
+      // Common patterns: "Brand Name - Tagline" or "Brand Name | Description"
+      const separators = [' - ', ' | ', ' – ', ' — ', ': '];
+      for (const sep of separators) {
+        if (title.includes(sep)) {
+          const brandPart = title.split(sep)[0].trim();
+          // Make sure extracted part is not generic
+          if (!genericTitles.includes(brandPart.toLowerCase())) {
+            return brandPart;
+          }
+        }
       }
-    }
-    // If title is short enough, use it as brand name
-    if (title.length < 30) {
-      return title;
+      // If title is short enough and not generic, use it
+      if (title.length < 30 && !genericTitles.includes(titleLower)) {
+        return title;
+      }
     }
   }
   
-  // Fallback to domain
+  // Fallback to domain - this is the most reliable for brand name
   try {
     const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
     const domain = urlObj.hostname.replace('www.', '');
     const name = domain.split('.')[0];
-    // Capitalize first letter of each word
+    // Capitalize first letter of each word, preserve case for acronyms
     return name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   } catch {
     return 'Your Brand';
