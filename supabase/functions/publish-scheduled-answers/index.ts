@@ -204,7 +204,8 @@ Deno.serve(async (req) => {
     const todayStr = today.toISOString().split('T')[0];
     const currentHour = today.getUTCHours().toString().padStart(2, '0');
     
-    console.log(`[publish-scheduled] Running for date: ${todayStr}, hour: ${currentHour} UTC`);
+    console.log(`[publish-scheduled] 🚀 Starting auto-publish cron`);
+    console.log(`[publish-scheduled] Date: ${todayStr}, Hour: ${currentHour} UTC`);
 
     // Get projects with auto-publish enabled for current hour
     const { data: projectSettings, error: settingsError } = await supabase
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
       .eq("auto_publish_enabled", true);
 
     if (settingsError) {
-      console.error("Error fetching project settings:", settingsError);
+      console.error("[publish-scheduled] ❌ Error fetching project settings:", settingsError);
       throw settingsError;
     }
 
@@ -222,50 +223,60 @@ Deno.serve(async (req) => {
       ps => ps.publish_hour === currentHour
     ) || [];
 
-    console.log(`Found ${projectsToPublish.length} projects to publish this hour`);
+    console.log(`[publish-scheduled] 📊 Found ${projectsToPublish.length} projects scheduled for ${currentHour}:00 UTC`);
 
     if (projectsToPublish.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, message: "No projects to publish this hour", published: 0 }),
+        JSON.stringify({ 
+          success: true, 
+          message: `No projects scheduled for ${currentHour}:00 UTC`, 
+          published: 0,
+          currentHour,
+          totalProjects: projectSettings?.length || 0
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const projectIds = projectsToPublish.map(ps => ps.project_id);
     
-    // Fetch answers scheduled for today
+    // Fetch answers scheduled for today or earlier (catch up on missed)
     const { data: answers, error: answersError } = await supabase
       .from("answers")
       .select("*")
       .in("project_id", projectIds)
       .lte("scheduled_date", todayStr + "T23:59:59Z")
       .eq("is_public", false)
-      .not("scheduled_date", "is", null);
+      .not("scheduled_date", "is", null)
+      .order("scheduled_date", { ascending: true });
 
     if (answersError) {
-      console.error("Error fetching answers:", answersError);
+      console.error("[publish-scheduled] ❌ Error fetching answers:", answersError);
     }
 
-    // Fetch articles scheduled for today
+    // Fetch articles scheduled for today or earlier (catch up on missed)
     const { data: articles, error: articlesError } = await supabase
       .from("articles")
       .select("*")
       .in("project_id", projectIds)
       .lte("scheduled_date", todayStr + "T23:59:59Z")
-      .eq("status", "scheduled")
-      .not("scheduled_date", "is", null);
+      .neq("status", "published")
+      .not("scheduled_date", "is", null)
+      .order("scheduled_date", { ascending: true });
 
     if (articlesError) {
-      console.error("Error fetching articles:", articlesError);
+      console.error("[publish-scheduled] ❌ Error fetching articles:", articlesError);
     }
 
-    console.log(`Found ${answers?.length || 0} answers and ${articles?.length || 0} articles to publish`);
+    console.log(`[publish-scheduled] 📝 Found ${answers?.length || 0} answers (violet) and ${articles?.length || 0} articles (emerald) to publish`);
 
-    const results: { id: string; type: string; success: boolean; url?: string; error?: string }[] = [];
+    const results: { id: string; type: "answer" | "article"; success: boolean; url?: string; error?: string }[] = [];
 
-    // Process answers
+    // Process answers (violet items)
     for (const answer of answers || []) {
       try {
+        console.log(`[publish-scheduled] 💜 Processing answer: ${answer.question.substring(0, 50)}...`);
+        
         // Get project info
         const { data: project } = await supabase
           .from("projects")
@@ -293,6 +304,7 @@ Deno.serve(async (req) => {
             .update({ is_public: true, published_at: new Date().toISOString() })
             .eq("id", answer.id);
           
+          console.log(`[publish-scheduled] ✅ Answer marked as public (no CMS): ${answer.id}`);
           results.push({ id: answer.id, type: "answer", success: true, url: "internal" });
           continue;
         }
@@ -325,18 +337,23 @@ Deno.serve(async (req) => {
             })
             .eq("id", answer.id);
 
+          console.log(`[publish-scheduled] ✅ Answer published: ${publishResult.url || answer.id}`);
           results.push({ id: answer.id, type: "answer", success: true, url: publishResult.url });
         } else {
+          console.error(`[publish-scheduled] ❌ Failed to publish answer: ${publishResult.error}`);
           results.push({ id: answer.id, type: "answer", success: false, error: publishResult.error });
         }
       } catch (err) {
+        console.error(`[publish-scheduled] ❌ Error processing answer ${answer.id}:`, err);
         results.push({ id: answer.id, type: "answer", success: false, error: String(err) });
       }
     }
 
-    // Process articles
+    // Process articles (emerald items)
     for (const article of articles || []) {
       try {
+        console.log(`[publish-scheduled] 💚 Processing article: ${article.title.substring(0, 50)}...`);
+        
         // Get project info
         const { data: project } = await supabase
           .from("projects")
@@ -364,6 +381,7 @@ Deno.serve(async (req) => {
             .update({ status: "published" })
             .eq("id", article.id);
           
+          console.log(`[publish-scheduled] ✅ Article marked as published (no CMS): ${article.id}`);
           results.push({ id: article.id, type: "article", success: true, url: "internal" });
           continue;
         }
@@ -392,11 +410,14 @@ Deno.serve(async (req) => {
             .update({ status: "published" })
             .eq("id", article.id);
 
+          console.log(`[publish-scheduled] ✅ Article published: ${publishResult.url || article.id}`);
           results.push({ id: article.id, type: "article", success: true, url: publishResult.url });
         } else {
+          console.error(`[publish-scheduled] ❌ Failed to publish article: ${publishResult.error}`);
           results.push({ id: article.id, type: "article", success: false, error: publishResult.error });
         }
       } catch (err) {
+        console.error(`[publish-scheduled] ❌ Error processing article ${article.id}:`, err);
         results.push({ id: article.id, type: "article", success: false, error: String(err) });
       }
     }
@@ -404,23 +425,29 @@ Deno.serve(async (req) => {
     const successCount = results.filter(r => r.success).length;
     const answerCount = results.filter(r => r.type === "answer" && r.success).length;
     const articleCount = results.filter(r => r.type === "article" && r.success).length;
+    const failedCount = results.filter(r => !r.success).length;
 
-    console.log(`Published ${answerCount} answers and ${articleCount} articles`);
+    console.log(`[publish-scheduled] 🎉 COMPLETED: ${answerCount} answers (💜) and ${articleCount} articles (💚) published`);
+    if (failedCount > 0) {
+      console.log(`[publish-scheduled] ⚠️ ${failedCount} items failed to publish`);
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Published ${answerCount} answers and ${articleCount} articles`,
         published: successCount,
+        failed: failedCount,
         answers: answerCount,
         articles: articleCount,
+        currentHour,
         results 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Error in publish-scheduled-answers:", error);
+    console.error("[publish-scheduled] ❌ Fatal error:", error);
     return new Response(
       JSON.stringify({ success: false, error: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
