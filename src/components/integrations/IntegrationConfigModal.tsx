@@ -469,22 +469,22 @@ export function IntegrationConfigModal({
               </p>
             )}
             
-            <div className="rounded-lg border p-3 sm:p-4 space-y-3 sm:space-y-4">
-              <h4 className="font-medium text-sm sm:text-base">Configuration</h4>
+            <div className="rounded-lg border p-3 space-y-3">
+              <h4 className="font-medium text-xs sm:text-sm">Configuration</h4>
 
               {config.fields.map((field) => (
-                <div key={field.key} className="space-y-1 sm:space-y-1.5">
-                  <Label htmlFor={field.key} className="text-xs sm:text-sm">{field.label}</Label>
+                <div key={field.key} className="space-y-1">
+                  <Label htmlFor={field.key} className="text-[11px] sm:text-xs font-medium">{field.label}</Label>
                   <Input
                     id={field.key}
                     type={field.type || "text"}
                     placeholder={field.placeholder}
                     value={formData[field.key] || ""}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                    className="text-sm h-9 sm:h-10"
+                    className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                   />
                   {field.helpText && (
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">{field.helpText}</p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">{field.helpText}</p>
                   )}
                 </div>
               ))}
@@ -493,19 +493,19 @@ export function IntegrationConfigModal({
                 variant="outline"
                 onClick={handleTestConnection}
                 disabled={isTesting || !formData.endpoint}
-                className="gap-2 w-full sm:w-auto h-9 text-sm"
+                className="gap-2 w-full h-8 sm:h-9 text-xs sm:text-sm"
               >
                 {isTesting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : testResult === "success" ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                 ) : testResult === "error" ? (
-                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
                 ) : null}
                 {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
               </Button>
               {testMessage && (
-                <p className={`text-xs sm:text-sm ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                <p className={`text-[10px] sm:text-xs ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
                   {testMessage}
                 </p>
               )}
