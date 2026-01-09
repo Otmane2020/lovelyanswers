@@ -28,7 +28,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.cms-publish]
-verify_jwt = true
+verify_jwt = false
 
 [functions.reddit-agent]
 verify_jwt = false
