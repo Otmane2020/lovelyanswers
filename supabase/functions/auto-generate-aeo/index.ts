@@ -296,6 +296,131 @@ Generate 5 decision-oriented questions. Return JSON:
 }
 
 /* =======================
+   TRANSFORM KEYWORDS TO QUESTIONS
+======================= */
+async function transformKeywordsToQuestions(
+  keywords: string[],
+  brandName: string,
+  description: string,
+  language: string,
+  apiKey: string,
+): Promise<{ question: string; intent: IntentType }[]> {
+  const currentYear = new Date().getFullYear();
+  
+  const systemPrompt = language === "fr"
+    ? `Tu transformes des mots-clés SEO en questions DÉCISIONNELLES naturelles.
+
+⛔ INTERDIT:
+- Garder le mot-clé tel quel
+- Questions génériques comme "Qu'est-ce que X ?"
+- Utiliser le nom de marque dans la question
+
+✅ TRANSFORMATION:
+- "canapé design" → "Comment choisir un canapé design adapté à son salon en ${currentYear} ?"
+- "mobilier écoresponsable" → "Quels critères vérifier pour s'assurer qu'un meuble est vraiment écoresponsable ?"
+- "table basse marbre prix" → "Quel budget prévoir pour une table basse en marbre de qualité ?"
+- "meilleur canapé" → "Quels sont les critères essentiels pour évaluer la qualité d'un canapé ?"
+
+RÈGLES:
+- TOUJOURS transformer en question complète avec "?"
+- Questions orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter...)
+- Varier les formulations
+- Questions naturelles comme posées à ChatGPT
+
+Retourne UNIQUEMENT du JSON valide.`
+    : `Transform SEO keywords into natural DECISION-ORIENTED questions.
+
+⛔ FORBIDDEN:
+- Keep keyword as-is
+- Generic questions like "What is X?"
+- Use brand name in question
+
+✅ TRANSFORMATION:
+- "design sofa" → "How to choose a design sofa suited to your living room in ${currentYear}?"
+- "eco-friendly furniture" → "What criteria to check to ensure furniture is truly eco-friendly?"
+- "marble coffee table price" → "What budget to plan for a quality marble coffee table?"
+
+RULES:
+- ALWAYS transform into complete question with "?"
+- Decision-oriented questions (How to choose, What budget, What mistakes to avoid...)
+- Vary formulations
+- Natural questions like asked to ChatGPT
+
+Return ONLY valid JSON.`;
+
+  const userPrompt = `
+Business: ${brandName}
+Description: ${description}
+Keywords to transform:
+${keywords.map((k, i) => `${i + 1}. ${k}`).join("\n")}
+
+Transform each keyword into a unique decision-oriented question. Return JSON:
+{
+  "questions": [
+    {"keyword": "original keyword", "question": "transformed question?", "intent": "criteria|price|howto|comparison|why|best"},
+    ...
+  ]
+}`;
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        temperature: 0.4,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    const json = await res.json();
+    const content = json?.choices?.[0]?.message?.content ?? "";
+    const parsed = safeParseJSON<{ questions: { keyword: string; question: string; intent: string }[] }>(content);
+    
+    return parsed.questions.map(q => ({
+      question: q.question,
+      intent: normalizeIntent(q.intent),
+    }));
+  } catch (e) {
+    console.error("Failed to transform keywords to questions:", e);
+    // Fallback: create basic questions from keywords
+    return keywords.map(keyword => {
+      const kw = keyword.toLowerCase();
+      let question: string;
+      let intent: IntentType;
+      
+      if (/prix|tarif|budget|cost/.test(kw)) {
+        question = language === "fr" 
+          ? `Quel budget prévoir pour ${keyword} ?`
+          : `What budget to plan for ${keyword}?`;
+        intent = "price";
+      } else if (/meilleur|best/.test(kw)) {
+        question = language === "fr"
+          ? `Quels critères pour choisir le meilleur ${keyword.replace(/meilleur|best/gi, "").trim()} ?`
+          : `What criteria to choose the best ${keyword.replace(/meilleur|best/gi, "").trim()}?`;
+        intent = "best";
+      } else if (/comment|how/.test(kw)) {
+        question = keyword.endsWith("?") ? keyword : `${keyword} ?`;
+        intent = "howto";
+      } else {
+        question = language === "fr"
+          ? `Comment choisir ${keyword} adapté à ses besoins ?`
+          : `How to choose ${keyword} suited to your needs?`;
+        intent = "criteria";
+      }
+      
+      return { question, intent };
+    });
+  }
+}
+
+/* =======================
    AI GENERATION
 ======================= */
 async function generateAIAnswer(
@@ -483,11 +608,14 @@ serve(async (req) => {
     let questions: { question: string; intent: IntentType }[];
     
     if (generate30 && keywordRows && keywordRows.length > 0) {
-      // Use keywords if available
-      questions = keywordRows.map((k) => ({
-        question: k.keyword,
-        intent: normalizeIntent(k.intent ?? detectIntent(k.keyword)),
-      }));
+      // Transform keywords into proper questions
+      questions = await transformKeywordsToQuestions(
+        keywordRows.map(k => k.keyword),
+        brandName,
+        description,
+        language,
+        apiKey,
+      );
     } else {
       // Generate contextual questions based on business description
       questions = await generateContextualQuestions(
