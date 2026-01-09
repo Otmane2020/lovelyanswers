@@ -13,6 +13,7 @@ export interface Answer {
   is_public: boolean;
   has_article: boolean;
   high_citation: boolean;
+  article_id: string | null;
   created_at: string;
   updated_at: string;
 }

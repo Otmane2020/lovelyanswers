@@ -462,7 +462,10 @@ export default function Answers() {
                     {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
                   </div>
                   <div className="flex items-center gap-2 pt-2 flex-wrap">
-                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View</Button>
+                    <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View Answer</Button>
+                    {answer.has_article && (
+                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${answer.article_id}`)}><Newspaper className="h-4 w-4" />View Blog</Button>
+                    )}
                     <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
                     {!answer.has_article && (
                       <Button 
