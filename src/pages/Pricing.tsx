@@ -22,6 +22,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { PublicFooter } from "@/components/layout/PublicFooter";
 
 const features = [
   { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
@@ -213,20 +214,7 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12">
-        <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
-              <Zap className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold">AeoRocket</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            © 2026 AeoRocket. Answer Engine Optimization platform.
-          </p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

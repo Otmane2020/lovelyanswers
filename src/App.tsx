@@ -25,6 +25,9 @@ import AeoWizard from "./pages/AeoWizard";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +60,9 @@ const App = () => (
               <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
               <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<About />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
