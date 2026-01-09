@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://aeorocket.io/sitemap.xml
+Sitemap: https://lovelyanswers.io/sitemap.xml

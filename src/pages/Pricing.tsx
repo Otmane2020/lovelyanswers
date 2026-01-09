@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import { 
-  Zap, 
+  Heart, 
   ArrowRight, 
   Check, 
   Sparkles,
@@ -40,7 +40,7 @@ const features = [
 const faqs = [
   {
     question: "I am not an SEO expert?",
-    answer: "Don't worry! AeoRocket is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content."
+    answer: "Don't worry! LovelyAnswers is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content."
   },
   {
     question: "Will Google penalize AI written content?",
@@ -75,11 +75,11 @@ export default function Pricing() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Zap className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+              <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">Rocket</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -89,7 +89,7 @@ export default function Pricing() {
             <Button variant="ghost" asChild>
               <Link to="/auth">Sign In</Link>
             </Button>
-            <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm" asChild>
+            <Button className="gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90" asChild>
               <Link to="/auth">
                 Try 3-day trial
                 <ArrowRight className="h-4 w-4" />
@@ -102,17 +102,17 @@ export default function Pricing() {
       {/* Hero Pricing */}
       <section className="relative overflow-hidden pt-32 pb-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px] opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full blur-[120px] opacity-30" />
         
         <div className="container relative">
           <div className="mx-auto max-w-3xl text-center">
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
+            <Badge className="mb-6 bg-pink-500/10 text-pink-600 border-pink-500/20">
               For smart entrepreneurs
             </Badge>
             
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
               Invest in{" "}
-              <span className="gradient-text">Long-Term Growth</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Long-Term Growth</span>
             </h1>
             
             <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -141,7 +141,7 @@ export default function Pricing() {
                 </div>
               </div>
 
-              <Button className="w-full gap-2 gradient-bg text-primary-foreground shadow-glow mb-8" size="lg" asChild>
+              <Button className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90 mb-8" size="lg" asChild>
                 <Link to="/auth">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-5 w-5" />
@@ -177,7 +177,7 @@ export default function Pricing() {
                 <Button variant="outline" asChild>
                   <Link to="/auth">Learn More</Link>
                 </Button>
-                <Button variant="ghost" className="text-primary">
+                <Button variant="ghost" className="text-pink-600">
                   View Case Study
                 </Button>
               </div>
@@ -193,7 +193,7 @@ export default function Pricing() {
             <h2 className="text-3xl font-bold mb-4">FAQs</h2>
             <p className="text-muted-foreground">
               Haven't found what you are looking for?{" "}
-              <a href="mailto:support@aeorocket.io" className="text-primary hover:underline">
+              <a href="mailto:support@lovelyanswers.io" className="text-pink-600 hover:underline">
                 Send us an email
               </a>
             </p>

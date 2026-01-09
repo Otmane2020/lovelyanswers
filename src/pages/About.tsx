@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Rocket, ArrowLeft, ArrowRight, Target, Users, Zap } from "lucide-react";
+import { Heart, ArrowLeft, ArrowRight, Target, Users, Zap } from "lucide-react";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { GlassCard } from "@/components/ui/glass-card";
 
@@ -11,11 +11,11 @@ export default function About() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
-              <Rocket className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+              <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Aeo<span className="gradient-text">Rocket</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           </Link>
           <Button variant="ghost" asChild>
@@ -30,11 +30,11 @@ export default function About() {
       {/* Hero */}
       <section className="relative overflow-hidden pt-32 pb-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full blur-[120px] opacity-30" />
         
         <div className="container relative max-w-3xl text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
-            About <span className="gradient-text">AeoRocket</span>
+            About <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">LovelyAnswers</span>
           </h1>
           <p className="text-xl text-muted-foreground">
             Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era.
@@ -47,8 +47,8 @@ export default function About() {
         <div className="container max-w-4xl">
           <div className="grid gap-8 md:grid-cols-3">
             <GlassCard className="p-6 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl gradient-bg">
-                <Target className="h-6 w-6 text-primary-foreground" />
+              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500">
+                <Target className="h-6 w-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">Our Mission</h3>
               <p className="text-sm text-muted-foreground">
@@ -57,8 +57,8 @@ export default function About() {
             </GlassCard>
 
             <GlassCard className="p-6 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl gradient-bg">
-                <Zap className="h-6 w-6 text-primary-foreground" />
+              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500">
+                <Zap className="h-6 w-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">Our Technology</h3>
               <p className="text-sm text-muted-foreground">
@@ -67,12 +67,12 @@ export default function About() {
             </GlassCard>
 
             <GlassCard className="p-6 text-center">
-              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl gradient-bg">
-                <Users className="h-6 w-6 text-primary-foreground" />
+              <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500">
+                <Users className="h-6 w-6 text-white" />
               </div>
               <h3 className="font-semibold mb-2">Our Clients</h3>
               <p className="text-sm text-muted-foreground">
-                500+ businesses trust AeoRocket for their AI visibility strategy.
+                500+ businesses trust LovelyAnswers for their AI visibility strategy.
               </p>
             </GlassCard>
           </div>
@@ -85,7 +85,7 @@ export default function About() {
           <h2 className="text-3xl font-bold mb-8 text-center">Our Story</h2>
           <div className="space-y-6 text-muted-foreground">
             <p>
-              AeoRocket was founded with a simple observation: the way people find information is changing. 
+              LovelyAnswers was founded with a simple observation: the way people find information is changing. 
               With the rise of AI assistants like ChatGPT, Gemini, and Perplexity, traditional SEO alone 
               is no longer enough to ensure your business gets discovered.
             </p>
@@ -107,9 +107,9 @@ export default function About() {
         <div className="container max-w-2xl text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-muted-foreground mb-8">
-            Join 500+ businesses already using AeoRocket to dominate AI search.
+            Join 500+ businesses already using LovelyAnswers to dominate AI search.
           </p>
-          <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow" size="lg" asChild>
+          <Button className="gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90" size="lg" asChild>
             <Link to="/auth">
               Start Free Trial
               <ArrowRight className="h-5 w-5" />
@@ -123,13 +123,13 @@ export default function About() {
         <div className="container max-w-3xl text-center">
           <h2 className="text-2xl font-bold mb-6">Company Information</h2>
           <div className="text-muted-foreground">
-            <p className="font-medium text-foreground">AeoRocket Ltd</p>
+            <p className="font-medium text-foreground">LovelyAnswers Ltd</p>
             <p>Suite 4, Piccadilly House</p>
             <p>Manchester, M1 1AB</p>
             <p>United Kingdom</p>
             <p className="mt-4">
-              <a href="mailto:support@aeorocket.io" className="text-primary hover:underline">
-                support@aeorocket.io
+              <a href="mailto:support@lovelyanswers.io" className="text-pink-600 hover:underline">
+                support@lovelyanswers.io
               </a>
             </p>
           </div>

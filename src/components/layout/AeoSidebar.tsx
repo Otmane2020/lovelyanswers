@@ -8,7 +8,7 @@ import {
   Settings,
   CreditCard,
   LogOut,
-  Rocket,
+  Heart,
   CalendarDays,
   History,
 } from "lucide-react";
@@ -76,12 +76,12 @@ export function AeoSidebar() {
           onClick={handleNavClick} 
           className="flex items-center gap-2.5 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Rocket className="w-4 h-4 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg">
+            <Heart className="w-4 h-4 text-white fill-white" />
           </div>
           {state === "expanded" && (
             <span className="font-bold text-lg text-foreground">
-              AeoRocket<span className="text-primary">.io</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
           )}
         </NavLink>
