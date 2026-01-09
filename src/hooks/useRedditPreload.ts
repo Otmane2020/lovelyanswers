@@ -11,6 +11,17 @@ export function useRedditPreload() {
     const preloadRedditPosts = async () => {
       if (!project?.id || hasPreloaded.current) return;
       
+      // 🔥 CRITICAL: Wait for generation_settings to load the correct language
+      const { data: settings } = await supabase
+        .from("generation_settings")
+        .select("language")
+        .eq("project_id", project.id)
+        .single();
+      
+      // Use cascade fallback for language: settings > project > 'fr'
+      const language = settings?.language || project.language || "fr";
+      console.log(`[RedditPreload] Using language: ${language} (settings: ${settings?.language}, project: ${project.language})`);
+      
       // Check if we already have recent reddit_responses for this project (last 24h)
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { count } = await supabase
@@ -42,15 +53,7 @@ export function useRedditPreload() {
         if (project.brand_name) projectKeywords.push(project.brand_name.toLowerCase());
         if (project.business_type) projectKeywords.push(project.business_type.toLowerCase());
 
-        // Get generation settings for language
-        const { data: settings } = await supabase
-          .from("generation_settings")
-          .select("language")
-          .eq("project_id", project.id)
-          .single();
-        
-        // 🔒 CRITICAL: Use project.language as fallback (detected from URL)
-        const language = settings?.language || project.language || "fr";
+        // Language already fetched above, reuse it
 
         // Generate subreddits dynamically
         const targetSubreddits = getSubredditsForKeywords(projectKeywords, language);

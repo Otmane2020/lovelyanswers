@@ -90,7 +90,7 @@ export default function Dashboard() {
   const redditOpportunities = 10;
   const geoScore = 83;
 
-  // Auto-trigger generation on dashboard open
+  // Auto-trigger FULL 30-day generation on first signup
   useEffect(() => {
     const triggerAutoGeneration = async () => {
       if (!project || !user || hasTriggeredGeneration.current) return;
@@ -101,7 +101,7 @@ export default function Dashboard() {
         .select("id", { count: "exact", head: true })
         .eq("project_id", project.id);
       
-      // Only auto-generate if no answers exist
+      // Only auto-generate if no answers exist (first signup)
       if (count && count > 0) return;
       
       hasTriggeredGeneration.current = true;
@@ -109,19 +109,20 @@ export default function Dashboard() {
       setGenerationProgress(0);
       
       const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 8, 90));
-      }, 500);
+        setGenerationProgress(prev => Math.min(prev + 2, 95)); // Slower for 30-day generation
+      }, 1500);
       
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        toast.info("Generating initial AEO content...");
+        // 🔥 NEW: Déclencher la génération 30 jours complète
+        toast.info("🚀 Generating your 30-day content plan...", { duration: 5000 });
         
-        const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
+        const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
           body: { 
             projectId: project.id,
-            generate30: false,
-            language: project.language || 'fr'
+            language: project.language || 'fr',
+            days: 30
           },
           headers: {
             Authorization: `Bearer ${session?.access_token}`
@@ -132,13 +133,12 @@ export default function Dashboard() {
         setGenerationProgress(100);
         
         if (error) {
-          console.error('Error generating answers:', error);
-          toast.error("Error during generation");
+          console.error('Error generating 30-day content:', error);
+          toast.error("Error during content generation");
         } else {
-          const count = data?.count || data?.answers?.length || 0;
-          if (count > 0) {
-            toast.success(`${count} AEO answers generated!`);
-          }
+          const answersCount = data?.answers_created || 0;
+          const articlesCount = data?.articles_created || 0;
+          toast.success(`✨ Generated ${answersCount} answers and ${articlesCount} articles!`, { duration: 5000 });
         }
       } catch (error) {
         console.error('Error generating content:', error);
@@ -147,7 +147,7 @@ export default function Dashboard() {
         setTimeout(() => {
           setIsGenerating(false);
           setGenerationProgress(0);
-        }, 1000);
+        }, 1500);
       }
     };
 
