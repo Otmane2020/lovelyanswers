@@ -18,6 +18,7 @@ import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 import { useIntegrations } from "@/hooks/useIntegrations";
 import { CheckCircle2, Globe, Code, Webhook } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useGeneration } from "@/contexts/GenerationContext";
@@ -67,6 +68,7 @@ const languages = [
 
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { project } = useActiveProject();
   const [languageCount, setLanguageCount] = useState([1]);
@@ -428,12 +430,16 @@ export default function Dashboard() {
                 return (
                   <div 
                     key={cms.name}
-                    className={`relative aspect-square rounded-lg sm:rounded-xl border flex items-center justify-center transition-colors cursor-pointer p-1.5 sm:p-2 ${
+                    onClick={() => {
+                      setShowAutopilotModal(false);
+                      navigate(`/integrations?platform=${cms.id}`);
+                    }}
+                    className={`relative aspect-square rounded-lg sm:rounded-xl border flex items-center justify-center transition-all cursor-pointer p-1.5 sm:p-2 hover:scale-105 active:scale-95 ${
                       isConnected 
-                        ? "border-green-500 bg-green-50" 
+                        ? "border-green-500 bg-green-50 hover:bg-green-100" 
                         : "border-border bg-white hover:bg-muted/50"
                     }`}
-                    title={cms.name}
+                    title={isConnected ? `${cms.name} (connecté)` : `Configurer ${cms.name}`}
                   >
                     {cms.logo ? (
                       <img src={cms.logo} alt={cms.name} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
@@ -451,7 +457,13 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-col gap-2 sm:gap-3">
-              <Button className="w-full bg-foreground hover:bg-foreground/90 text-background h-9 sm:h-10 text-sm">
+              <Button 
+                className="w-full bg-foreground hover:bg-foreground/90 text-background h-9 sm:h-10 text-sm"
+                onClick={() => {
+                  setShowAutopilotModal(false);
+                  navigate("/integrations");
+                }}
+              >
                 Connect Website
               </Button>
               <Button 
