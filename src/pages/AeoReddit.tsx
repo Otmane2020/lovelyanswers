@@ -146,25 +146,28 @@ export default function AeoReddit() {
       
       setSettingsLoaded(false);
       
-      const { data } = await supabase
+      // First try generation_settings
+      const { data: genSettings } = await supabase
         .from("generation_settings")
         .select("language, business_description, target_audiences")
         .eq("project_id", activeProject.id)
         .single();
       
-      if (data) {
-        setGenerationSettings(data);
-        console.log(`[Reddit] Loaded settings: language=${data.language}`);
-      } else {
-        console.log(`[Reddit] No settings found, using project language: ${activeProject.language}`);
-      }
+      // 🔒 FIXED: Use project data as fallback (always available from onboarding)
+      const settings = {
+        language: genSettings?.language || activeProject.language || "fr",
+        business_description: genSettings?.business_description || activeProject.business_description || "",
+        target_audiences: genSettings?.target_audiences || (activeProject.audience ? [activeProject.audience] : [])
+      };
       
-      // Mark as loaded even if no data (will use project fallback)
+      setGenerationSettings(settings);
+      console.log(`[Reddit] Loaded settings: language=${settings.language}, desc=${settings.business_description?.substring(0, 50)}...`);
+      
       setSettingsLoaded(true);
     };
     
     fetchSettings();
-  }, [activeProject?.id]);
+  }, [activeProject?.id, activeProject?.language, activeProject?.business_description]);
 
   // Load posts from database first, then fetch new ones if needed
   const loadPostsFromDatabase = async () => {

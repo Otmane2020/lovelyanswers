@@ -231,25 +231,33 @@ async function loadProjectContext(supabase: any, projectId: string): Promise<Pro
     throw new Error(`Project not found: ${projectId}`);
   }
 
-  // Load generation settings for extra context - THIS IS THE SOURCE OF TRUTH FOR LANGUAGE
+  // Load generation settings for extra context
   const { data: settings } = await supabase
     .from("generation_settings")
     .select("*")
     .eq("project_id", projectId)
     .single();
 
-  // 🔒 FIXED: Prioritize generation_settings.language over project.language
-  const effectiveLanguage = settings?.language || project?.language || "en";
+  // 🔒 FIXED: Cascade priority - settings first, then project data
+  const effectiveLanguage = settings?.language || project?.language || "fr";
+  const effectiveBrandName = settings?.brand_name || project?.brand_name || project?.name || "Your Brand";
+  const effectiveBusinessDesc = settings?.business_description || project?.business_description || "";
+  const effectiveAudiences = settings?.target_audiences || (project?.audience ? [project.audience] : []);
+  const effectiveWebsiteUrl = settings?.website_url || project?.website_url || "";
   
-  console.log(`[reddit-agent] Language source: settings=${settings?.language}, project=${project?.language}, effective=${effectiveLanguage}`);
+  console.log(`[reddit-agent] Context loaded:`);
+  console.log(`  - Brand: ${effectiveBrandName}`);
+  console.log(`  - Language: ${effectiveLanguage}`);
+  console.log(`  - URL: ${effectiveWebsiteUrl}`);
+  console.log(`  - Description: ${effectiveBusinessDesc?.substring(0, 80)}...`);
 
   return {
     projectId,
-    brandName: settings?.brand_name || project.brand_name || project.name,
-    language: effectiveLanguage, // ✅ FIXED: Use generation_settings first
-    businessDescription: settings?.business_description || project.business_description || "",
-    targetAudiences: settings?.target_audiences || [],
-    websiteUrl: settings?.website_url || project.website_url || "",
+    brandName: effectiveBrandName,
+    language: effectiveLanguage,
+    businessDescription: effectiveBusinessDesc,
+    targetAudiences: effectiveAudiences,
+    websiteUrl: effectiveWebsiteUrl,
     businessType: project.business_type || "General",
     competitors: settings?.competitors || project.competitors || [],
     tone: settings?.tone || "professional"
