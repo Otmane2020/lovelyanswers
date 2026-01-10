@@ -545,6 +545,7 @@ export type Database = {
           publish_hour: string | null
           special_instructions: string | null
           text_overlay: boolean | null
+          timezone: string | null
           trailing_slash: boolean | null
           updated_at: string | null
           visual_instructions: string | null
@@ -573,6 +574,7 @@ export type Database = {
           publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null
+          timezone?: string | null
           trailing_slash?: boolean | null
           updated_at?: string | null
           visual_instructions?: string | null
@@ -601,6 +603,7 @@ export type Database = {
           publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null
+          timezone?: string | null
           trailing_slash?: boolean | null
           updated_at?: string | null
           visual_instructions?: string | null
