@@ -20,6 +20,30 @@ const REDDIT_BANNED_TERMS = [
   "LLM optimization"
 ];
 
+// 🔒 PATCH 2 — Forbidden subreddits for furniture/home businesses (too generic)
+const FORBIDDEN_SUBS_FOR_FURNITURE = [
+  "AskFrance",
+  "vosfinances", 
+  "france",
+  "economie",
+  "politique",
+  "Lyon",
+  "Toulouse",
+  "ParisPasCheres"
+];
+
+// 🔒 PATCH 1 — HARD FILTER — Furniture-only posts (Movala-style)
+function isFurnitureRelated(post: RealRedditPost): boolean {
+  const text = `${post.title} ${post.body}`.toLowerCase();
+  
+  return /meuble|mobilier|canapé|sofa|table|chaise|fauteuil|lit|matelas|buffet|armoire|étagère|dressing|salon|chambre|salle à manger|déco|décoration|interior|interieur|home|design|marbre|bois|rangement|aménag|furniture|couch|desk|chair|bedroom|living room|home office|ikea|maison du monde|conforama/.test(text);
+}
+
+// Check if business is furniture/home related
+function isFurnitureBusiness(businessDescription: string): boolean {
+  return /meuble|mobilier|furniture|canapé|sofa|décor|intérieur|interior|home design|ameublement/i.test(businessDescription);
+}
+
 function sanitizeRedditReply(text: string): string {
   let clean = text;
   REDDIT_BANNED_TERMS.forEach(term => {
@@ -1021,8 +1045,34 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
-  // 3. 🔥 NEW: Compute relevance score for EVERY post
-  const scoredPosts = allPosts.map(post => {
+  // 🔒 PATCH 1 — HARD BUSINESS FILTER (Movala = meubles uniquement)
+  let filteredPosts = allPosts;
+  
+  if (isFurnitureBusiness(context.businessDescription)) {
+    console.log(`[reddit-agent] 🔒 Furniture business detected, applying hard filter`);
+    filteredPosts = filteredPosts.filter(isFurnitureRelated);
+    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts are furniture-related`);
+  }
+
+  // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS for furniture businesses
+  if (isFurnitureBusiness(context.businessDescription)) {
+    const beforeCount = filteredPosts.length;
+    filteredPosts = filteredPosts.filter(
+      p => !FORBIDDEN_SUBS_FOR_FURNITURE.some(
+        forbidden => p.subreddit.toLowerCase() === forbidden.toLowerCase()
+      )
+    );
+    console.log(`[reddit-agent] Removed ${beforeCount - filteredPosts.length} posts from forbidden subreddits`);
+  }
+
+  // 🔒 PATCH 3 — IF NOTHING LEFT → RETURN EMPTY (NO FALLBACK)
+  if (filteredPosts.length === 0) {
+    console.log(`[reddit-agent] ❌ No business-related posts found. Returning empty array (no fallback).`);
+    return { opportunities: [] };
+  }
+
+  // 3. 🔥 Compute relevance score for filtered posts
+  const scoredPosts = filteredPosts.map(post => {
     const { score, reason } = computeRelevanceScore(
       post, 
       keywords, 
@@ -1036,11 +1086,17 @@ async function findOpportunities(
     };
   });
 
-  // 4. 🔥 FILTER: Only keep posts with relevance >= 15
-  const MIN_RELEVANCE = 15;
+  // 🔒 PATCH 5 — HIGHER MINIMUM RELEVANCE (40 instead of 15)
+  const MIN_RELEVANCE = 40;
   const relevantPosts = scoredPosts.filter(p => p.relevanceScore >= MIN_RELEVANCE);
   
   console.log(`[reddit-agent] ${relevantPosts.length}/${scoredPosts.length} posts passed relevance filter (>=${MIN_RELEVANCE})`);
+  
+  // 🔒 PATCH 4 — NO FALLBACK: If no relevant posts, return empty
+  if (relevantPosts.length === 0) {
+    console.log(`[reddit-agent] ❌ No posts with relevance >= ${MIN_RELEVANCE}. Returning empty (no generic fallback).`);
+    return { opportunities: [] };
+  }
 
   // 5. Sort by relevance score (highest first)
   relevantPosts.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
@@ -1207,40 +1263,24 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
 
     console.log(`[reddit-agent] Validated ${validatedOpportunities.length} opportunities`);
     
-    if (validatedOpportunities.length === 0 && relevantPosts.length > 0) {
-      return {
-        opportunities: relevantPosts.slice(0, 15).map(p => ({
-          id: p.id,
-          subreddit: p.subreddit,
-          title: p.title,
-          body: p.body,
-          url: p.url,
-          score: p.score,
-          comments: p.comments,
-          relevanceScore: p.relevanceScore,
-          relevanceReason: p.relevanceReason,
-          engagementPotential: "medium"
-        }))
-      };
+    // 🔒 PATCH 4 — NO FALLBACK: If validation fails, return empty (not generic posts)
+    if (validatedOpportunities.length === 0) {
+      console.log(`[reddit-agent] ❌ AI validation returned 0 valid opportunities. Returning empty.`);
+      return { opportunities: [] };
     }
     
-    return { opportunities: validatedOpportunities };
+    // 🔒 PATCH 5 — Final relevance filter before returning
+    const finalOpportunities = validatedOpportunities.filter(
+      (opp: any) => (opp.relevanceScore ?? 0) >= MIN_RELEVANCE
+    );
+    
+    console.log(`[reddit-agent] ✅ Returning ${finalOpportunities.length} validated opportunities`);
+    return { opportunities: finalOpportunities };
   } catch (parseError) {
     console.error(`[reddit-agent] JSON parse error:`, parseError);
-    return {
-      opportunities: relevantPosts.slice(0, 10).map(p => ({
-        id: p.id,
-        subreddit: p.subreddit,
-        title: p.title,
-        body: p.body,
-        url: p.url,
-        score: p.score,
-        comments: p.comments,
-        relevanceScore: p.relevanceScore,
-        relevanceReason: p.relevanceReason,
-        engagementPotential: "medium"
-      }))
-    };
+    // 🔒 PATCH 4 — NO FALLBACK on parse error either
+    console.log(`[reddit-agent] ❌ Parse error, returning empty (no generic fallback).`);
+    return { opportunities: [] };
   }
 }
 

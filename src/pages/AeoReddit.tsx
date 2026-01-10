@@ -273,8 +273,8 @@ export default function AeoReddit() {
       if (error) throw error;
 
       if (data?.opportunities && Array.isArray(data.opportunities)) {
-        // 🔒 CRITICAL: Only accept posts with REAL Reddit URLs + relevance >= 15
-        const MIN_RELEVANCE = 15;
+        // 🔒 PATCH 5: Match backend minimum relevance (40, not 15)
+        const MIN_RELEVANCE = 40;
         const transformedPosts: RedditPost[] = data.opportunities
           .filter((opp: any) => {
             const hasValidUrl = opp.url && opp.url.includes("reddit.com/r/");
@@ -302,15 +302,24 @@ export default function AeoReddit() {
           });
         
         setPosts(transformedPosts);
-        toast({
-          title: "Posts loaded",
-          description: `Found ${transformedPosts.length} real Reddit opportunities`,
-        });
+        
+        if (transformedPosts.length > 0) {
+          toast({
+            title: "Posts chargés",
+            description: `${transformedPosts.length} opportunités pertinentes pour votre activité`,
+          });
+        } else {
+          toast({
+            title: "Aucun post pertinent",
+            description: "Pas de discussions liées à votre secteur (meubles, déco...) en ce moment. Réessayez plus tard.",
+            variant: "destructive"
+          });
+        }
       } else {
         setPosts([]);
         toast({
-          title: "No posts found",
-          description: "Try configuring different subreddits in settings",
+          title: "Aucun post trouvé",
+          description: "Pas de discussions pertinentes pour votre activité en ce moment.",
         });
       }
     } catch (error) {
