@@ -14,6 +14,9 @@ import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import shopifyLogo from "@/assets/shopify-logo-new.png";
 import wixLogo from "@/assets/wix-logo.png";
 import framerLogo from "@/assets/framer-logo.png";
+import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
+import { useIntegrations } from "@/hooks/useIntegrations";
+import { CheckCircle2, Globe, Code, Webhook } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -80,6 +83,9 @@ export default function Dashboard() {
   
   // Use global generation context
   const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
+  
+  // Fetch connected integrations
+  const { data: integrations } = useIntegrations();
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
@@ -407,21 +413,41 @@ export default function Dashboard() {
             </p>
             
             {/* CMS Icons Grid */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
               {[
-                { name: "WordPress", logo: wordpressLogo },
-                { name: "Shopify", logo: shopifyLogo },
-                { name: "Wix", logo: wixLogo },
-                { name: "Framer", logo: framerLogo },
-              ].map((cms) => (
-                <div 
-                  key={cms.name}
-                  className="aspect-square rounded-lg sm:rounded-xl border border-border flex items-center justify-center bg-white hover:bg-muted/50 transition-colors cursor-pointer p-2 sm:p-3"
-                  title={cms.name}
-                >
-                  <img src={cms.logo} alt={cms.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-                </div>
-              ))}
+                { name: "WordPress", id: "wordpress", logo: wordpressLogo },
+                { name: "Shopify", id: "shopify", logo: shopifyLogo },
+                { name: "Wix", id: "wix", logo: wixLogo },
+                { name: "Framer", id: "framer", logo: framerLogo },
+                { name: "BigCommerce", id: "bigcommerce", logo: bigcommerceLogo },
+                { name: "Webflow", id: "webflow", icon: Globe },
+                { name: "Custom API", id: "custom", icon: Code },
+                { name: "Webhook", id: "webhook", icon: Webhook },
+              ].map((cms) => {
+                const isConnected = integrations?.some(i => i.platform === cms.id && i.is_connected);
+                return (
+                  <div 
+                    key={cms.name}
+                    className={`relative aspect-square rounded-lg sm:rounded-xl border flex items-center justify-center transition-colors cursor-pointer p-1.5 sm:p-2 ${
+                      isConnected 
+                        ? "border-green-500 bg-green-50" 
+                        : "border-border bg-white hover:bg-muted/50"
+                    }`}
+                    title={cms.name}
+                  >
+                    {cms.logo ? (
+                      <img src={cms.logo} alt={cms.name} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+                    ) : cms.icon ? (
+                      <cms.icon className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                    ) : null}
+                    {isConnected && (
+                      <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5">
+                        <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex flex-col gap-2 sm:gap-3">
