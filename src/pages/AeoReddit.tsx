@@ -49,6 +49,8 @@ interface RedditPost {
   linkIncluded?: boolean;
   relevanceScore?: number;
   relevanceReason?: string;
+  trendScore?: number;
+  intent?: string;
 }
 
 // 🔒 FIXED: Dynamic subreddit generation with STRICT language separation
@@ -285,13 +287,19 @@ export default function AeoReddit() {
             title: opp.title || 'Untitled post',
             body: opp.body || '',
             views: opp.score ? `${opp.score} pts` : `${opp.comments || 0} comments`,
-            trending: (opp.score || 0) > 100 || opp.engagementPotential === "high",
+            trending: (opp.trendScore || 0) >= 70 || opp.engagementPotential === "high",
             url: opp.url,
             relevanceScore: opp.relevanceScore || 0,
-            relevanceReason: opp.relevanceReason || ""
+            relevanceReason: opp.relevanceReason || "",
+            trendScore: opp.trendScore || 0,
+            intent: opp.intent || "what"
           }))
-          // Sort by relevance score (highest first)
-          .sort((a: RedditPost, b: RedditPost) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+          // Sort by trend score first, then relevance
+          .sort((a: RedditPost, b: RedditPost) => {
+            const trendDiff = (b.trendScore || 0) - (a.trendScore || 0);
+            if (trendDiff !== 0) return trendDiff;
+            return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+          });
         
         setPosts(transformedPosts);
         toast({
@@ -479,6 +487,47 @@ export default function AeoReddit() {
     );
   };
 
+  const getTrendBadge = (trendScore?: number) => {
+    if (!trendScore) return null;
+    
+    if (trendScore >= 70) {
+      return (
+        <Badge className="bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-600 border-orange-500/30">
+          🔥 Hot ({trendScore})
+        </Badge>
+      );
+    }
+    if (trendScore >= 50) {
+      return (
+        <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30">
+          📈 Rising ({trendScore})
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const getIntentBadge = (intent?: string) => {
+    if (!intent) return null;
+    
+    const intentLabels: Record<string, { label: string; color: string }> = {
+      howto: { label: "How-to", color: "bg-blue-500/20 text-blue-600" },
+      best: { label: "Best/Recommend", color: "bg-emerald-500/20 text-emerald-600" },
+      why: { label: "Why", color: "bg-purple-500/20 text-purple-600" },
+      price: { label: "Prix/Budget", color: "bg-amber-500/20 text-amber-600" },
+      comparison: { label: "Comparaison", color: "bg-pink-500/20 text-pink-600" },
+      criteria: { label: "Critères", color: "bg-cyan-500/20 text-cyan-600" },
+      what: { label: "Info", color: "bg-gray-500/20 text-gray-600" }
+    };
+    
+    const config = intentLabels[intent] || intentLabels.what;
+    return (
+      <Badge className={`${config.color} text-xs`}>
+        {config.label}
+      </Badge>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -651,9 +700,8 @@ export default function AeoReddit() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-muted-foreground">{post.subreddit}</span>
-                        {post.trending && (
-                          <TrendingUp className="w-4 h-4 text-emerald-500" />
-                        )}
+                        {getTrendBadge(post.trendScore)}
+                        {getIntentBadge(post.intent)}
                         {getRelevanceBadge(post.relevanceScore, post.relevanceReason)}
                       </div>
                       <h3 className="font-medium text-foreground">{post.title}</h3>
@@ -666,7 +714,7 @@ export default function AeoReddit() {
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Eye className="w-4 h-4" />
-                    <span>{post.views} views</span>
+                    <span>{post.views}</span>
                   </div>
                 </div>
 
