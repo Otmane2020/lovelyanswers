@@ -10,6 +10,10 @@ import {
   FileText,
   MessageSquare,
 } from "lucide-react";
+import wordpressLogo from "@/assets/wordpress-logo-new.png";
+import shopifyLogo from "@/assets/shopify-logo-new.png";
+import wixLogo from "@/assets/wix-logo.png";
+import framerLogo from "@/assets/framer-logo.png";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -405,16 +409,17 @@ export default function Dashboard() {
             {/* CMS Icons Grid */}
             <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {[
-                { name: "Wix", icon: "W" },
-                { name: "WordPress", icon: "W" },
-                { name: "Shopify", icon: "S" },
-                { name: "Webflow", icon: "W" },
+                { name: "WordPress", logo: wordpressLogo },
+                { name: "Shopify", logo: shopifyLogo },
+                { name: "Wix", logo: wixLogo },
+                { name: "Framer", logo: framerLogo },
               ].map((cms) => (
                 <div 
                   key={cms.name}
-                  className="aspect-square rounded-lg sm:rounded-xl border border-border flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                  className="aspect-square rounded-lg sm:rounded-xl border border-border flex items-center justify-center bg-white hover:bg-muted/50 transition-colors cursor-pointer p-2 sm:p-3"
+                  title={cms.name}
                 >
-                  <span className="text-lg sm:text-2xl font-bold text-muted-foreground">{cms.icon}</span>
+                  <img src={cms.logo} alt={cms.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
                 </div>
               ))}
             </div>
