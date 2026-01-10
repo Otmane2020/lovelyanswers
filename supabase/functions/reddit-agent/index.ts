@@ -35,26 +35,29 @@ type Vertical =
   | "marketing" 
   | "general";
 
-// 🔒 PATCH 2 — Keyword patterns for each vertical
+// 🔒 PATCH 2 — Keyword patterns for each vertical (EXPANDED for better matching)
 const VERTICAL_KEYWORDS: Record<Vertical, RegExp> = {
-  furniture: /meuble|mobilier|canapé|sofa|table|chaise|fauteuil|lit|matelas|buffet|armoire|étagère|dressing|salon|chambre|salle à manger|déco|décoration|interior|interieur|home|design|marbre|bois|rangement|aménag|furniture|couch|desk|chair|bedroom|living room|home office|ikea|maison du monde|conforama|cuisine|salle de bain|miroir|bureau/i,
-  tech: /saas|software|api|startup|app|code|dev|ai|cloud|mvp|développeur|developer|programmer|logiciel|algorithme|machine learning|intelligence artificielle|github|tech|infrastructure|backend|frontend|fullstack|database|serveur|hosting/i,
-  ecommerce: /ecommerce|e-commerce|shopify|boutique|vente|retail|dropshipping|amazon|marketplace|woocommerce|magento|prestashop|panier|checkout|livraison|expédition|stock|inventaire|produit|catalogue/i,
-  finance: /finance|investissement|bourse|crypto|épargne|budget|argent|trading|actions|portefeuille|banque|crédit|prêt|immobilier|assurance|impôt|fiscalité|patrimoine|placement|rendement|dividende/i,
-  freelance: /freelance|client|mission|facturation|tjm|contrat|indépendant|consultant|prestataire|agence|agency|devis|proposition|portfolio|tarif|honoraires|auto-entrepreneur|micro-entreprise/i,
-  marketing: /seo|marketing|ads|publicité|growth|leads|acquisition|conversion|funnel|campagne|audience|ciblage|analytics|trafic|content|social media|influenceur|branding|notoriété|référencement/i,
+  // Furniture: expanded with common Reddit terms (appartement, emménagement, premier appart)
+  furniture: /meuble|mobilier|canapé|sofa|table|chaise|fauteuil|lit|matelas|buffet|armoire|étagère|dressing|salon|chambre|salle à manger|déco|décoration|interior|interieur|home|design|marbre|bois|rangement|aménag|furniture|couch|desk|chair|bedroom|living room|home office|ikea|maison du monde|conforama|cuisine|salle de bain|miroir|bureau|appartement|studio|emménag|déménag|premier appart|logement|location meublé|ameublement|rideau|tapis|luminaire|lampe|bibliothèque|commode|tiroir|placard|penderie|avis.*meuble|conseil.*déco|acheter.*meuble|où trouver.*meuble/i,
+  tech: /saas|software|api|startup|app|code|dev|ai|cloud|mvp|développeur|developer|programmer|logiciel|algorithme|machine learning|intelligence artificielle|github|tech|infrastructure|backend|frontend|fullstack|database|serveur|hosting|no-code|nocode|lowcode|automatisation|workflow|integration|webhook/i,
+  ecommerce: /ecommerce|e-commerce|shopify|boutique|vente|retail|dropshipping|amazon|marketplace|woocommerce|magento|prestashop|panier|checkout|livraison|expédition|stock|inventaire|produit|catalogue|conversion|tunnel de vente|paiement en ligne/i,
+  finance: /finance|investissement|bourse|crypto|épargne|budget|argent|trading|actions|portefeuille|banque|crédit|prêt|immobilier|assurance|impôt|fiscalité|patrimoine|placement|rendement|dividende|pea|assurance vie|scpi|etf|obligations/i,
+  freelance: /freelance|client|mission|facturation|tjm|contrat|indépendant|consultant|prestataire|agence|agency|devis|proposition|portfolio|tarif|honoraires|auto-entrepreneur|micro-entreprise|portage salarial|urssaf/i,
+  marketing: /seo|marketing|ads|publicité|growth|leads|acquisition|conversion|funnel|campagne|audience|ciblage|analytics|trafic|content|social media|influenceur|branding|notoriété|référencement|google ads|facebook ads|linkedin ads/i,
   general: /.*/i
 };
 
-// 🔒 PATCH 3 — Forbidden subreddits by vertical (too generic for that niche)
+// 🔒 PATCH 3 — Forbidden subreddits by vertical
+// ⚠️ IMPORTANT: We allow generic subs (france, AskFrance, vosfinances) IF the post matches the vertical keywords
+// Only truly irrelevant subs are forbidden (politics, city-specific, pure news)
 const FORBIDDEN_SUBS_BY_VERTICAL: Record<Vertical, string[]> = {
-  furniture: ["AskFrance", "vosfinances", "france", "economie", "politique", "Lyon", "Toulouse", "ParisPasCheres"],
-  tech: ["vosfinances", "politique", "economie"],
-  ecommerce: ["politique", "economie", "france"],
-  finance: ["AskFrance", "politique", "actualite"],
-  freelance: ["politique", "economie"],
-  marketing: ["politique", "economie"],
-  general: []
+  furniture: ["politique", "actualite", "Lyon", "Toulouse", "Bordeaux", "Marseille", "Nantes", "Strasbourg", "news", "worldnews", "europe"],
+  tech: ["politique", "actualite", "news", "worldnews"],
+  ecommerce: ["politique", "actualite", "news", "worldnews"],
+  finance: ["politique", "actualite", "news", "worldnews"],
+  freelance: ["politique", "actualite", "news"],
+  marketing: ["politique", "actualite", "news"],
+  general: ["politique", "news", "worldnews"]
 };
 
 // 🔒 PATCH 4 — Detect vertical from project context
