@@ -88,7 +88,7 @@ export function useRedditPreload() {
   }, [project?.id]);
 }
 
-// Subreddit mapping (same as AeoReddit.tsx)
+// Subreddit mapping (same as AeoReddit.tsx) - ENHANCED with relevance-focused subs
 function getSubredditsForKeywords(keywords: string[], language: string): string[] {
   const subreddits = new Set<string>();
   
@@ -97,9 +97,9 @@ function getSubredditsForKeywords(keywords: string[], language: string): string[
       fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
       en: ["artificialintelligence", "MachineLearning", "startups", "SideProject", "indiehackers", "SaaS"]
     },
-    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit": {
-      fr: ["france", "deco", "maison", "ameublement", "BricoDecoMaison"],
-      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace"]
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur|appartement|studio|location": {
+      fr: ["france", "AskFrance", "vosfinances", "conseilachat"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom"]
     },
     "ecommerce|e-commerce|shopify|boutique|store|vente|commerce|magasin": {
       fr: ["ecommerce_france", "vosfinances", "entrepreneur", "france"],
@@ -121,9 +121,9 @@ function getSubredditsForKeywords(keywords: string[], language: string): string[
       fr: ["freelance_france", "vosfinances", "france", "AskFrance"],
       en: ["freelance", "webdev", "Entrepreneur", "DigitalNomad"]
     },
-    "finance|investissement|argent|épargne|bourse|crypto|trading": {
-      fr: ["vosfinances", "france", "cryptoFR"],
-      en: ["personalfinance", "investing", "stocks", "CryptoCurrency"]
+    "finance|investissement|argent|épargne|bourse|crypto|trading|achat|budget|prix": {
+      fr: ["vosfinances", "france", "cryptoFR", "conseilachat", "AskFrance"],
+      en: ["personalfinance", "investing", "stocks", "CryptoCurrency", "Frugal"]
     }
   };
   
@@ -140,7 +140,7 @@ function getSubredditsForKeywords(keywords: string[], language: string): string[
   
   if (subreddits.size === 0) {
     if (language === "fr") {
-      ["france", "vosfinances", "AskFrance", "entrepreneur"].forEach(s => subreddits.add(s));
+      ["france", "vosfinances", "AskFrance", "conseilachat"].forEach(s => subreddits.add(s));
     } else {
       ["startups", "Entrepreneur", "smallbusiness", "SideProject", "webdev"].forEach(s => subreddits.add(s));
     }

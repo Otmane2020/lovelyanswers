@@ -83,6 +83,8 @@ interface RealRedditPost {
   score: number;
   comments: number;
   createdUtc: number;
+  relevanceScore?: number;
+  relevanceReason?: string;
 }
 
 // Parse Reddit RSS to extract posts
@@ -270,17 +272,17 @@ async function loadProjectContext(supabase: any, projectId: string): Promise<Pro
 function getSubredditsFromKeywords(keywords: string[], language: string): string[] {
   const subreddits = new Set<string>();
   
-  // Category mappings with language-specific subreddits
+  // Category mappings with language-specific subreddits - ENHANCED with active communities
   const categoryMap: Record<string, { fr: string[]; en: string[] }> = {
     // Tech/SaaS/Startup
     "tech|saas|startup|mvp|dev|application|logiciel|software|ai|ia|machine learning": {
       fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
       en: ["startups", "SideProject", "webdev", "Entrepreneur", "SaaS", "indiehackers"]
     },
-    // Furniture/Home/Decor
-    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit": {
-      fr: ["france", "deco", "maison", "ameublement", "BrisDecoMaison"],
-      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace"]
+    // Furniture/Home/Decor - ENHANCED for Movala-style projects
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur|appartement|studio|location": {
+      fr: ["france", "AskFrance", "vosfinances", "conseilachat", "ParisPasCheres", "Lyon", "Toulouse"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom", "homedecorating", "AmateurRoomPorn", "CozyPlaces"]
     },
     // E-commerce/Retail
     "ecommerce|boutique|shopify|vente|store|retail|commerce|magasin": {
@@ -298,9 +300,9 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
       en: ["freelance", "webdev", "Entrepreneur", "DigitalNomad"]
     },
     // Finance/Investment
-    "finance|investissement|argent|épargne|bourse|crypto|trading": {
-      fr: ["vosfinances", "france", "cryptoFR"],
-      en: ["personalfinance", "investing", "stocks", "CryptoCurrency"]
+    "finance|investissement|argent|épargne|bourse|crypto|trading|achat|budget|prix|cher|pas cher": {
+      fr: ["vosfinances", "france", "cryptoFR", "conseilachat", "AskFrance"],
+      en: ["personalfinance", "investing", "stocks", "CryptoCurrency", "Frugal"]
     }
   };
 
@@ -318,7 +320,7 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
   // Strict language-based fallback
   if (subreddits.size === 0) {
     if (language === "fr") {
-      ["france", "vosfinances", "AskFrance", "entrepreneur"].forEach(s => subreddits.add(s));
+      ["france", "vosfinances", "AskFrance", "conseilachat"].forEach(s => subreddits.add(s));
     } else {
       ["startups", "Entrepreneur", "smallbusiness", "webdev", "SideProject"].forEach(s => subreddits.add(s));
     }
@@ -326,6 +328,160 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
 
   console.log(`[reddit-agent] Generated ${subreddits.size} subreddits for lang=${language}: ${Array.from(subreddits).join(", ")}`);
   return Array.from(subreddits);
+}
+
+/* =======================
+   🔥 NEW: RELEVANCE SCORING SYSTEM
+======================= */
+function computeRelevanceScore(
+  post: RealRedditPost, 
+  keywords: string[], 
+  businessDescription: string,
+  language: string
+): { score: number; reason: string } {
+  let score = 0;
+  const reasons: string[] = [];
+  const titleLower = post.title.toLowerCase();
+  const bodyLower = (post.body || "").toLowerCase();
+  const combinedText = `${titleLower} ${bodyLower}`;
+  
+  // 1. Keyword matches in title (+15 each, max 45)
+  let titleMatches = 0;
+  keywords.forEach(kw => {
+    const kwLower = kw.toLowerCase();
+    if (titleLower.includes(kwLower)) {
+      titleMatches++;
+      if (titleMatches <= 3) score += 15;
+    }
+  });
+  if (titleMatches > 0) reasons.push(`${titleMatches} keyword(s) in title`);
+  
+  // 2. Keyword matches in body (+5 each, max 20)
+  let bodyMatches = 0;
+  keywords.forEach(kw => {
+    const kwLower = kw.toLowerCase();
+    if (bodyLower.includes(kwLower) && !titleLower.includes(kwLower)) {
+      bodyMatches++;
+      if (bodyMatches <= 4) score += 5;
+    }
+  });
+  if (bodyMatches > 0) reasons.push(`${bodyMatches} keyword(s) in body`);
+  
+  // 3. Question post bonus (+20)
+  const questionPatterns = language === "fr"
+    ? /^(comment|où|quel|quelle|quels|quelles|pourquoi|est-ce que|combien|qui|quand|faut-il|dois-je|peut-on|conseils?|avis|aide|besoin|cherche)/i
+    : /^(how|what|where|when|why|which|who|should|can|does|is|are|any|looking for|need|help|advice|recommend)/i;
+  
+  if (questionPatterns.test(post.title)) {
+    score += 20;
+    reasons.push("Question post");
+  }
+  
+  // 4. Help/advice request bonus (+15)
+  const helpPatterns = language === "fr"
+    ? /(besoin d'aide|conseils?|avis|recommand|suggestion|cherche|où trouver|quel.*choisir|meilleur|pas cher|budget)/i
+    : /(need help|advice|recommend|suggest|looking for|where to|which.*should|best|budget|affordable)/i;
+  
+  if (helpPatterns.test(combinedText)) {
+    score += 15;
+    reasons.push("Help request");
+  }
+  
+  // 5. Business description match (+10)
+  const businessKeywords = businessDescription.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  const businessMatches = businessKeywords.filter(bw => combinedText.includes(bw)).length;
+  if (businessMatches >= 2) {
+    score += 10;
+    reasons.push("Business match");
+  }
+  
+  // 6. Penalty for off-topic common Reddit content (-30)
+  const offTopicPatterns = /(meme|shitpost|rant|vent|politics|trump|macron|élection|election|guerre|war|covid|vaccine|vaccin)/i;
+  if (offTopicPatterns.test(combinedText)) {
+    score -= 30;
+    reasons.push("Off-topic content");
+  }
+  
+  // 7. Penalty for wrong language (-50)
+  const frenchIndicators = /\b(le|la|les|de|du|des|et|ou|pour|avec|une?|est|sont)\b/gi;
+  const englishIndicators = /\b(the|and|or|for|with|in|is|are|was|were|have|has)\b/gi;
+  const frenchCount = (combinedText.match(frenchIndicators) || []).length;
+  const englishCount = (combinedText.match(englishIndicators) || []).length;
+  const detectedLang = frenchCount > englishCount ? "fr" : "en";
+  
+  if (detectedLang !== language && (frenchCount + englishCount) > 5) {
+    score -= 50;
+    reasons.push("Wrong language");
+  }
+  
+  // Normalize score 0-100
+  score = Math.max(0, Math.min(100, score));
+  
+  return { 
+    score, 
+    reason: reasons.length > 0 ? reasons.join(", ") : "No specific match"
+  };
+}
+
+/* =======================
+   🔥 NEW: REDDIT KEYWORD SEARCH
+======================= */
+async function searchRedditByKeywords(keywords: string[], language: string): Promise<RealRedditPost[]> {
+  const posts: RealRedditPost[] = [];
+  
+  // Build search query from top keywords
+  const searchTerms = keywords.slice(0, 5).join(" OR ");
+  const searchUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(searchTerms)}&sort=new&limit=30&type=link`;
+  
+  console.log(`[reddit-agent] Searching Reddit for: ${searchTerms}`);
+  
+  try {
+    const res = await fetch(searchUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+      }
+    });
+    
+    if (!res.ok) {
+      console.error(`[reddit-agent] Search failed: ${res.status}`);
+      return posts;
+    }
+    
+    const data = await res.json();
+    
+    if (data.data?.children) {
+      for (const child of data.data.children) {
+        const post = child.data;
+        if (post && !post.stickied && !post.over_18) {
+          // Filter by language based on subreddit
+          const frenchSubs = ["france", "askfrance", "vosfinances", "conseilachat", "quebec", "lyon", "toulouse", "marseille", "paris"];
+          const subLower = post.subreddit?.toLowerCase() || "";
+          const isFrenchSub = frenchSubs.some(fs => subLower.includes(fs));
+          
+          // Only include posts matching the target language
+          if ((language === "fr" && isFrenchSub) || (language === "en" && !isFrenchSub)) {
+            posts.push({
+              id: post.id,
+              title: post.title,
+              body: post.selftext || "",
+              subreddit: post.subreddit,
+              url: `https://www.reddit.com${post.permalink}`,
+              score: post.score || 0,
+              comments: post.num_comments || 0,
+              createdUtc: post.created_utc || 0
+            });
+          }
+        }
+      }
+    }
+    
+    console.log(`[reddit-agent] Found ${posts.length} posts via keyword search`);
+  } catch (err) {
+    console.error(`[reddit-agent] Search error:`, err);
+  }
+  
+  return posts;
 }
 
 /* =======================
@@ -663,7 +819,7 @@ serve(async (req) => {
   }
 });
 
-// 🔥 FIXED: Use REAL Reddit posts with LOCKED project context
+// 🔥 FIXED: Use REAL Reddit posts with LOCKED project context + RELEVANCE SCORING
 async function findOpportunities(
   context: ProjectContext,
   keywords: string[],
@@ -677,8 +833,9 @@ async function findOpportunities(
     : getSubredditsFromKeywords(keywords, context.language);
 
   console.log(`[reddit-agent] Finding opportunities for ${context.brandName} | lang=${context.language} | subs=${targetSubreddits.join(", ")}`);
+  console.log(`[reddit-agent] Keywords: ${keywords.slice(0, 10).join(", ")}`);
 
-  // 1. Fetch REAL posts from Reddit
+  // 1. Fetch REAL posts from Reddit subreddits
   const allPosts: RealRedditPost[] = [];
   for (const sub of targetSubreddits) {
     const posts = await fetchRealRedditPosts(sub);
@@ -686,35 +843,88 @@ async function findOpportunities(
     await new Promise(r => setTimeout(r, 200));
   }
 
-  console.log(`[reddit-agent] Fetched ${allPosts.length} real Reddit posts`);
+  // 2. 🔥 NEW: Also search Reddit by keywords directly
+  if (keywords.length > 0) {
+    const searchPosts = await searchRedditByKeywords(keywords, context.language);
+    // Add unique posts (not already in allPosts)
+    const existingIds = new Set(allPosts.map(p => p.id));
+    for (const post of searchPosts) {
+      if (!existingIds.has(post.id)) {
+        allPosts.push(post);
+        existingIds.add(post.id);
+      }
+    }
+  }
+
+  console.log(`[reddit-agent] Fetched ${allPosts.length} total Reddit posts`);
 
   if (allPosts.length === 0) {
     return { opportunities: [] };
   }
 
-  // 2. Pre-filter posts by keyword relevance (boost efficiency)
-  const keywordRegex = new RegExp(keywords.slice(0, 10).join("|"), "i");
-  const relevantPosts = allPosts.filter(p => 
-    keywordRegex.test(p.title) || keywordRegex.test(p.body)
-  );
-  
-  // Mix: relevant posts first, then some general ones
-  const postsToAnalyze = [
-    ...relevantPosts.slice(0, 20),
-    ...allPosts.filter(p => !relevantPosts.includes(p)).slice(0, 10)
-  ];
+  // 3. 🔥 NEW: Compute relevance score for EVERY post
+  const scoredPosts = allPosts.map(post => {
+    const { score, reason } = computeRelevanceScore(
+      post, 
+      keywords, 
+      context.businessDescription,
+      context.language
+    );
+    return {
+      ...post,
+      relevanceScore: score,
+      relevanceReason: reason
+    };
+  });
 
-  const postsForAI = postsToAnalyze.slice(0, 30).map(p => ({
+  // 4. 🔥 FILTER: Only keep posts with relevance >= 15
+  const MIN_RELEVANCE = 15;
+  const relevantPosts = scoredPosts.filter(p => p.relevanceScore >= MIN_RELEVANCE);
+  
+  console.log(`[reddit-agent] ${relevantPosts.length}/${scoredPosts.length} posts passed relevance filter (>=${MIN_RELEVANCE})`);
+
+  // 5. Sort by relevance score (highest first)
+  relevantPosts.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+  // 6. Take top 20 for AI qualification
+  const postsForAI = relevantPosts.slice(0, 20).map(p => ({
     id: p.id,
     title: p.title,
-    body: p.body.substring(0, 200),
+    body: (p.body || "").substring(0, 200),
     subreddit: p.subreddit,
     url: p.url,
     score: p.score,
-    comments: p.comments
+    comments: p.comments,
+    relevanceScore: p.relevanceScore,
+    relevanceReason: p.relevanceReason
   }));
 
-  // 🔥 FIXED: Build LOCKED context prompt (no context mixing)
+  // 7. If we have enough relevant posts, skip AI and return directly
+  if (relevantPosts.length >= 5) {
+    console.log(`[reddit-agent] Returning ${relevantPosts.length} pre-scored relevant posts directly`);
+    return {
+      opportunities: relevantPosts.slice(0, 20).map(p => ({
+        id: p.id,
+        subreddit: p.subreddit,
+        title: p.title,
+        body: p.body,
+        url: p.url,
+        score: p.score,
+        comments: p.comments,
+        relevanceScore: p.relevanceScore,
+        relevanceReason: p.relevanceReason,
+        engagementPotential: p.relevanceScore >= 50 ? "high" : p.relevanceScore >= 30 ? "medium" : "low"
+      }))
+    };
+  }
+
+  // 8. If very few relevant posts, use AI to find more from general posts
+  const generalPosts = scoredPosts
+    .filter(p => p.relevanceScore < MIN_RELEVANCE)
+    .slice(0, 20);
+
+  const combinedPosts = [...relevantPosts, ...generalPosts].slice(0, 30);
+
   const prompt = `You are analyzing REAL Reddit posts to find engagement opportunities.
 
 🔒 LOCKED CONTEXT (DO NOT DEVIATE):
@@ -725,33 +935,16 @@ async function findOpportunities(
 - Target Audiences: ${context.targetAudiences.join(", ") || "General"}
 - Keywords: ${keywords.join(", ") || "general topics"}
 
-CRITICAL LANGUAGE RULES:
-${context.language === "fr" ? `
-- ONLY select posts written in FRENCH (titre et contenu en français)
-- Reject ANY post with English sentences unless it's a technical term
-- French subreddits (r/france, r/vosfinances, r/AskFrance) are MANDATORY
-- If no French posts match, return empty array rather than English posts
-` : `
-- ONLY select posts written in ENGLISH
-- Reject ANY post with non-English text (except brand names)
-`}
-
-Here are REAL Reddit posts (with real URLs):
+Here are posts with their pre-computed relevance scores:
 ${JSON.stringify(postsForAI, null, 2)}
 
 Select the TOP 10 posts where replying would be:
-1. HIGHLY RELEVANT to "${context.brandName}"'s expertise: ${context.businessDescription.substring(0, 200)}
+1. HIGHLY RELEVANT to "${context.brandName}"'s expertise
 2. Natural place to share knowledge (not promotional)
-3. Posts with < 50 comments (less competition)
-4. Questions, help requests, or discussions work best
-5. ${context.language === "fr" ? "ONLY French posts (French language mandatory)" : "English posts only"}
+3. Questions, help requests, or discussions work best
+4. ${context.language === "fr" ? "ONLY French posts" : "English posts only"}
 
-SCORING PRIORITY:
-- Posts mentioning keywords directly = HIGH priority
-- Posts about topics ${context.brandName} can genuinely help with = MEDIUM priority
-- General industry posts = LOW priority
-
-Return JSON with ONLY these real posts (keep exact URLs):
+Return JSON with these fields:
 {
   "opportunities": [
     {
@@ -762,13 +955,14 @@ Return JSON with ONLY these real posts (keep exact URLs):
       "url": "exact_url_from_input",
       "score": number,
       "comments": number,
-      "engagementPotential": "high|medium|low",
-      "reason": "Why this post is relevant to ${context.brandName}'s expertise (in ${context.language === "fr" ? "French" : "English"})"
+      "relevanceScore": number (keep from input or adjust 0-100),
+      "relevanceReason": "Why relevant",
+      "engagementPotential": "high|medium|low"
     }
   ]
 }
 
-CRITICAL: Return ONLY posts from the input. Do NOT invent URLs or post IDs.`;
+CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -781,9 +975,7 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs or post IDs.`;
       messages: [
         { 
           role: "system", 
-          content: `You are a Reddit analyst working EXCLUSIVELY for ${context.brandName}. 
-Language: ${context.language === "fr" ? "FRENCH ONLY" : "ENGLISH ONLY"}.
-Return valid JSON only. Never invent data. Never mention competing brands.` 
+          content: `You are a Reddit analyst for ${context.brandName}. Return valid JSON only.` 
         },
         { role: "user", content: prompt }
       ],
@@ -792,9 +984,9 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
 
   if (!response.ok) {
     console.error(`[reddit-agent] AI API error: ${response.status}`);
-    // Fallback: return raw posts without AI qualification
+    // Fallback: return pre-scored posts
     return {
-      opportunities: allPosts.slice(0, 10).map(p => ({
+      opportunities: relevantPosts.slice(0, 15).map(p => ({
         id: p.id,
         subreddit: p.subreddit,
         title: p.title,
@@ -802,8 +994,9 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
         url: p.url,
         score: p.score,
         comments: p.comments,
-        engagementPotential: p.comments < 20 ? "high" : p.comments < 50 ? "medium" : "low",
-        reason: "Real Reddit post"
+        relevanceScore: p.relevanceScore,
+        relevanceReason: p.relevanceReason,
+        engagementPotential: p.relevanceScore >= 50 ? "high" : "medium"
       }))
     };
   }
@@ -815,18 +1008,17 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || [null, content];
     const parsed = JSON.parse(jsonMatch[1] || content);
     
-    // 🔒 CRITICAL: Validate that returned URLs are REAL (from our input)
-    // Use normalized URLs for flexible matching
+    // Validate URLs
     const normalizeUrl = (url: string): string => {
       return url
-        .replace(/\/$/, '') // Remove trailing slash
-        .replace(/^https?:\/\/(www\.)?/, '') // Remove protocol and www
-        .replace(/\?.*$/, '') // Remove query params
+        .replace(/\/$/, '')
+        .replace(/^https?:\/\/(www\.)?/, '')
+        .replace(/\?.*$/, '')
         .toLowerCase();
     };
     
     const normalizedValidUrls = new Map<string, RealRedditPost>();
-    allPosts.forEach(p => {
+    combinedPosts.forEach(p => {
       normalizedValidUrls.set(normalizeUrl(p.url), p);
     });
     
@@ -836,19 +1028,22 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
         const normalizedOppUrl = normalizeUrl(opp.url);
         const originalPost = normalizedValidUrls.get(normalizedOppUrl);
         if (originalPost) {
-          return { ...opp, url: originalPost.url }; // Use original URL
+          return { 
+            ...opp, 
+            url: originalPost.url,
+            relevanceScore: opp.relevanceScore || originalPost.relevanceScore,
+            relevanceReason: opp.relevanceReason || originalPost.relevanceReason
+          };
         }
         return null;
       })
       .filter(Boolean);
 
-    console.log(`[reddit-agent] Validated ${validatedOpportunities.length} opportunities with real URLs`);
+    console.log(`[reddit-agent] Validated ${validatedOpportunities.length} opportunities`);
     
-    // 🔥 FALLBACK: If 0 opportunities validated, return raw posts
-    if (validatedOpportunities.length === 0 && allPosts.length > 0) {
-      console.log(`[reddit-agent] Validation failed, using ${allPosts.length} raw posts as fallback`);
+    if (validatedOpportunities.length === 0 && relevantPosts.length > 0) {
       return {
-        opportunities: allPosts.slice(0, 15).map(p => ({
+        opportunities: relevantPosts.slice(0, 15).map(p => ({
           id: p.id,
           subreddit: p.subreddit,
           title: p.title,
@@ -856,8 +1051,9 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
           url: p.url,
           score: p.score,
           comments: p.comments,
-          engagementPotential: p.comments < 20 ? "high" : p.comments < 50 ? "medium" : "low",
-          reason: "Real Reddit post (direct match)"
+          relevanceScore: p.relevanceScore,
+          relevanceReason: p.relevanceReason,
+          engagementPotential: "medium"
         }))
       };
     }
@@ -865,9 +1061,8 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
     return { opportunities: validatedOpportunities };
   } catch (parseError) {
     console.error(`[reddit-agent] JSON parse error:`, parseError);
-    // Fallback to raw posts
     return {
-      opportunities: allPosts.slice(0, 10).map(p => ({
+      opportunities: relevantPosts.slice(0, 10).map(p => ({
         id: p.id,
         subreddit: p.subreddit,
         title: p.title,
@@ -875,8 +1070,9 @@ Return valid JSON only. Never invent data. Never mention competing brands.`
         url: p.url,
         score: p.score,
         comments: p.comments,
-        engagementPotential: "medium",
-        reason: "Real Reddit post"
+        relevanceScore: p.relevanceScore,
+        relevanceReason: p.relevanceReason,
+        engagementPotential: "medium"
       }))
     };
   }

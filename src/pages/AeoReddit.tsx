@@ -47,6 +47,8 @@ interface RedditPost {
   estimatedScore?: number;
   brandMentioned?: boolean;
   linkIncluded?: boolean;
+  relevanceScore?: number;
+  relevanceReason?: string;
 }
 
 // 🔒 FIXED: Dynamic subreddit generation with STRICT language separation
@@ -269,9 +271,14 @@ export default function AeoReddit() {
       if (error) throw error;
 
       if (data?.opportunities && Array.isArray(data.opportunities)) {
-        // 🔒 CRITICAL: Only accept posts with REAL Reddit URLs
+        // 🔒 CRITICAL: Only accept posts with REAL Reddit URLs + relevance >= 15
+        const MIN_RELEVANCE = 15;
         const transformedPosts: RedditPost[] = data.opportunities
-          .filter((opp: any) => opp.url && opp.url.includes("reddit.com/r/"))
+          .filter((opp: any) => {
+            const hasValidUrl = opp.url && opp.url.includes("reddit.com/r/");
+            const hasRelevance = (opp.relevanceScore ?? 100) >= MIN_RELEVANCE;
+            return hasValidUrl && hasRelevance;
+          })
           .map((opp: any, index: number) => ({
             id: opp.id || `post-${index}`,
             subreddit: opp.subreddit ? `r/${opp.subreddit}` : 'r/unknown',
@@ -279,8 +286,12 @@ export default function AeoReddit() {
             body: opp.body || '',
             views: opp.score ? `${opp.score} pts` : `${opp.comments || 0} comments`,
             trending: (opp.score || 0) > 100 || opp.engagementPotential === "high",
-            url: opp.url // REAL URL only
-          }));
+            url: opp.url,
+            relevanceScore: opp.relevanceScore || 0,
+            relevanceReason: opp.relevanceReason || ""
+          }))
+          // Sort by relevance score (highest first)
+          .sort((a: RedditPost, b: RedditPost) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
         
         setPosts(transformedPosts);
         toast({
@@ -451,6 +462,23 @@ export default function AeoReddit() {
     );
   };
 
+  const getRelevanceBadge = (score?: number, reason?: string) => {
+    if (score === undefined) return null;
+    
+    const color = score >= 50 
+      ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
+      : score >= 30 
+        ? "bg-blue-500/20 text-blue-600 border-blue-500/30"
+        : "bg-amber-500/20 text-amber-600 border-amber-500/30";
+    
+    return (
+      <Badge className={color} title={reason || ""}>
+        <TrendingUp className="w-3 h-3 mr-1" />
+        {score}% pertinent
+      </Badge>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -601,13 +629,14 @@ export default function AeoReddit() {
           ) : posts.length === 0 ? (
             <Card className="p-8 text-center">
               <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold text-lg mb-2">No posts found</h3>
+              <h3 className="font-semibold text-lg mb-2">Aucun post pertinent trouvé</h3>
               <p className="text-muted-foreground mb-4">
-                Click Refresh to search for Reddit opportunities in r/seo, r/marketing, r/smallbusiness
+                Aucun post Reddit ne correspond à vos mots-clés ({generationSettings?.language === "fr" ? "français" : "anglais"}).
+                Ajoutez plus de mots-clés dans les paramètres ou cliquez sur Refresh.
               </p>
               <Button onClick={refreshPosts} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Search Reddit
+                Rechercher sur Reddit
               </Button>
             </Card>
           ) : (
@@ -620,13 +649,19 @@ export default function AeoReddit() {
                       <span className="text-white text-sm font-bold">r/</span>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-muted-foreground">{post.subreddit}</span>
                         {post.trending && (
                           <TrendingUp className="w-4 h-4 text-emerald-500" />
                         )}
+                        {getRelevanceBadge(post.relevanceScore, post.relevanceReason)}
                       </div>
                       <h3 className="font-medium text-foreground">{post.title}</h3>
+                      {post.relevanceReason && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {post.relevanceReason}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
