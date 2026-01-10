@@ -45,7 +45,6 @@ export function AeoSidebar() {
     { title: "History", url: "/history", icon: History },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Integrations", url: "/integrations", icon: Link2 },
-    { title: "GEO Audit", url: "/seo-audit", icon: Search, badge: "New" },
     { title: "Reddit", url: "/reddit", icon: MessageSquareText, badge: "New" },
   ];
 
@@ -76,12 +75,12 @@ export function AeoSidebar() {
           onClick={handleNavClick} 
           className="flex items-center gap-2.5 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center shadow-lg">
             <Heart className="w-4 h-4 text-white fill-white" />
           </div>
           {state === "expanded" && (
             <span className="font-bold text-lg text-foreground">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           )}
         </NavLink>
