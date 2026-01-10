@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Clock, Loader2 } from "lucide-react";
+import { Settings, Clock, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,8 +17,22 @@ interface AutoPublishSettingsProps {
 export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
+  const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
+  const [timezone, setTimezone] = useState("Europe/Paris");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const timezones = [
+    { value: "Europe/Paris", label: "Paris (CET/CEST)" },
+    { value: "Europe/London", label: "London (GMT/BST)" },
+    { value: "America/New_York", label: "New York (EST/EDT)" },
+    { value: "America/Los_Angeles", label: "Los Angeles (PST/PDT)" },
+    { value: "America/Chicago", label: "Chicago (CST/CDT)" },
+    { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+    { value: "Asia/Dubai", label: "Dubai (GST)" },
+    { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+    { value: "UTC", label: "UTC" },
+  ];
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -28,13 +42,19 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
       try {
         const { data } = await supabase
           .from("project_settings")
-          .select("auto_publish_enabled, publish_hour")
+          .select("auto_publish_enabled, publish_hour, timezone")
           .eq("project_id", projectId)
           .single();
         
         if (data) {
           setAutoPublishEnabled(data.auto_publish_enabled || false);
-          setPublishHour(data.publish_hour || "08");
+          // Convert 24h to 12h format
+          const hour24 = parseInt(data.publish_hour || "08");
+          const period = hour24 >= 12 ? "PM" : "AM";
+          const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+          setPublishHour(hour12.toString().padStart(2, "0"));
+          setPublishPeriod(period);
+          setTimezone((data as any).timezone || "Europe/Paris");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -51,12 +71,18 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Convert 12h to 24h format
+      let hour24 = parseInt(publishHour);
+      if (publishPeriod === "PM" && hour24 !== 12) hour24 += 12;
+      if (publishPeriod === "AM" && hour24 === 12) hour24 = 0;
+      
       const { error } = await supabase
         .from("project_settings")
         .upsert({
           project_id: projectId,
           auto_publish_enabled: autoPublishEnabled,
-          publish_hour: publishHour,
+          publish_hour: hour24.toString().padStart(2, "0"),
+          timezone: timezone,
           updated_at: new Date().toISOString()
         }, { onConflict: "project_id" });
       
@@ -72,7 +98,7 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
     }
   };
 
-  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,22 +137,53 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Publish Hour (UTC)
+                Publish Time
               </Label>
-              <Select value={publishHour} onValueChange={setPublishHour}>
+              <div className="flex gap-2">
+                <Select value={publishHour} onValueChange={setPublishHour}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Hour" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hours.map((hour) => (
+                      <SelectItem key={hour} value={hour}>
+                        {hour}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={publishPeriod} onValueChange={(v) => setPublishPeriod(v as "AM" | "PM")}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AM">AM</SelectItem>
+                    <SelectItem value="PM">PM</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Timezone */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Timezone
+              </Label>
+              <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select hour" />
+                  <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent>
-                  {hours.map((hour) => (
-                    <SelectItem key={hour} value={hour}>
-                      {hour}:00
+                  {timezones.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Content scheduled for today or earlier will be published at this hour.
+                Content scheduled for today or earlier will be published at this time.
               </p>
             </div>
 
