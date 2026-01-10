@@ -20,28 +20,75 @@ const REDDIT_BANNED_TERMS = [
   "LLM optimization"
 ];
 
-// 🔒 PATCH 2 — Forbidden subreddits for furniture/home businesses (too generic)
-const FORBIDDEN_SUBS_FOR_FURNITURE = [
-  "AskFrance",
-  "vosfinances", 
-  "france",
-  "economie",
-  "politique",
-  "Lyon",
-  "Toulouse",
-  "ParisPasCheres"
-];
+/* =======================
+   🔥 VERTICAL FILTER ENGINE (MULTI-SECTOR)
+   Generic business filtering for all sectors
+======================= */
 
-// 🔒 PATCH 1 — HARD FILTER — Furniture-only posts (Movala-style)
-function isFurnitureRelated(post: RealRedditPost): boolean {
-  const text = `${post.title} ${post.body}`.toLowerCase();
-  
-  return /meuble|mobilier|canapé|sofa|table|chaise|fauteuil|lit|matelas|buffet|armoire|étagère|dressing|salon|chambre|salle à manger|déco|décoration|interior|interieur|home|design|marbre|bois|rangement|aménag|furniture|couch|desk|chair|bedroom|living room|home office|ikea|maison du monde|conforama/.test(text);
+// 🔒 PATCH 1 — Define all business verticals
+type Vertical = 
+  | "furniture" 
+  | "tech" 
+  | "ecommerce" 
+  | "finance" 
+  | "freelance" 
+  | "marketing" 
+  | "general";
+
+// 🔒 PATCH 2 — Keyword patterns for each vertical
+const VERTICAL_KEYWORDS: Record<Vertical, RegExp> = {
+  furniture: /meuble|mobilier|canapé|sofa|table|chaise|fauteuil|lit|matelas|buffet|armoire|étagère|dressing|salon|chambre|salle à manger|déco|décoration|interior|interieur|home|design|marbre|bois|rangement|aménag|furniture|couch|desk|chair|bedroom|living room|home office|ikea|maison du monde|conforama|cuisine|salle de bain|miroir|bureau/i,
+  tech: /saas|software|api|startup|app|code|dev|ai|cloud|mvp|développeur|developer|programmer|logiciel|algorithme|machine learning|intelligence artificielle|github|tech|infrastructure|backend|frontend|fullstack|database|serveur|hosting/i,
+  ecommerce: /ecommerce|e-commerce|shopify|boutique|vente|retail|dropshipping|amazon|marketplace|woocommerce|magento|prestashop|panier|checkout|livraison|expédition|stock|inventaire|produit|catalogue/i,
+  finance: /finance|investissement|bourse|crypto|épargne|budget|argent|trading|actions|portefeuille|banque|crédit|prêt|immobilier|assurance|impôt|fiscalité|patrimoine|placement|rendement|dividende/i,
+  freelance: /freelance|client|mission|facturation|tjm|contrat|indépendant|consultant|prestataire|agence|agency|devis|proposition|portfolio|tarif|honoraires|auto-entrepreneur|micro-entreprise/i,
+  marketing: /seo|marketing|ads|publicité|growth|leads|acquisition|conversion|funnel|campagne|audience|ciblage|analytics|trafic|content|social media|influenceur|branding|notoriété|référencement/i,
+  general: /.*/i
+};
+
+// 🔒 PATCH 3 — Forbidden subreddits by vertical (too generic for that niche)
+const FORBIDDEN_SUBS_BY_VERTICAL: Record<Vertical, string[]> = {
+  furniture: ["AskFrance", "vosfinances", "france", "economie", "politique", "Lyon", "Toulouse", "ParisPasCheres"],
+  tech: ["vosfinances", "politique", "economie"],
+  ecommerce: ["politique", "economie", "france"],
+  finance: ["AskFrance", "politique", "actualite"],
+  freelance: ["politique", "economie"],
+  marketing: ["politique", "economie"],
+  general: []
+};
+
+// 🔒 PATCH 4 — Detect vertical from project context
+function detectVertical(context: { businessType?: string; businessDescription: string }): Vertical {
+  const text = `${context.businessType || ""} ${context.businessDescription}`.toLowerCase();
+
+  if (/meuble|mobilier|furniture|canapé|sofa|déco|interior|home|décoration|ameublement/.test(text)) {
+    return "furniture";
+  }
+  if (/saas|software|app|startup|api|tech|logiciel|développement|code|mvp/.test(text)) {
+    return "tech";
+  }
+  if (/ecommerce|e-commerce|shop|boutique|vente|retail|shopify|marketplace/.test(text)) {
+    return "ecommerce";
+  }
+  if (/finance|investissement|argent|bourse|crypto|épargne|trading|banque/.test(text)) {
+    return "finance";
+  }
+  if (/freelance|agency|agence|consultant|indépendant|prestataire/.test(text)) {
+    return "freelance";
+  }
+  if (/seo|marketing|growth|ads|traffic|acquisition|leads|publicité/.test(text)) {
+    return "marketing";
+  }
+
+  return "general";
 }
 
-// Check if business is furniture/home related
-function isFurnitureBusiness(businessDescription: string): boolean {
-  return /meuble|mobilier|furniture|canapé|sofa|décor|intérieur|interior|home design|ameublement/i.test(businessDescription);
+// 🔒 PATCH 5 — Check if post matches the detected vertical
+function isPostRelevantToVertical(post: RealRedditPost, vertical: Vertical): boolean {
+  if (vertical === "general") return true;
+  
+  const text = `${post.title} ${post.body}`.toLowerCase();
+  return VERTICAL_KEYWORDS[vertical].test(text);
 }
 
 function sanitizeRedditReply(text: string): string {
@@ -1045,29 +1092,34 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
-  // 🔒 PATCH 1 — HARD BUSINESS FILTER (Movala = meubles uniquement)
+  // 🔒 VERTICAL FILTER ENGINE — Generic multi-sector filtering
+  const vertical = detectVertical(context);
+  console.log(`[reddit-agent] 🔒 Detected vertical: ${vertical}`);
+
+  // 🔒 PATCH 1 — HARD BUSINESS FILTER (by detected vertical)
   let filteredPosts = allPosts;
   
-  if (isFurnitureBusiness(context.businessDescription)) {
-    console.log(`[reddit-agent] 🔒 Furniture business detected, applying hard filter`);
-    filteredPosts = filteredPosts.filter(isFurnitureRelated);
-    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts are furniture-related`);
+  if (vertical !== "general") {
+    console.log(`[reddit-agent] Applying ${vertical} filter...`);
+    filteredPosts = filteredPosts.filter(p => isPostRelevantToVertical(p, vertical));
+    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match ${vertical} vertical`);
   }
 
-  // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS for furniture businesses
-  if (isFurnitureBusiness(context.businessDescription)) {
+  // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS (by vertical)
+  const forbiddenSubs = FORBIDDEN_SUBS_BY_VERTICAL[vertical] || [];
+  if (forbiddenSubs.length > 0) {
     const beforeCount = filteredPosts.length;
     filteredPosts = filteredPosts.filter(
-      p => !FORBIDDEN_SUBS_FOR_FURNITURE.some(
-        forbidden => p.subreddit.toLowerCase() === forbidden.toLowerCase()
+      p => !forbiddenSubs.some(
+        (forbidden: string) => p.subreddit.toLowerCase() === forbidden.toLowerCase()
       )
     );
-    console.log(`[reddit-agent] Removed ${beforeCount - filteredPosts.length} posts from forbidden subreddits`);
+    console.log(`[reddit-agent] Removed ${beforeCount - filteredPosts.length} posts from forbidden subreddits for ${vertical}`);
   }
 
   // 🔒 PATCH 3 — IF NOTHING LEFT → RETURN EMPTY (NO FALLBACK)
-  if (filteredPosts.length === 0) {
-    console.log(`[reddit-agent] ❌ No business-related posts found. Returning empty array (no fallback).`);
+  if (vertical !== "general" && filteredPosts.length === 0) {
+    console.log(`[reddit-agent] ❌ No ${vertical}-related posts found. Returning empty array (no fallback).`);
     return { opportunities: [] };
   }
 
