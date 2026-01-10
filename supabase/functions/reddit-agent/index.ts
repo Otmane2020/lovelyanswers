@@ -85,6 +85,124 @@ interface RealRedditPost {
   createdUtc: number;
   relevanceScore?: number;
   relevanceReason?: string;
+  trendScore?: number;
+  intent?: string;
+}
+
+/* =======================
+   🔥 AMÉLIORATION 1: TREND SCORE
+   Score de tendance basé sur engagement + récence
+======================= */
+function computeTrendScore(post: RealRedditPost): number {
+  const now = Math.floor(Date.now() / 1000);
+  const ageInHours = Math.max(1, (now - post.createdUtc) / 3600);
+  
+  // Recency weight: posts < 6h get boost, decay after
+  const recencyWeight = ageInHours <= 6 ? 1.0 : 
+                        ageInHours <= 24 ? 0.8 : 
+                        ageInHours <= 72 ? 0.5 : 0.3;
+  
+  // Engagement metrics (score = upvotes, comments = discussions)
+  const engagementScore = 
+    (post.score || 0) * 0.5 + 
+    (post.comments || 0) * 0.3;
+  
+  // Normalize: base 50, engagement adds up to 40, recency adds up to 10
+  const trendScore = Math.min(100, Math.round(
+    50 + 
+    Math.min(40, engagementScore / 5) + 
+    recencyWeight * 10
+  ));
+  
+  return trendScore;
+}
+
+/* =======================
+   🔥 AMÉLIORATION 2: INTENT DETECTION
+   Détection de l'intention pour AEO
+======================= */
+type QuestionIntent = "howto" | "best" | "why" | "price" | "comparison" | "criteria" | "what";
+
+function detectIntent(title: string, language: string): QuestionIntent {
+  const titleLower = title.toLowerCase();
+  
+  if (language === "fr") {
+    if (/^(comment|tutoriel|étapes?|guide|faire|créer|configurer|installer|réaliser)/i.test(titleLower)) return "howto";
+    if ((/meilleur|top|recommand|conseill|quel.*choisir|où (acheter|trouver)/i.test(titleLower))) return "best";
+    if (/pourquoi|raison|cause|explique/i.test(titleLower)) return "why";
+    if (/prix|coût|budget|combien|tarif|pas cher|moins cher|économi/i.test(titleLower)) return "price";
+    if (/vs\b|versus|ou\b.*ou\b|comparaison|compare|différence|mieux.*entre/i.test(titleLower)) return "comparison";
+    if (/critères?|choisir|comment savoir|quoi (prendre|choisir)|à considérer/i.test(titleLower)) return "criteria";
+  } else {
+    if (/^(how to|tutorial|steps?|guide|create|build|make|set up|install)/i.test(titleLower)) return "howto";
+    if (/best|top|recommend|suggest|which.*should|where to (buy|find)|looking for/i.test(titleLower)) return "best";
+    if (/why|reason|cause|explain/i.test(titleLower)) return "why";
+    if (/price|cost|budget|how much|afford|cheap|expensive|worth/i.test(titleLower)) return "price";
+    if (/vs\b|versus|or\b.*or\b|comparison|compare|difference|better.*between/i.test(titleLower)) return "comparison";
+    if (/criteria|choose|how to know|what to (look for|consider)|factors/i.test(titleLower)) return "criteria";
+  }
+  
+  return "what";
+}
+
+/* =======================
+   🔥 AMÉLIORATION 3: ANSWER-READY JSON
+   Structure prête pour publication AEO
+======================= */
+interface AnswerReadyJSON {
+  slug: string;
+  question: string;
+  short_answer: string;
+  long_answer: string;
+  sources: string[];
+  trend_score: number;
+  relevance_score: number;
+  intent: QuestionIntent;
+  language: string;
+  status: "draft" | "pending" | "published";
+  metadata: {
+    reddit_url: string;
+    subreddit: string;
+    original_title: string;
+    detected_at: string;
+  };
+}
+
+function createAnswerReadyJSON(
+  post: RealRedditPost, 
+  language: string,
+  brandName: string
+): AnswerReadyJSON {
+  const intent = detectIntent(post.title, language);
+  const trendScore = computeTrendScore(post);
+  const normalizedQuestion = normalizeToAeoQuestion(post.title);
+  
+  // Generate SEO-friendly slug
+  const slug = normalizedQuestion
+    .toLowerCase()
+    .replace(/[^a-z0-9àâäéèêëïîôùûüÿçœæ\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
+  
+  return {
+    slug,
+    question: normalizedQuestion,
+    short_answer: "", // To be filled by AI
+    long_answer: "", // To be filled by AI
+    sources: ["reddit"],
+    trend_score: trendScore,
+    relevance_score: post.relevanceScore || 0,
+    intent,
+    language,
+    status: "draft",
+    metadata: {
+      reddit_url: post.url,
+      subreddit: post.subreddit,
+      original_title: post.title,
+      detected_at: new Date().toISOString()
+    }
+  };
 }
 
 // Parse Reddit RSS to extract posts
@@ -629,11 +747,26 @@ serve(async (req) => {
         }
       }
       
-      // 🔥 Strategic: Reddit → AEO pipeline
+      // 🔥 Strategic: Reddit → AEO pipeline with INTENT + TREND SCORE
       let aeoQuestionId: string | null = null;
       if (save_as_aeo && projectId) {
         try {
           const normalizedQuestion = normalizeToAeoQuestion(title);
+          const detectedIntent = detectIntent(title, effectiveLanguage);
+          
+          // Create a mock post for trend calculation
+          const mockPost: RealRedditPost = {
+            id: "temp",
+            title,
+            body: body || "",
+            subreddit,
+            url: "",
+            score: 0,
+            comments: 0,
+            createdUtc: Math.floor(Date.now() / 1000)
+          };
+          const trendScore = computeTrendScore(mockPost);
+          
           const { data: inserted } = await supabase
             .from("answers")
             .insert({
@@ -642,22 +775,25 @@ serve(async (req) => {
               answer: "",
               slug: normalizedQuestion.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100),
               platforms: ["chatgpt", "gemini", "claude"],
-              score: 0,
+              score: trendScore, // 🔥 Use trend score
               is_public: false,
-              intent: "what",
-              difficulty: "medium",
+              intent: detectedIntent, // 🔥 Use detected intent
+              difficulty: trendScore >= 70 ? "easy" : trendScore >= 40 ? "medium" : "hard",
               supporting_content: {
                 source: "reddit",
                 subreddit,
                 original_title: title,
-                status: "pending_aeo"
+                trend_score: trendScore,
+                intent: detectedIntent,
+                status: "pending_aeo",
+                detected_at: new Date().toISOString()
               }
             })
             .select("id")
             .single();
           
           aeoQuestionId = inserted?.id || null;
-          console.log(`[reddit-agent] Saved to AEO pipeline: ${aeoQuestionId}`);
+          console.log(`[reddit-agent] Saved to AEO: ${aeoQuestionId} | intent=${detectedIntent} | trend=${trendScore}`);
         } catch (aeoError) {
           console.error(`[reddit-agent] Failed to save AEO question:`, aeoError);
         }
@@ -754,9 +890,9 @@ serve(async (req) => {
           lovableApiKey
         );
         
-        // 🔥 NEW: Store opportunities in database if requested
+        // 🔥 ENHANCED: Store opportunities with TREND SCORE + INTENT
         if (storeInDb && result.opportunities && result.opportunities.length > 0) {
-          console.log(`[reddit-agent] Storing ${result.opportunities.length} opportunities in database`);
+          console.log(`[reddit-agent] Storing ${result.opportunities.length} opportunities with trend data`);
           
           for (const opp of result.opportunities.slice(0, 20)) {
             try {
@@ -769,6 +905,19 @@ serve(async (req) => {
                 .limit(1);
               
               if (!existing || existing.length === 0) {
+                // 🔥 Calculate trend score and intent
+                const trendScore = opp.trendScore || computeTrendScore({
+                  id: opp.id,
+                  title: opp.title,
+                  body: opp.body || "",
+                  subreddit: opp.subreddit,
+                  url: opp.url,
+                  score: opp.score || 0,
+                  comments: opp.comments || 0,
+                  createdUtc: opp.createdUtc || Math.floor(Date.now() / 1000)
+                });
+                const intent = detectIntent(opp.title, projectContext.language);
+                
                 await supabase
                   .from("reddit_responses")
                   .insert({
@@ -777,10 +926,20 @@ serve(async (req) => {
                     reddit_post_title: opp.title || "Untitled",
                     reddit_post_url: opp.url,
                     generated_reply: "", // Empty until user generates
-                    original_question: opp.title,
+                    original_question: normalizeToAeoQuestion(opp.title),
                     is_posted_to_reddit: false,
-                    is_shared: false
+                    is_shared: false,
+                    // 🔥 Store answer-ready JSON in reply_mode (repurposed)
+                    reply_mode: JSON.stringify({
+                      trend_score: trendScore,
+                      relevance_score: opp.relevanceScore || 0,
+                      intent,
+                      language: projectContext.language,
+                      detected_at: new Date().toISOString()
+                    })
                   });
+                
+                console.log(`[reddit-agent] Stored: ${opp.title.substring(0, 50)} | trend=${trendScore} | intent=${intent}`);
               }
             } catch (insertErr) {
               console.error(`[reddit-agent] Failed to insert opportunity:`, insertErr);
@@ -899,22 +1058,29 @@ async function findOpportunities(
     relevanceReason: p.relevanceReason
   }));
 
-  // 7. If we have enough relevant posts, skip AI and return directly
+  // 7. If we have enough relevant posts, skip AI and return directly with TREND + INTENT
   if (relevantPosts.length >= 5) {
-    console.log(`[reddit-agent] Returning ${relevantPosts.length} pre-scored relevant posts directly`);
+    console.log(`[reddit-agent] Returning ${relevantPosts.length} pre-scored relevant posts with trend data`);
     return {
-      opportunities: relevantPosts.slice(0, 20).map(p => ({
-        id: p.id,
-        subreddit: p.subreddit,
-        title: p.title,
-        body: p.body,
-        url: p.url,
-        score: p.score,
-        comments: p.comments,
-        relevanceScore: p.relevanceScore,
-        relevanceReason: p.relevanceReason,
-        engagementPotential: p.relevanceScore >= 50 ? "high" : p.relevanceScore >= 30 ? "medium" : "low"
-      }))
+      opportunities: relevantPosts.slice(0, 20).map(p => {
+        const trendScore = computeTrendScore(p);
+        const intent = detectIntent(p.title, context.language);
+        return {
+          id: p.id,
+          subreddit: p.subreddit,
+          title: p.title,
+          body: p.body,
+          url: p.url,
+          score: p.score,
+          comments: p.comments,
+          createdUtc: p.createdUtc,
+          relevanceScore: p.relevanceScore,
+          relevanceReason: p.relevanceReason,
+          trendScore,
+          intent,
+          engagementPotential: p.relevanceScore >= 50 ? "high" : p.relevanceScore >= 30 ? "medium" : "low"
+        };
+      })
     };
   }
 
