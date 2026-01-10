@@ -378,32 +378,32 @@ export default function Dashboard() {
 
         {/* Autopilot Modal Trigger */}
         <Card 
-          className="p-6 border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+          className="p-4 sm:p-6 border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
           onClick={() => setShowAutopilotModal(true)}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">Publish Article on Autopilot</h3>
-              <p className="text-sm text-muted-foreground">Connect your CMS to automatically publish articles</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground text-sm sm:text-base">Publish Article on Autopilot</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Connect your CMS to automatically publish articles</p>
             </div>
-            <ArrowRight className="w-5 h-5 text-primary" />
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
           </div>
         </Card>
       </div>
 
       {/* Autopilot Modal */}
       <Dialog open={showAutopilotModal} onOpenChange={setShowAutopilotModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100vw-32px)] max-w-md p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-center">Publish Article on Autopilot</DialogTitle>
+            <DialogTitle className="text-center text-base sm:text-lg">Publish Article on Autopilot</DialogTitle>
           </DialogHeader>
-          <div className="py-6">
-            <p className="text-center text-muted-foreground mb-6">
+          <div className="py-4 sm:py-6">
+            <p className="text-center text-muted-foreground mb-4 sm:mb-6 text-xs sm:text-sm">
               Connect your CMS to automatically publish AI-generated articles
             </p>
             
             {/* CMS Icons Grid */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {[
                 { name: "Wix", icon: "W" },
                 { name: "WordPress", icon: "W" },
@@ -412,20 +412,20 @@ export default function Dashboard() {
               ].map((cms) => (
                 <div 
                   key={cms.name}
-                  className="aspect-square rounded-xl border border-border flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                  className="aspect-square rounded-lg sm:rounded-xl border border-border flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                 >
-                  <span className="text-2xl font-bold text-muted-foreground">{cms.icon}</span>
+                  <span className="text-lg sm:text-2xl font-bold text-muted-foreground">{cms.icon}</span>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-col gap-3">
-              <Button className="w-full bg-foreground hover:bg-foreground/90 text-background">
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <Button className="w-full bg-foreground hover:bg-foreground/90 text-background h-9 sm:h-10 text-sm">
                 Connect Website
               </Button>
               <Button 
                 variant="ghost" 
-                className="w-full"
+                className="w-full h-9 sm:h-10 text-sm"
                 onClick={() => setShowAutopilotModal(false)}
               >
                 No Thanks
