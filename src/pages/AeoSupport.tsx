@@ -82,19 +82,34 @@ const AeoSupport = () => {
 
       if (error) throw error;
       
-      // Get the ticket to include the initial message if no messages exist
+      // Get the ticket to include the initial message
       const ticket = tickets.find(t => t.id === ticketId);
       const messagesData = data || [];
       
-      // If no messages but ticket has a message, add it as the first message
-      if (messagesData.length === 0 && ticket?.message) {
-        setMessages([{
+      // Always include the initial ticket message as the first message in the history
+      // But avoid duplicates - check if the first message matches the ticket message
+      if (ticket?.message) {
+        const initialMessage: SupportMessage = {
           id: 'initial-' + ticketId,
           ticket_id: ticketId,
           sender_type: 'user',
           message: ticket.message,
           created_at: ticket.created_at,
-        }]);
+        };
+        
+        // Check if we already have this message (to avoid duplicates)
+        const firstMessage = messagesData[0];
+        const isDuplicate = firstMessage && 
+          firstMessage.message === ticket.message && 
+          firstMessage.sender_type === 'user';
+        
+        if (isDuplicate) {
+          // Messages already include the initial message
+          setMessages(messagesData);
+        } else {
+          // Prepend the initial ticket message
+          setMessages([initialMessage, ...messagesData]);
+        }
       } else {
         setMessages(messagesData);
       }
