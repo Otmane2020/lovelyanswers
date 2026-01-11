@@ -4,9 +4,10 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Eye, Pencil, Download, FileText, Calendar, ArrowUpRight } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Search, Eye, Pencil, Copy, FileText, Calendar } from "lucide-react";
 import { useArticles } from "@/hooks/useArticles";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Articles() {
   const { data: articles = [] } = useArticles();
@@ -19,6 +20,19 @@ export default function Articles() {
     return matchesSearch && matchesStatus;
   });
 
+  const handleCopyArticle = async (articleId: string) => {
+    const { data: article } = await supabase
+      .from("articles")
+      .select("title, content, html_content")
+      .eq("id", articleId)
+      .single();
+    
+    if (article) {
+      navigator.clipboard.writeText(article.html_content || article.content || "");
+      toast.success("Article HTML copied to clipboard!");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -27,7 +41,6 @@ export default function Articles() {
             <h1 className="text-3xl font-bold tracking-tight">AEO Articles</h1>
             <p className="text-muted-foreground">Long-form content supporting your AEO answers</p>
           </div>
-          <Button className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm"><Plus className="h-4 w-4" />Generate Article</Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -54,14 +67,9 @@ export default function Articles() {
               <div className="mt-auto flex items-center gap-2">
                 <Button variant="ghost" size="sm" className="gap-2 flex-1"><Eye className="h-4 w-4" />Preview</Button>
                 <Button variant="ghost" size="sm" className="gap-2 flex-1"><Pencil className="h-4 w-4" />Edit</Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="ghost" size="sm"><Download className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Export as Markdown</DropdownMenuItem>
-                    <DropdownMenuItem>Export as HTML</DropdownMenuItem>
-                    <DropdownMenuItem><ArrowUpRight className="mr-2 h-4 w-4" />Publish to Shopify</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyArticle(article.id)}>
+                  <Copy className="h-4 w-4" />Copy
+                </Button>
               </div>
             </GlassCard>
           ))}
@@ -71,8 +79,7 @@ export default function Articles() {
               <GlassCard className="p-12 text-center">
                 <div className="flex flex-col items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><FileText className="h-8 w-8 text-muted-foreground" /></div>
-                  <div><h3 className="text-lg font-semibold">No articles found</h3><p className="text-muted-foreground">{articles.length === 0 ? "Generate an article from your AEO answers" : "Try adjusting your filters"}</p></div>
-                  <Button className="gap-2 gradient-bg text-primary-foreground"><Plus className="h-4 w-4" />Generate Article</Button>
+                  <div><h3 className="text-lg font-semibold">No articles yet</h3><p className="text-muted-foreground">Articles are generated automatically with your AEO answers</p></div>
                 </div>
               </GlassCard>
             </div>
