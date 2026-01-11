@@ -6,12 +6,32 @@ import { Badge } from "@/components/ui/badge";
 import { 
   TrendingUp, TrendingDown, Eye, ExternalLink,
   Search, ArrowUpRight, MousePointerClick, Target,
-  Zap, AlertCircle, CheckCircle2, Loader2, RefreshCw, LogOut
+  Zap, AlertCircle, CheckCircle2, Loader2, RefreshCw, LogOut,
+  Calendar, FileText, BarChart3
 } from "lucide-react";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, BarChart, Bar, Legend, ComposedChart, Line
+} from "recharts";
+import { format, subDays, parseISO } from "date-fns";
+
+interface DailyData {
+  date: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  position: number;
+}
+
+interface PublishedAnswer {
+  date: string;
+  count: number;
+  questions: string[];
+}
 
 interface GSCData {
   impressions: number;
@@ -20,6 +40,7 @@ interface GSCData {
   position: number;
   impressionsDelta: number;
   clicksDelta: number;
+  dailyData: DailyData[];
   topQueries: Array<{
     query: string;
     impressions: number;
@@ -37,6 +58,13 @@ interface GSCData {
   }>;
 }
 
+const TIME_PERIODS = [
+  { label: "7 days", value: 7 },
+  { label: "14 days", value: 14 },
+  { label: "30 days", value: 30 },
+  { label: "90 days", value: 90 },
+];
+
 export default function AeoAnalytics() {
   const { project: currentProject } = useActiveProject();
   const { user } = useAuth();
@@ -48,6 +76,8 @@ export default function AeoAnalytics() {
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [availableSites, setAvailableSites] = useState<string[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState(30);
+  const [publishedAnswers, setPublishedAnswers] = useState<PublishedAnswer[]>([]);
 
   // Check for OAuth callback
   useEffect(() => {
@@ -55,14 +85,11 @@ export default function AeoAnalytics() {
     const code = urlParams.get("code");
     
     if (code) {
-      // If we're in a popup, send message to parent and close
       if (window.opener) {
         window.opener.postMessage({ type: "GOOGLE_OAUTH_CODE", code }, window.location.origin);
         window.close();
         return;
       }
-      
-      // Normal flow - handle callback directly
       handleOAuthCallback(code);
       window.history.replaceState({}, document.title, "/analytics");
     }
@@ -73,15 +100,16 @@ export default function AeoAnalytics() {
     if (currentProject?.id && user?.id) {
       loadProjectStats();
       checkGSCConnection();
+      loadPublishedAnswers();
     }
   }, [currentProject?.id, user?.id]);
 
-  // Load GSC data when domain changes
+  // Load GSC data when domain or period changes
   useEffect(() => {
     if (isConnected && selectedDomain) {
       loadGSCData();
     }
-  }, [isConnected, selectedDomain]);
+  }, [isConnected, selectedDomain, selectedPeriod]);
 
   const loadProjectStats = async () => {
     if (!currentProject?.id) return;
@@ -95,6 +123,43 @@ export default function AeoAnalytics() {
       setAnswersCount(answers.filter(a => a.is_public).length);
       const scores = answers.map(a => a.score || 0).filter(s => s > 0);
       setAvgScore(scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0);
+    }
+  };
+
+  const loadPublishedAnswers = async () => {
+    if (!currentProject?.id) return;
+    
+    const startDate = subDays(new Date(), selectedPeriod);
+    
+    const { data: answers } = await supabase
+      .from("answers")
+      .select("question, published_at, created_at")
+      .eq("project_id", currentProject.id)
+      .eq("is_public", true)
+      .gte("created_at", startDate.toISOString())
+      .order("created_at", { ascending: true });
+    
+    if (answers) {
+      // Group by date
+      const grouped: Record<string, { count: number; questions: string[] }> = {};
+      answers.forEach(a => {
+        const date = (a.published_at || a.created_at)?.split("T")[0];
+        if (date) {
+          if (!grouped[date]) {
+            grouped[date] = { count: 0, questions: [] };
+          }
+          grouped[date].count++;
+          grouped[date].questions.push(a.question);
+        }
+      });
+      
+      setPublishedAnswers(
+        Object.entries(grouped).map(([date, data]) => ({
+          date,
+          count: data.count,
+          questions: data.questions,
+        }))
+      );
     }
   };
 
@@ -152,7 +217,6 @@ export default function AeoAnalytics() {
       const sites = (data?.sites || []).map((s: any) => s.siteUrl.replace("sc-domain:", ""));
       setAvailableSites(sites);
 
-      // Auto-select domain matching project website
       if (sites.length > 0 && currentProject?.website_url) {
         const projectDomain = new URL(currentProject.website_url).hostname.replace("www.", "");
         const matchingSite = sites.find((s: string) => s.includes(projectDomain));
@@ -171,7 +235,7 @@ export default function AeoAnalytics() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("get-search-console-data", {
-        body: { domain: selectedDomain, days: 30 },
+        body: { domain: selectedDomain, days: selectedPeriod },
       });
 
       if (error || data?.error) {
@@ -210,6 +274,13 @@ export default function AeoAnalytics() {
         position: avgPosition,
         impressionsDelta,
         clicksDelta,
+        dailyData: rawData.map((d: any) => ({
+          date: d.date,
+          impressions: d.impressions,
+          clicks: d.clicks,
+          ctr: d.ctr,
+          position: d.position,
+        })),
         topQueries: topQueries.map((q: any) => ({
           ...q,
           isAeoSignal: questionPatterns.some(p => q.query.toLowerCase().includes(p)),
@@ -237,7 +308,6 @@ export default function AeoAnalytics() {
         throw new Error("Failed to get OAuth URL");
       }
 
-      // Open OAuth in popup
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;
@@ -250,12 +320,10 @@ export default function AeoAnalytics() {
       );
 
       if (!popup) {
-        // Fallback to redirect
         window.location.href = data.url;
         return;
       }
 
-      // Listen for OAuth callback
       const handleMessage = async (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
         if (event.data.type === "GOOGLE_OAUTH_CODE" && event.data.code) {
@@ -298,6 +366,21 @@ export default function AeoAnalytics() {
     }
   };
 
+  // Merge GSC data with published answers for chart
+  const getChartData = () => {
+    if (!gscData?.dailyData) return [];
+    
+    return gscData.dailyData.map(d => {
+      const publishedOnDay = publishedAnswers.find(a => a.date === d.date);
+      return {
+        ...d,
+        dateFormatted: format(parseISO(d.date), "MMM d"),
+        answersPublished: publishedOnDay?.count || 0,
+        aeoScore: Math.round((d.impressions / 100) * (1 - d.ctr / 100) * 10),
+      };
+    });
+  };
+
   // Calculate AEO signals from GSC data
   const aeoSignals = gscData ? {
     exposureScore: Math.min(100, Math.round((gscData.impressions / 500) * (1 - gscData.ctr / 100) * 10)),
@@ -307,6 +390,8 @@ export default function AeoAnalytics() {
       q.query.toLowerCase().includes(currentProject?.brand_name?.toLowerCase() || currentProject?.name?.toLowerCase() || "")
     ).length,
   } : null;
+
+  const chartData = getChartData();
 
   return (
     <DashboardLayout>
@@ -360,21 +445,41 @@ export default function AeoAnalytics() {
           </Card>
         ) : (
           <>
-            {/* Domain Selector */}
+            {/* Domain & Period Selector */}
             {availableSites.length > 0 && (
               <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <label className="text-sm font-medium">Domain:</label>
-                    <select
-                      value={selectedDomain || ""}
-                      onChange={(e) => setSelectedDomain(e.target.value)}
-                      className="px-3 py-2 rounded-md border bg-background text-sm"
-                    >
-                      {availableSites.map((site) => (
-                        <option key={site} value={site}>{site}</option>
-                      ))}
-                    </select>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Domain:</label>
+                      <select
+                        value={selectedDomain || ""}
+                        onChange={(e) => setSelectedDomain(e.target.value)}
+                        className="px-3 py-2 rounded-md border bg-background text-sm"
+                      >
+                        {availableSites.map((site) => (
+                          <option key={site} value={site}>{site}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex rounded-md border bg-background">
+                        {TIME_PERIODS.map((period) => (
+                          <button
+                            key={period.value}
+                            onClick={() => setSelectedPeriod(period.value)}
+                            className={`px-3 py-1.5 text-sm transition-colors ${
+                              selectedPeriod === period.value
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            }`}
+                          >
+                            {period.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -517,6 +622,225 @@ export default function AeoAnalytics() {
                     </div>
                   </Card>
                 </div>
+
+                {/* Impressions & Clicks Over Time Chart */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-primary" />
+                        Performance Over Time
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        GSC metrics with AEO answer publications
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Last {selectedPeriod} days
+                    </Badge>
+                  </div>
+                  
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="dateFormatted" 
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                          className="text-muted-foreground"
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                          className="text-muted-foreground"
+                        />
+                        <YAxis 
+                          yAxisId="right" 
+                          orientation="right"
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                          className="text-muted-foreground"
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                          labelStyle={{ color: 'hsl(var(--foreground))' }}
+                        />
+                        <Legend />
+                        <Area
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="impressions"
+                          name="Impressions"
+                          fill="hsl(221, 83%, 53%)"
+                          fillOpacity={0.2}
+                          stroke="hsl(221, 83%, 53%)"
+                          strokeWidth={2}
+                        />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="clicks"
+                          name="Clicks"
+                          fill="hsl(142, 71%, 45%)"
+                          radius={[4, 4, 0, 0]}
+                          opacity={0.8}
+                        />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="answersPublished"
+                          name="AEO Answers Published"
+                          stroke="hsl(262, 83%, 58%)"
+                          strokeWidth={2}
+                          dot={{ fill: 'hsl(262, 83%, 58%)', strokeWidth: 2, r: 4 }}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                {/* AEO Score & CTR Trend */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* AEO Score Over Time */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold">AEO Exposure Score</h3>
+                        <p className="text-sm text-muted-foreground">
+                          AI exposure indicator over time
+                        </p>
+                      </div>
+                      <Badge className="bg-violet-500/10 text-violet-600">
+                        <Zap className="w-3 h-3 mr-1" />
+                        AEO Metric
+                      </Badge>
+                    </div>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis 
+                            dataKey="dateFormatted" 
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--background))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="aeoScore"
+                            name="AEO Score"
+                            fill="hsl(262, 83%, 58%)"
+                            fillOpacity={0.3}
+                            stroke="hsl(262, 83%, 58%)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  {/* CTR Trend */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold">CTR Trend</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Lower CTR + high impressions = AI reading
+                        </p>
+                      </div>
+                      <Badge className="bg-amber-500/10 text-amber-600">
+                        <MousePointerClick className="w-3 h-3 mr-1" />
+                        Click Rate
+                      </Badge>
+                    </div>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis 
+                            dataKey="dateFormatted" 
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                          />
+                          <YAxis 
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            domain={[0, 'auto']}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--background))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                            }}
+                            formatter={(value: number) => [`${value.toFixed(2)}%`, 'CTR']}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="ctr"
+                            name="CTR %"
+                            fill="hsl(38, 92%, 50%)"
+                            fillOpacity={0.3}
+                            stroke="hsl(38, 92%, 50%)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* AEO Content Impact */}
+                {publishedAnswers.length > 0 && (
+                  <Card className="p-6 bg-gradient-to-br from-violet-500/5 to-transparent border-violet-500/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FileText className="w-5 h-5 text-violet-500" />
+                      <h3 className="font-semibold">AEO Content Impact</h3>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-lg bg-background border">
+                        <p className="text-2xl font-bold text-violet-600">
+                          {publishedAnswers.reduce((sum, a) => sum + a.count, 0)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Answers published in period
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-background border">
+                        <p className="text-2xl font-bold text-blue-600">
+                          {aeoSignals?.questionQueries || 0}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Question queries detected
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-background border">
+                        <p className="text-2xl font-bold text-emerald-600">
+                          {Math.round((gscData.impressions / Math.max(1, answersCount)))}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Avg impressions per answer
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Top Queries - AEO Signals */}
                 <Card className="p-6">
