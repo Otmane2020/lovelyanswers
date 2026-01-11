@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Check, Settings, Trash2, Loader2, Plug, Zap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ExternalLink, Check, Settings, Trash2, Loader2, Plug, Zap, Plus, Send } from "lucide-react";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,18 +25,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-// New logos
+// Logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 import framerLogo from "@/assets/framer-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
+import boltLogo from "@/assets/bolt-logo.png";
+import lovableLogo from "@/assets/lovable-logo.svg";
 
 const CMS_INTEGRATIONS = [
   { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true, color: "from-slate-500 to-slate-700" },
   { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true, color: "from-green-500 to-green-600" },
   { id: "wix", name: "Wix", icon: wixLogo, isImage: true, color: "from-yellow-500 to-yellow-600" },
+  { id: "bolt", name: "Bolt.new", icon: boltLogo, isImage: true, color: "from-yellow-400 to-amber-500" },
+  { id: "lovable", name: "Lovable.dev", icon: lovableLogo, isImage: true, color: "from-rose-500 to-pink-600" },
   { id: "webflow", name: "Webflow", icon: "🔷", isImage: false, color: "from-blue-500 to-indigo-600" },
   { id: "framer", name: "Framer", icon: framerLogo, isImage: true, color: "from-sky-400 to-blue-500" },
   { id: "bigcommerce", name: "BigCommerce", icon: bigcommerceLogo, isImage: true, color: "from-gray-700 to-black" },
@@ -82,6 +96,25 @@ export default function AeoIntegrations() {
     id: string;
     name: string;
   } | null>(null);
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [requestForm, setRequestForm] = useState({ platform: "", description: "" });
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+  const handleRequestIntegration = async () => {
+    if (!requestForm.platform.trim()) {
+      toast.error("Please enter a platform name");
+      return;
+    }
+    
+    setIsSubmittingRequest(true);
+    // Simulate API call - in production this would send to your backend
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast.success(`Request for ${requestForm.platform} integration submitted!`);
+    setRequestModalOpen(false);
+    setRequestForm({ platform: "", description: "" });
+    setIsSubmittingRequest(false);
+  };
 
   // Handle OAuth callback for Google Search Console
   useEffect(() => {
@@ -336,6 +369,20 @@ export default function AeoIntegrations() {
                   </button>
                 );
               })}
+              
+              {/* More Integrations Card */}
+              <button
+                onClick={() => setRequestModalOpen(true)}
+                className="group p-5 rounded-2xl border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-all duration-200 text-center hover:shadow-md"
+              >
+                <div className="mx-auto mb-3 w-14 h-14 rounded-xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
+                  <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <p className="font-medium text-sm text-muted-foreground group-hover:text-foreground transition-colors">More</p>
+                <p className="text-xs text-primary mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Request →
+                </p>
+              </button>
             </div>
           </div>
         </Card>
@@ -459,6 +506,59 @@ export default function AeoIntegrations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Request Integration Modal */}
+      <Dialog open={requestModalOpen} onOpenChange={setRequestModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              Request New Integration
+            </DialogTitle>
+            <DialogDescription>
+              Tell us which platform you'd like us to integrate next
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform">Platform Name *</Label>
+              <Input
+                id="platform"
+                placeholder="e.g., Squarespace, Ghost, etc."
+                value={requestForm.platform}
+                onChange={(e) => setRequestForm(prev => ({ ...prev, platform: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Additional Details (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Tell us more about your use case or any specific features you need..."
+                value={requestForm.description}
+                onChange={(e) => setRequestForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRequestIntegration}
+              disabled={isSubmittingRequest}
+              className="gap-2"
+            >
+              {isSubmittingRequest ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
