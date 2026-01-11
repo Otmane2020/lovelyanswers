@@ -866,6 +866,47 @@ export type Database = {
           },
         ]
       }
+      site_pages: {
+        Row: {
+          created_at: string
+          id: string
+          last_crawled_at: string | null
+          meta_description: string | null
+          project_id: string
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_crawled_at?: string | null
+          meta_description?: string | null
+          project_id: string
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_crawled_at?: string | null
+          meta_description?: string | null
+          project_id?: string
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           created_at: string

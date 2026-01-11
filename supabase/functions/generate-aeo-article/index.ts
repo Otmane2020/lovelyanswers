@@ -387,6 +387,7 @@ interface ArticleSettings {
   visualInstructions: string;
   includeYoutube: boolean;
   includeScreenshot: boolean;
+  sitePages?: Array<{ url: string; title: string | null }>;
 }
 
 // Generate article content using Lovable AI with proper SEO structure and settings
@@ -418,6 +419,27 @@ async function generateArticleContentWithSettings(
   
   const specialInst = settings.specialInstructions ? 
     (language === 'fr' ? `Instructions spéciales: ${settings.specialInstructions}` : `Special instructions: ${settings.specialInstructions}`) : "";
+
+  // Build internal linking instruction with actual URLs from sitemap
+  let internalLinksInstruction = "";
+  if (settings.includeInternalLinks && settings.sitePages && settings.sitePages.length > 0) {
+    const pagesList = settings.sitePages
+      .slice(0, 20) // Limit to 20 pages to keep prompt manageable
+      .map(p => `- ${p.title || p.url}: ${p.url}`)
+      .join("\n");
+    
+    internalLinksInstruction = language === 'fr'
+      ? `\n\nMAILLAGE INTERNE OBLIGATOIRE:
+Inclure 2-4 liens internes vers ces pages existantes du site. Utilise des ancres naturelles:
+${pagesList}
+
+Format: <a href="[URL]">[texte d'ancre naturel]</a>`
+      : `\n\nREQUIRED INTERNAL LINKING:
+Include 2-4 internal links to these existing site pages. Use natural anchor text:
+${pagesList}
+
+Format: <a href="[URL]">[natural anchor text]</a>`;
+  }
 
   const systemPrompt = language === 'fr'
     ? `Tu es un expert en rédaction AEO (Answer Engine Optimization). Tu génères des articles optimisés pour être CITÉS par ChatGPT, Gemini, Perplexity et autres IA.
@@ -471,7 +493,7 @@ ${tocInstruction ? `- ${tocInstruction}` : ""}
 ${summaryInstruction ? `- ${summaryInstruction}` : ""}
 ${schemaInstruction ? `- ${schemaInstruction}` : ""}
 ${ctaInstruction ? `- ${ctaInstruction}` : ""}
-${specialInst ? `- ${specialInst}` : ""}`;
+${specialInst ? `- ${specialInst}` : ""}${internalLinksInstruction}`;
 
   const userPrompt = language === 'fr'
     ? `Génère un article AEO de ${wordRange} mots, optimisé pour être cité par les IA.
@@ -775,9 +797,24 @@ serve(async (req) => {
       visualInstructions: projectSettings?.visual_instructions || "",
       includeYoutube: projectSettings?.include_youtube ?? false,
       includeScreenshot: projectSettings?.include_screenshot ?? true,
+      sitePages: [] as Array<{ url: string; title: string | null }>,
     };
 
-    console.log(`[generate-aeo-article] Using settings:`, settings);
+    // Fetch site pages for internal linking if enabled
+    if (settings.includeInternalLinks) {
+      const { data: sitePages } = await supabase
+        .from("site_pages")
+        .select("url, title")
+        .eq("project_id", answer.project_id)
+        .limit(100);
+      
+      if (sitePages && sitePages.length > 0) {
+        settings.sitePages = sitePages;
+        console.log(`[generate-aeo-article] Found ${sitePages.length} site pages for internal linking`);
+      }
+    }
+
+    console.log(`[generate-aeo-article] Using settings:`, { ...settings, sitePages: settings.sitePages.length });
 
     // Generate article content with settings
     const articleContent = await generateArticleContentWithSettings(
