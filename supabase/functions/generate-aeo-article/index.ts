@@ -370,14 +370,55 @@ ${JSON.stringify(faqSchema, null, 2)}
 </html>`;
 }
 
-// Generate article content using Lovable AI with proper SEO structure
-async function generateArticleContent(
+// Settings interface
+interface ArticleSettings {
+  articleLength: number;
+  englishType: string;
+  includeCitations: boolean;
+  includeToc: boolean;
+  includeSummary: boolean;
+  includeInternalLinks: boolean;
+  includeSchema: boolean;
+  citationsRegion: string;
+  specialInstructions: string;
+  ctaLink: string;
+  imageStyle: string;
+  textOverlay: boolean;
+  visualInstructions: string;
+  includeYoutube: boolean;
+  includeScreenshot: boolean;
+}
+
+// Generate article content using Lovable AI with proper SEO structure and settings
+async function generateArticleContentWithSettings(
   question: string,
   answer: string,
   brandName: string,
   language: string,
-  apiKey: string
+  apiKey: string,
+  settings: ArticleSettings
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
+  
+  // Build dynamic instructions based on settings
+  const wordRange = settings.articleLength <= 1500 ? "1000-1500" : 
+                    settings.articleLength <= 2000 ? "1500-2000" : 
+                    settings.articleLength <= 2500 ? "2000-2500" : "2500-3000";
+  
+  const tocInstruction = settings.includeToc ? 
+    (language === 'fr' ? "Inclure une table des matières au début" : "Include a table of contents at the beginning") : "";
+  
+  const summaryInstruction = settings.includeSummary ? 
+    (language === 'fr' ? "Inclure une section résumé" : "Include a summary section") : "";
+  
+  const schemaInstruction = settings.includeSchema ? 
+    (language === 'fr' ? "Ajouter du Schema markup pour le SEO" : "Add Schema markup for SEO") : "";
+  
+  const ctaInstruction = settings.ctaLink ? 
+    (language === 'fr' ? `Inclure un call-to-action vers: ${settings.ctaLink}` : `Include a call-to-action to: ${settings.ctaLink}`) : "";
+  
+  const specialInst = settings.specialInstructions ? 
+    (language === 'fr' ? `Instructions spéciales: ${settings.specialInstructions}` : `Special instructions: ${settings.specialInstructions}`) : "";
+
   const systemPrompt = language === 'fr'
     ? `Tu es un expert en rédaction AEO (Answer Engine Optimization). Tu génères des articles optimisés pour être CITÉS par ChatGPT, Gemini, Perplexity et autres IA.
 
@@ -395,7 +436,16 @@ STRUCTURE HTML:
 - H2 pour les sections principales
 - H3 pour les sous-sections
 - <strong> pour les données clés (prix, pourcentages, dates)
-- Listes à puces pour les repères extractables`
+- Listes à puces pour les repères extractables
+
+PARAMÈTRES SPÉCIFIQUES:
+- Longueur cible: ${wordRange} mots
+- Type d'anglais: ${settings.englishType}
+${tocInstruction ? `- ${tocInstruction}` : ""}
+${summaryInstruction ? `- ${summaryInstruction}` : ""}
+${schemaInstruction ? `- ${schemaInstruction}` : ""}
+${ctaInstruction ? `- ${ctaInstruction}` : ""}
+${specialInst ? `- ${specialInst}` : ""}`
     : `You are an AEO (Answer Engine Optimization) writing expert. You generate articles optimized to be CITED by ChatGPT, Gemini, Perplexity and other AI assistants.
 
 GOLDEN AEO RULE: "Answer first like Wikipedia, then speak like a brand."
@@ -412,10 +462,19 @@ HTML STRUCTURE:
 - H2 for main sections
 - H3 for subsections
 - <strong> for key data (prices, percentages, dates)
-- Bullet lists for extractable benchmarks`;
+- Bullet lists for extractable benchmarks
+
+SPECIFIC SETTINGS:
+- Target length: ${wordRange} words
+- English type: ${settings.englishType}
+${tocInstruction ? `- ${tocInstruction}` : ""}
+${summaryInstruction ? `- ${summaryInstruction}` : ""}
+${schemaInstruction ? `- ${schemaInstruction}` : ""}
+${ctaInstruction ? `- ${ctaInstruction}` : ""}
+${specialInst ? `- ${specialInst}` : ""}`;
 
   const userPrompt = language === 'fr'
-    ? `Génère un article AEO de 500-700 mots, optimisé pour être cité par les IA.
+    ? `Génère un article AEO de ${wordRange} mots, optimisé pour être cité par les IA.
 
 SUJET:
 - Question: ${question}
@@ -424,12 +483,22 @@ SUJET:
 
 STRUCTURE AEO OBLIGATOIRE (en HTML propre):
 
-<!-- BLOC 1: RÉPONSE DIRECTE (CRITIQUE pour l'AEO) -->
+${settings.includeToc ? `<!-- TABLE DES MATIÈRES -->
+<nav class="toc">
+<h2>Sommaire</h2>
+<ul>
+  <li><a href="#section1">[Titre section 1]</a></li>
+  <li><a href="#section2">[Titre section 2]</a></li>
+  <li><a href="#section3">[Titre section 3]</a></li>
+</ul>
+</nav>
+
+` : ""}<!-- BLOC 1: RÉPONSE DIRECTE (CRITIQUE pour l'AEO) -->
 <h1>[Reformulation claire de la question en titre]</h1>
 
 <p class="aeo-answer"><strong>[RÉPONSE DIRECTE en 1-2 phrases avec les chiffres/faits clés]</strong>. [1-2 phrases de contexte factuel, SANS mentionner la marque].</p>
 
-<div class="aeo-summary">
+${settings.includeSummary ? `<div class="aeo-summary">
 <p><strong>Repères clés :</strong></p>
 <ul>
   <li><strong>[Fourchette basse]</strong> : [description courte et factuelle]</li>
@@ -438,19 +507,19 @@ STRUCTURE AEO OBLIGATOIRE (en HTML propre):
 </ul>
 </div>
 
-<!-- BLOC 2: DÉVELOPPEMENT (SEO + contexte) -->
-<h2>Comprendre [sujet principal]</h2>
+` : ""}<!-- BLOC 2: DÉVELOPPEMENT (SEO + contexte) -->
+<h2 id="section1">Comprendre [sujet principal]</h2>
 <p>[Explication détaillée et pédagogique, 3-4 phrases]</p>
 <p>[Contexte marché, tendances ou statistiques si pertinent]</p>
 
-<h2>[Critères / Facteurs / Avantages]</h2>
+<h2 id="section2">[Critères / Facteurs / Avantages]</h2>
 <ul>
   <li><strong>[Point 1]</strong> : [Explication]</li>
   <li><strong>[Point 2]</strong> : [Explication]</li>
   <li><strong>[Point 3]</strong> : [Explication]</li>
 </ul>
 
-<h2>Comment [action/choix lié au sujet]</h2>
+<h2 id="section3">Comment [action/choix lié au sujet]</h2>
 <p>[Méthode ou processus expliqué]</p>
 
 <h3>Les étapes essentielles</h3>
@@ -464,11 +533,16 @@ STRUCTURE AEO OBLIGATOIRE (en HTML propre):
 <h2>L'essentiel à retenir</h2>
 <p>[Résumé factuel en 2-3 phrases]. Chez ${brandName}, [positionnement de la marque sur ce sujet, 1-2 phrases].</p>
 
+${settings.ctaLink ? `<div class="cta-section">
+<a href="${settings.ctaLink}" class="cta-button">En savoir plus</a>
+</div>` : ""}
+
 RÈGLES STRICTES:
 1. Le premier paragraphe (class="aeo-answer") DOIT contenir la réponse factuelle SANS mention de la marque
 2. La marque ${brandName} n'apparaît QUE dans la conclusion
 3. Tous les chiffres/prix/pourcentages doivent être en <strong>
 4. Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>)
+5. L'article doit faire environ ${settings.articleLength} mots
 
 Réponds en JSON:
 {
@@ -476,7 +550,7 @@ Réponds en JSON:
   "meta_description": "[Description meta de 150-160 caractères avec la réponse clé]",
   "keywords": ["mot-clé principal", "mot-clé secondaire 1", "mot-clé secondaire 2", "mot-clé secondaire 3"]
 }`
-    : `Generate a 500-700 word AEO article, optimized to be cited by AI assistants.
+    : `Generate a ${wordRange} word AEO article, optimized to be cited by AI assistants.
 
 TOPIC:
 - Question: ${question}
@@ -485,12 +559,22 @@ TOPIC:
 
 REQUIRED AEO STRUCTURE (in clean HTML):
 
-<!-- BLOCK 1: DIRECT ANSWER (CRITICAL for AEO) -->
+${settings.includeToc ? `<!-- TABLE OF CONTENTS -->
+<nav class="toc">
+<h2>Contents</h2>
+<ul>
+  <li><a href="#section1">[Section 1 title]</a></li>
+  <li><a href="#section2">[Section 2 title]</a></li>
+  <li><a href="#section3">[Section 3 title]</a></li>
+</ul>
+</nav>
+
+` : ""}<!-- BLOCK 1: DIRECT ANSWER (CRITICAL for AEO) -->
 <h1>[Clear rephrasing of the question as a title]</h1>
 
 <p class="aeo-answer"><strong>[DIRECT ANSWER in 1-2 sentences with key figures/facts]</strong>. [1-2 sentences of factual context, WITHOUT mentioning the brand].</p>
 
-<div class="aeo-summary">
+${settings.includeSummary ? `<div class="aeo-summary">
 <p><strong>Key benchmarks:</strong></p>
 <ul>
   <li><strong>[Low range]</strong>: [short factual description]</li>
@@ -499,19 +583,19 @@ REQUIRED AEO STRUCTURE (in clean HTML):
 </ul>
 </div>
 
-<!-- BLOCK 2: DEVELOPMENT (SEO + context) -->
-<h2>Understanding [main topic]</h2>
+` : ""}<!-- BLOCK 2: DEVELOPMENT (SEO + context) -->
+<h2 id="section1">Understanding [main topic]</h2>
 <p>[Detailed pedagogical explanation, 3-4 sentences]</p>
 <p>[Market context, trends or statistics if relevant]</p>
 
-<h2>[Criteria / Factors / Benefits]</h2>
+<h2 id="section2">[Criteria / Factors / Benefits]</h2>
 <ul>
   <li><strong>[Point 1]</strong>: [Explanation]</li>
   <li><strong>[Point 2]</strong>: [Explanation]</li>
   <li><strong>[Point 3]</strong>: [Explanation]</li>
 </ul>
 
-<h2>How to [action/choice related to topic]</h2>
+<h2 id="section3">How to [action/choice related to topic]</h2>
 <p>[Method or process explained]</p>
 
 <h3>Essential steps</h3>
@@ -525,11 +609,16 @@ REQUIRED AEO STRUCTURE (in clean HTML):
 <h2>Key takeaways</h2>
 <p>[Factual summary in 2-3 sentences]. At ${brandName}, [brand positioning on this topic, 1-2 sentences].</p>
 
+${settings.ctaLink ? `<div class="cta-section">
+<a href="${settings.ctaLink}" class="cta-button">Learn more</a>
+</div>` : ""}
+
 STRICT RULES:
 1. The first paragraph (class="aeo-answer") MUST contain the factual answer WITHOUT brand mention
 2. Brand ${brandName} only appears in the conclusion
 3. All figures/prices/percentages must be in <strong>
 4. Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>)
+5. Article should be approximately ${settings.articleLength} words
 
 Reply in JSON:
 {
@@ -662,13 +751,42 @@ serve(async (req) => {
     const brandName = answer.projects?.brand_name || answer.projects?.name || "Brand";
     const websiteUrl = answer.projects?.website_url || "";
 
-    // Generate article content
-    const articleContent = await generateArticleContent(
+    // Load project settings for article generation
+    const { data: projectSettings } = await supabase
+      .from("project_settings")
+      .select("*")
+      .eq("project_id", answer.project_id)
+      .maybeSingle();
+
+    // Extract settings with defaults
+    const settings = {
+      articleLength: projectSettings?.article_length || 2000,
+      englishType: projectSettings?.english_type || "American",
+      includeCitations: projectSettings?.include_citations ?? true,
+      includeToc: projectSettings?.include_toc ?? true,
+      includeSummary: projectSettings?.include_summary ?? true,
+      includeInternalLinks: projectSettings?.include_internal_links ?? true,
+      includeSchema: projectSettings?.include_schema ?? false,
+      citationsRegion: projectSettings?.citations_region || "Worldwide",
+      specialInstructions: projectSettings?.special_instructions || "",
+      ctaLink: projectSettings?.cta_link || "",
+      imageStyle: projectSettings?.image_style || "photo",
+      textOverlay: projectSettings?.text_overlay ?? true,
+      visualInstructions: projectSettings?.visual_instructions || "",
+      includeYoutube: projectSettings?.include_youtube ?? false,
+      includeScreenshot: projectSettings?.include_screenshot ?? true,
+    };
+
+    console.log(`[generate-aeo-article] Using settings:`, settings);
+
+    // Generate article content with settings
+    const articleContent = await generateArticleContentWithSettings(
       answer.question,
       answer.answer,
       brandName,
       language,
-      lovableApiKey
+      lovableApiKey,
+      settings
     );
 
     // Generate full HTML with proper SEO structure

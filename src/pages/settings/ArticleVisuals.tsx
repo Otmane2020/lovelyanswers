@@ -1,20 +1,105 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Play, ImageIcon } from "lucide-react";
+import { Upload, Play, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useActiveProject } from "@/hooks/useProjects";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function ArticleVisuals() {
+  const { project, isLoading: projectLoading } = useActiveProject();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Settings state
   const [imageStyle, setImageStyle] = useState<"photo" | "sketch">("photo");
   const [textOverlay, setTextOverlay] = useState(true);
   const [visualInstructions, setVisualInstructions] = useState("");
   const [includeYoutube, setIncludeYoutube] = useState(false);
   const [includeScreenshot, setIncludeScreenshot] = useState(true);
   const [productImages, setProductImages] = useState<string[]>([]);
+
+  // Load settings from project_settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!project) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("project_settings")
+          .select("*")
+          .eq("project_id", project.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setImageStyle((data.image_style as "photo" | "sketch") || "photo");
+          setTextOverlay(data.text_overlay ?? true);
+          setVisualInstructions(data.visual_instructions || "");
+          setIncludeYoutube(data.include_youtube ?? false);
+          setIncludeScreenshot(data.include_screenshot ?? true);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [project]);
+
+  const handleSave = async () => {
+    if (!project) return;
+
+    setIsSaving(true);
+    try {
+      const settings = {
+        project_id: project.id,
+        image_style: imageStyle,
+        text_overlay: textOverlay,
+        visual_instructions: visualInstructions,
+        include_youtube: includeYoutube,
+        include_screenshot: includeScreenshot,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("project_settings")
+        .upsert(settings, { onConflict: "project_id" });
+
+      if (error) throw error;
+
+      toast.success("Visual settings saved");
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (projectLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No project found. Please create a project first.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -126,7 +211,20 @@ export function ArticleVisuals() {
             Video Tutorial
           </Button>
 
-          <Button className="w-full">Save settings</Button>
+          <Button 
+            className="w-full" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save settings"
+            )}
+          </Button>
         </div>
       </Card>
     </div>
