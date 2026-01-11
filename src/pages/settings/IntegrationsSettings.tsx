@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Trash2, Settings2, CheckCircle2 } from "lucide-react";
+import { ExternalLink, Trash2, Settings2, CheckCircle2, Loader2, Search } from "lucide-react";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
+import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -24,6 +26,8 @@ import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 import framerLogo from "@/assets/framer-logo.png";
+import boltLogo from "@/assets/bolt-logo.png";
+import lovableLogo from "@/assets/lovable-logo.svg";
 
 const CMS_INTEGRATIONS = [
   { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
@@ -31,28 +35,79 @@ const CMS_INTEGRATIONS = [
   { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
   { id: "framer", name: "Framer", icon: framerLogo, isImage: true },
   { id: "bigcommerce", name: "BigCommerce", icon: bigcommerceLogo, isImage: true },
-  { id: "duda", name: "Duda", icon: "🟠", isImage: false },
+  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
+  { id: "bolt", name: "Bolt", icon: boltLogo, isImage: true },
+  { id: "lovable", name: "Lovable", icon: lovableLogo, isImage: true },
   { id: "api", name: "API", icon: "⚙️", isImage: false },
   { id: "webhook", name: "Webhook", icon: "🔗", isImage: false },
-  { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
-  { id: "snapps", name: "Snapps", icon: "📱", isImage: false },
-];
-
-const ANALYTICS_INTEGRATIONS = [
-  { id: "gsc", name: "Google Search Console", icon: "🔍", description: "Track search performance" },
-  { id: "ga4", name: "Google Analytics 4", icon: "📊", description: "Website analytics" },
-  { id: "merchant", name: "Google Merchant", icon: "🛒", description: "Product listings" },
 ];
 
 export function IntegrationsSettings() {
   const { project } = useActiveProject();
   const { data: integrations = [], refetch } = useIntegrations();
   const deleteIntegration = useDeleteIntegration();
+  const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   
   const [autoPublish, setAutoPublish] = useState(true);
+  const [publishAnswers, setPublishAnswers] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<typeof integrations[0] | null>(null);
   const [deletingIntegration, setDeletingIntegration] = useState<string | null>(null);
+  const [connectingGsc, setConnectingGsc] = useState(false);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    
+    if (code) {
+      handleGscOAuthCallback(code);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleGscOAuthCallback = async (code: string) => {
+    setConnectingGsc(true);
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      const { data, error } = await supabase.functions.invoke("google-oauth-token", {
+        body: { code, state: redirectUri },
+      });
+
+      if (error) throw error;
+      if (!data?.success) {
+        const msg = [data?.error, data?.details].filter(Boolean).join("\n");
+        throw new Error(msg || "Failed to connect");
+      }
+
+      toast.success("Google Search Console connected!");
+      refetchGsc();
+    } catch (error: any) {
+      console.error("GSC OAuth error:", error);
+      toast.error(error.message || "Error connecting to Google Search Console");
+    } finally {
+      setConnectingGsc(false);
+    }
+  };
+
+  const connectGSC = async () => {
+    setConnectingGsc(true);
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      const { data, error } = await supabase.functions.invoke("google-oauth-url", {
+        body: { redirectUri },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error("Failed to get OAuth URL");
+
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error("GSC connect error:", error);
+      toast.error(error.message || "Failed to connect to Google Search Console");
+      setConnectingGsc(false);
+    }
+  };
 
   const getConnectedIntegration = (platformId: string) => {
     return integrations.find(i => i.platform === platformId && i.is_connected);
@@ -80,18 +135,20 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-6">
-      {/* CMS Logos Header */}
-      <Card className="p-6 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 border-border/50">
+      {/* Hero Header */}
+      <Card className="p-6 bg-gradient-to-br from-primary/10 via-purple-500/10 to-blue-500/10 border-primary/20">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 bg-background/80 backdrop-blur rounded-xl p-3 shadow-sm border border-border/50">
-            <img src={shopifyLogo} alt="Shopify" className="h-10 w-auto object-contain" />
-            <img src={wixLogo} alt="Wix" className="h-8 w-auto object-contain dark:invert" />
-            <img src={wordpressLogo} alt="WordPress" className="h-10 w-auto object-contain dark:invert" />
+          <div className="flex items-center gap-2 bg-background/80 backdrop-blur rounded-xl p-3 shadow-sm border border-border/50">
+            <img src={shopifyLogo} alt="Shopify" className="h-8 w-auto object-contain" />
+            <img src={wordpressLogo} alt="WordPress" className="h-8 w-auto object-contain dark:invert" />
+            <img src={wixLogo} alt="Wix" className="h-6 w-auto object-contain dark:invert" />
+            <img src={boltLogo} alt="Bolt" className="h-6 w-auto object-contain" />
+            <img src={lovableLogo} alt="Lovable" className="h-6 w-auto object-contain" />
           </div>
           <div>
-            <h2 className="text-xl font-bold">CMS Integrations</h2>
+            <h2 className="text-xl font-bold">Integrations</h2>
             <p className="text-muted-foreground text-sm">
-              Connect your store to auto-publish AEO content
+              Connect your platforms to auto-publish AEO content
             </p>
           </div>
         </div>
@@ -110,7 +167,7 @@ export function IntegrationsSettings() {
               return (
                 <div
                   key={integration.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-green-500/30 bg-green-500/5"
+                  className="flex items-center justify-between p-4 rounded-xl border border-green-500/30 bg-green-500/5"
                 >
                   <div className="flex items-center gap-3">
                     {cms?.isImage ? (
@@ -154,11 +211,52 @@ export function IntegrationsSettings() {
         </Card>
       )}
 
+      {/* Google Search Console - Standalone Card */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center shadow-lg">
+              <Search className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Google Search Console</h3>
+              <p className="text-sm text-muted-foreground">
+                Track search performance, keywords, and rankings
+              </p>
+            </div>
+          </div>
+          {gscConnected ? (
+            <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Connected
+            </Badge>
+          ) : (
+            <Button 
+              onClick={connectGSC} 
+              disabled={connectingGsc || gscLoading}
+              className="gap-2"
+            >
+              {connectingGsc ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4" />
+                  Connect
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </Card>
+
       {/* CMS Integrations Grid */}
       <Card className="p-6">
-        <h3 className="font-semibold mb-2">CMS Integrations</h3>
+        <h3 className="font-semibold mb-2">CMS & Website Builders</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Integrate with your favorite CMS platform and publish automatically
+          Connect your CMS platform to publish content automatically
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {CMS_INTEGRATIONS.map((integration) => {
@@ -167,10 +265,10 @@ export function IntegrationsSettings() {
               <button
                 key={integration.id}
                 onClick={() => handleCMSClick(integration.id)}
-                className={`p-4 rounded-xl border transition-all text-center group relative ${
+                className={`p-4 rounded-xl border-2 transition-all text-center group relative hover:shadow-md ${
                   isConnected
                     ? "border-green-500/50 bg-green-500/5"
-                    : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50 hover:bg-muted/30"
                 }`}
               >
                 {isConnected && (
@@ -178,22 +276,22 @@ export function IntegrationsSettings() {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                   </div>
                 )}
-                <div className="h-8 w-8 mx-auto mb-2 flex items-center justify-center">
+                <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center">
                   {integration.isImage ? (
                     <img 
                       src={integration.icon} 
                       alt={integration.name} 
-                      className="h-8 w-8 object-contain dark:invert" 
+                      className="h-10 w-10 object-contain dark:invert" 
                     />
                   ) : (
-                    <span className="text-2xl">{integration.icon}</span>
+                    <span className="text-3xl">{integration.icon}</span>
                   )}
                 </div>
                 <p className="font-medium text-sm">{integration.name}</p>
                 <p className={`text-xs mt-1 transition-opacity ${
                   isConnected ? "text-green-600 opacity-100" : "text-primary opacity-0 group-hover:opacity-100"
                 }`}>
-                  {isConnected ? "Connected" : "Configure now"}
+                  {isConnected ? "Connected" : "Configure"}
                 </p>
               </button>
             );
@@ -205,53 +303,24 @@ export function IntegrationsSettings() {
       <Card className="p-6">
         <h3 className="font-semibold mb-4">Publishing Settings</h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
             <div>
-              <Label>Automatically Publish</Label>
+              <Label className="font-medium">Auto-Publish Articles</Label>
               <p className="text-xs text-muted-foreground">
-                Automatically publish articles when ready
+                Automatically publish articles when generation is complete
               </p>
             </div>
             <Switch checked={autoPublish} onCheckedChange={setAutoPublish} />
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
             <div>
-              <Label>Publish AEO Answers</Label>
+              <Label className="font-medium">Publish AEO Answers</Label>
               <p className="text-xs text-muted-foreground">
-                Also publish public AEO answers to connected CMS
+                Also publish public AEO answer pages to your CMS
               </p>
             </div>
-            <Switch />
+            <Switch checked={publishAnswers} onCheckedChange={setPublishAnswers} />
           </div>
-        </div>
-      </Card>
-
-      {/* Analytics & Search */}
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Analytics & Search</h3>
-        <div className="space-y-4">
-          {ANALYTICS_INTEGRATIONS.map((integration) => (
-            <div 
-              key={integration.id} 
-              className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <span className="text-xl">{integration.icon}</span>
-                </div>
-                <div>
-                  <p className="font-medium">{integration.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {integration.description}
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" className="gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Connect
-              </Button>
-            </div>
-          ))}
         </div>
       </Card>
 
