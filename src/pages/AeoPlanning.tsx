@@ -121,49 +121,109 @@ export default function AeoPlanning() {
 
         const projectId = projects[0].id;
 
-        // Fetch from planning table with joined answers and articles
-        const { data: planningData } = await supabase
+        // Fetch planning entries
+        const { data: planningData, error: planningError } = await supabase
           .from("planning")
-          .select(`
-            id,
-            day,
-            answer_id,
-            article_id,
-            answers:answer_id (id, question, is_public, answer),
-            articles:article_id (id, title, status)
-          `)
+          .select("id, day, answer_id, article_id")
           .eq("project_id", projectId)
           .order("day", { ascending: true });
 
+        console.log("Planning data:", planningData, "Error:", planningError);
+
+        if (!planningData || planningData.length === 0) {
+          // Fallback: fetch from answers/articles with scheduled_date if planning is empty
+          const { data: answers } = await supabase
+            .from("answers")
+            .select("id, question, scheduled_date, is_public, answer")
+            .eq("project_id", projectId)
+            .not("scheduled_date", "is", null);
+
+          const { data: articles } = await supabase
+            .from("articles")
+            .select("id, title, scheduled_date, status")
+            .eq("project_id", projectId)
+            .not("scheduled_date", "is", null);
+
+          const items: ScheduledItem[] = [
+            ...(answers || []).map(a => ({
+              id: a.id,
+              title: a.question,
+              type: "answer" as const,
+              date: new Date(a.scheduled_date!),
+              status: a.is_public ? "published" as const : "scheduled" as const,
+              answer: a.answer
+            })),
+            ...(articles || []).map(a => ({
+              id: a.id,
+              title: a.title,
+              type: "article" as const,
+              date: new Date(a.scheduled_date!),
+              status: a.status === "published" ? "published" as const : "scheduled" as const
+            }))
+          ];
+          setScheduledItems(items);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get all answer IDs and article IDs from planning
+        const answerIds = planningData.filter(p => p.answer_id).map(p => p.answer_id!);
+        const articleIds = planningData.filter(p => p.article_id).map(p => p.article_id!);
+
+        // Fetch answers
+        const { data: answers } = answerIds.length > 0 
+          ? await supabase
+              .from("answers")
+              .select("id, question, is_public, answer")
+              .in("id", answerIds)
+          : { data: [] };
+
+        // Fetch articles
+        const { data: articles } = articleIds.length > 0
+          ? await supabase
+              .from("articles")
+              .select("id, title, status")
+              .in("id", articleIds)
+          : { data: [] };
+
+        // Create lookup maps
+        const answersMap = new Map((answers || []).map(a => [a.id, a]));
+        const articlesMap = new Map((articles || []).map(a => [a.id, a]));
+
         const items: ScheduledItem[] = [];
         
-        for (const p of planningData || []) {
+        for (const p of planningData) {
           // Add answer if exists
-          if (p.answers && p.answer_id) {
-            const answer = p.answers as any;
-            items.push({
-              id: answer.id,
-              title: answer.question,
-              type: "answer" as const,
-              date: new Date(p.day),
-              status: answer.is_public ? "published" as const : "scheduled" as const,
-              answer: answer.answer
-            });
+          if (p.answer_id) {
+            const answer = answersMap.get(p.answer_id);
+            if (answer) {
+              items.push({
+                id: answer.id,
+                title: answer.question,
+                type: "answer" as const,
+                date: new Date(p.day),
+                status: answer.is_public ? "published" as const : "scheduled" as const,
+                answer: answer.answer
+              });
+            }
           }
           
           // Add article if exists
-          if (p.articles && p.article_id) {
-            const article = p.articles as any;
-            items.push({
-              id: article.id,
-              title: article.title,
-              type: "article" as const,
-              date: new Date(p.day),
-              status: article.status === "published" ? "published" as const : "scheduled" as const
-            });
+          if (p.article_id) {
+            const article = articlesMap.get(p.article_id);
+            if (article) {
+              items.push({
+                id: article.id,
+                title: article.title,
+                type: "article" as const,
+                date: new Date(p.day),
+                status: article.status === "published" ? "published" as const : "scheduled" as const
+              });
+            }
           }
         }
 
+        console.log("Final items:", items.length);
         setScheduledItems(items);
       } catch (error) {
         console.error("Error fetching scheduled items:", error);
