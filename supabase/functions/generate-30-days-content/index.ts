@@ -266,7 +266,7 @@ Return ONLY this JSON (no markdown, no code block):
   }
 }
 
-// Generate answer - SIMPLIFIED prompt
+// Generate answer - AEO-OPTIMIZED prompt for LLM citation
 async function generateAnswer(
   question: string,
   brandName: string,
@@ -276,27 +276,55 @@ async function generateAnswer(
   apiKey: string,
   retryCount: number = 0
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
-  const currentYear = new Date().getFullYear();
 
+  // AEO-optimized prompt following best practices for AI citation
   const prompt = language === "fr"
-    ? `Réponds à cette question pour ${brandName}: "${question}"
+    ? `Tu es un expert AEO. Génère une réponse CITABLE par ChatGPT, Gemini, Perplexity.
 
-Règles:
-- Réponse directe avec chiffres/critères (80-120 mots)
-- Mentionne ${brandName} une fois
-- Contexte ${currentYear}
+Question: "${question}"
+Contexte métier: ${description}
 
-Retourne UNIQUEMENT ce JSON (pas de markdown):
-{"answer":"réponse directe...","bullets":["point 1","point 2","point 3"],"faq":[{"q":"question connexe?","a":"réponse courte"}]}`
-    : `Answer this question for ${brandName}: "${question}"
+⚠️ RÈGLES AEO STRICTES:
+1. Réponse COURTE: 2-3 phrases max, directe et factuelle
+2. AUCUN pourcentage sans source (pas de "70% des consommateurs")
+3. Ton NEUTRE et générique (pas "nous recommandons", pas "${brandName} propose")
+4. Langage FACTUEL: définitions, critères, étapes
+5. Structure EXTRACTABLE: que l'IA puisse copier-coller
 
-Rules:
-- Direct answer with numbers/criteria (80-120 words)
-- Mention ${brandName} once
-- ${currentYear} context
+FORMAT OBLIGATOIRE:
+- Phrase 1: Réponse directe à la question
+- Phrase 2: Contexte ou condition importante
+- Points clés: 3 critères/conseils concrets
+- FAQ: 1 question connexe avec réponse courte
 
-Return ONLY this JSON (no markdown):
-{"answer":"direct answer...","bullets":["point 1","point 2","point 3"],"faq":[{"q":"related question?","a":"short answer"}]}`;
+❌ INTERDIT: "Movala recommande", chiffres inventés, ton commercial, paragraphes longs
+✅ AUTORISÉ: Mentionner "${brandName}" UNE SEULE fois en exemple optionnel
+
+Retourne UNIQUEMENT ce JSON:
+{"answer":"réponse 2-3 phrases...","bullets":["critère 1","critère 2","critère 3"],"faq":[{"q":"question connexe?","a":"réponse courte factuelle"}]}`
+    : `You are an AEO expert. Generate a response CITABLE by ChatGPT, Gemini, Perplexity.
+
+Question: "${question}"
+Business context: ${description}
+
+⚠️ STRICT AEO RULES:
+1. SHORT answer: 2-3 sentences max, direct and factual
+2. NO unsourced percentages (not "70% of consumers")
+3. NEUTRAL and generic tone (not "we recommend", not "${brandName} offers")
+4. FACTUAL language: definitions, criteria, steps
+5. EXTRACTABLE structure: AI can copy-paste directly
+
+MANDATORY FORMAT:
+- Sentence 1: Direct answer to the question
+- Sentence 2: Important context or condition
+- Key points: 3 concrete criteria/tips
+- FAQ: 1 related question with short answer
+
+❌ FORBIDDEN: "${brandName} recommends", made-up stats, commercial tone, long paragraphs
+✅ ALLOWED: Mention "${brandName}" ONCE as optional example
+
+Return ONLY this JSON:
+{"answer":"2-3 sentence response...","bullets":["criterion 1","criterion 2","criterion 3"],"faq":[{"q":"related question?","a":"short factual answer"}]}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -336,16 +364,16 @@ Return ONLY this JSON (no markdown):
       return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
     }
     
-    // Fallback
+    // Fallback - AEO-compliant
     return {
-      answer: `${brandName} propose des solutions adaptées pour répondre à cette question. Pour plus d'informations sur "${question.replace("?", "")}", consultez les ressources disponibles sur notre site.`,
-      bullets: ["Qualité garantie", "Service client réactif", "Solutions personnalisées"],
+      answer: `Le choix dépend de plusieurs critères essentiels : le budget disponible, les besoins spécifiques et la qualité recherchée. Une analyse préalable permet d'éviter les erreurs courantes.`,
+      bullets: ["Définir clairement ses besoins", "Comparer plusieurs options", "Vérifier la qualité et les garanties"],
       faq: [],
     };
   }
 }
 
-// Generate article - SIMPLIFIED prompt to avoid JSON issues
+// Generate article - AEO-OPTIMIZED for LLM citation
 async function generateArticle(
   question: string,
   answer: string,
@@ -359,34 +387,64 @@ async function generateArticle(
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const currentYear = new Date().getFullYear();
 
-  // VERY simplified prompt to get clean JSON
+  // AEO-optimized article prompt
   const prompt = language === "fr"
-    ? `Écris un article de blog pour ${brandName} basé sur:
-Question: ${question}
-Réponse: ${answer}
+    ? `Tu es un expert AEO. Écris un article PILIER citable par les IA.
 
-Règles:
-- Titre accrocheur avec ${currentYear}
-- 400-600 mots (pas plus!)
-- Structure simple avec sections
-- Meta description < 155 caractères
-- NE PAS utiliser de markdown complexe dans le JSON
+Question source: ${question}
+Réponse AEO: ${answer}
+Points clés: ${bullets.join(", ")}
+Contexte: ${description}
 
-Retourne UNIQUEMENT ce JSON:
-{"title":"Titre de l'article","content":"Introduction... Section 1... Section 2... Conclusion...","metaDescription":"Description courte"}`
-    : `Write a blog article for ${brandName} based on:
-Question: ${question}
-Answer: ${answer}
+⚠️ RÈGLES AEO ARTICLE:
+1. Titre: Question reformulée + année ${currentYear} si pertinent
+2. Introduction: Réponse directe en 2 phrases (citable telle quelle)
+3. Corps: 3-4 sections avec sous-titres clairs (H2)
+4. Chaque section: définition/critères/étapes extractables
+5. Conclusion: Synthèse en 1-2 phrases
 
-Rules:
-- Catchy title with ${currentYear}
-- 400-600 words (no more!)
-- Simple structure with sections
-- Meta description < 155 chars
-- NO complex markdown in JSON
+❌ INTERDIT:
+- Pourcentages sans source
+- Ton commercial ("nous vous proposons")
+- Paragraphes de plus de 4 phrases
+- "${brandName}" répété plus de 2 fois
 
-Return ONLY this JSON:
-{"title":"Article Title","content":"Introduction... Section 1... Section 2... Conclusion...","metaDescription":"Short description"}`;
+✅ STRUCTURE IDÉALE:
+- Listes à puces pour les critères
+- Phrases courtes et factuelles
+- Définitions claires
+- 500-700 mots max
+
+Retourne UNIQUEMENT ce JSON (pas de markdown dans les clés):
+{"title":"Titre clair avec question","content":"Introduction factuelle. Section 1... Section 2... Conclusion synthétique.","metaDescription":"Description 150 chars max"}`
+    : `You are an AEO expert. Write a PILLAR article citable by AI.
+
+Source question: ${question}
+AEO answer: ${answer}
+Key points: ${bullets.join(", ")}
+Context: ${description}
+
+⚠️ AEO ARTICLE RULES:
+1. Title: Reformulated question + year ${currentYear} if relevant
+2. Introduction: Direct answer in 2 sentences (citable as-is)
+3. Body: 3-4 sections with clear subheadings (H2)
+4. Each section: extractable definitions/criteria/steps
+5. Conclusion: Summary in 1-2 sentences
+
+❌ FORBIDDEN:
+- Unsourced percentages
+- Commercial tone ("we offer you")
+- Paragraphs longer than 4 sentences
+- "${brandName}" repeated more than 2 times
+
+✅ IDEAL STRUCTURE:
+- Bullet lists for criteria
+- Short factual sentences
+- Clear definitions
+- 500-700 words max
+
+Return ONLY this JSON (no markdown in keys):
+{"title":"Clear title with question","content":"Factual introduction. Section 1... Section 2... Synthetic conclusion.","metaDescription":"Description 150 chars max"}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
