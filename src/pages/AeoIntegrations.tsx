@@ -94,7 +94,7 @@ export default function AeoIntegrations() {
         setConnectingGsc(true);
         try {
           const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-            body: { code, redirectUri: state },
+            body: { code, state },
           });
           
           if (error) throw error;
