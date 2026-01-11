@@ -175,48 +175,25 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 }
 
 async function testWix(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  // Support both OAuth Client ID and legacy API Key
-  const clientId = config.clientId?.trim();
-  const siteId = config.siteId?.trim();
   const apiKey = config.token?.trim();
+  const siteId = config.siteId?.trim();
 
-  if (!clientId && !apiKey) {
-    return { success: false, message: "OAuth Client ID or API Key required" };
+  if (!apiKey) {
+    return { success: false, message: "API Key required. Get it from dev.wix.com → API Keys" };
   }
 
   try {
-    // If using OAuth Client ID (Wix Headless approach)
-    if (clientId) {
-      // Validate Client ID format (UUID-like)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(clientId)) {
-        return { 
-          success: false, 
-          message: "Invalid Client ID format. Should look like: 92ef2ed2-d432-4513-9065-e37c26bda553" 
-        };
-      }
-
-      // For OAuth, we can't fully test without user authorization flow
-      // But we can validate the Client ID exists by checking Wix's OAuth endpoint
-      // Since this is server-to-server, we just validate format and confirm it's stored
-      return { 
-        success: true, 
-        message: siteId 
-          ? `OAuth Client ID saved! Ready for Wix Headless publishing to site ${siteId.substring(0, 8)}...`
-          : "OAuth Client ID saved! Add your Site ID to enable publishing."
-      };
-    }
-
-    // Legacy API Key approach
     const headers: Record<string, string> = {
-      Authorization: apiKey!.startsWith("Bearer ") ? apiKey! : apiKey!,
+      Authorization: apiKey,
       "Content-Type": "application/json",
     };
 
+    // Add site ID if provided
     if (siteId) {
       headers["wix-site-id"] = siteId;
     }
 
+    // Test the blog API
     const response = await fetch(`https://www.wixapis.com/blog/v3/posts?paging.limit=1`, {
       headers,
     });
@@ -227,7 +204,7 @@ async function testWix(config: Record<string, string>): Promise<{ success: boole
       return { 
         success: true, 
         message: postCount > 0 
-          ? `Connected! Found blog posts.` 
+          ? `Connected! Found blog posts on your Wix site.` 
           : "Connected! Blog is empty - ready to publish." 
       };
     }
@@ -235,12 +212,12 @@ async function testWix(config: Record<string, string>): Promise<{ success: boole
     if (response.status === 401 || response.status === 403) {
       return { 
         success: false, 
-        message: "Invalid API Key. Use OAuth Client ID instead (recommended) or check your API Key permissions." 
+        message: "Invalid API Key. Generate one at dev.wix.com → API Keys with Blog permissions." 
       };
     }
 
     if (response.status === 404) {
-      return { success: false, message: "Blog not found. Ensure Wix Blog is installed on your site." };
+      return { success: false, message: "Blog not found. Ensure Wix Blog app is installed on your site." };
     }
 
     const errorData = await response.json().catch(() => ({}));
