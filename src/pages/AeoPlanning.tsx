@@ -46,6 +46,10 @@ export default function AeoPlanning() {
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
 
   const handlePublishNow = async (item: ScheduledItem) => {
+    if (item.id.startsWith("placeholder-")) {
+      toast.error("Contenu pas encore généré");
+      return;
+    }
     if (!project || item.type !== "answer") {
       toast.error("Only answers can be published");
       return;
@@ -54,9 +58,9 @@ export default function AeoPlanning() {
     try {
       await publishAnswer.mutateAsync({ answerId: item.id, projectId: project.id });
       // Refresh items
-      setScheduledItems(prev => prev.map(i => 
-        i.id === item.id ? { ...i, status: "published" as const } : i
-      ));
+      setScheduledItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: "published" as const } : i))
+      );
     } finally {
       setPublishingId(null);
     }
@@ -193,7 +197,9 @@ export default function AeoPlanning() {
         const items: ScheduledItem[] = [];
         
         for (const p of planningData) {
-          // Add answer if exists
+          const dayDate = new Date(p.day);
+
+          // Answer slot
           if (p.answer_id) {
             const answer = answersMap.get(p.answer_id);
             if (answer) {
@@ -201,14 +207,30 @@ export default function AeoPlanning() {
                 id: answer.id,
                 title: answer.question,
                 type: "answer" as const,
-                date: new Date(p.day),
-                status: answer.is_public ? "published" as const : "scheduled" as const,
-                answer: answer.answer
+                date: dayDate,
+                status: answer.is_public ? ("published" as const) : ("scheduled" as const),
+                answer: answer.answer,
+              });
+            } else {
+              items.push({
+                id: `placeholder-answer-${p.id}`,
+                title: "AEO Answer (à générer)",
+                type: "answer" as const,
+                date: dayDate,
+                status: "draft" as const,
               });
             }
+          } else {
+            items.push({
+              id: `placeholder-answer-${p.id}`,
+              title: "AEO Answer (à générer)",
+              type: "answer" as const,
+              date: dayDate,
+              status: "draft" as const,
+            });
           }
-          
-          // Add article if exists
+
+          // Article slot
           if (p.article_id) {
             const article = articlesMap.get(p.article_id);
             if (article) {
@@ -216,10 +238,26 @@ export default function AeoPlanning() {
                 id: article.id,
                 title: article.title,
                 type: "article" as const,
-                date: new Date(p.day),
-                status: article.status === "published" ? "published" as const : "scheduled" as const
+                date: dayDate,
+                status: article.status === "published" ? ("published" as const) : ("scheduled" as const),
+              });
+            } else {
+              items.push({
+                id: `placeholder-article-${p.id}`,
+                title: "Blog Article (à générer)",
+                type: "article" as const,
+                date: dayDate,
+                status: "draft" as const,
               });
             }
+          } else {
+            items.push({
+              id: `placeholder-article-${p.id}`,
+              title: "Blog Article (à générer)",
+              type: "article" as const,
+              date: dayDate,
+              status: "draft" as const,
+            });
           }
         }
 

@@ -175,7 +175,7 @@ async function generateArticle(
 
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
-    
+
     let jsonStr = "";
     const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
@@ -183,21 +183,30 @@ async function generateArticle(
       const match = content.match(/\{[\s\S]*\}/);
       if (match) jsonStr = match[0];
     }
-    
+
     if (!jsonStr) throw new Error("Invalid JSON");
-    
-    const parsed = JSON.parse(jsonStr);
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // Fix common JSON issues
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " ");
+      jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+      parsed = JSON.parse(jsonStr);
+    }
+
     const articleContent = parsed.content || answer;
     const wordCount = articleContent.split(/\s+/).length;
 
-    let htmlContent = articleContent
-      .replace(/### (.*)/g, '<h3>$1</h3>')
-      .replace(/## (.*)/g, '<h2>$1</h2>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>');
+    const htmlContent = articleContent
+      .replace(/### (.*)/g, "<h3>$1</h3>")
+      .replace(/## (.*)/g, "<h2>$1</h2>")
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/\n\n/g, "</p><p>")
+      .replace(/^/, "<p>")
+      .replace(/$/, "</p>");
 
     return {
       title: parsed.title || question,
@@ -217,7 +226,6 @@ async function generateArticle(
     };
   }
 }
-
 /**
  * CRON JOB: Daily Planning Fill
  * Runs daily at 6 AM UTC
@@ -239,59 +247,118 @@ serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("Missing LOVABLE_API_KEY");
 
-    console.log("[daily-planning-fill] Starting daily planning fill...");
+    // Optional params to avoid timeouts
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    const {
+      projectId,
+      days = 31, // today + 30 days (matches your expectation “jusqu'au 11 février”)
+      maxDaysToFill = 3, // safety to keep runtime short
+    } = body ?? {};
+
+    console.log("[daily-planning-fill] Starting daily planning fill...", {
+      projectId,
+      days,
+      maxDaysToFill,
+    });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all active projects
-    const { data: projects, error: projectsError } = await supabase
+    // Select projects (optionally a single project)
+    const projectsQuery = supabase
       .from("projects")
       .select("id, name, language, brand_name, business_description")
       .eq("is_active", true);
+
+    const { data: projects, error: projectsError } = projectId
+      ? await projectsQuery.eq("id", projectId)
+      : await projectsQuery;
 
     if (projectsError) throw projectsError;
 
     console.log(`[daily-planning-fill] Found ${projects?.length || 0} active projects`);
 
-    const results: { projectId: string; name: string; daysAdded: number }[] = [];
+    const results: {
+      projectId: string;
+      name: string;
+      daysTouched: number;
+      daysCompleted: number;
+      stoppedEarly: boolean;
+    }[] = [];
 
     for (const project of projects || []) {
       const brandName = project.brand_name || project.name;
       const description = project.business_description || "";
       const language = project.language || "fr";
-      
-      let daysAdded = 0;
 
-      // Check next 30 days
-      for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+      let daysTouched = 0;
+      let daysCompleted = 0;
+      let stoppedEarly = false;
+
+      // Ensure rows exist in planning for the whole window (so you always have “31 lignes”)
+      for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
-        const dateStr = targetDate.toISOString().split('T')[0];
+        const dateStr = targetDate.toISOString().split("T")[0];
 
-        // Check if this day already has a planning entry
-        const { data: existingPlanning } = await supabase
+        await supabase
+          .from("planning")
+          .upsert(
+            { project_id: project.id, day: dateStr },
+            { onConflict: "project_id,day", ignoreDuplicates: true }
+          );
+
+        const { data: planningRow } = await supabase
           .from("planning")
           .select("id, answer_id, article_id")
           .eq("project_id", project.id)
           .eq("day", dateStr)
           .single();
 
-        // Skip if both answer and article exist
-        if (existingPlanning?.answer_id && existingPlanning?.article_id) {
-          continue;
+        if (!planningRow) continue;
+
+        // If already complete, skip
+        if (planningRow.answer_id && planningRow.article_id) continue;
+
+        // Stop early to avoid timeout
+        if (daysTouched >= maxDaysToFill) {
+          stoppedEarly = true;
+          break;
         }
+
+        daysTouched++;
 
         console.log(`[daily-planning-fill] Filling day ${dateStr} for ${project.name}...`);
 
-        try {
-          // Generate question
+        // 1) Ensure we have an answer
+        let answerId = planningRow.answer_id as string | null;
+        let answerQuestion = "";
+        let answerText = "";
+
+        if (answerId) {
+          const { data: existingAnswer } = await supabase
+            .from("answers")
+            .select("id, question, answer")
+            .eq("id", answerId)
+            .single();
+          if (existingAnswer) {
+            answerQuestion = existingAnswer.question;
+            answerText = existingAnswer.answer;
+          } else {
+            answerId = null;
+          }
+        }
+
+        if (!answerId) {
           const q = await generateQuestion(brandName, description, language, apiKey, dayOffset);
-          
-          // Generate answer
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
           const score = computeScore(answerData.answer, brandName);
 
-          // Insert answer
           const { data: insertedAnswer, error: answerError } = await supabase
             .from("answers")
             .insert({
@@ -308,88 +375,75 @@ serve(async (req) => {
             .select()
             .single();
 
-          if (answerError) {
-            console.error(`Error inserting answer:`, answerError);
+          if (answerError || !insertedAnswer) {
+            console.error("[daily-planning-fill] Error inserting answer:", answerError);
             continue;
           }
 
-          // Generate article
-          const articleData = await generateArticle(q.question, answerData.answer, brandName, language, apiKey);
+          answerId = insertedAnswer.id;
+          answerQuestion = insertedAnswer.question;
+          answerText = insertedAnswer.answer;
 
-          // Insert article
-          const { data: insertedArticle, error: articleError } = await supabase
-            .from("articles")
-            .insert({
-              project_id: project.id,
-              linked_answer_id: insertedAnswer.id,
-              title: articleData.title,
-              content: articleData.content,
-              html_content: articleData.htmlContent,
-              meta_description: articleData.metaDescription,
-              word_count: articleData.wordCount,
-              slug: generateSlug(articleData.title),
-              status: "scheduled",
-              scheduled_date: targetDate.toISOString(),
-              aeo_score: score,
-            })
-            .select()
-            .single();
-
-          if (articleError) {
-            console.error(`Error inserting article:`, articleError);
-            continue;
-          }
-
-          // Update answer with article reference
           await supabase
-            .from("answers")
-            .update({ article_id: insertedArticle.id, has_article: true })
-            .eq("id", insertedAnswer.id);
+            .from("planning")
+            .update({ answer_id: answerId })
+            .eq("id", planningRow.id);
+        }
 
-          // Insert or update planning entry
-          if (existingPlanning) {
-            await supabase
-              .from("planning")
-              .update({
-                answer_id: insertedAnswer.id,
-                article_id: insertedArticle.id,
-              })
-              .eq("id", existingPlanning.id);
-          } else {
-            await supabase
-              .from("planning")
+        // 2) Ensure we have an article
+        if (!planningRow.article_id) {
+          try {
+            const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey);
+            const score = computeScore(answerText, brandName);
+
+            const { data: insertedArticle, error: articleError } = await supabase
+              .from("articles")
               .insert({
                 project_id: project.id,
-                day: dateStr,
-                answer_id: insertedAnswer.id,
-                article_id: insertedArticle.id,
-              });
+                linked_answer_id: answerId,
+                title: articleData.title,
+                content: articleData.content,
+                html_content: articleData.htmlContent,
+                meta_description: articleData.metaDescription,
+                word_count: articleData.wordCount,
+                slug: generateSlug(articleData.title),
+                status: "scheduled",
+                scheduled_date: targetDate.toISOString(),
+                aeo_score: score,
+              })
+              .select()
+              .single();
+
+            if (articleError || !insertedArticle) {
+              console.error("[daily-planning-fill] Error inserting article:", articleError);
+              continue;
+            }
+
+            await supabase
+              .from("answers")
+              .update({ article_id: insertedArticle.id, has_article: true })
+              .eq("id", answerId);
+
+            await supabase
+              .from("planning")
+              .update({ article_id: insertedArticle.id })
+              .eq("id", planningRow.id);
+
+            daysCompleted++;
+          } catch (err) {
+            console.error(`[daily-planning-fill] Error generating article for ${dateStr}:`, err);
           }
-
-          daysAdded++;
-          console.log(`[daily-planning-fill] Added content for ${dateStr}`);
-
-          // Rate limit - pause between generations
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (err) {
-          console.error(`[daily-planning-fill] Error filling day ${dateStr}:`, err);
         }
+
+        // Small delay
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      results.push({
-        projectId: project.id,
-        name: project.name,
-        daysAdded,
-      });
+      results.push({ projectId: project.id, name: project.name, daysTouched, daysCompleted, stoppedEarly });
     }
 
-    console.log("[daily-planning-fill] Completed:", JSON.stringify(results));
-
     return new Response(
-      JSON.stringify({
-        success: true,
-        results,
-      }),
+      JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e: any) {
