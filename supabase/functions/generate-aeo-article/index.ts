@@ -6,48 +6,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Generate AEO-optimized HTML article from an answer
+// Generate AEO-optimized HTML article wrapper with proper SEO structure
 function generateAEOArticleHTML(
   answer: {
     question: string;
     answer: string;
     supporting_content?: { bullets?: string[]; faq?: Array<{q: string; a: string}> };
   },
+  articleContent: string,
+  metaDescription: string,
   brandName: string,
   websiteUrl: string,
   language: string
 ): string {
-  const bullets = answer.supporting_content?.bullets || [];
   const faq = answer.supporting_content?.faq || [];
   
-  const schemaOrg = {
+  // Build FAQ Schema
+  const faqSchema = faq.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": answer.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": answer.answer
-        }
-      },
-      ...faq.map(f => ({
-        "@type": "Question",
-        "name": f.q,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": f.a
-        }
-      }))
-    ]
+    "mainEntity": faq.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": f.a
+      }
+    }))
+  } : null;
+
+  // Build Article Schema
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": answer.question,
+    "description": metaDescription || answer.answer.slice(0, 160),
+    "author": {
+      "@type": "Organization",
+      "name": brandName
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": brandName,
+      "url": websiteUrl
+    },
+    "datePublished": new Date().toISOString(),
+    "dateModified": new Date().toISOString()
   };
 
-  const keyFactsTitle = language === 'fr' ? 'Points Clés' : 'Key Facts';
   const faqTitle = language === 'fr' ? 'Questions Fréquentes' : 'Frequently Asked Questions';
-  const footerText = language === 'fr' 
-    ? `Optimisé AEO par ${brandName}` 
-    : `AEO Optimized by ${brandName}`;
 
   return `<!DOCTYPE html>
 <html lang="${language}">
@@ -55,196 +62,273 @@ function generateAEOArticleHTML(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${answer.question} | ${brandName}</title>
-  <meta name="description" content="${answer.answer.slice(0, 160)}">
+  <meta name="description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  <meta name="robots" content="index, follow">
   <link rel="canonical" href="${websiteUrl}">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="${answer.question}">
+  <meta property="og:description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="${websiteUrl}">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${answer.question}">
+  <meta name="twitter:description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  
+  <!-- Schema.org Article -->
   <script type="application/ld+json">
-${JSON.stringify(schemaOrg, null, 2)}
+${JSON.stringify(articleSchema, null, 2)}
   </script>
+  
+  ${faqSchema ? `<!-- Schema.org FAQ -->
+  <script type="application/ld+json">
+${JSON.stringify(faqSchema, null, 2)}
+  </script>` : ''}
+  
   <style>
     :root {
       --primary: #7c3aed;
       --primary-light: #a78bfa;
-      --bg: #0f0f23;
-      --surface: #1a1a2e;
-      --surface-light: #252542;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --border: #334155;
+      --bg: #ffffff;
+      --surface: #f8fafc;
+      --surface-alt: #f1f5f9;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
       --success: #10b981;
+      --accent: #6366f1;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface-alt: #334155;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #475569;
+      }
     }
     
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.7;
-      padding: 2rem;
+      line-height: 1.8;
+      font-size: 16px;
     }
     
     article {
       max-width: 800px;
       margin: 0 auto;
+      padding: 2rem 1.5rem;
     }
     
+    /* Typography Hierarchy */
     h1 {
-      font-size: 2rem;
-      font-weight: 700;
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.2;
       margin-bottom: 1.5rem;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text);
+      letter-spacing: -0.025em;
     }
     
-    .aeo-answer-box {
-      background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
-      border-radius: 1rem;
-      padding: 1.5rem 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.3);
-    }
-    
-    .aeo-answer-box p {
-      font-size: 1.125rem;
-      color: white;
-      font-weight: 500;
-    }
-    
-    .aeo-key-facts {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    .aeo-key-facts h2 {
-      font-size: 1.25rem;
-      color: var(--primary-light);
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-top: 2.5rem;
       margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      color: var(--text);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 0.5rem;
     }
     
-    .aeo-key-facts ul {
-      list-style: none;
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--text);
     }
     
-    .aeo-key-facts li {
-      padding: 0.5rem 0;
+    p {
+      margin-bottom: 1.25rem;
+      color: var(--text);
+    }
+    
+    p.intro {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      border-left: 4px solid var(--primary);
+      padding-left: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1.5rem;
       padding-left: 1.5rem;
-      position: relative;
+    }
+    
+    li {
+      margin-bottom: 0.75rem;
+      padding-left: 0.5rem;
+    }
+    
+    ul li::marker {
+      color: var(--primary);
+    }
+    
+    ol li::marker {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    
+    /* Text styling */
+    strong {
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    em {
+      font-style: italic;
       color: var(--text-muted);
     }
     
-    .aeo-key-facts li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: var(--success);
-      font-weight: bold;
+    /* AEO Answer Box - Featured Snippet Style */
+    .aeo-featured-answer {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 1rem;
+      padding: 1.5rem 2rem;
+      margin: 2rem 0;
+      box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.3);
     }
     
-    .aeo-faq {
-      background: var(--surface-light);
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
+    .aeo-featured-answer p {
+      font-size: 1.125rem;
+      color: white;
+      font-weight: 500;
+      margin: 0;
+      line-height: 1.7;
     }
     
-    .aeo-faq h2 {
-      font-size: 1.25rem;
-      color: var(--primary-light);
-      margin-bottom: 1rem;
+    /* FAQ Section */
+    .faq-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+    
+    .faq-section h2 {
+      margin-top: 0;
+      border-bottom: none;
+      padding-bottom: 0;
     }
     
     .faq-item {
       border-bottom: 1px solid var(--border);
-      padding: 1rem 0;
+      padding: 1.25rem 0;
     }
     
     .faq-item:last-child {
       border-bottom: none;
+      padding-bottom: 0;
     }
     
     .faq-item h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text);
+      margin-top: 0;
       margin-bottom: 0.5rem;
+      font-size: 1.1rem;
     }
     
     .faq-item p {
+      margin-bottom: 0;
       color: var(--text-muted);
-      font-size: 0.95rem;
     }
     
+    /* Footer */
     footer {
       text-align: center;
       padding-top: 2rem;
       border-top: 1px solid var(--border);
-      margin-top: 2rem;
+      margin-top: 3rem;
     }
     
     footer p {
       color: var(--text-muted);
       font-size: 0.875rem;
+      margin: 0;
     }
     
     footer a {
-      color: var(--primary-light);
+      color: var(--primary);
       text-decoration: none;
+      font-weight: 500;
     }
     
     footer a:hover {
       text-decoration: underline;
     }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+      h1 { font-size: 1.75rem; }
+      h2 { font-size: 1.25rem; }
+      h3 { font-size: 1.1rem; }
+      article { padding: 1.5rem 1rem; }
+    }
   </style>
 </head>
 <body>
   <article itemscope itemtype="https://schema.org/Article">
-    <h1 itemprop="headline">${answer.question}</h1>
+    <header>
+      <meta itemprop="datePublished" content="${new Date().toISOString()}">
+      <meta itemprop="author" content="${brandName}">
+    </header>
     
-    <!-- Answer Box FIRST - Critical for AEO -->
-    <div class="aeo-answer-box">
-      <p itemprop="description">${answer.answer}</p>
-    </div>
-    
-    ${bullets.length > 0 ? `
-    <!-- Key Facts -->
-    <div class="aeo-key-facts">
-      <h2>📌 ${keyFactsTitle}</h2>
-      <ul>
-        ${bullets.map(b => `<li>${b}</li>`).join('\n        ')}
-      </ul>
-    </div>
-    ` : ''}
+    <!-- Main Article Content with SEO Structure -->
+    <main itemprop="articleBody">
+      ${articleContent}
+      
+      <!-- AEO Featured Answer Box -->
+      <div class="aeo-featured-answer">
+        <p><strong>En résumé :</strong> ${answer.answer}</p>
+      </div>
+    </main>
     
     ${faq.length > 0 ? `
-    <!-- FAQ Section -->
-    <div class="aeo-faq">
+    <!-- FAQ Section with Schema -->
+    <section class="faq-section" itemscope itemtype="https://schema.org/FAQPage">
       <h2>❓ ${faqTitle}</h2>
       ${faq.map(f => `
-      <div class="faq-item">
-        <h3>${f.q}</h3>
-        <p>${f.a}</p>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <h3 itemprop="name">${f.q}</h3>
+        <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">${f.a}</p>
+        </div>
       </div>
       `).join('')}
-    </div>
+    </section>
     ` : ''}
     
     <footer>
-      <p>${footerText} · <a href="${websiteUrl}" target="_blank">${brandName}</a></p>
+      <p>© ${new Date().getFullYear()} <a href="${websiteUrl}" target="_blank" rel="noopener">${brandName}</a></p>
     </footer>
   </article>
 </body>
 </html>`;
 }
 
-// Generate article content using Lovable AI
+// Generate article content using Lovable AI with proper SEO structure
 async function generateArticleContent(
   question: string,
   answer: string,
@@ -253,43 +337,139 @@ async function generateArticleContent(
   apiKey: string
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
   const systemPrompt = language === 'fr'
-    ? `Tu es un expert en rédaction SEO/AEO. Tu génères des articles optimisés pour être cités par les IA.`
-    : `You are an SEO/AEO writing expert. You generate articles optimized to be cited by AI assistants.`;
+    ? `Tu es un expert en rédaction SEO/AEO. Tu génères des articles HTML parfaitement structurés pour le SEO et optimisés pour être cités par les IA.
+
+RÈGLES HTML SEO CRITIQUES:
+- Un seul H1 (le titre principal)
+- Utilise H2 pour les sections principales
+- Utilise H3 pour les sous-sections
+- Chaque section doit avoir 2-4 paragraphes
+- Utilise des listes à puces (<ul>) et numérotées (<ol>) pour la lisibilité
+- Inclus des balises <strong> pour les mots-clés importants
+- Ajoute des balises <em> pour l'emphase
+- Structure logique: Introduction > Corps > Conclusion
+- Paragraphes courts (3-4 phrases max)
+- Phrases claires et directes`
+    : `You are an SEO/AEO writing expert. You generate perfectly structured HTML articles for SEO, optimized to be cited by AI assistants.
+
+CRITICAL HTML SEO RULES:
+- Only one H1 (the main title)
+- Use H2 for main sections
+- Use H3 for subsections
+- Each section should have 2-4 paragraphs
+- Use bullet lists (<ul>) and numbered lists (<ol>) for readability
+- Include <strong> tags for important keywords
+- Add <em> tags for emphasis
+- Logical structure: Introduction > Body > Conclusion
+- Short paragraphs (3-4 sentences max)
+- Clear and direct sentences`;
 
   const userPrompt = language === 'fr'
-    ? `Génère un article AEO de 400-600 mots basé sur:
-Question: ${question}
-Réponse courte: ${answer}
-Marque: ${brandName}
+    ? `Génère un article AEO de 500-700 mots avec une structure HTML SEO parfaite.
 
-Structure:
-1. Introduction (2-3 phrases)
-2. Réponse détaillée (développe la réponse courte)
-3. Points clés (3-4 bullets)
-4. Conclusion avec CTA
+SUJET:
+- Question: ${question}
+- Réponse courte: ${answer}
+- Marque: ${brandName}
 
-Format JSON:
+STRUCTURE REQUISE (en HTML propre):
+
+<h1>[Titre accrocheur incluant le mot-clé principal]</h1>
+
+<p class="intro">[Introduction de 2-3 phrases qui accroche le lecteur et introduit le sujet]</p>
+
+<h2>Comprendre [sujet principal]</h2>
+<p>[Explication détaillée du concept, 3-4 phrases]</p>
+<p>[Contexte additionnel ou statistiques si pertinent]</p>
+
+<h2>Les avantages clés</h2>
+<ul>
+  <li><strong>[Avantage 1]</strong>: [Explication courte]</li>
+  <li><strong>[Avantage 2]</strong>: [Explication courte]</li>
+  <li><strong>[Avantage 3]</strong>: [Explication courte]</li>
+</ul>
+
+<h2>Comment [action liée au sujet]</h2>
+<p>[Explication du processus ou de la méthode]</p>
+
+<h3>Étape par étape</h3>
+<ol>
+  <li>[Première étape avec détails]</li>
+  <li>[Deuxième étape avec détails]</li>
+  <li>[Troisième étape avec détails]</li>
+</ol>
+
+<h2>Points essentiels à retenir</h2>
+<p>[Résumé des points clés, 2-3 phrases]</p>
+<ul>
+  <li>[Point clé 1]</li>
+  <li>[Point clé 2]</li>
+  <li>[Point clé 3]</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>[Conclusion avec appel à l'action mentionnant ${brandName}]</p>
+
+IMPORTANT: Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>). Juste le contenu de l'article.
+
+Réponds en JSON:
 {
-  "content": "contenu de l'article en HTML",
-  "meta_description": "description meta 150 caractères",
-  "keywords": ["mot-clé 1", "mot-clé 2"]
+  "content": "[HTML de l'article complet avec H1, H2, H3, p, ul, ol, strong, em]",
+  "meta_description": "[Description meta de 150-160 caractères avec mot-clé principal]",
+  "keywords": ["mot-clé principal", "mot-clé secondaire 1", "mot-clé secondaire 2", "mot-clé secondaire 3"]
 }`
-    : `Generate a 400-600 word AEO article based on:
-Question: ${question}
-Short answer: ${answer}
-Brand: ${brandName}
+    : `Generate a 500-700 word AEO article with perfect SEO HTML structure.
 
-Structure:
-1. Introduction (2-3 sentences)
-2. Detailed answer (expand the short answer)
-3. Key points (3-4 bullets)
-4. Conclusion with CTA
+TOPIC:
+- Question: ${question}
+- Short answer: ${answer}
+- Brand: ${brandName}
 
-JSON format:
+REQUIRED STRUCTURE (in clean HTML):
+
+<h1>[Catchy title including main keyword]</h1>
+
+<p class="intro">[Introduction of 2-3 sentences that hooks the reader and introduces the topic]</p>
+
+<h2>Understanding [main topic]</h2>
+<p>[Detailed explanation of the concept, 3-4 sentences]</p>
+<p>[Additional context or statistics if relevant]</p>
+
+<h2>Key Benefits</h2>
+<ul>
+  <li><strong>[Benefit 1]</strong>: [Short explanation]</li>
+  <li><strong>[Benefit 2]</strong>: [Short explanation]</li>
+  <li><strong>[Benefit 3]</strong>: [Short explanation]</li>
+</ul>
+
+<h2>How to [action related to topic]</h2>
+<p>[Explanation of the process or method]</p>
+
+<h3>Step by Step</h3>
+<ol>
+  <li>[First step with details]</li>
+  <li>[Second step with details]</li>
+  <li>[Third step with details]</li>
+</ol>
+
+<h2>Essential Points to Remember</h2>
+<p>[Summary of key points, 2-3 sentences]</p>
+<ul>
+  <li>[Key point 1]</li>
+  <li>[Key point 2]</li>
+  <li>[Key point 3]</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>[Conclusion with call to action mentioning ${brandName}]</p>
+
+IMPORTANT: Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>). Just the article content.
+
+Reply in JSON:
 {
-  "content": "article content in HTML",
-  "meta_description": "meta description 150 characters",
-  "keywords": ["keyword 1", "keyword 2"]
+  "content": "[Complete article HTML with H1, H2, H3, p, ul, ol, strong, em]",
+  "meta_description": "[Meta description of 150-160 characters with main keyword]",
+  "keywords": ["main keyword", "secondary keyword 1", "secondary keyword 2", "secondary keyword 3"]
 }`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -425,13 +605,15 @@ serve(async (req) => {
       lovableApiKey
     );
 
-    // Generate full HTML
+    // Generate full HTML with proper SEO structure
     const fullHtml = generateAEOArticleHTML(
       {
         question: answer.question,
         answer: answer.answer,
         supporting_content: answer.supporting_content
       },
+      articleContent.content,
+      articleContent.meta_description,
       brandName,
       websiteUrl,
       language
