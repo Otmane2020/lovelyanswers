@@ -485,6 +485,58 @@ export type Database = {
           },
         ]
       }
+      planning: {
+        Row: {
+          answer_id: string | null
+          article_id: string | null
+          created_at: string
+          day: string
+          id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_id?: string | null
+          article_id?: string | null
+          created_at?: string
+          day: string
+          id?: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_id?: string | null
+          article_id?: string | null
+          created_at?: string
+          day?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
