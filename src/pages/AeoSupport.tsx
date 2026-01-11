@@ -81,7 +81,23 @@ const AeoSupport = () => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Get the ticket to include the initial message if no messages exist
+      const ticket = tickets.find(t => t.id === ticketId);
+      const messagesData = data || [];
+      
+      // If no messages but ticket has a message, add it as the first message
+      if (messagesData.length === 0 && ticket?.message) {
+        setMessages([{
+          id: 'initial-' + ticketId,
+          ticket_id: ticketId,
+          sender_type: 'user',
+          message: ticket.message,
+          created_at: ticket.created_at,
+        }]);
+      } else {
+        setMessages(messagesData);
+      }
     } catch (error) {
       console.error("Error loading messages:", error);
     }
