@@ -476,11 +476,6 @@ export default function Answers() {
               </div>
               <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
-                <Plus className="h-4 w-4" />New Answer
-              </Button>
-            </div>
           </div>
         </div>
 

@@ -588,6 +588,19 @@ serve(async (req) => {
       console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}...`);
 
       try {
+        // GUARD: Check if this day already has an answer (max 1 per day)
+        const { count: existingAnswers } = await supabase
+          .from("answers")
+          .select("id", { count: "exact", head: true })
+          .eq("project_id", projectId)
+          .gte("scheduled_date", dayStr)
+          .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0]);
+        
+        if ((existingAnswers || 0) >= 1) {
+          console.log(`[generate-30-days] Day ${dayStr} already has an answer, skipping...`);
+          continue;
+        }
+
         // Generate answer
         const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
         const score = computeScore(answerData.answer, brandName);
