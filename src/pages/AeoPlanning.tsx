@@ -27,6 +27,11 @@ interface ScheduledItem {
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
   answer?: string;
+  score?: number | null;
+  highCitation?: boolean | null;
+  aeoScore?: number | null;
+  wordCount?: number | null;
+  createdAt?: string | null;
 }
 
 export default function AeoPlanning() {
@@ -140,36 +145,47 @@ export default function AeoPlanning() {
     try {
       const projectId = project.id;
 
-      // Fetch answers with scheduled_date
+      // Fetch answers with scheduled_date - same query structure as useAnswers but filtered
       const { data: answers } = await supabase
         .from("answers")
-        .select("id, question, scheduled_date, is_public, answer")
+        .select("id, question, scheduled_date, is_public, answer, published_url, score, high_citation, created_at")
         .eq("project_id", projectId)
-        .not("scheduled_date", "is", null);
+        .not("scheduled_date", "is", null)
+        .order("scheduled_date", { ascending: true })
+        .limit(1000);
 
-      // Fetch articles with scheduled_date
+      // Fetch articles with scheduled_date - same query structure as useArticles but filtered
       const { data: articles } = await supabase
         .from("articles")
-        .select("id, title, scheduled_date, status")
+        .select("id, title, scheduled_date, status, aeo_score, word_count, created_at")
         .eq("project_id", projectId)
-        .not("scheduled_date", "is", null);
+        .not("scheduled_date", "is", null)
+        .order("scheduled_date", { ascending: true })
+        .limit(1000);
 
-      // Only show REAL content, no placeholders
+      // Map items with additional fields for consistency with History page
       const items: ScheduledItem[] = [
         ...(answers || []).map(a => ({
           id: a.id,
           title: a.question,
           type: "answer" as const,
           date: new Date(a.scheduled_date!),
-          status: a.is_public ? "published" as const : "scheduled" as const,
-          answer: a.answer
+          status: a.published_url ? "published" as const : a.is_public ? "published" as const : "scheduled" as const,
+          publishedUrl: a.published_url || undefined,
+          answer: a.answer,
+          score: a.score,
+          highCitation: a.high_citation,
+          createdAt: a.created_at
         })),
         ...(articles || []).map(a => ({
           id: a.id,
           title: a.title,
           type: "article" as const,
           date: new Date(a.scheduled_date!),
-          status: a.status === "published" ? "published" as const : "scheduled" as const
+          status: a.status === "published" ? "published" as const : "scheduled" as const,
+          aeoScore: a.aeo_score,
+          wordCount: a.word_count,
+          createdAt: a.created_at
         }))
       ];
       
