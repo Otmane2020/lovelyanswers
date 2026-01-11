@@ -68,45 +68,57 @@ export default function AeoPlanning() {
 
   //
 
-  // Auto-generate content in background if needed
+  // Auto-generate content in background to ensure 30 rolling days
   useEffect(() => {
     const autoGenerateIfNeeded = async () => {
       if (!project || isGenerating) return;
       
-      // Check if we have content for the next 7 days
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const next7Days = new Date(today.getTime() + 7 * 86400000);
+      const next30Days = new Date(today.getTime() + 30 * 86400000);
       
+      // Count how many answers exist for next 30 days
       const { count } = await supabase
         .from("answers")
         .select("id", { count: "exact", head: true })
         .eq("project_id", project.id)
         .gte("scheduled_date", today.toISOString())
-        .lt("scheduled_date", next7Days.toISOString());
+        .lt("scheduled_date", next30Days.toISOString());
       
-      // If less than 5 answers in next 7 days, generate more in background
-      if ((count || 0) < 5) {
-        console.log("[AeoPlanning] Auto-generating content in background...");
+      const existingCount = count || 0;
+      const missing = 30 - existingCount;
+      
+      // If less than 30 answers, generate the missing ones
+      if (missing > 0) {
+        console.log(`[AeoPlanning] Missing ${missing} days of content, generating...`);
         setIsGenerating(true);
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) return;
           
-          // Generate 5 days of content in background (won't block UI)
+          // Generate in smaller batches to avoid timeout (5 days at a time)
+          const batchSize = Math.min(missing, 5);
+          
           await supabase.functions.invoke("generate-30-days-content", {
             body: { 
               projectId: project.id, 
               language: project.language || "fr",
-              days: 5,
-              overwrite: false 
+              days: batchSize,
+              overwrite: false,
+              startOffset: existingCount
             },
           });
           
-          console.log("[AeoPlanning] Background generation complete");
-          // Refresh items after generation
+          console.log(`[AeoPlanning] Generated ${batchSize} days, refreshing...`);
           fetchScheduledItems();
+          
+          // If still more to generate, trigger again after a delay
+          if (missing > batchSize) {
+            setTimeout(() => {
+              setIsGenerating(false); // Reset to allow next batch
+            }, 3000);
+          }
         } catch (error) {
           console.error("[AeoPlanning] Background generation error:", error);
         } finally {
@@ -118,7 +130,7 @@ export default function AeoPlanning() {
     // Delay auto-generation to let initial load complete
     const timer = setTimeout(autoGenerateIfNeeded, 2000);
     return () => clearTimeout(timer);
-  }, [project]);
+  }, [project, isGenerating]);
 
   // Fetch scheduled items from answers/articles tables
   const fetchScheduledItems = async () => {
