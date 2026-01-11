@@ -69,6 +69,28 @@ function computeScore(answer: string, brand: string): number {
   return Math.min(98, Math.max(50, score));
 }
 
+// Ensure question ends with "?"
+function ensureQuestionMark(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.endsWith("?")) return trimmed;
+  // Remove trailing punctuation and add ?
+  return trimmed.replace(/[.!,;:]$/, "") + " ?";
+}
+
+// Validate that text is a proper question (not just keywords)
+function isValidQuestion(text: string): boolean {
+  const trimmed = text.trim();
+  // Must be at least 15 characters
+  if (trimmed.length < 15) return false;
+  // Must contain interrogative words or question patterns
+  const questionPatterns = [
+    /^(comment|how|what|quel|quelle|quels|quelles|pourquoi|why|when|quand|où|where|combien|how much|how many)/i,
+    /\?$/,
+    /(est-ce que|is it|are there|y a-t-il|peut-on|can we|should|faut-il)/i,
+  ];
+  return questionPatterns.some(p => p.test(trimmed));
+}
+
 // Generate questions for 30 days
 async function generateQuestions(
   brandName: string,
@@ -82,12 +104,23 @@ async function generateQuestions(
   const systemPrompt = language === "fr"
     ? `Tu génères ${count} questions DÉCISIONNELLES uniques pour un planning de contenu 30 jours.
 
-RÈGLES:
-- Questions orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter...)
+RÈGLES CRITIQUES:
+- CHAQUE question DOIT finir par "?" - OBLIGATOIRE
+- INTERDIT de générer des mots-clés simples comme "mobilier écoresponsable" ou "meubles design"
+- Questions complètes orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter...)
 - NE PAS utiliser le nom de marque dans les questions
-- Varier les intentions: prix, critères, comparaisons, tutoriels, erreurs à éviter
 - Questions naturelles comme sur ChatGPT/Google
 - Inclure le contexte ${currentYear} quand pertinent
+
+⛔ EXEMPLES INTERDITS (pas des questions):
+- "mobilier écoresponsable" ❌
+- "meubles design" ❌
+- "canapé convertible" ❌
+
+✅ EXEMPLES CORRECTS:
+- "Comment choisir un mobilier écoresponsable de qualité en ${currentYear} ?"
+- "Quel budget prévoir pour des meubles design dans un salon ?"
+- "Quelles erreurs éviter lors de l'achat d'un canapé convertible ?"
 
 TYPES À MIXER:
 - "Comment choisir..." (criteria)
@@ -100,12 +133,23 @@ TYPES À MIXER:
 Retourne UNIQUEMENT du JSON valide.`
     : `Generate ${count} unique DECISION-ORIENTED questions for a 30-day content plan.
 
-RULES:
-- Decision-oriented questions (How to choose, What budget, What mistakes to avoid...)
+CRITICAL RULES:
+- EVERY question MUST end with "?" - MANDATORY
+- FORBIDDEN to generate simple keywords like "eco-friendly furniture" or "design furniture"
+- Complete decision-oriented questions (How to choose, What budget, What mistakes to avoid...)
 - DO NOT use brand name in questions
-- Mix intents: price, criteria, comparisons, tutorials, mistakes to avoid
 - Natural questions like on ChatGPT/Google
 - Include ${currentYear} context when relevant
+
+⛔ FORBIDDEN EXAMPLES (not questions):
+- "eco-friendly furniture" ❌
+- "design furniture" ❌
+- "convertible sofa" ❌
+
+✅ CORRECT EXAMPLES:
+- "How to choose quality eco-friendly furniture in ${currentYear}?"
+- "What budget to plan for design furniture in a living room?"
+- "What mistakes to avoid when buying a convertible sofa?"
 
 Return ONLY valid JSON.`;
 
@@ -115,10 +159,10 @@ Description: ${description}
 Language: ${language}
 Count: ${count}
 
-Generate ${count} unique questions. Return JSON:
+Generate ${count} unique COMPLETE QUESTIONS (not keywords). Each question MUST end with "?". Return JSON:
 {
   "questions": [
-    {"question": "...", "intent": "criteria|price|howto|comparison|why|best|what|duration"},
+    {"question": "Comment choisir... ?", "intent": "criteria|price|howto|comparison|why|best|what|duration"},
     ...
   ]
 }`;
@@ -146,18 +190,56 @@ Generate ${count} unique questions. Return JSON:
     if (!match) throw new Error("Invalid JSON");
     
     const parsed = JSON.parse(match[0]);
-    return parsed.questions.slice(0, count).map((q: any) => ({
-      question: q.question,
-      intent: INTENTS.includes(q.intent) ? q.intent : detectIntent(q.question),
-    }));
+    
+    // Post-process questions to ensure they're valid
+    const validQuestions = parsed.questions
+      .slice(0, count)
+      .map((q: any) => {
+        let question = q.question;
+        
+        // If it's not a valid question (just keywords), transform it
+        if (!isValidQuestion(question)) {
+          console.log(`[generate-30-days] Invalid question detected, transforming: "${question}"`);
+          question = language === "fr"
+            ? `Comment choisir ${question} adapté à ses besoins en ${currentYear} ?`
+            : `How to choose ${question} suited to your needs in ${currentYear}?`;
+        }
+        
+        // Ensure question ends with "?"
+        question = ensureQuestionMark(question);
+        
+        return {
+          question,
+          intent: INTENTS.includes(q.intent) ? q.intent : detectIntent(question),
+        };
+      });
+    
+    return validQuestions;
   } catch (e) {
     console.error("Failed to generate questions:", e);
-    // Fallback questions
+    // Fallback questions - proper format with ?
     const fallback: { question: string; intent: IntentType }[] = [];
+    const fallbackTemplates = language === "fr" 
+      ? [
+          { template: `Comment choisir un ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`, intent: "criteria" as IntentType },
+          { template: `Quel budget prévoir pour ${brandName.toLowerCase()} de qualité ?`, intent: "price" as IntentType },
+          { template: `Quelles erreurs éviter lors du choix de ${brandName.toLowerCase()} ?`, intent: "howto" as IntentType },
+          { template: `Pourquoi opter pour ${brandName.toLowerCase()} plutôt que les alternatives ?`, intent: "why" as IntentType },
+          { template: `Quels critères vérifier avant d'acheter ${brandName.toLowerCase()} ?`, intent: "criteria" as IntentType },
+        ]
+      : [
+          { template: `How to choose a ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`, intent: "criteria" as IntentType },
+          { template: `What budget to plan for quality ${brandName.toLowerCase()}?`, intent: "price" as IntentType },
+          { template: `What mistakes to avoid when choosing ${brandName.toLowerCase()}?`, intent: "howto" as IntentType },
+          { template: `Why choose ${brandName.toLowerCase()} over alternatives?`, intent: "why" as IntentType },
+          { template: `What criteria to check before buying ${brandName.toLowerCase()}?`, intent: "criteria" as IntentType },
+        ];
+    
     for (let i = 0; i < count; i++) {
+      const tmpl = fallbackTemplates[i % fallbackTemplates.length];
       fallback.push({
-        question: `Comment choisir un ${brandName.toLowerCase()} adapté à ses besoins ? (${i + 1})`,
-        intent: INTENTS[i % INTENTS.length],
+        question: tmpl.template.replace(/\(\d+\)/, `(${i + 1})`),
+        intent: tmpl.intent,
       });
     }
     return fallback;
