@@ -96,12 +96,16 @@ export default function AeoIntegrations() {
           const { data, error } = await supabase.functions.invoke("google-oauth-token", {
             body: { code, state },
           });
-          
+
           if (error) throw error;
-          
+          if (!data?.success) {
+            const msg = [data?.error, data?.details].filter(Boolean).join("\n");
+            throw new Error(msg || "Failed to connect");
+          }
+
           toast.success("Google Search Console connecté avec succès!");
           refetchGsc();
-          
+
           // Clean URL
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (error: any) {
