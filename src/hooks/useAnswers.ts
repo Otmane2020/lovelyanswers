@@ -28,14 +28,16 @@ export function useAnswers() {
     queryFn: async () => {
       if (!project) return [];
       
+      // Fetch all answers without limit, sorted by newest first
       const { data, error } = await supabase
         .from("answers")
         .select("*")
         .eq("project_id", project.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000); // Explicitly set high limit
 
       if (error) throw error;
-      return data as Answer[];
+      return (data || []) as Answer[];
     },
     enabled: !!project,
   });
