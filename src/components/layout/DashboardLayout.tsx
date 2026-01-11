@@ -19,9 +19,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="min-h-screen flex w-full">
           <AeoSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <header className="h-14 flex items-center border-b px-4 bg-background">
-              <SidebarTrigger className="mr-4" />
-              <div className="flex-1" />
+            <header className="h-12 flex items-center px-4 bg-background/50 backdrop-blur-sm">
+              <SidebarTrigger className="mr-4 hover:bg-muted/50 transition-colors" />
             </header>
             
             {/* Global Progress Bar - Persists across route changes */}
