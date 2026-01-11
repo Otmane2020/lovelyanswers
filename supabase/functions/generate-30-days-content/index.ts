@@ -387,7 +387,7 @@ serve(async (req) => {
     if (authError || !userData?.user) throw new Error("Invalid token");
 
     const body = await req.json();
-    const { projectId, language = "fr", days = 30 } = body;
+    const { projectId, language = "fr", days = 30, overwrite = true } = body;
 
     if (!projectId) throw new Error("Missing projectId");
 
@@ -404,69 +404,51 @@ serve(async (req) => {
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
 
-    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days`);
+    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days, overwrite=${overwrite}`);
 
-    // Check existing scheduled items to enforce 2 items/day max (1 Answer + 1 Article)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    // Get existing answers per day
-    const { data: existingAnswers } = await supabase
-      .from("answers")
-      .select("id, scheduled_date")
-      .eq("project_id", projectId)
-      .gte("scheduled_date", today.toISOString());
-    
-    // Get existing articles per day  
-    const { data: existingArticles } = await supabase
-      .from("articles")
-      .select("id, scheduled_date")
-      .eq("project_id", projectId)
-      .gte("scheduled_date", today.toISOString());
-    
-    // Build map of items per day: { dateKey: { answers: count, articles: count } }
+    const endDate = new Date(today.getTime() + days * 86400000);
+
+    // MODE ÉCRASEMENT: Supprimer TOUS les items planifiés dans la période
+    if (overwrite) {
+      console.log(`[generate-30-days] OVERWRITE MODE: Deleting all scheduled items from ${today.toISOString()} to ${endDate.toISOString()}`);
+      
+      // Supprimer d'abord les articles (pour éviter les contraintes FK)
+      const { error: deleteArticlesError, count: deletedArticles } = await supabase
+        .from("articles")
+        .delete({ count: "exact" })
+        .eq("project_id", projectId)
+        .gte("scheduled_date", today.toISOString())
+        .lt("scheduled_date", endDate.toISOString());
+      
+      if (deleteArticlesError) {
+        console.error("[generate-30-days] Error deleting articles:", deleteArticlesError);
+      } else {
+        console.log(`[generate-30-days] Deleted ${deletedArticles} existing articles`);
+      }
+      
+      // Puis supprimer les answers planifiées
+      const { error: deleteAnswersError, count: deletedAnswers } = await supabase
+        .from("answers")
+        .delete({ count: "exact" })
+        .eq("project_id", projectId)
+        .gte("scheduled_date", today.toISOString())
+        .lt("scheduled_date", endDate.toISOString());
+      
+      if (deleteAnswersError) {
+        console.error("[generate-30-days] Error deleting answers:", deleteAnswersError);
+      } else {
+        console.log(`[generate-30-days] Deleted ${deletedAnswers} existing answers`);
+      }
+    }
+
+    // Initialize empty items per day tracker
     const itemsPerDay: Record<string, { answers: number; articles: number }> = {};
-    
-    for (const a of existingAnswers || []) {
-      const d = new Date(a.scheduled_date);
-      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
-      itemsPerDay[dateKey].answers++;
-    }
-    
-    for (const art of existingArticles || []) {
-      const d = new Date(art.scheduled_date);
-      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
-      itemsPerDay[dateKey].articles++;
-    }
-    
-    // Count days that are FULL (have both 1 answer + 1 article = 2 items max)
-    const fullDays = Object.values(itemsPerDay).filter(d => d.answers >= 1 && d.articles >= 1).length;
-    
-    console.log(`[generate-30-days] Found ${fullDays} fully scheduled days (2 items each)`);
-    console.log(`[generate-30-days] Daily limit: 1 AEO Answer + 1 Blog Article = 2 items/day MAX`);
 
-    // Calculate how many NEW days we need to fill
-    const daysToGenerate = days - fullDays;
-    
-    if (daysToGenerate <= 0) {
-      console.log(`[generate-30-days] All ${days} days already have 2 items scheduled, nothing to generate`);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: `All ${days} days already have 2 items scheduled (1 Answer + 1 Article per day)`,
-          answers_created: 0,
-          articles_created: 0,
-          days,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Step 1: Generate questions only for empty days
-    console.log(`[generate-30-days] Generating ${daysToGenerate} questions for empty days...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, daysToGenerate);
+    // Step 1: Generate questions for all days (exactly 1 per day = days questions)
+    console.log(`[generate-30-days] Generating ${days} questions for ${days} days...`);
+    const questions = await generateQuestions(brandName, description, language, apiKey, days);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
