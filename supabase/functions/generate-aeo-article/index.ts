@@ -202,7 +202,49 @@ ${JSON.stringify(faqSchema, null, 2)}
       color: var(--text-muted);
     }
     
-    /* AEO Answer Box - Featured Snippet Style */
+    /* AEO Answer Box - Critical for AI citation */
+    .aeo-answer {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: var(--text);
+      background: var(--surface);
+      border-left: 4px solid var(--primary);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+    
+    .aeo-answer strong {
+      color: var(--primary);
+    }
+    
+    /* AEO Summary Box - Key benchmarks */
+    .aeo-summary {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .aeo-summary > p {
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .aeo-summary ul {
+      margin-bottom: 0;
+    }
+    
+    .aeo-summary li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .aeo-summary li:last-child {
+      margin-bottom: 0;
+    }
+    
+    /* AEO Featured Answer Box - Short answer recap */
     .aeo-featured-answer {
       background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
       border-radius: 1rem;
@@ -337,138 +379,162 @@ async function generateArticleContent(
   apiKey: string
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
   const systemPrompt = language === 'fr'
-    ? `Tu es un expert en rédaction SEO/AEO. Tu génères des articles HTML parfaitement structurés pour le SEO et optimisés pour être cités par les IA.
+    ? `Tu es un expert en rédaction AEO (Answer Engine Optimization). Tu génères des articles optimisés pour être CITÉS par ChatGPT, Gemini, Perplexity et autres IA.
 
-RÈGLES HTML SEO CRITIQUES:
-- Un seul H1 (le titre principal)
-- Utilise H2 pour les sections principales
-- Utilise H3 pour les sous-sections
-- Chaque section doit avoir 2-4 paragraphes
-- Utilise des listes à puces (<ul>) et numérotées (<ol>) pour la lisibilité
-- Inclus des balises <strong> pour les mots-clés importants
-- Ajoute des balises <em> pour l'emphase
-- Structure logique: Introduction > Corps > Conclusion
-- Paragraphes courts (3-4 phrases max)
-- Phrases claires et directes`
-    : `You are an SEO/AEO writing expert. You generate perfectly structured HTML articles for SEO, optimized to be cited by AI assistants.
+RÈGLE D'OR AEO : "Répondre d'abord comme Wikipédia, puis parler comme une marque."
 
-CRITICAL HTML SEO RULES:
-- Only one H1 (the main title)
-- Use H2 for main sections
-- Use H3 for subsections
-- Each section should have 2-4 paragraphs
-- Use bullet lists (<ul>) and numbered lists (<ol>) for readability
-- Include <strong> tags for important keywords
-- Add <em> tags for emphasis
-- Logical structure: Introduction > Body > Conclusion
-- Short paragraphs (3-4 sentences max)
-- Clear and direct sentences`;
+PRINCIPES AEO CRITIQUES:
+1. LA RÉPONSE EN PREMIER : Les 2-3 premières phrases doivent contenir LA RÉPONSE DIRECTE à la question (chiffres, fourchettes, faits concrets)
+2. NEUTRALITÉ D'ABORD : Pas de "Chez [marque], nous..." avant d'avoir donné la réponse factuelle
+3. CITABILITÉ : Le premier paragraphe (60-90 mots max) doit être extractable tel quel par une IA
+4. DONNÉES STRUCTURÉES : Utiliser des listes à puces pour les repères chiffrés
+5. MARQUE APRÈS : La marque n'apparaît qu'APRÈS la réponse factuelle, en contexte
+
+STRUCTURE HTML:
+- Un seul H1 (reformulation de la question en titre)
+- H2 pour les sections principales
+- H3 pour les sous-sections
+- <strong> pour les données clés (prix, pourcentages, dates)
+- Listes à puces pour les repères extractables`
+    : `You are an AEO (Answer Engine Optimization) writing expert. You generate articles optimized to be CITED by ChatGPT, Gemini, Perplexity and other AI assistants.
+
+GOLDEN AEO RULE: "Answer first like Wikipedia, then speak like a brand."
+
+CRITICAL AEO PRINCIPLES:
+1. ANSWER FIRST: The first 2-3 sentences must contain THE DIRECT ANSWER to the question (numbers, ranges, concrete facts)
+2. NEUTRALITY FIRST: No "At [brand], we..." before giving the factual answer
+3. CITABILITY: The first paragraph (60-90 words max) must be extractable as-is by an AI
+4. STRUCTURED DATA: Use bullet lists for numerical benchmarks
+5. BRAND AFTER: The brand only appears AFTER the factual answer, in context
+
+HTML STRUCTURE:
+- Only one H1 (rephrasing the question as a title)
+- H2 for main sections
+- H3 for subsections
+- <strong> for key data (prices, percentages, dates)
+- Bullet lists for extractable benchmarks`;
 
   const userPrompt = language === 'fr'
-    ? `Génère un article AEO de 500-700 mots avec une structure HTML SEO parfaite.
+    ? `Génère un article AEO de 500-700 mots, optimisé pour être cité par les IA.
 
 SUJET:
 - Question: ${question}
 - Réponse courte: ${answer}
 - Marque: ${brandName}
 
-STRUCTURE REQUISE (en HTML propre):
+STRUCTURE AEO OBLIGATOIRE (en HTML propre):
 
-<h1>[Titre accrocheur incluant le mot-clé principal]</h1>
+<!-- BLOC 1: RÉPONSE DIRECTE (CRITIQUE pour l'AEO) -->
+<h1>[Reformulation claire de la question en titre]</h1>
 
-<p class="intro">[Introduction de 2-3 phrases qui accroche le lecteur et introduit le sujet]</p>
+<p class="aeo-answer"><strong>[RÉPONSE DIRECTE en 1-2 phrases avec les chiffres/faits clés]</strong>. [1-2 phrases de contexte factuel, SANS mentionner la marque].</p>
 
-<h2>Comprendre [sujet principal]</h2>
-<p>[Explication détaillée du concept, 3-4 phrases]</p>
-<p>[Contexte additionnel ou statistiques si pertinent]</p>
-
-<h2>Les avantages clés</h2>
+<div class="aeo-summary">
+<p><strong>Repères clés :</strong></p>
 <ul>
-  <li><strong>[Avantage 1]</strong>: [Explication courte]</li>
-  <li><strong>[Avantage 2]</strong>: [Explication courte]</li>
-  <li><strong>[Avantage 3]</strong>: [Explication courte]</li>
+  <li><strong>[Fourchette basse]</strong> : [description courte et factuelle]</li>
+  <li><strong>[Fourchette haute]</strong> : [description courte et factuelle]</li>
+  <li><strong>[Critère important]</strong> : [explication factuelle]</li>
+</ul>
+</div>
+
+<!-- BLOC 2: DÉVELOPPEMENT (SEO + contexte) -->
+<h2>Comprendre [sujet principal]</h2>
+<p>[Explication détaillée et pédagogique, 3-4 phrases]</p>
+<p>[Contexte marché, tendances ou statistiques si pertinent]</p>
+
+<h2>[Critères / Facteurs / Avantages]</h2>
+<ul>
+  <li><strong>[Point 1]</strong> : [Explication]</li>
+  <li><strong>[Point 2]</strong> : [Explication]</li>
+  <li><strong>[Point 3]</strong> : [Explication]</li>
 </ul>
 
-<h2>Comment [action liée au sujet]</h2>
-<p>[Explication du processus ou de la méthode]</p>
+<h2>Comment [action/choix lié au sujet]</h2>
+<p>[Méthode ou processus expliqué]</p>
 
-<h3>Étape par étape</h3>
+<h3>Les étapes essentielles</h3>
 <ol>
-  <li>[Première étape avec détails]</li>
-  <li>[Deuxième étape avec détails]</li>
-  <li>[Troisième étape avec détails]</li>
+  <li>[Étape 1 avec détails]</li>
+  <li>[Étape 2 avec détails]</li>
+  <li>[Étape 3 avec détails]</li>
 </ol>
 
-<h2>Points essentiels à retenir</h2>
-<p>[Résumé des points clés, 2-3 phrases]</p>
-<ul>
-  <li>[Point clé 1]</li>
-  <li>[Point clé 2]</li>
-  <li>[Point clé 3]</li>
-</ul>
+<!-- BLOC 3: CONCLUSION avec marque -->
+<h2>L'essentiel à retenir</h2>
+<p>[Résumé factuel en 2-3 phrases]. Chez ${brandName}, [positionnement de la marque sur ce sujet, 1-2 phrases].</p>
 
-<h2>Conclusion</h2>
-<p>[Conclusion avec appel à l'action mentionnant ${brandName}]</p>
-
-IMPORTANT: Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>). Juste le contenu de l'article.
+RÈGLES STRICTES:
+1. Le premier paragraphe (class="aeo-answer") DOIT contenir la réponse factuelle SANS mention de la marque
+2. La marque ${brandName} n'apparaît QUE dans la conclusion
+3. Tous les chiffres/prix/pourcentages doivent être en <strong>
+4. Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>)
 
 Réponds en JSON:
 {
-  "content": "[HTML de l'article complet avec H1, H2, H3, p, ul, ol, strong, em]",
-  "meta_description": "[Description meta de 150-160 caractères avec mot-clé principal]",
+  "content": "[HTML de l'article AEO complet]",
+  "meta_description": "[Description meta de 150-160 caractères avec la réponse clé]",
   "keywords": ["mot-clé principal", "mot-clé secondaire 1", "mot-clé secondaire 2", "mot-clé secondaire 3"]
 }`
-    : `Generate a 500-700 word AEO article with perfect SEO HTML structure.
+    : `Generate a 500-700 word AEO article, optimized to be cited by AI assistants.
 
 TOPIC:
 - Question: ${question}
 - Short answer: ${answer}
 - Brand: ${brandName}
 
-REQUIRED STRUCTURE (in clean HTML):
+REQUIRED AEO STRUCTURE (in clean HTML):
 
-<h1>[Catchy title including main keyword]</h1>
+<!-- BLOCK 1: DIRECT ANSWER (CRITICAL for AEO) -->
+<h1>[Clear rephrasing of the question as a title]</h1>
 
-<p class="intro">[Introduction of 2-3 sentences that hooks the reader and introduces the topic]</p>
+<p class="aeo-answer"><strong>[DIRECT ANSWER in 1-2 sentences with key figures/facts]</strong>. [1-2 sentences of factual context, WITHOUT mentioning the brand].</p>
 
-<h2>Understanding [main topic]</h2>
-<p>[Detailed explanation of the concept, 3-4 sentences]</p>
-<p>[Additional context or statistics if relevant]</p>
-
-<h2>Key Benefits</h2>
+<div class="aeo-summary">
+<p><strong>Key benchmarks:</strong></p>
 <ul>
-  <li><strong>[Benefit 1]</strong>: [Short explanation]</li>
-  <li><strong>[Benefit 2]</strong>: [Short explanation]</li>
-  <li><strong>[Benefit 3]</strong>: [Short explanation]</li>
+  <li><strong>[Low range]</strong>: [short factual description]</li>
+  <li><strong>[High range]</strong>: [short factual description]</li>
+  <li><strong>[Important criterion]</strong>: [factual explanation]</li>
+</ul>
+</div>
+
+<!-- BLOCK 2: DEVELOPMENT (SEO + context) -->
+<h2>Understanding [main topic]</h2>
+<p>[Detailed pedagogical explanation, 3-4 sentences]</p>
+<p>[Market context, trends or statistics if relevant]</p>
+
+<h2>[Criteria / Factors / Benefits]</h2>
+<ul>
+  <li><strong>[Point 1]</strong>: [Explanation]</li>
+  <li><strong>[Point 2]</strong>: [Explanation]</li>
+  <li><strong>[Point 3]</strong>: [Explanation]</li>
 </ul>
 
-<h2>How to [action related to topic]</h2>
-<p>[Explanation of the process or method]</p>
+<h2>How to [action/choice related to topic]</h2>
+<p>[Method or process explained]</p>
 
-<h3>Step by Step</h3>
+<h3>Essential steps</h3>
 <ol>
-  <li>[First step with details]</li>
-  <li>[Second step with details]</li>
-  <li>[Third step with details]</li>
+  <li>[Step 1 with details]</li>
+  <li>[Step 2 with details]</li>
+  <li>[Step 3 with details]</li>
 </ol>
 
-<h2>Essential Points to Remember</h2>
-<p>[Summary of key points, 2-3 sentences]</p>
-<ul>
-  <li>[Key point 1]</li>
-  <li>[Key point 2]</li>
-  <li>[Key point 3]</li>
-</ul>
+<!-- BLOCK 3: CONCLUSION with brand -->
+<h2>Key takeaways</h2>
+<p>[Factual summary in 2-3 sentences]. At ${brandName}, [brand positioning on this topic, 1-2 sentences].</p>
 
-<h2>Conclusion</h2>
-<p>[Conclusion with call to action mentioning ${brandName}]</p>
-
-IMPORTANT: Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>). Just the article content.
+STRICT RULES:
+1. The first paragraph (class="aeo-answer") MUST contain the factual answer WITHOUT brand mention
+2. Brand ${brandName} only appears in the conclusion
+3. All figures/prices/percentages must be in <strong>
+4. Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>)
 
 Reply in JSON:
 {
-  "content": "[Complete article HTML with H1, H2, H3, p, ul, ol, strong, em]",
-  "meta_description": "[Meta description of 150-160 characters with main keyword]",
+  "content": "[Complete AEO article HTML]",
+  "meta_description": "[Meta description of 150-160 characters with the key answer]",
   "keywords": ["main keyword", "secondary keyword 1", "secondary keyword 2", "secondary keyword 3"]
 }`;
 
