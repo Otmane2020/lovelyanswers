@@ -179,85 +179,114 @@ function sanitizeAnswer(answer: string): string {
   return clean;
 }
 
-// Compute AEO citation score - STRICTER scoring for decision-oriented answers
+// Compute AEO citation score - HIGH CITATION methodology
+// Based on: 1 Question = 1 Answer, Direct response, Neutral tone, Structured data
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
-  let score = 50;
+  let score = 60; // Start higher - be more generous
   const lowerAnswer = answer.toLowerCase();
   const currentYear = new Date().getFullYear();
+  const firstSentence = answer.split(/[.!?]/)[0] || "";
+  const wordCount = answer.split(/\s+/).length;
   
-  // ❌ PENALTY: Starts with generic definition pattern
-  const genericStarters = [
-    /^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne|représente)/i,
-    /^(a|an|the)\s+\w+\s+(is|are|refers to|represents)/i,
-    /^il s'agit d'/i,
-    /^it is a/i,
-    /^this is a/i,
-  ];
-  if (genericStarters.some(rx => rx.test(answer))) {
-    score -= 15; // Penalty for Wikipedia-style start
+  // ========== HIGH CITATION CRITERIA ==========
+  
+  // ✅ CRITICAL: First sentence is citable (direct, factual definition)
+  // Pattern: "[Concept] est/is [definition factuelle]"
+  const citableFirstSentence = /^(un|une|le|la|l'|a|an|the)?\s*\w+.*(est|is|sont|are|se définit|désigne|refers to|means).*(grâce|thanks|pour|to|par|via|avec|with)/i.test(firstSentence);
+  if (citableFirstSentence) {
+    score += 15; // Major bonus for citable opener
   }
   
-  // ✅ BONUS: Contains decision-making elements
-  const hasDecisionCriteria = /crit[eè]re|choisir|sélectionner|criteria|choose|select/i.test(answer);
-  if (hasDecisionCriteria) score += 10;
+  // ✅ Direct answer structure (2-3 lines of facts first)
+  const hasDirectAnswer = firstSentence.length >= 80 && firstSentence.length <= 250;
+  if (hasDirectAnswer) score += 10;
   
-  // ✅ BONUS: Contains numbers/figures (specific data)
-  const hasNumbers = /\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|months?|days?|years?)/i.test(answer);
-  if (hasNumbers) score += 12;
+  // ✅ Contains measurable/quantifiable data
+  const hasQuantifiableData = /\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|années?|months?|days?|years?|heures?|hours?|minutes?|kg|cm|m²|m2)/i.test(answer);
+  if (hasQuantifiableData) score += 12;
   
-  // ✅ BONUS: Contains temporal context (current year or next)
+  // ✅ Contains temporal context (current year relevance)
   if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
     score += 8;
   }
   
-  // ✅ BONUS: Contains condition/recommendation
-  const hasCondition = /si\s+|if\s+|éviter\s+de|avoid\s+|contrairement|unlike|à condition/i.test(answer);
-  if (hasCondition) score += 8;
+  // ✅ Contains criteria/selection elements (helps user decide)
+  const hasSelectionCriteria = /crit[eè]re|point[s]?\s+(clé|essentiel|important)|key\s+(point|factor|criteria)|principaux?|essential/i.test(answer);
+  if (hasSelectionCriteria) score += 8;
   
-  // ✅ BONUS: Contains error/mistake warning
-  const hasErrorWarning = /éviter|erreur|piège|mistake|avoid|error|attention|careful/i.test(answer);
-  if (hasErrorWarning) score += 6;
+  // ✅ Contains warning/error avoidance (high value content)
+  const hasWarningContent = /éviter|erreur|piège|attention|ne\s+pas|mistake|avoid|error|careful|don't|warning/i.test(answer);
+  if (hasWarningContent) score += 6;
   
-  // ✅ BONUS: First sentence is direct (60-150 chars)
-  const firstSentence = answer.split(/[.!?]/)[0] || "";
-  if (firstSentence.length >= 60 && firstSentence.length <= 150) {
-    score += 10;
-  } else if (firstSentence.length >= 40 && firstSentence.length <= 200) {
+  // ✅ Neutral tone (no "nous", "notre", "we", "our")
+  const isNeutralTone = !/\b(nous|notre|nos|we\s|our\s|my\s|I\s)/i.test(answer);
+  if (isNeutralTone) score += 8;
+  
+  // ✅ No marketing language
+  const hasNoMarketing = !FORBIDDEN_PATTERNS.some(rx => rx.test(answer));
+  if (hasNoMarketing) score += 5;
+  
+  // ✅ Contains structured elements (lists, steps, bullet points)
+  const hasStructuredElements = /:\s*\n|•|\d+\)|(\d+\.)\s|→|–\s/i.test(answer) || 
+                                (answer.match(/:/g) || []).length >= 2;
+  if (hasStructuredElements) score += 5;
+  
+  // ✅ Contains comparison or differentiation
+  const hasComparison = /contrairement|unlike|par rapport|compared to|différen|difference|versus|vs\.|tandis que|while|whereas/i.test(answer);
+  if (hasComparison) score += 5;
+  
+  // ✅ Word count in ideal AEO range (80-150 words)
+  if (wordCount >= 80 && wordCount <= 150) {
     score += 5;
+  } else if (wordCount >= 60 && wordCount <= 200) {
+    score += 2;
   }
   
-  // ✅ BONUS: Affirmative tone (starts with subject, not question)
-  if (!/^(comment|pourquoi|quand|où|how|why|when|where)/i.test(answer)) {
-    score += 5;
+  // ========== PENALTIES ==========
+  
+  // ❌ Starts with marketing/promotional language
+  if (/^(chez|at|discover|découvrez|bienvenue|welcome)/i.test(answer)) {
+    score -= 15;
   }
   
-  // ✅ BONUS: Contains structured elements
-  if (answer.includes(":") || answer.includes("-") || answer.includes("•") || /\d\.\s/.test(answer)) {
-    score += 5;
-  }
+  // ❌ Contains promotional phrases
+  const hasPromotion = /contactez|contact us|appelez|call|n'hésitez pas|don't hesitate|profitez|get started|essayez|try now/i.test(answer);
+  if (hasPromotion) score -= 10;
   
-  // Platform-specific adjustments
-  const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.85), 0) / platforms.length;
+  // ❌ Too vague (excessive hedging)
+  const vaguePhrases = /généralement|souvent|parfois|peut-être|peuvent|usually|often|sometimes|may\s+be|might|could\s+be/gi;
+  const vagueCount = (answer.match(vaguePhrases) || []).length;
+  if (vagueCount >= 3) score -= 8;
+  
+  // ❌ Contains exclamation marks (not encyclopedic)
+  const exclamationCount = (answer.match(/!/g) || []).length;
+  if (exclamationCount >= 2) score -= 5;
+  
+  // Platform-specific weight adjustment (less aggressive)
+  const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.90), 0) / platforms.length;
   score = Math.round(score * avgCitationWeight);
   
-  // ❌ PENALTY: Marketing language detected
-  const hasMarketing = FORBIDDEN_PATTERNS.some(rx => rx.test(answer));
-  if (hasMarketing) score -= 20;
-  
-  // ❌ PENALTY: Too vague (no specific info)
-  const vaguePhrases = /généralement|souvent|parfois|peut être|peuvent|usually|often|sometimes|may be|can be/gi;
-  const vagueCount = (answer.match(vaguePhrases) || []).length;
-  if (vagueCount >= 3) score -= 10;
-  
-  // Word count check (80-120 words ideal for decision-oriented AEO)
-  const wordCount = answer.split(/\s+/).length;
-  if (wordCount >= 80 && wordCount <= 120) {
-    score += 5;
-  } else if (wordCount < 60 || wordCount > 150) {
-    score -= 5;
-  }
-  
   return Math.min(100, Math.max(0, score));
+}
+
+// Determine if answer qualifies as High Citation
+function isHighCitation(score: number, answer: string): boolean {
+  // Score threshold: 70+ for high citation
+  if (score < 70) return false;
+  
+  // Additional quality checks
+  const firstSentence = answer.split(/[.!?]/)[0] || "";
+  
+  // Must have a substantial first sentence (citable)
+  if (firstSentence.length < 60) return false;
+  
+  // Must be neutral (no "nous/we")
+  if (/\b(nous|notre|nos|we\s|our\s)/i.test(answer)) return false;
+  
+  // Should contain some factual/measurable element
+  const hasFactualContent = /\d+|crit[eè]re|point|facteur|factor|étape|step|niveau|level|type/i.test(answer);
+  
+  return hasFactualContent;
 }
 
 // Business context interface for rich prompts
@@ -820,7 +849,7 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
             is_public: false,
             intent: intent,
             difficulty: score >= 80 ? 'easy' : score >= 65 ? 'medium' : 'hard',
-            high_citation: score >= 75, // Mark as high citation potential
+            high_citation: isHighCitation(score, generated.answer), // Use new High Citation check
             supporting_content: {
               bullets: generated.bullets,
               faq: generated.faq
