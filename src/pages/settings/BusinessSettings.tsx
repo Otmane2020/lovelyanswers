@@ -5,9 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, X, ExternalLink, Loader2 } from "lucide-react";
+import { Sparkles, X, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 export function BusinessSettings() {
   const { project, isLoading } = useActiveProject();
@@ -20,19 +31,23 @@ export function BusinessSettings() {
   const [brandColor, setBrandColor] = useState("#000000");
   const [brandVoice, setBrandVoice] = useState("");
   const [sitemapUrl, setSitemapUrl] = useState("");
+  
+  // URL change confirmation
+  const [showUrlChangeWarning, setShowUrlChangeWarning] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [originalUrl, setOriginalUrl] = useState("");
 
   // Load data from project when it's available
   useEffect(() => {
     if (project) {
       setWebsiteUrl(project.website_url || "");
+      setOriginalUrl(project.website_url || "");
       setDescription(project.business_description || "");
-      // Parse audience - it's stored as a string, could be comma-separated or JSON
       if (project.audience) {
         try {
           const parsed = JSON.parse(project.audience);
           setAudienceTags(Array.isArray(parsed) ? parsed : [project.audience]);
         } catch {
-          // If not JSON, treat as comma-separated
           setAudienceTags(project.audience.split(",").map(s => s.trim()).filter(Boolean));
         }
       }
@@ -53,14 +68,28 @@ export function BusinessSettings() {
     setAudienceTags(audienceTags.filter(t => t !== tag));
   };
 
+  const hasUrlChanged = () => {
+    return websiteUrl.trim() !== originalUrl.trim() && websiteUrl.trim() !== "";
+  };
+
   const handleSave = async () => {
+    if (!project) return;
+
+    if (hasUrlChanged()) {
+      setShowUrlChangeWarning(true);
+      return;
+    }
+
+    await saveWithoutUrlChange();
+  };
+
+  const saveWithoutUrlChange = async () => {
     if (!project) return;
 
     try {
       await updateProject.mutateAsync({
         projectId: project.id,
         updates: {
-          website_url: websiteUrl,
           business_description: description,
           audience: JSON.stringify(audienceTags),
           brand_color: brandColor,
@@ -71,6 +100,47 @@ export function BusinessSettings() {
       toast.success("Business settings saved");
     } catch (error) {
       toast.error("Failed to save settings");
+    }
+  };
+
+  const handleConfirmUrlChange = async () => {
+    if (!project) return;
+    
+    setIsResetting(true);
+    setShowUrlChangeWarning(false);
+
+    try {
+      await updateProject.mutateAsync({
+        projectId: project.id,
+        updates: {
+          business_description: description,
+          audience: JSON.stringify(audienceTags),
+          brand_color: brandColor,
+          brand_voice_url: brandVoice,
+          sitemap_url: sitemapUrl,
+        },
+      });
+
+      const response = await supabase.functions.invoke("reset-project-content", {
+        body: {
+          projectId: project.id,
+          newUrl: websiteUrl.trim(),
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setOriginalUrl(websiteUrl.trim());
+      toast.success("URL changed! All data deleted and 30-day content generation started.");
+      
+    } catch (error: any) {
+      console.error("URL change failed:", error);
+      toast.error("Failed to change URL: " + (error.message || "Unknown error"));
+      setWebsiteUrl(originalUrl);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -92,6 +162,47 @@ export function BusinessSettings() {
 
   return (
     <div className="space-y-6">
+      <AlertDialog open={showUrlChangeWarning} onOpenChange={setShowUrlChangeWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Warning: Changing Website URL
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-semibold text-foreground">
+                This action is IRREVERSIBLE and will permanently delete ALL your data:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All generated answers</li>
+                <li>All articles</li>
+                <li>Complete content planning</li>
+                <li>All keywords</li>
+                <li>All Reddit responses</li>
+              </ul>
+              <p className="pt-2">
+                After deletion, a new 30-day content generation will start automatically for the new URL.
+              </p>
+              <div className="bg-muted p-3 rounded-md mt-2">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Current:</span> {originalUrl}<br/>
+                  <span className="text-muted-foreground">New:</span> {websiteUrl}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmUrlChange}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm & Delete All Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Card className="p-6">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -101,8 +212,16 @@ export function BusinessSettings() {
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://example.com"
+              className={hasUrlChanged() ? "border-amber-500 focus-visible:ring-amber-500" : ""}
             />
+            {hasUrlChanged() && (
+              <p className="text-xs text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Changing URL will delete all existing content
+              </p>
+            )}
           </div>
+          
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <div className="relative">
@@ -202,9 +321,14 @@ export function BusinessSettings() {
           <Button 
             className="w-full" 
             onClick={handleSave}
-            disabled={updateProject.isPending}
+            disabled={updateProject.isPending || isResetting}
           >
-            {updateProject.isPending ? (
+            {isResetting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Resetting & Regenerating...
+              </>
+            ) : updateProject.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Saving...
