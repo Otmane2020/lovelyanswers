@@ -234,6 +234,92 @@ export default function Dashboard() {
           </h1>
         </div>
 
+        {/* Potential Traffic Reach Chart */}
+        <Card className="p-6 border border-border/50">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Potential Traffic Reach</h2>
+              <p className="text-sm text-muted-foreground">
+                Estimated monthly impressions based on your published content
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-sm text-primary font-medium">
+                +{Math.round(realStats.answersCount * 150)} impressions/month potential
+              </span>
+            </div>
+          </div>
+
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={[
+                { month: "Now", current: realStats.answersCount * 50, projected: realStats.answersCount * 50 },
+                { month: "+1 mo", current: realStats.answersCount * 80, projected: realStats.answersCount * 120 },
+                { month: "+2 mo", current: realStats.answersCount * 100, projected: realStats.answersCount * 180 },
+                { month: "+3 mo", current: realStats.answersCount * 120, projected: realStats.answersCount * 250 },
+                { month: "+4 mo", current: realStats.answersCount * 140, projected: realStats.answersCount * 320 },
+                { month: "+5 mo", current: realStats.answersCount * 155, projected: realStats.answersCount * 400 },
+                { month: "+6 mo", current: realStats.answersCount * 170, projected: realStats.answersCount * 480 },
+              ]}>
+                <defs>
+                  <linearGradient id="colorCurrentReach" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="month" 
+                  axisLine={false} 
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`${value.toLocaleString()} impressions`, '']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="projected"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  fill="transparent"
+                  name="Projected (with more content)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="current"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#colorCurrentReach)"
+                  name="Current trajectory"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="flex items-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-0.5 bg-primary rounded" />
+              <span className="text-sm text-muted-foreground">Current trajectory</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-0.5 bg-muted-foreground rounded opacity-50" />
+              <span className="text-sm text-muted-foreground">Projected (with daily publishing)</span>
+            </div>
+          </div>
+        </Card>
+
         {/* Content Activity Chart */}
         <Card className="p-6 border border-border/50">
           <div className="flex items-start justify-between mb-4">
