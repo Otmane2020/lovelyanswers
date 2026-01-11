@@ -228,11 +228,11 @@ export default function Auth() {
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-12">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
               <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           </Link>
 
