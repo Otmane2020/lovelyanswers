@@ -477,32 +477,6 @@ export default function Answers() {
               <p className="text-muted-foreground">Optimized, citable answers for AI assistants</p>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline"
-                onClick={generate30Answers}
-                disabled={generating30}
-                className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-              >
-                {generating30 ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4" />
-                )}
-                Generate 30 Q/A & Articles (30 days)
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={regenerateAllAnswers}
-                disabled={regeneratingAll}
-                className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10"
-              >
-                {regeneratingAll ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                {unusedKeywordsCount > 0 ? `Generate (${unusedKeywordsCount})` : "Regenerate"}
-              </Button>
               <Button onClick={() => setShowNewAnswerModal(true)} className="gap-2 gradient-bg text-primary-foreground shadow-glow-sm">
                 <Plus className="h-4 w-4" />New Answer
               </Button>
