@@ -406,35 +406,56 @@ serve(async (req) => {
 
     console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days`);
 
-    // Check existing scheduled items to avoid duplicates
+    // Check existing scheduled items to enforce 2 items/day max (1 Answer + 1 Article)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Get existing answers per day
     const { data: existingAnswers } = await supabase
       .from("answers")
-      .select("scheduled_date")
+      .select("id, scheduled_date")
       .eq("project_id", projectId)
       .gte("scheduled_date", today.toISOString());
     
-    // Get dates that already have content
-    const existingDates = new Set(
-      (existingAnswers || []).map(a => {
-        const d = new Date(a.scheduled_date);
-        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      })
-    );
+    // Get existing articles per day  
+    const { data: existingArticles } = await supabase
+      .from("articles")
+      .select("id, scheduled_date")
+      .eq("project_id", projectId)
+      .gte("scheduled_date", today.toISOString());
     
-    console.log(`[generate-30-days] Found ${existingDates.size} days with existing content`);
+    // Build map of items per day: { dateKey: { answers: count, articles: count } }
+    const itemsPerDay: Record<string, { answers: number; articles: number }> = {};
+    
+    for (const a of existingAnswers || []) {
+      const d = new Date(a.scheduled_date);
+      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
+      itemsPerDay[dateKey].answers++;
+    }
+    
+    for (const art of existingArticles || []) {
+      const d = new Date(art.scheduled_date);
+      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
+      itemsPerDay[dateKey].articles++;
+    }
+    
+    // Count days that are FULL (have both 1 answer + 1 article = 2 items max)
+    const fullDays = Object.values(itemsPerDay).filter(d => d.answers >= 1 && d.articles >= 1).length;
+    
+    console.log(`[generate-30-days] Found ${fullDays} fully scheduled days (2 items each)`);
+    console.log(`[generate-30-days] Daily limit: 1 AEO Answer + 1 Blog Article = 2 items/day MAX`);
 
     // Calculate how many NEW days we need to fill
-    const daysToGenerate = days - existingDates.size;
+    const daysToGenerate = days - fullDays;
     
     if (daysToGenerate <= 0) {
-      console.log(`[generate-30-days] All ${days} days already scheduled, nothing to generate`);
+      console.log(`[generate-30-days] All ${days} days already have 2 items scheduled, nothing to generate`);
       return new Response(
         JSON.stringify({
           success: true,
-          message: `All ${days} days already have scheduled content`,
+          message: `All ${days} days already have 2 items scheduled (1 Answer + 1 Article per day)`,
           answers_created: 0,
           articles_created: 0,
           days,
@@ -451,7 +472,7 @@ serve(async (req) => {
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Step 2: Find next available dates (skip days that already have content)
+    // Step 2: Find next available dates (skip days that already have 2 items)
     let dayOffset = 0;
     let questionsProcessed = 0;
     
@@ -459,8 +480,11 @@ serve(async (req) => {
       const scheduledDate = new Date(today.getTime() + dayOffset * 86400000);
       const dateKey = `${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`;
       
-      // Skip if this day already has content
-      if (existingDates.has(dateKey)) {
+      // Check current items for this day
+      const dayItems = itemsPerDay[dateKey] || { answers: 0, articles: 0 };
+      
+      // Skip if this day already has 2 items (1 answer + 1 article = FULL)
+      if (dayItems.answers >= 1 && dayItems.articles >= 1) {
         dayOffset++;
         continue;
       }
@@ -551,7 +575,15 @@ serve(async (req) => {
             .from("answers")
             .update({ article_id: insertedArticle.id, has_article: true })
             .eq("id", insertedAnswer.id);
+          
+          // Update local counter to track items for this day
+          if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
+          itemsPerDay[dateKey].articles++;
         }
+        
+        // Update local counter for answer
+        if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
+        itemsPerDay[dateKey].answers++;
 
         // Small delay to avoid rate limits
         if (questionsProcessed < questions.length - 1) {
