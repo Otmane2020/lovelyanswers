@@ -208,9 +208,9 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Potential Reach Chart */}
-          <div className="lg:col-span-2">
+        <div>
+          {/* Potential Reach Chart */}
+          <div>
             <Card className="p-6 border border-border/50">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -288,50 +288,6 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Right Column - Languages Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 border border-border/50">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Languages</h3>
-              
-              {/* Slider */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Number of languages</span>
-                  <span className="text-sm font-medium text-foreground">{languageCount[0]}</span>
-                </div>
-                <Slider
-                  value={languageCount}
-                  onValueChange={setLanguageCount}
-                  max={25}
-                  min={1}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Languages List */}
-              <div className="space-y-3">
-                {languages.slice(0, languageCount[0]).map((lang) => (
-                  <div key={lang.code} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{lang.flag}</span>
-                      <span className="text-sm text-foreground">{lang.name}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{lang.reach}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Languages Button */}
-              <Button 
-                className="w-full mt-4 bg-foreground hover:bg-foreground/90 text-background"
-                onClick={() => setLanguageCount([Math.min(languageCount[0] + 3, 25)])}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add 3 languages
-              </Button>
-            </Card>
-          </div>
         </div>
 
         {/* Your Overview Section */}
