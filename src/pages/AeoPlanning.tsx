@@ -66,212 +66,113 @@ export default function AeoPlanning() {
     }
   };
 
-  const handleGenerate30Days = async () => {
-    if (!project) {
-      toast.error("No active project");
-      return;
-    }
+  //
+
+  // Auto-generate content in background if needed
+  useEffect(() => {
+    const autoGenerateIfNeeded = async () => {
+      if (!project || isGenerating) return;
+      
+      // Check if we have content for the next 7 days
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next7Days = new Date(today.getTime() + 7 * 86400000);
+      
+      const { count } = await supabase
+        .from("answers")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id)
+        .gte("scheduled_date", today.toISOString())
+        .lt("scheduled_date", next7Days.toISOString());
+      
+      // If less than 5 answers in next 7 days, generate more in background
+      if ((count || 0) < 5) {
+        console.log("[AeoPlanning] Auto-generating content in background...");
+        setIsGenerating(true);
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          
+          // Generate 5 days of content in background (won't block UI)
+          await supabase.functions.invoke("generate-30-days-content", {
+            body: { 
+              projectId: project.id, 
+              language: project.language || "fr",
+              days: 5,
+              overwrite: false 
+            },
+          });
+          
+          console.log("[AeoPlanning] Background generation complete");
+          // Refresh items after generation
+          fetchScheduledItems();
+        } catch (error) {
+          console.error("[AeoPlanning] Background generation error:", error);
+        } finally {
+          setIsGenerating(false);
+        }
+      }
+    };
     
-    setIsGenerating(true);
-    toast.info("Generating 30 days of content... This may take a few minutes.");
+    // Delay auto-generation to let initial load complete
+    const timer = setTimeout(autoGenerateIfNeeded, 2000);
+    return () => clearTimeout(timer);
+  }, [project]);
+
+  // Fetch scheduled items from answers/articles tables
+  const fetchScheduledItems = async () => {
+    if (!user || !project) return;
     
+    setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const projectId = project.id;
+
+      // Fetch answers with scheduled_date
+      const { data: answers } = await supabase
+        .from("answers")
+        .select("id, question, scheduled_date, is_public, answer")
+        .eq("project_id", projectId)
+        .not("scheduled_date", "is", null);
+
+      // Fetch articles with scheduled_date
+      const { data: articles } = await supabase
+        .from("articles")
+        .select("id, title, scheduled_date, status")
+        .eq("project_id", projectId)
+        .not("scheduled_date", "is", null);
+
+      // Only show REAL content, no placeholders
+      const items: ScheduledItem[] = [
+        ...(answers || []).map(a => ({
+          id: a.id,
+          title: a.question,
+          type: "answer" as const,
+          date: new Date(a.scheduled_date!),
+          status: a.is_public ? "published" as const : "scheduled" as const,
+          answer: a.answer
+        })),
+        ...(articles || []).map(a => ({
+          id: a.id,
+          title: a.title,
+          type: "article" as const,
+          date: new Date(a.scheduled_date!),
+          status: a.status === "published" ? "published" as const : "scheduled" as const
+        }))
+      ];
       
-      const response = await supabase.functions.invoke("generate-30-days-content", {
-        body: { 
-          projectId: project.id, 
-          language: project.language || "fr",
-          days: 30,
-          overwrite: true 
-        },
-      });
-      
-      if (response.error) throw response.error;
-      
-      const result = response.data;
-      toast.success(`Generated ${result.answers_created || 0} answers and ${result.articles_created || 0} articles!`);
-      
-      // Refresh the page to show new items
-      window.location.reload();
-    } catch (error: any) {
-      console.error("Generation error:", error);
-      toast.error(error.message || "Failed to generate content");
+      console.log("[AeoPlanning] Loaded", items.length, "real items");
+      setScheduledItems(items);
+    } catch (error) {
+      console.error("Error fetching scheduled items:", error);
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 
-  // Fetch scheduled items from planning table
   useEffect(() => {
-    const fetchScheduledItems = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        // Get active project
-        const { data: projects } = await supabase
-          .from("projects")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .limit(1);
-        
-        if (!projects || projects.length === 0) {
-          setIsLoading(false);
-          return;
-        }
-
-        const projectId = projects[0].id;
-
-        // Fetch planning entries
-        const { data: planningData, error: planningError } = await supabase
-          .from("planning")
-          .select("id, day, answer_id, article_id")
-          .eq("project_id", projectId)
-          .order("day", { ascending: true });
-
-        console.log("Planning data:", planningData, "Error:", planningError);
-
-        if (!planningData || planningData.length === 0) {
-          // Fallback: fetch from answers/articles with scheduled_date if planning is empty
-          const { data: answers } = await supabase
-            .from("answers")
-            .select("id, question, scheduled_date, is_public, answer")
-            .eq("project_id", projectId)
-            .not("scheduled_date", "is", null);
-
-          const { data: articles } = await supabase
-            .from("articles")
-            .select("id, title, scheduled_date, status")
-            .eq("project_id", projectId)
-            .not("scheduled_date", "is", null);
-
-          const items: ScheduledItem[] = [
-            ...(answers || []).map(a => ({
-              id: a.id,
-              title: a.question,
-              type: "answer" as const,
-              date: new Date(a.scheduled_date!),
-              status: a.is_public ? "published" as const : "scheduled" as const,
-              answer: a.answer
-            })),
-            ...(articles || []).map(a => ({
-              id: a.id,
-              title: a.title,
-              type: "article" as const,
-              date: new Date(a.scheduled_date!),
-              status: a.status === "published" ? "published" as const : "scheduled" as const
-            }))
-          ];
-          setScheduledItems(items);
-          setIsLoading(false);
-          return;
-        }
-
-        // Get all answer IDs and article IDs from planning
-        const answerIds = planningData.filter(p => p.answer_id).map(p => p.answer_id!);
-        const articleIds = planningData.filter(p => p.article_id).map(p => p.article_id!);
-
-        // Fetch answers
-        const { data: answers } = answerIds.length > 0 
-          ? await supabase
-              .from("answers")
-              .select("id, question, is_public, answer")
-              .in("id", answerIds)
-          : { data: [] };
-
-        // Fetch articles
-        const { data: articles } = articleIds.length > 0
-          ? await supabase
-              .from("articles")
-              .select("id, title, status")
-              .in("id", articleIds)
-          : { data: [] };
-
-        // Create lookup maps
-        const answersMap = new Map((answers || []).map(a => [a.id, a]));
-        const articlesMap = new Map((articles || []).map(a => [a.id, a]));
-
-        const items: ScheduledItem[] = [];
-        
-        for (const p of planningData) {
-          const dayDate = new Date(p.day);
-
-          // Answer slot
-          if (p.answer_id) {
-            const answer = answersMap.get(p.answer_id);
-            if (answer) {
-              items.push({
-                id: answer.id,
-                title: answer.question,
-                type: "answer" as const,
-                date: dayDate,
-                status: answer.is_public ? ("published" as const) : ("scheduled" as const),
-                answer: answer.answer,
-              });
-            } else {
-              items.push({
-                id: `placeholder-answer-${p.id}`,
-                title: "AEO Answer (à générer)",
-                type: "answer" as const,
-                date: dayDate,
-                status: "draft" as const,
-              });
-            }
-          } else {
-            items.push({
-              id: `placeholder-answer-${p.id}`,
-              title: "AEO Answer (à générer)",
-              type: "answer" as const,
-              date: dayDate,
-              status: "draft" as const,
-            });
-          }
-
-          // Article slot
-          if (p.article_id) {
-            const article = articlesMap.get(p.article_id);
-            if (article) {
-              items.push({
-                id: article.id,
-                title: article.title,
-                type: "article" as const,
-                date: dayDate,
-                status: article.status === "published" ? ("published" as const) : ("scheduled" as const),
-              });
-            } else {
-              items.push({
-                id: `placeholder-article-${p.id}`,
-                title: "Blog Article (à générer)",
-                type: "article" as const,
-                date: dayDate,
-                status: "draft" as const,
-              });
-            }
-          } else {
-            items.push({
-              id: `placeholder-article-${p.id}`,
-              title: "Blog Article (à générer)",
-              type: "article" as const,
-              date: dayDate,
-              status: "draft" as const,
-            });
-          }
-        }
-
-        console.log("Final items:", items.length);
-        setScheduledItems(items);
-      } catch (error) {
-        console.error("Error fetching scheduled items:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchScheduledItems();
-  }, [user]);
+  }, [user, project]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     setCurrentDate(direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -326,28 +227,22 @@ export default function AeoPlanning() {
           <div>
             <h1 className="text-3xl font-bold">Content Planning</h1>
             <p className="text-muted-foreground mt-1">
-              Schedule and manage your AEO content for the next 30 days
+              Your AEO content is generated automatically
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {isGenerating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generating content...</span>
+              </div>
+            )}
             <Button 
               variant="outline"
               onClick={() => setShowSettingsModal(true)}
             >
               <Settings className="w-4 h-4 mr-2" />
               Auto-Publish
-            </Button>
-            <Button 
-              onClick={handleGenerate30Days}
-              disabled={isGenerating}
-              className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground"
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {isGenerating ? "Generating..." : "Generate 30 Q/A & Articles (30 days)"}
             </Button>
           </div>
         </div>
@@ -603,14 +498,12 @@ export default function AeoPlanning() {
                       <div className="text-center py-12 text-muted-foreground">
                         <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>No content scheduled for this month</p>
-                        <Button 
-                          onClick={handleGenerate30Days}
-                          disabled={isGenerating}
-                          className="mt-4"
-                        >
-                          {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                          Generate 30 days of content
-                        </Button>
+                        {isGenerating && (
+                          <div className="flex items-center justify-center gap-2 mt-4 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Content is being generated automatically...</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
