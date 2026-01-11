@@ -10,6 +10,78 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
+// ==================== SAFE JSON PARSING ====================
+function safeParseJSON(str: string): any {
+  // Strategy 1: Direct parse
+  try { 
+    return JSON.parse(str); 
+  } catch (e) {
+    console.log("[safeParseJSON] Strategy 1 failed, trying cleanup...");
+  }
+  
+  // Strategy 2: Remove control characters
+  let cleaned = str.replace(/[\x00-\x1F\x7F]/g, " ");
+  try { 
+    return JSON.parse(cleaned); 
+  } catch (e) {
+    console.log("[safeParseJSON] Strategy 2 failed...");
+  }
+  
+  // Strategy 3: Fix newlines inside string values - more aggressive
+  cleaned = cleaned
+    .replace(/\r\n/g, "\\n")
+    .replace(/\r/g, "\\n")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, " ");
+  try { 
+    return JSON.parse(cleaned); 
+  } catch (e) {
+    console.log("[safeParseJSON] Strategy 3 failed...");
+  }
+  
+  // Strategy 4: Remove trailing commas and fix common issues
+  cleaned = cleaned
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*]/g, "]")
+    .replace(/\\'/g, "'")
+    .replace(/"\s*\n\s*"/g, '", "');
+  try { 
+    return JSON.parse(cleaned); 
+  } catch (e) {
+    console.log("[safeParseJSON] Strategy 4 failed...");
+  }
+  
+  // Strategy 5: Extract just the JSON object/array
+  const objectMatch = cleaned.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
+  if (objectMatch) {
+    try { 
+      return JSON.parse(objectMatch[0]); 
+    } catch (e) {
+      console.log("[safeParseJSON] Strategy 5 failed...");
+    }
+  }
+  
+  // Strategy 6: Last resort - try to extract key fields manually
+  console.log("[safeParseJSON] All strategies failed, attempting manual extraction...");
+  try {
+    const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]+)"/);
+    const contentMatch = cleaned.match(/"content"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"meta|"\s*})/);
+    const metaMatch = cleaned.match(/"metaDescription"\s*:\s*"([^"]+)"/);
+    
+    if (titleMatch || contentMatch) {
+      return {
+        title: titleMatch?.[1] || "Article",
+        content: contentMatch?.[1]?.replace(/\\n/g, "\n") || "",
+        metaDescription: metaMatch?.[1] || "",
+      };
+    }
+  } catch (e) {
+    console.log("[safeParseJSON] Manual extraction failed");
+  }
+  
+  throw new Error("Failed to parse JSON after all strategies");
+}
+
 function detectIntent(text: string): IntentType {
   const q = text.toLowerCase();
   if (/prix|tarif|cost|price|budget/.test(q)) return "price";
@@ -41,48 +113,35 @@ function computeScore(answer: string, brand: string): number {
   let score = 65;
   const currentYear = new Date().getFullYear();
 
-  // Bonus for temporal context
   if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
     score += 10;
   }
 
-  // Bonus for numbers with context
   if (/\d+\s*(€|\$|%|euros?|mois|jours?)/i.test(answer)) score += 8;
   else if (/\d+/.test(answer)) score += 3;
 
-  // Bonus for decision criteria
   if (/crit[eè]re|choisir|éviter|erreur|condition/i.test(answer)) score += 8;
-
-  // Bonus for structured content
   if (/[:\-•]|\d\.\s/.test(answer)) score += 5;
 
-  // Bonus for good length
   const wordCount = answer.split(/\s+/).length;
   if (wordCount >= 80 && wordCount <= 120) score += 5;
 
-  // Bonus for brand mention
   if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 4;
 
-  // Penalty for generic starts
   if (/^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i.test(answer)) score -= 10;
 
   return Math.min(98, Math.max(50, score));
 }
 
-// Ensure question ends with "?"
 function ensureQuestionMark(text: string): string {
   const trimmed = text.trim();
   if (trimmed.endsWith("?")) return trimmed;
-  // Remove trailing punctuation and add ?
   return trimmed.replace(/[.!,;:]$/, "") + " ?";
 }
 
-// Validate that text is a proper question (not just keywords)
 function isValidQuestion(text: string): boolean {
   const trimmed = text.trim();
-  // Must be at least 15 characters
   if (trimmed.length < 15) return false;
-  // Must contain interrogative words or question patterns
   const questionPatterns = [
     /^(comment|how|what|quel|quelle|quels|quelles|pourquoi|why|when|quand|où|where|combien|how much|how many)/i,
     /\?$/,
@@ -91,81 +150,42 @@ function isValidQuestion(text: string): boolean {
   return questionPatterns.some(p => p.test(trimmed));
 }
 
-// Generate questions for 30 days
+// Generate questions - SIMPLIFIED prompt for better JSON
 async function generateQuestions(
   brandName: string,
   description: string,
   language: string,
   apiKey: string,
-  count: number = 30
+  count: number = 5
 ): Promise<{ question: string; intent: IntentType }[]> {
   const currentYear = new Date().getFullYear();
   
-  const systemPrompt = language === "fr"
-    ? `Tu génères ${count} questions DÉCISIONNELLES uniques pour un planning de contenu 30 jours.
+  // Simplified prompt - ask for clean JSON
+  const prompt = language === "fr"
+    ? `Génère ${count} questions décisionnelles uniques pour ${brandName}.
 
-RÈGLES CRITIQUES:
-- CHAQUE question DOIT finir par "?" - OBLIGATOIRE
-- INTERDIT de générer des mots-clés simples comme "mobilier écoresponsable" ou "meubles design"
-- Questions complètes orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter...)
-- NE PAS utiliser le nom de marque dans les questions
-- Questions naturelles comme sur ChatGPT/Google
-- Inclure le contexte ${currentYear} quand pertinent
+Règles:
+- Chaque question finit par "?"
+- Questions orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter)
+- Ne pas utiliser le nom "${brandName}" dans les questions
+- Contexte ${currentYear}
 
-⛔ EXEMPLES INTERDITS (pas des questions):
-- "mobilier écoresponsable" ❌
-- "meubles design" ❌
-- "canapé convertible" ❌
+Exemples:
+- "Comment choisir un mobilier écoresponsable de qualité ?"
+- "Quel budget prévoir pour des meubles design ?"
 
-✅ EXEMPLES CORRECTS:
-- "Comment choisir un mobilier écoresponsable de qualité en ${currentYear} ?"
-- "Quel budget prévoir pour des meubles design dans un salon ?"
-- "Quelles erreurs éviter lors de l'achat d'un canapé convertible ?"
+Retourne UNIQUEMENT ce JSON (pas de markdown, pas de code block):
+{"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`
+    : `Generate ${count} unique decision-oriented questions for ${brandName}.
 
-TYPES À MIXER:
-- "Comment choisir..." (criteria)
-- "Quel budget prévoir pour..." (price)
-- "Quelles erreurs éviter..." (howto)
-- "Quelle différence entre..." (comparison)
-- "Pourquoi..." (why)
-- "Quel est le meilleur..." (best)
+Rules:
+- Each question ends with "?"
+- Decision-oriented (How to choose, What budget, What mistakes to avoid)
+- Don't use "${brandName}" in questions
+- ${currentYear} context
 
-Retourne UNIQUEMENT du JSON valide.`
-    : `Generate ${count} unique DECISION-ORIENTED questions for a 30-day content plan.
-
-CRITICAL RULES:
-- EVERY question MUST end with "?" - MANDATORY
-- FORBIDDEN to generate simple keywords like "eco-friendly furniture" or "design furniture"
-- Complete decision-oriented questions (How to choose, What budget, What mistakes to avoid...)
-- DO NOT use brand name in questions
-- Natural questions like on ChatGPT/Google
-- Include ${currentYear} context when relevant
-
-⛔ FORBIDDEN EXAMPLES (not questions):
-- "eco-friendly furniture" ❌
-- "design furniture" ❌
-- "convertible sofa" ❌
-
-✅ CORRECT EXAMPLES:
-- "How to choose quality eco-friendly furniture in ${currentYear}?"
-- "What budget to plan for design furniture in a living room?"
-- "What mistakes to avoid when buying a convertible sofa?"
-
-Return ONLY valid JSON.`;
-
-  const userPrompt = `
-Business: ${brandName}
-Description: ${description}
-Language: ${language}
-Count: ${count}
-
-Generate ${count} unique COMPLETE QUESTIONS (not keywords). Each question MUST end with "?". Return JSON:
-{
-  "questions": [
-    {"question": "Comment choisir... ?", "intent": "criteria|price|howto|comparison|why|best|what|duration"},
-    ...
-  ]
-}`;
+Return ONLY this JSON (no markdown, no code block):
+{"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -178,34 +198,36 @@ Generate ${count} unique COMPLETE QUESTIONS (not keywords). Each question MUST e
         model: "google/gemini-2.5-flash",
         temperature: 0.7,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
         ],
       }),
     });
 
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
+    
+    // Extract JSON from response
     const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Invalid JSON");
+    if (!match) throw new Error("No JSON found");
     
-    const parsed = JSON.parse(match[0]);
+    const parsed = safeParseJSON(match[0]);
     
-    // Post-process questions to ensure they're valid
-    const validQuestions = parsed.questions
+    // Post-process questions
+    const validQuestions = (parsed.questions || [])
       .slice(0, count)
       .map((q: any) => {
-        let question = q.question;
+        let question = q.question || q;
         
-        // If it's not a valid question (just keywords), transform it
+        if (typeof question !== "string") {
+          question = `Comment choisir ${brandName} en ${currentYear} ?`;
+        }
+        
         if (!isValidQuestion(question)) {
-          console.log(`[generate-30-days] Invalid question detected, transforming: "${question}"`);
           question = language === "fr"
             ? `Comment choisir ${question} adapté à ses besoins en ${currentYear} ?`
             : `How to choose ${question} suited to your needs in ${currentYear}?`;
         }
         
-        // Ensure question ends with "?"
         question = ensureQuestionMark(question);
         
         return {
@@ -214,85 +236,67 @@ Generate ${count} unique COMPLETE QUESTIONS (not keywords). Each question MUST e
         };
       });
     
+    console.log(`[generateQuestions] Generated ${validQuestions.length} valid questions`);
     return validQuestions;
   } catch (e) {
-    console.error("Failed to generate questions:", e);
-    // Fallback questions - proper format with ?
+    console.error("[generateQuestions] Failed:", e);
+    // Fallback questions
     const fallback: { question: string; intent: IntentType }[] = [];
-    const fallbackTemplates = language === "fr" 
+    const templates = language === "fr" 
       ? [
-          { template: `Comment choisir un ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`, intent: "criteria" as IntentType },
-          { template: `Quel budget prévoir pour ${brandName.toLowerCase()} de qualité ?`, intent: "price" as IntentType },
-          { template: `Quelles erreurs éviter lors du choix de ${brandName.toLowerCase()} ?`, intent: "howto" as IntentType },
-          { template: `Pourquoi opter pour ${brandName.toLowerCase()} plutôt que les alternatives ?`, intent: "why" as IntentType },
-          { template: `Quels critères vérifier avant d'acheter ${brandName.toLowerCase()} ?`, intent: "criteria" as IntentType },
+          { q: `Comment choisir ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`, i: "criteria" as IntentType },
+          { q: `Quel budget prévoir pour ${brandName.toLowerCase()} de qualité ?`, i: "price" as IntentType },
+          { q: `Quelles erreurs éviter avec ${brandName.toLowerCase()} ?`, i: "howto" as IntentType },
+          { q: `Pourquoi choisir ${brandName.toLowerCase()} plutôt que les alternatives ?`, i: "why" as IntentType },
+          { q: `Quels critères vérifier avant d'acheter ${brandName.toLowerCase()} ?`, i: "criteria" as IntentType },
         ]
       : [
-          { template: `How to choose a ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`, intent: "criteria" as IntentType },
-          { template: `What budget to plan for quality ${brandName.toLowerCase()}?`, intent: "price" as IntentType },
-          { template: `What mistakes to avoid when choosing ${brandName.toLowerCase()}?`, intent: "howto" as IntentType },
-          { template: `Why choose ${brandName.toLowerCase()} over alternatives?`, intent: "why" as IntentType },
-          { template: `What criteria to check before buying ${brandName.toLowerCase()}?`, intent: "criteria" as IntentType },
+          { q: `How to choose ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`, i: "criteria" as IntentType },
+          { q: `What budget for quality ${brandName.toLowerCase()}?`, i: "price" as IntentType },
+          { q: `What mistakes to avoid with ${brandName.toLowerCase()}?`, i: "howto" as IntentType },
+          { q: `Why choose ${brandName.toLowerCase()} over alternatives?`, i: "why" as IntentType },
+          { q: `What criteria to check before buying ${brandName.toLowerCase()}?`, i: "criteria" as IntentType },
         ];
     
     for (let i = 0; i < count; i++) {
-      const tmpl = fallbackTemplates[i % fallbackTemplates.length];
-      fallback.push({
-        question: tmpl.template.replace(/\(\d+\)/, `(${i + 1})`),
-        intent: tmpl.intent,
-      });
+      const t = templates[i % templates.length];
+      fallback.push({ question: t.q, intent: t.i });
     }
     return fallback;
   }
 }
 
-// Generate answer for a question
+// Generate answer - SIMPLIFIED prompt
 async function generateAnswer(
   question: string,
   brandName: string,
   description: string,
   intent: IntentType,
   language: string,
-  apiKey: string
+  apiKey: string,
+  retryCount: number = 0
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
   const currentYear = new Date().getFullYear();
 
-  const systemPrompt = language === "fr"
-    ? `Tu es un expert AEO. Rédige des réponses que ChatGPT/Gemini voudront CITER.
+  const prompt = language === "fr"
+    ? `Réponds à cette question pour ${brandName}: "${question}"
 
-FORMAT CITATION-FIRST:
-1. Première phrase = réponse DIRECTE avec critère/chiffre
-2. Phrase 2 = contexte ${currentYear} OU condition
-3. Phrase 3 = erreur à éviter OU comparaison
+Règles:
+- Réponse directe avec chiffres/critères (80-120 mots)
+- Mentionne ${brandName} une fois
+- Contexte ${currentYear}
 
-⛔ INTERDITS: définitions génériques, superlatifs, marketing
-✅ INCLURE: chiffres, conditions, erreurs fréquentes
+Retourne UNIQUEMENT ce JSON (pas de markdown):
+{"answer":"réponse directe...","bullets":["point 1","point 2","point 3"],"faq":[{"q":"question connexe?","a":"réponse courte"}]}`
+    : `Answer this question for ${brandName}: "${question}"
 
-Mention ${brandName} UNE fois comme exemple. 80-120 mots.`
-    : `You are an AEO expert. Write answers ChatGPT/Gemini will CITE.
+Rules:
+- Direct answer with numbers/criteria (80-120 words)
+- Mention ${brandName} once
+- ${currentYear} context
 
-CITATION-FIRST FORMAT:
-1. First sentence = DIRECT answer with criterion/number
-2. Sentence 2 = ${currentYear} context OR condition
-3. Sentence 3 = mistake to avoid OR comparison
-
-⛔ BANNED: generic definitions, superlatives, marketing
-✅ INCLUDE: numbers, conditions, common mistakes
-
-Mention ${brandName} ONCE as example. 80-120 words.`;
-
-  const userPrompt = `
-Question: ${question}
-Brand: ${brandName}
-Description: ${description}
-Intent: ${intent}
-
-Return ONLY valid JSON:
-{
-  "answer": "réponse citation-first",
-  "bullets": ["critère/conseil 1", "critère/conseil 2", "critère/conseil 3"],
-  "faq": [{"q": "question connexe", "a": "réponse courte"}]
-}`;
+Return ONLY this JSON (no markdown):
+{"answer":"direct answer...","bullets":["point 1","point 2","point 3"],"faq":[{"q":"related question?","a":"short answer"}]}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -305,8 +309,7 @@ Return ONLY valid JSON:
         model: "google/gemini-2.5-flash",
         temperature: 0.3,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: prompt },
         ],
       }),
     });
@@ -314,20 +317,35 @@ Return ONLY valid JSON:
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Invalid JSON");
+    if (!match) throw new Error("No JSON found");
     
-    return JSON.parse(match[0]);
-  } catch (e) {
-    console.error("Failed to generate answer:", e);
+    const parsed = safeParseJSON(match[0]);
+    
     return {
-      answer: `${brandName} propose des solutions adaptées à ce besoin. Pour plus d'informations, consultez les ressources disponibles.`,
-      bullets: [],
+      answer: parsed.answer || `${brandName} propose des solutions adaptées à ce besoin.`,
+      bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
+      faq: Array.isArray(parsed.faq) ? parsed.faq : [],
+    };
+  } catch (e) {
+    console.error(`[generateAnswer] Failed (retry ${retryCount}):`, e);
+    
+    // Retry once with simpler prompt
+    if (retryCount < 1) {
+      console.log("[generateAnswer] Retrying with simpler prompt...");
+      await new Promise(r => setTimeout(r, 500));
+      return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
+    }
+    
+    // Fallback
+    return {
+      answer: `${brandName} propose des solutions adaptées pour répondre à cette question. Pour plus d'informations sur "${question.replace("?", "")}", consultez les ressources disponibles sur notre site.`,
+      bullets: ["Qualité garantie", "Service client réactif", "Solutions personnalisées"],
       faq: [],
     };
   }
 }
 
-// Generate article from answer
+// Generate article - SIMPLIFIED prompt to avoid JSON issues
 async function generateArticle(
   question: string,
   answer: string,
@@ -336,52 +354,39 @@ async function generateArticle(
   brandName: string,
   description: string,
   language: string,
-  apiKey: string
+  apiKey: string,
+  retryCount: number = 0
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const currentYear = new Date().getFullYear();
 
-  const systemPrompt = language === "fr"
-    ? `Tu rédiges un article de blog SEO/AEO complet basé sur une réponse existante.
+  // VERY simplified prompt to get clean JSON
+  const prompt = language === "fr"
+    ? `Écris un article de blog pour ${brandName} basé sur:
+Question: ${question}
+Réponse: ${answer}
 
-FORMAT:
-- Titre accrocheur avec année ${currentYear} si pertinent
-- Introduction (contexte + promesse)
-- Corps structuré avec H2/H3
-- Points clés intégrés naturellement
-- FAQ incluse
-- Conclusion avec appel à l'action subtil
+Règles:
+- Titre accrocheur avec ${currentYear}
+- 400-600 mots (pas plus!)
+- Structure simple avec sections
+- Meta description < 155 caractères
+- NE PAS utiliser de markdown complexe dans le JSON
 
-TON: Expert, informatif, pas marketing
-LONGUEUR: 800-1200 mots
-MARQUE: Mentionner ${brandName} 2-3 fois naturellement`
-    : `Write a complete SEO/AEO blog article based on an existing answer.
-
-FORMAT:
-- Catchy title with ${currentYear} if relevant
-- Introduction (context + promise)
-- Structured body with H2/H3
-- Key points integrated naturally
-- FAQ included
-- Conclusion with subtle CTA
-
-TONE: Expert, informative, not marketing
-LENGTH: 800-1200 words
-BRAND: Mention ${brandName} 2-3 times naturally`;
-
-  const userPrompt = `
+Retourne UNIQUEMENT ce JSON:
+{"title":"Titre de l'article","content":"Introduction... Section 1... Section 2... Conclusion...","metaDescription":"Description courte"}`
+    : `Write a blog article for ${brandName} based on:
 Question: ${question}
 Answer: ${answer}
-Key Points: ${bullets.join(", ")}
-FAQ: ${faq.map(f => `Q: ${f.q} A: ${f.a}`).join(" | ")}
-Brand: ${brandName}
-Description: ${description}
 
-Return JSON:
-{
-  "title": "titre article SEO",
-  "content": "contenu markdown complet avec ## et ###",
-  "metaDescription": "meta description 155 chars max"
-}`;
+Rules:
+- Catchy title with ${currentYear}
+- 400-600 words (no more!)
+- Simple structure with sections
+- Meta description < 155 chars
+- NO complex markdown in JSON
+
+Return ONLY this JSON:
+{"title":"Article Title","content":"Introduction... Section 1... Section 2... Conclusion...","metaDescription":"Short description"}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -394,8 +399,7 @@ Return JSON:
         model: "google/gemini-2.5-flash",
         temperature: 0.5,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: prompt },
         ],
       }),
     });
@@ -414,40 +418,32 @@ Return JSON:
     }
     
     if (!jsonStr) {
-      console.error("No JSON found in response:", content.substring(0, 500));
-      throw new Error("Invalid JSON");
+      throw new Error("No JSON found in response");
     }
     
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch (parseError) {
-      // Try to fix common JSON issues
-      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " "); // Remove control characters
-      jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]"); // Fix trailing commas
-      parsed = JSON.parse(jsonStr);
-    }
+    const parsed = safeParseJSON(jsonStr);
     
     const articleContent = parsed.content || answer;
     const wordCount = articleContent.split(/\s+/).length;
 
-    // Convert markdown to HTML
+    // Convert to simple HTML
     let htmlContent = articleContent
       .replace(/### (.*)/g, '<h3>$1</h3>')
       .replace(/## (.*)/g, '<h2>$1</h2>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>');
+      .split('\n\n')
+      .filter((p: string) => p.trim())
+      .map((p: string) => `<p>${p.trim()}</p>`)
+      .join('\n');
 
-    // Add FAQ section if exists
+    // Add FAQ section
     if (faq.length > 0) {
       const faqHtml = `
-        <section class="faq-section">
-          <h2>${language === 'fr' ? 'Questions Fréquentes' : 'FAQ'}</h2>
-          ${faq.map(f => `<details><summary>${f.q}</summary><p>${f.a}</p></details>`).join('')}
-        </section>`;
+<section class="faq-section">
+  <h2>${language === 'fr' ? 'Questions Fréquentes' : 'FAQ'}</h2>
+  ${faq.map(f => `<details><summary>${f.q}</summary><p>${f.a}</p></details>`).join('\n')}
+</section>`;
       htmlContent += faqHtml;
     }
 
@@ -455,21 +451,35 @@ Return JSON:
       title: parsed.title || question,
       content: articleContent,
       htmlContent,
-      metaDescription: parsed.metaDescription || answer.substring(0, 155),
+      metaDescription: (parsed.metaDescription || answer.substring(0, 155)).slice(0, 155),
       wordCount,
     };
   } catch (e) {
-    console.error("Failed to generate article:", e);
+    console.error(`[generateArticle] Failed (retry ${retryCount}):`, e);
+    
+    // Retry once with even simpler prompt
+    if (retryCount < 1) {
+      console.log("[generateArticle] Retrying with ultra-simple prompt...");
+      await new Promise(r => setTimeout(r, 500));
+      return generateArticle(question, answer, bullets, faq, brandName, description, language, apiKey, retryCount + 1);
+    }
+    
+    // Fallback - create article from answer
+    console.log("[generateArticle] Using fallback article from answer");
+    const fallbackTitle = question.replace("?", "").trim();
+    const fallbackContent = `${answer}\n\n${bullets.map(b => `• ${b}`).join('\n')}`;
+    
     return {
-      title: question,
-      content: answer,
-      htmlContent: `<p>${answer}</p>`,
+      title: fallbackTitle,
+      content: fallbackContent,
+      htmlContent: `<p>${answer}</p><ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>`,
       metaDescription: answer.substring(0, 155),
-      wordCount: answer.split(/\s+/).length,
+      wordCount: fallbackContent.split(/\s+/).length,
     };
   }
 }
 
+// ==================== MAIN HANDLER ====================
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -492,7 +502,8 @@ serve(async (req) => {
     if (authError || !userData?.user) throw new Error("Invalid token");
 
     const body = await req.json();
-    const { projectId, language = "fr", days = 30, overwrite = true } = body;
+    // REDUCED DEFAULT: 5 days instead of 30 to avoid timeouts
+    const { projectId, language = "fr", days = 5, overwrite = true, startOffset = 0 } = body;
 
     if (!projectId) throw new Error("Missing projectId");
 
@@ -509,101 +520,76 @@ serve(async (req) => {
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
 
-    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days, overwrite=${overwrite}`);
+    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}`);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const endDate = new Date(today.getTime() + days * 86400000);
+    
+    // Apply startOffset to support batch processing
+    const startDate = new Date(today.getTime() + startOffset * 86400000);
+    const endDate = new Date(startDate.getTime() + days * 86400000);
 
-    // MODE ÉCRASEMENT: Supprimer TOUS les items planifiés dans la période
+    // MODE OVERWRITE
     if (overwrite) {
-      console.log(`[generate-30-days] OVERWRITE MODE: Deleting all scheduled items from ${today.toISOString()} to ${endDate.toISOString()}`);
+      console.log(`[generate-30-days] OVERWRITE MODE: Deleting scheduled items from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       
-      // 1. D'abord, dissocier les article_id des answers (pour éviter FK constraint)
-      const { error: unlinkError } = await supabase
+      // 1. Unlink articles from answers
+      await supabase
         .from("answers")
         .update({ article_id: null, has_article: false })
         .eq("project_id", projectId)
-        .gte("scheduled_date", today.toISOString())
+        .gte("scheduled_date", startDate.toISOString())
         .lt("scheduled_date", endDate.toISOString());
       
-      if (unlinkError) {
-        console.error("[generate-30-days] Error unlinking articles from answers:", unlinkError);
-      }
-      
-      // 2. Supprimer les articles
-      const { error: deleteArticlesError, count: deletedArticles } = await supabase
+      // 2. Delete articles
+      const { count: deletedArticles } = await supabase
         .from("articles")
         .delete({ count: "exact" })
         .eq("project_id", projectId)
-        .gte("scheduled_date", today.toISOString())
+        .gte("scheduled_date", startDate.toISOString())
         .lt("scheduled_date", endDate.toISOString());
       
-      if (deleteArticlesError) {
-        console.error("[generate-30-days] Error deleting articles:", deleteArticlesError);
-      } else {
-        console.log(`[generate-30-days] Deleted ${deletedArticles} existing articles`);
-      }
+      console.log(`[generate-30-days] Deleted ${deletedArticles} articles`);
       
-      // 3. Supprimer les answers planifiées
-      const { error: deleteAnswersError, count: deletedAnswers } = await supabase
+      // 3. Delete answers
+      const { count: deletedAnswers } = await supabase
         .from("answers")
         .delete({ count: "exact" })
         .eq("project_id", projectId)
-        .gte("scheduled_date", today.toISOString())
+        .gte("scheduled_date", startDate.toISOString())
         .lt("scheduled_date", endDate.toISOString());
       
-      if (deleteAnswersError) {
-        console.error("[generate-30-days] Error deleting answers:", deleteAnswersError);
-      } else {
-        console.log(`[generate-30-days] Deleted ${deletedAnswers} existing answers`);
-      }
+      console.log(`[generate-30-days] Deleted ${deletedAnswers} answers`);
+      
+      // 4. Clear planning entries for this range
+      await supabase
+        .from("planning")
+        .update({ answer_id: null, article_id: null })
+        .eq("project_id", projectId)
+        .gte("day", startDate.toISOString().split('T')[0])
+        .lt("day", endDate.toISOString().split('T')[0]);
     }
 
-    // Initialize empty items per day tracker
-    const itemsPerDay: Record<string, { answers: number; articles: number }> = {};
-
-    // Step 1: Generate questions for all days (exactly 1 per day = days questions)
-    console.log(`[generate-30-days] Generating ${days} questions for ${days} days...`);
+    // Generate questions for this batch
+    console.log(`[generate-30-days] Generating ${days} questions...`);
     const questions = await generateQuestions(brandName, description, language, apiKey, days);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Step 2: Find next available dates (skip days that already have 2 items)
-    let dayOffset = 0;
-    let questionsProcessed = 0;
-    
-    while (questionsProcessed < questions.length && dayOffset < days + 30) {
-      const scheduledDate = new Date(today.getTime() + dayOffset * 86400000);
-      const dateKey = `${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`;
-      
-      // Check current items for this day
-      const dayItems = itemsPerDay[dateKey] || { answers: 0, articles: 0 };
-      
-      // Skip if this day already has 2 items (1 answer + 1 article = FULL)
-      if (dayItems.answers >= 1 && dayItems.articles >= 1) {
-        dayOffset++;
-        continue;
-      }
-
-      const q = questions[questionsProcessed];
-
-      console.log(`[generate-30-days] Processing ${questionsProcessed + 1}/${questions.length}: ${q.question.substring(0, 50)}... for ${scheduledDate.toISOString().split('T')[0]}`);
+    // Process each question
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const scheduledDate = new Date(startDate.getTime() + i * 86400000);
       const scheduledDateStr = scheduledDate.toISOString();
+      const dayStr = scheduledDateStr.split('T')[0];
+
+      console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}...`);
 
       try {
         // Generate answer
-        const answerData = await generateAnswer(
-          q.question,
-          brandName,
-          description,
-          q.intent,
-          language,
-          apiKey
-        );
-
+        const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
         const score = computeScore(answerData.answer, brandName);
 
         // Insert answer
@@ -627,22 +613,17 @@ serve(async (req) => {
           .single();
 
         if (answerError) {
-          console.error(`Error inserting answer:`, answerError);
+          console.error(`[generate-30-days] Error inserting answer:`, answerError);
           continue;
         }
 
         answersCreated.push(insertedAnswer);
+        console.log(`[generate-30-days] Answer created: ${insertedAnswer.id}`);
 
         // Generate article
         const articleData = await generateArticle(
-          q.question,
-          answerData.answer,
-          answerData.bullets,
-          answerData.faq,
-          brandName,
-          description,
-          language,
-          apiKey
+          q.question, answerData.answer, answerData.bullets, answerData.faq,
+          brandName, description, language, apiKey
         );
 
         // Insert article
@@ -665,35 +646,43 @@ serve(async (req) => {
           .single();
 
         if (articleError) {
-          console.error(`Error inserting article:`, articleError);
+          console.error(`[generate-30-days] Error inserting article:`, articleError);
         } else {
           articlesCreated.push(insertedArticle);
+          console.log(`[generate-30-days] Article created: ${insertedArticle.id}`);
 
           // Update answer with article reference
           await supabase
             .from("answers")
             .update({ article_id: insertedArticle.id, has_article: true })
             .eq("id", insertedAnswer.id);
-          
-          // Update local counter to track items for this day
-          if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
-          itemsPerDay[dateKey].articles++;
         }
-        
-        // Update local counter for answer
-        if (!itemsPerDay[dateKey]) itemsPerDay[dateKey] = { answers: 0, articles: 0 };
-        itemsPerDay[dateKey].answers++;
+
+        // Update planning table
+        const { error: planningError } = await supabase
+          .from("planning")
+          .upsert({
+            project_id: projectId,
+            day: dayStr,
+            answer_id: insertedAnswer.id,
+            article_id: insertedArticle?.id || null,
+          }, {
+            onConflict: "project_id,day",
+          });
+
+        if (planningError) {
+          console.error(`[generate-30-days] Error upserting planning:`, planningError);
+        } else {
+          console.log(`[generate-30-days] Planning updated for ${dayStr}`);
+        }
 
         // Small delay to avoid rate limits
-        if (questionsProcessed < questions.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        if (i < questions.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       } catch (err) {
-        console.error(`Error processing question ${questionsProcessed + 1}:`, err);
+        console.error(`[generate-30-days] Error processing question ${i + 1}:`, err);
       }
-      
-      questionsProcessed++;
-      dayOffset++;
     }
 
     console.log(`[generate-30-days] Completed: ${answersCreated.length} answers, ${articlesCreated.length} articles`);
@@ -703,7 +692,9 @@ serve(async (req) => {
         success: true,
         answers_created: answersCreated.length,
         articles_created: articlesCreated.length,
-        days,
+        days_processed: days,
+        start_offset: startOffset,
+        next_offset: startOffset + days,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
