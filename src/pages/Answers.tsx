@@ -34,6 +34,9 @@ interface Article {
   aeo_score: number | null;
   created_at: string | null;
   linked_answer_id: string | null;
+  content?: string | null;
+  html_content?: string | null;
+  scheduled_date?: string | null;
 }
 
 export default function Answers() {
@@ -68,6 +71,8 @@ export default function Answers() {
   const [showCmsPopup, setShowCmsPopup] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [generatedArticle, setGeneratedArticle] = useState<{ id: string; title: string; html: string; answerId: string } | null>(null);
+  const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
+  const [loadingArticleContent, setLoadingArticleContent] = useState(false);
 
   // Fetch articles
   useEffect(() => {
@@ -77,7 +82,7 @@ export default function Answers() {
       try {
         const { data, error } = await supabase
           .from("articles")
-          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id")
+          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id, content, html_content, scheduled_date")
           .eq("project_id", project.id)
           .order("created_at", { ascending: false });
         
@@ -652,12 +657,24 @@ export default function Answers() {
                         <span>•</span>
                         <span>{new Date(article.created_at || '').toLocaleDateString()}</span>
                       </div>
-                      <div className="flex items-center gap-2 pt-2">
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${article.id}`)}>
+                      <div className="flex items-center gap-2 pt-2 flex-wrap">
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => setViewingArticle(article)}>
                           <Eye className="h-4 w-4" />View Article
                         </Button>
                         <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${article.id}/edit`)}>
                           <Pencil className="h-4 w-4" />Edit
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="gap-2" 
+                          onClick={() => {
+                            const content = article.html_content || article.content || "";
+                            navigator.clipboard.writeText(content);
+                            toast.success("Article copied to clipboard!");
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />Copy Article
                         </Button>
                       </div>
                     </div>
@@ -779,6 +796,65 @@ export default function Answers() {
 
       {/* CMS Connect Popup */}
       <CmsConnectPopup open={showCmsPopup} onOpenChange={setShowCmsPopup} />
+
+      {/* View Article Popup */}
+      <Dialog open={!!viewingArticle} onOpenChange={() => setViewingArticle(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              {viewingArticle?.title}
+            </DialogTitle>
+            <DialogDescription>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <ScoreRing score={viewingArticle?.aeo_score || 0} size="sm" />
+                  <span>AEO Score: {viewingArticle?.aeo_score || 0}</span>
+                </div>
+                <span>•</span>
+                <span>{viewingArticle?.word_count || 0} words</span>
+                {viewingArticle?.scheduled_date && (
+                  <>
+                    <span>•</span>
+                    <Badge variant="secondary">
+                      Scheduled: {new Date(viewingArticle.scheduled_date).toLocaleDateString()}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-4">
+            {viewingArticle?.html_content ? (
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }}
+              />
+            ) : viewingArticle?.content ? (
+              <div className="whitespace-pre-wrap text-sm">{viewingArticle.content}</div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">No content available</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => {
+                const content = viewingArticle?.html_content || viewingArticle?.content || "";
+                navigator.clipboard.writeText(content);
+                toast.success("Article copied to clipboard!");
+              }}
+            >
+              <Copy className="h-4 w-4" />
+              Copy Article
+            </Button>
+            <Button variant="outline" onClick={() => setViewingArticle(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
