@@ -60,3 +60,11 @@ verify_jwt = false
 
 [functions.test-integration]
 verify_jwt = false
+
+[functions.check-planning-completeness]
+verify_jwt = false
+schedule = "0 */6 * * *"
+
+[functions.daily-planning-fill]
+verify_jwt = false
+schedule = "0 6 * * *"
