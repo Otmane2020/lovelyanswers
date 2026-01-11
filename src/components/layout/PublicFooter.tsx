@@ -9,10 +9,10 @@ export function PublicFooter() {
           {/* Company Info */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-rose-500">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500">
                 <Heart className="h-4 w-4 text-white fill-white" />
               </div>
-              <span className="font-bold">LovelyAnswers</span>
+              <span className="font-bold">Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span></span>
             </div>
             <div className="text-sm text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">LovelyAnswers Ltd</p>
