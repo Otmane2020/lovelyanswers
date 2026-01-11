@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ExternalLink, Check, Settings, Trash2, Loader2, Plug, Zap } from "lucide-react";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
+import { supabase } from "@/integrations/supabase/client";
+import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
 import { TestPublishButton } from "@/components/integrations/TestPublishButton";
 import { toast } from "sonner";
@@ -65,9 +67,10 @@ export default function AeoIntegrations() {
   const { project } = useActiveProject();
   const { data: integrations, isLoading, refetch } = useIntegrations();
   const deleteIntegration = useDeleteIntegration();
+  const { isConnected: isGscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   
   const [autoPublish, setAutoPublish] = useState(true);
-  const [connectedAnalytics, setConnectedAnalytics] = useState<string[]>([]);
+  const [connectingGsc, setConnectingGsc] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<{
@@ -79,6 +82,39 @@ export default function AeoIntegrations() {
     id: string;
     name: string;
   } | null>(null);
+
+  // Handle OAuth callback for Google Search Console
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
+      
+      if (code && state) {
+        setConnectingGsc(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("google-oauth-token", {
+            body: { code, redirectUri: state },
+          });
+          
+          if (error) throw error;
+          
+          toast.success("Google Search Console connecté avec succès!");
+          refetchGsc();
+          
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (error: any) {
+          console.error("OAuth callback error:", error);
+          toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
+        } finally {
+          setConnectingGsc(false);
+        }
+      }
+    };
+    
+    handleOAuthCallback();
+  }, [refetchGsc]);
 
   const connectedCmsIds = integrations?.map(i => i.platform) || [];
 
@@ -118,11 +154,32 @@ export default function AeoIntegrations() {
     setIntegrationToDelete(null);
   };
 
-  const handleConnectAnalytics = (id: string) => {
-    if (connectedAnalytics.includes(id)) {
-      setConnectedAnalytics(connectedAnalytics.filter(c => c !== id));
-    } else {
-      setConnectedAnalytics([...connectedAnalytics, id]);
+  const handleConnectAnalytics = async (id: string) => {
+    if (id === "gsc") {
+      if (isGscConnected) {
+        // Already connected - could open management panel
+        toast.info("Google Search Console est déjà connecté");
+        return;
+      }
+      
+      setConnectingGsc(true);
+      try {
+        const redirectUri = `${window.location.origin}/integrations`;
+        
+        const { data, error } = await supabase.functions.invoke("google-oauth-url", {
+          body: { redirectUri },
+        });
+        
+        if (error) throw error;
+        if (!data?.url) throw new Error("Failed to get OAuth URL");
+        
+        // Redirect to Google OAuth
+        window.location.href = data.url;
+      } catch (error: any) {
+        console.error("OAuth error:", error);
+        toast.error("Erreur: " + (error.message || "Impossible d'initier la connexion"));
+        setConnectingGsc(false);
+      }
     }
   };
 
@@ -303,7 +360,8 @@ export default function AeoIntegrations() {
           </div>
           <div className="p-4 space-y-3">
             {ANALYTICS_INTEGRATIONS.map((integration) => {
-              const isConnected = connectedAnalytics.includes(integration.id);
+              const isConnected = integration.id === "gsc" ? isGscConnected : false;
+              const isLoading = integration.id === "gsc" ? (gscLoading || connectingGsc) : false;
               
               return (
                 <div 
@@ -343,8 +401,13 @@ export default function AeoIntegrations() {
                       variant={isConnected ? "outline" : "default"}
                       className="gap-2"
                       onClick={() => handleConnectAnalytics(integration.id)}
+                      disabled={isLoading}
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4" />
+                      )}
                       {isConnected ? "Manage" : "Connect"}
                     </Button>
                   )}
