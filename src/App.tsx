@@ -17,6 +17,7 @@ import AeoAnalytics from "./pages/AeoAnalytics";
 import AeoSettings from "./pages/AeoSettings";
 import AeoSubscription from "./pages/AeoSubscription";
 import AeoBilling from "./pages/AeoBilling";
+import AeoSupport from "./pages/AeoSupport";
 import AeoPublicAnswer from "./pages/AeoPublicAnswer";
 import AeoSeoAudit from "./pages/AeoSeoAudit";
 import AeoKeywords from "./pages/AeoKeywords";
@@ -30,6 +31,7 @@ import Checkout from "./pages/Checkout";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
+import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,7 +64,9 @@ const App = () => (
               <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
               <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
               <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
+              <Route path="/support" element={<ProtectedRoute><AeoSupport /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
+              <Route path="/superadmin" element={<SuperAdmin />} />
               <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />

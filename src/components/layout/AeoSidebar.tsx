@@ -11,6 +11,7 @@ import {
   Heart,
   CalendarDays,
   History,
+  HelpCircle,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -51,6 +52,7 @@ export function AeoSidebar() {
   const otherMenuItems = [
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Billing", url: "/billing", icon: CreditCard },
+    { title: "Support", url: "/support", icon: HelpCircle },
   ];
 
   const isActive = (path: string) => currentPath === path;
