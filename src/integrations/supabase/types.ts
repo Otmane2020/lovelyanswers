@@ -259,6 +259,45 @@ export type Database = {
           },
         ]
       }
+      google_search_console_data: {
+        Row: {
+          clicks: number | null
+          created_at: string | null
+          ctr: number | null
+          date: string
+          domain: string
+          id: string
+          impressions: number | null
+          position: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date: string
+          domain: string
+          id?: string
+          impressions?: number | null
+          position?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          date?: string
+          domain?: string
+          id?: string
+          impressions?: number | null
+          position?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_search_console_domains: {
         Row: {
           created_at: string | null
@@ -584,6 +623,8 @@ export type Database = {
           created_at: string | null
           cta_link: string | null
           english_type: string | null
+          gsc_analysis_period: number | null
+          gsc_selected_domain: string | null
           id: string
           image_style: string | null
           include_citations: boolean | null
@@ -613,6 +654,8 @@ export type Database = {
           created_at?: string | null
           cta_link?: string | null
           english_type?: string | null
+          gsc_analysis_period?: number | null
+          gsc_selected_domain?: string | null
           id?: string
           image_style?: string | null
           include_citations?: boolean | null
@@ -642,6 +685,8 @@ export type Database = {
           created_at?: string | null
           cta_link?: string | null
           english_type?: string | null
+          gsc_analysis_period?: number | null
+          gsc_selected_domain?: string | null
           id?: string
           image_style?: string | null
           include_citations?: boolean | null
