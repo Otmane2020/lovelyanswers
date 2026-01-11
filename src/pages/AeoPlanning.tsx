@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ChevronLeft, ChevronRight, Plus,
-  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare, RefreshCw
+  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare, RefreshCw, List, LayoutGrid
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -43,6 +43,7 @@ export default function AeoPlanning() {
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project || item.type !== "answer") {
@@ -291,13 +292,32 @@ export default function AeoPlanning() {
 
           <TabsContent value="month" className="mt-6">
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Calendar */}
+              {/* Calendar/List View */}
               <Card className="lg:col-span-2 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">
                     {format(currentDate, "MMMM yyyy", { locale: fr })}
                   </h2>
                   <div className="flex gap-2">
+                    {/* View Mode Toggle */}
+                    <div className="flex border rounded-lg overflow-hidden">
+                      <Button 
+                        variant={monthViewMode === "calendar" ? "default" : "ghost"} 
+                        size="sm"
+                        onClick={() => setMonthViewMode("calendar")}
+                        className="rounded-none"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant={monthViewMode === "list" ? "default" : "ghost"} 
+                        size="sm"
+                        onClick={() => setMonthViewMode("list")}
+                        className="rounded-none"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -307,79 +327,185 @@ export default function AeoPlanning() {
                   </div>
                 </div>
 
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(day => (
-                    <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-                      {day}
+                {monthViewMode === "calendar" ? (
+                  <>
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(day => (
+                        <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                          {day}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Empty cells for days before the month starts */}
-                  {Array.from({ length: (startOfMonth(currentDate).getDay() + 6) % 7 }).map((_, i) => (
-                    <div key={`empty-${i}`} className="h-24 p-1" />
-                  ))}
-                  
-                  {monthDays.map(day => {
-                    const items = getItemsForDate(day);
-                    const isSelected = selectedDate && format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
-                    const hasItems = items.length > 0;
-                    
-                    return (
-                      <button
-                        key={day.toISOString()}
-                        onClick={() => handleDayClick(day)}
-                        className={cn(
-                          "h-28 p-2 rounded-lg border transition-all text-left hover:bg-muted/50 flex flex-col",
-                          isToday(day) && "border-primary ring-1 ring-primary/20",
-                          isSelected && "bg-primary/10 border-primary",
-                          !isSameMonth(day, currentDate) && "opacity-50",
-                          hasItems && "hover:shadow-md cursor-pointer"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full",
-                            isToday(day) && "bg-primary text-primary-foreground"
-                          )}>
-                            {format(day, "d")}
-                          </span>
-                          {hasItems && (
-                            <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                              {items.length}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="mt-1 flex-1 overflow-hidden space-y-0.5">
-                          {items.slice(0, 2).map(item => (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1",
-                                item.type === "answer" 
-                                  ? "bg-violet-500/20 text-violet-700 dark:text-violet-400" 
-                                  : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                    <div className="grid grid-cols-7 gap-1">
+                      {/* Empty cells for days before the month starts */}
+                      {Array.from({ length: (startOfMonth(currentDate).getDay() + 6) % 7 }).map((_, i) => (
+                        <div key={`empty-${i}`} className="h-24 p-1" />
+                      ))}
+                      
+                      {monthDays.map(day => {
+                        const items = getItemsForDate(day);
+                        const isSelected = selectedDate && format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+                        const hasItems = items.length > 0;
+                        
+                        return (
+                          <button
+                            key={day.toISOString()}
+                            onClick={() => handleDayClick(day)}
+                            className={cn(
+                              "h-28 p-2 rounded-lg border transition-all text-left hover:bg-muted/50 flex flex-col",
+                              isToday(day) && "border-primary ring-1 ring-primary/20",
+                              isSelected && "bg-primary/10 border-primary",
+                              !isSameMonth(day, currentDate) && "opacity-50",
+                              hasItems && "hover:shadow-md cursor-pointer"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={cn(
+                                "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full",
+                                isToday(day) && "bg-primary text-primary-foreground"
+                              )}>
+                                {format(day, "d")}
+                              </span>
+                              {hasItems && (
+                                <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                  {items.length}
+                                </Badge>
                               )}
-                            >
-                              {item.type === "answer" ? (
-                                <MessageSquare className="h-2.5 w-2.5 shrink-0" />
-                              ) : (
-                                <FileText className="h-2.5 w-2.5 shrink-0" />
-                              )}
-                              <span className="truncate">{item.title.slice(0, 20)}...</span>
                             </div>
-                          ))}
-                          {items.length > 2 && (
-                            <span className="text-[10px] text-muted-foreground font-medium">
-                              +{items.length - 2} more
-                            </span>
-                          )}
+                            <div className="mt-1 flex-1 overflow-hidden space-y-0.5">
+                              {items.slice(0, 2).map(item => (
+                                <div
+                                  key={item.id}
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1",
+                                    item.type === "answer" 
+                                      ? "bg-violet-500/20 text-violet-700 dark:text-violet-400" 
+                                      : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                  )}
+                                >
+                                  {item.type === "answer" ? (
+                                    <MessageSquare className="h-2.5 w-2.5 shrink-0" />
+                                  ) : (
+                                    <FileText className="h-2.5 w-2.5 shrink-0" />
+                                  )}
+                                  <span className="truncate">{item.title.slice(0, 20)}...</span>
+                                </div>
+                              ))}
+                              {items.length > 2 && (
+                                <span className="text-[10px] text-muted-foreground font-medium">
+                                  +{items.length - 2} more
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  /* List View */
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {monthDays.map(day => {
+                      const items = getItemsForDate(day);
+                      if (items.length === 0) return null;
+                      
+                      return (
+                        <div key={day.toISOString()} className="border rounded-lg overflow-hidden">
+                          <div className={cn(
+                            "px-4 py-2 bg-muted/50 flex items-center justify-between",
+                            isToday(day) && "bg-primary/10 border-l-4 border-l-primary"
+                          )}>
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "text-sm font-semibold",
+                                isToday(day) && "text-primary"
+                              )}>
+                                {format(day, "EEEE d MMMM", { locale: fr })}
+                              </span>
+                              {isToday(day) && (
+                                <Badge variant="default" className="text-xs">Aujourd'hui</Badge>
+                              )}
+                            </div>
+                            <Badge variant="secondary">{items.length} item{items.length > 1 ? "s" : ""}</Badge>
+                          </div>
+                          <div className="divide-y">
+                            {items.map(item => (
+                              <div
+                                key={item.id}
+                                className="px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors"
+                              >
+                                <div className={cn(
+                                  "p-2 rounded-lg shrink-0",
+                                  item.type === "answer" 
+                                    ? "bg-violet-500/20" 
+                                    : "bg-emerald-500/20"
+                                )}>
+                                  {item.type === "answer" ? (
+                                    <MessageSquare className="h-4 w-4 text-violet-600" />
+                                  ) : (
+                                    <FileText className="h-4 w-4 text-emerald-600" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{item.title}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.type === "answer" ? "AEO Answer" : "Blog Article"}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {item.status === "published" ? (
+                                    <Badge className="bg-emerald-500/20 text-emerald-600 border-0 text-xs">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Published
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      Scheduled
+                                    </Badge>
+                                  )}
+                                  {item.type === "answer" && item.status !== "published" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handlePublishNow(item)}
+                                      disabled={publishingId === item.id}
+                                      className="h-7 text-xs"
+                                    >
+                                      {publishingId === item.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Send className="h-3 w-3 mr-1" />
+                                          Publish
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                    {monthDays.every(day => getItemsForDate(day).length === 0) && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No content scheduled for this month</p>
+                        <Button 
+                          onClick={handleGenerate30Days}
+                          disabled={isGenerating}
+                          className="mt-4"
+                        >
+                          {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                          Generate 30 days of content
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
 
               {/* Sidebar - Upcoming */}
