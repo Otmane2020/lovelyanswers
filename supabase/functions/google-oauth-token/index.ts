@@ -41,11 +41,16 @@ serve(async (req) => {
     // Accept both 'state' and 'redirectUri' for compatibility
     const redirectUri = body.state || body.redirectUri;
 
-    if (!code) {
-      return new Response(JSON.stringify({ error: "Authorization code is required" }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    if (!code || !redirectUri) {
+      return new Response(
+        JSON.stringify({
+          error: !code ? "Authorization code is required" : "redirectUri is required",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
@@ -74,10 +79,16 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("Token exchange error:", errorText);
-      return new Response(JSON.stringify({ error: "Failed to exchange code for tokens" }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Failed to exchange code for tokens",
+          details: errorText,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const tokenData = await tokenResponse.json();
@@ -100,23 +111,50 @@ serve(async (req) => {
     );
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+    const now = new Date().toISOString();
 
-    const { error: updateError } = await adminClient
+    // First try to update existing profile
+    const { data: updatedRows, error: updateError } = await adminClient
       .from("profiles")
       .update({
         google_oauth_token: tokenData.access_token,
         google_refresh_token: tokenData.refresh_token || null,
         google_token_expires_at: expiresAt,
         google_console_email: googleEmail,
+        updated_at: now,
       })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("id");
 
     if (updateError) {
       console.error("Profile update error:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to save tokens" }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      return new Response(JSON.stringify({ error: "Failed to save tokens" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // If no profile row exists, create it
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertError } = await adminClient
+        .from("profiles")
+        .insert({
+          id: userId,
+          google_oauth_token: tokenData.access_token,
+          google_refresh_token: tokenData.refresh_token || null,
+          google_token_expires_at: expiresAt,
+          google_console_email: googleEmail,
+          created_at: now,
+          updated_at: now,
+        });
+
+      if (insertError) {
+        console.error("Profile insert error:", insertError);
+        return new Response(JSON.stringify({ error: "Failed to save tokens" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     return new Response(JSON.stringify({ success: true, email: googleEmail }), {
