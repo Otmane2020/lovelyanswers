@@ -48,21 +48,16 @@ const ANALYTICS_INTEGRATIONS = [
     name: "Google Search Console", 
     icon: "🔍", 
     description: "Track search performance & impressions",
-    color: "from-blue-500/20 to-blue-600/20"
+    color: "from-blue-500/20 to-blue-600/20",
+    comingSoon: false
   },
   { 
     id: "ga4", 
     name: "Google Analytics 4", 
     icon: "📊", 
     description: "Website traffic & user behavior",
-    color: "from-orange-500/20 to-orange-600/20"
-  },
-  { 
-    id: "merchant", 
-    name: "Google Merchant Center", 
-    icon: "🛒", 
-    description: "Product listings & shopping data",
-    color: "from-green-500/20 to-green-600/20"
+    color: "from-orange-500/20 to-orange-600/20",
+    comingSoon: true
   },
 ];
 
@@ -339,14 +334,20 @@ export default function AeoIntegrations() {
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    variant={isConnected ? "outline" : "default"}
-                    className="gap-2"
-                    onClick={() => handleConnectAnalytics(integration.id)}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {isConnected ? "Manage" : "Connect"}
-                  </Button>
+                  {integration.comingSoon ? (
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                      Coming Soon
+                    </Badge>
+                  ) : (
+                    <Button 
+                      variant={isConnected ? "outline" : "default"}
+                      className="gap-2"
+                      onClick={() => handleConnectAnalytics(integration.id)}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      {isConnected ? "Manage" : "Connect"}
+                    </Button>
+                  )}
                 </div>
               );
             })}
