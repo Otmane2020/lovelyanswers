@@ -13,6 +13,8 @@ import {
   Bot,
   ChevronRight,
   ChevronDown,
+  Star,
+  Quote,
 } from "lucide-react";
 import {
   Accordion,
@@ -21,6 +23,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+
+// Integration logos
+import shopifyLogo from "@/assets/shopify-logo-new.png";
+import wordpressLogo from "@/assets/wordpress-logo-new.png";
+import wixLogo from "@/assets/wix-logo.png";
+import framerLogo from "@/assets/framer-logo.png";
+import boltLogo from "@/assets/bolt-logo.png";
+import lovableLogo from "@/assets/lovable-logo.svg";
+import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 
 const features = [
   {
@@ -91,6 +102,55 @@ const faqs = [
   {
     question: "What languages are supported?",
     answer: "LovelyAnswers generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
+  },
+];
+
+const integrationLogos = [
+  { name: "WordPress", logo: wordpressLogo, invert: true },
+  { name: "Shopify", logo: shopifyLogo, invert: false },
+  { name: "Wix", logo: wixLogo, invert: true },
+  { name: "Framer", logo: framerLogo, invert: true },
+  { name: "Bolt", logo: boltLogo, invert: false },
+  { name: "Lovable", logo: lovableLogo, invert: false },
+  { name: "BigCommerce", logo: bigcommerceLogo, invert: true },
+];
+
+const testimonials = [
+  {
+    name: "Sarah Mitchell",
+    role: "Marketing Director",
+    company: "TechFlow Solutions",
+    avatar: "SM",
+    rating: 5,
+    text: "LovelyAnswers has completely transformed our content strategy. We went from 0 AI citations to being recommended by ChatGPT within 3 weeks. Our organic traffic increased by 340%.",
+    metric: "+340% organic traffic",
+  },
+  {
+    name: "Marc Dubois",
+    role: "Founder & CEO",
+    company: "GrowthLab Agency",
+    avatar: "MD",
+    rating: 5,
+    text: "As an agency, we've integrated LovelyAnswers for all our clients. The ROI is incredible - backlinks alone would cost us 10x more elsewhere. Game changer for AEO.",
+    metric: "10x ROI on backlinks",
+  },
+  {
+    name: "Emily Chen",
+    role: "Head of SEO",
+    company: "Nexus Digital",
+    avatar: "EC",
+    rating: 5,
+    text: "We were skeptical about AEO at first, but the results speak for themselves. Our brand is now cited by Gemini and Perplexity. The automated article generation saves us 40 hours/week.",
+    metric: "40 hours saved weekly",
+  },
+  {
+    name: "Thomas Bergman",
+    role: "E-commerce Manager",
+    company: "Nordic Brands Co",
+    avatar: "TB",
+    rating: 5,
+    text: "Integration with Shopify was seamless. Within a month, our product pages started appearing in AI-generated shopping recommendations. Sales from AI referrals are now 15% of total.",
+    metric: "15% sales from AI",
   },
 ];
 
@@ -218,6 +278,86 @@ export default function Index() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Integration Logos */}
+      <section className="py-16 bg-muted/30">
+        <div className="container">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold mb-3">Integrates with your favorite platforms</h2>
+            <p className="text-muted-foreground">
+              Connect LovelyAnswers with your CMS and publish content automatically
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {integrationLogos.map((integration) => (
+              <div 
+                key={integration.name}
+                className="group flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <div className="h-12 w-20 flex items-center justify-center">
+                  <img 
+                    src={integration.logo} 
+                    alt={integration.name} 
+                    className={`h-10 w-auto object-contain grayscale group-hover:grayscale-0 transition-all ${integration.invert ? 'dark:invert' : ''}`}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">{integration.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+              <Star className="mr-1 h-3 w-3 fill-primary" />
+              Customer Stories
+            </Badge>
+            <h2 className="text-3xl font-bold mb-4">Trusted by Growth-Focused Teams</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              See how businesses are leveraging LovelyAnswers to dominate AI search results
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {testimonials.map((testimonial, index) => (
+              <GlassCard key={index} hover className="p-6 flex flex-col">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                
+                <Quote className="h-8 w-8 text-primary/20 mb-2" />
+                
+                <p className="text-sm text-muted-foreground flex-1 mb-4">
+                  "{testimonial.text}"
+                </p>
+                
+                <div className="mt-auto">
+                  <Badge variant="secondary" className="mb-4 text-xs bg-emerald-500/10 text-emerald-600 border-0">
+                    {testimonial.metric}
+                  </Badge>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-sm font-semibold">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{testimonial.name}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}, {testimonial.company}</p>
+                    </div>
+                  </div>
+                </div>
               </GlassCard>
             ))}
           </div>
