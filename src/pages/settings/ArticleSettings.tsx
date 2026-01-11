@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,10 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useActiveProject } from "@/hooks/useProjects";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function ArticleSettings() {
+  const { project, isLoading: projectLoading } = useActiveProject();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Settings state
   const [englishType, setEnglishType] = useState("American");
   const [includeCitations, setIncludeCitations] = useState(true);
   const [includeToc, setIncludeToc] = useState(true);
@@ -25,12 +34,52 @@ export function ArticleSettings() {
   const [includeSchema, setIncludeSchema] = useState(false);
   const [citationsRegion, setCitationsRegion] = useState("Worldwide");
   const [articleTypes, setArticleTypes] = useState("All allowed");
-  const [articleLength, setArticleLength] = useState("2000");
+  const [articleLength, setArticleLength] = useState(2000);
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [wwwPrefix, setWwwPrefix] = useState(false);
   const [trailingSlash, setTrailingSlash] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>(WEEKDAYS);
   const [ctaLink, setCtaLink] = useState("");
+
+  // Load settings from project_settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!project) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("project_settings")
+          .select("*")
+          .eq("project_id", project.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setEnglishType(data.english_type || "American");
+          setIncludeCitations(data.include_citations ?? true);
+          setIncludeToc(data.include_toc ?? true);
+          setIncludeSummary(data.include_summary ?? true);
+          setIncludeInternalLinks(data.include_internal_links ?? true);
+          setIncludeSchema(data.include_schema ?? false);
+          setCitationsRegion(data.citations_region || "Worldwide");
+          setArticleTypes(data.article_types || "All allowed");
+          setArticleLength(data.article_length || 2000);
+          setSpecialInstructions(data.special_instructions || "");
+          setWwwPrefix(data.www_prefix ?? false);
+          setTrailingSlash(data.trailing_slash ?? false);
+          setSelectedDays(data.article_schedule || WEEKDAYS);
+          setCtaLink(data.cta_link || "");
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [project]);
 
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
@@ -39,6 +88,61 @@ export function ArticleSettings() {
       setSelectedDays([...selectedDays, day]);
     }
   };
+
+  const handleSave = async () => {
+    if (!project) return;
+
+    setIsSaving(true);
+    try {
+      const settings = {
+        project_id: project.id,
+        english_type: englishType,
+        include_citations: includeCitations,
+        include_toc: includeToc,
+        include_summary: includeSummary,
+        include_internal_links: includeInternalLinks,
+        include_schema: includeSchema,
+        citations_region: citationsRegion,
+        article_types: articleTypes,
+        article_length: articleLength,
+        special_instructions: specialInstructions,
+        www_prefix: wwwPrefix,
+        trailing_slash: trailingSlash,
+        article_schedule: selectedDays,
+        cta_link: ctaLink,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("project_settings")
+        .upsert(settings, { onConflict: "project_id" });
+
+      if (error) throw error;
+
+      toast.success("Article settings saved");
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (projectLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No project found. Please create a project first.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -104,7 +208,7 @@ export function ArticleSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label>Citations</Label>
+            <Label>Citations Region</Label>
             <Select value={citationsRegion} onValueChange={setCitationsRegion}>
               <SelectTrigger>
                 <SelectValue />
@@ -134,8 +238,8 @@ export function ArticleSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label>Article Length</Label>
-            <Select value={articleLength} onValueChange={setArticleLength}>
+            <Label>Article Length (words)</Label>
+            <Select value={String(articleLength)} onValueChange={(v) => setArticleLength(Number(v))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -207,7 +311,20 @@ export function ArticleSettings() {
             />
           </div>
 
-          <Button className="w-full">Save settings</Button>
+          <Button 
+            className="w-full" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save settings"
+            )}
+          </Button>
         </div>
       </Card>
     </div>
