@@ -219,11 +219,30 @@ Deno.serve(async (req) => {
     }
 
     // Filter projects for current hour
-    const projectsToPublish = projectSettings?.filter(
+    let projectsToPublish = projectSettings?.filter(
       ps => ps.publish_hour === currentHour
     ) || [];
 
-    console.log(`[publish-scheduled] 📊 Found ${projectsToPublish.length} projects scheduled for ${currentHour}:00 UTC`);
+    console.log(`[publish-scheduled] 📊 Found ${projectsToPublish.length} projects with settings for ${currentHour}:00 UTC`);
+
+    // FALLBACK: If no project_settings exist, find all projects with active integrations
+    if (!projectSettings || projectSettings.length === 0) {
+      console.log(`[publish-scheduled] ⚠️ No project_settings found, using FALLBACK mode`);
+      
+      // Only run fallback at 10:00 UTC (default hour)
+      if (currentHour === "10") {
+        const { data: projectsWithIntegrations } = await supabase
+          .from("integrations")
+          .select("project_id")
+          .eq("is_connected", true);
+        
+        if (projectsWithIntegrations && projectsWithIntegrations.length > 0) {
+          const uniqueProjectIds = [...new Set(projectsWithIntegrations.map(i => i.project_id))];
+          projectsToPublish = uniqueProjectIds.map(pid => ({ project_id: pid, publish_hour: "10" }));
+          console.log(`[publish-scheduled] 🔄 FALLBACK: Found ${projectsToPublish.length} projects with active integrations`);
+        }
+      }
+    }
 
     if (projectsToPublish.length === 0) {
       return new Response(
@@ -232,7 +251,8 @@ Deno.serve(async (req) => {
           message: `No projects scheduled for ${currentHour}:00 UTC`, 
           published: 0,
           currentHour,
-          totalProjects: projectSettings?.length || 0
+          totalProjects: projectSettings?.length || 0,
+          fallbackUsed: !projectSettings || projectSettings.length === 0
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

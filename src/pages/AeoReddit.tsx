@@ -311,7 +311,7 @@ export default function AeoReddit() {
         } else {
           toast({
             title: "Aucun post pertinent",
-            description: "Pas de discussions liées à votre secteur (meubles, déco...) en ce moment. Réessayez plus tard.",
+            description: "Aucune discussion pertinente trouvée pour vos mots-clés. Essayez d'ajouter plus de keywords ou réessayez plus tard.",
             variant: "destructive"
           });
         }
