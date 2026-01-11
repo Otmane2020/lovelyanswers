@@ -35,8 +35,11 @@ serve(async (req) => {
     // Get auth token from header
     const authHeader = req.headers.get("Authorization");
     
-    // Verify user is authenticated
-    if (authHeader) {
+    // Check if this is an internal call (from other edge functions using service role key)
+    const isInternalCall = authHeader?.includes(supabaseKey);
+    
+    // Verify user is authenticated (skip for internal calls)
+    if (authHeader && !isInternalCall) {
       const token = authHeader.replace("Bearer ", "");
       const authClient = createClient(supabaseUrl, anonKey);
       const { data: { user }, error: authError } = await authClient.auth.getUser(token);
@@ -49,6 +52,8 @@ serve(async (req) => {
         );
       }
       console.log(`[cms-publish] Authenticated user: ${user.email}`);
+    } else if (isInternalCall) {
+      console.log(`[cms-publish] Internal call from edge function`);
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
