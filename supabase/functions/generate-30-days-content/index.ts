@@ -320,14 +320,37 @@ Return JSON:
 
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Invalid JSON");
     
-    const parsed = JSON.parse(match[0]);
-    const wordCount = parsed.content.split(/\s+/).length;
+    // Try to extract JSON from code blocks first
+    let jsonStr = "";
+    const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      jsonStr = codeBlockMatch[1].trim();
+    } else {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) jsonStr = match[0];
+    }
+    
+    if (!jsonStr) {
+      console.error("No JSON found in response:", content.substring(0, 500));
+      throw new Error("Invalid JSON");
+    }
+    
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (parseError) {
+      // Try to fix common JSON issues
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " "); // Remove control characters
+      jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]"); // Fix trailing commas
+      parsed = JSON.parse(jsonStr);
+    }
+    
+    const articleContent = parsed.content || answer;
+    const wordCount = articleContent.split(/\s+/).length;
 
     // Convert markdown to HTML
-    let htmlContent = parsed.content
+    let htmlContent = articleContent
       .replace(/### (.*)/g, '<h3>$1</h3>')
       .replace(/## (.*)/g, '<h2>$1</h2>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -347,10 +370,10 @@ Return JSON:
     }
 
     return {
-      title: parsed.title,
-      content: parsed.content,
+      title: parsed.title || question,
+      content: articleContent,
       htmlContent,
-      metaDescription: parsed.metaDescription,
+      metaDescription: parsed.metaDescription || answer.substring(0, 155),
       wordCount,
     };
   } catch (e) {
@@ -414,7 +437,19 @@ serve(async (req) => {
     if (overwrite) {
       console.log(`[generate-30-days] OVERWRITE MODE: Deleting all scheduled items from ${today.toISOString()} to ${endDate.toISOString()}`);
       
-      // Supprimer d'abord les articles (pour éviter les contraintes FK)
+      // 1. D'abord, dissocier les article_id des answers (pour éviter FK constraint)
+      const { error: unlinkError } = await supabase
+        .from("answers")
+        .update({ article_id: null, has_article: false })
+        .eq("project_id", projectId)
+        .gte("scheduled_date", today.toISOString())
+        .lt("scheduled_date", endDate.toISOString());
+      
+      if (unlinkError) {
+        console.error("[generate-30-days] Error unlinking articles from answers:", unlinkError);
+      }
+      
+      // 2. Supprimer les articles
       const { error: deleteArticlesError, count: deletedArticles } = await supabase
         .from("articles")
         .delete({ count: "exact" })
@@ -428,7 +463,7 @@ serve(async (req) => {
         console.log(`[generate-30-days] Deleted ${deletedArticles} existing articles`);
       }
       
-      // Puis supprimer les answers planifiées
+      // 3. Supprimer les answers planifiées
       const { error: deleteAnswersError, count: deletedAnswers } = await supabase
         .from("answers")
         .delete({ count: "exact" })
