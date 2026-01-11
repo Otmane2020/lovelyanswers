@@ -537,6 +537,25 @@ function computeRelevanceScore(
   const bodyLower = (post.body || "").toLowerCase();
   const combinedText = `${titleLower} ${bodyLower}`;
   
+  // 🔥 NEW: 0. VERTICAL MATCH BONUS (+25 base)
+  // If the post matches the project's vertical, it deserves a base score
+  const vertical = detectVertical({ 
+    businessType: "", 
+    businessDescription: businessDescription 
+  });
+  
+  if (vertical !== "general" && isPostRelevantToVertical(post, vertical)) {
+    score += 25;
+    reasons.push("Vertical match");
+  }
+  
+  // 🔥 NEW: 0.5. VERTICAL KEYWORDS BONUS (+10)
+  // If the post contains keywords from the vertical (beyond project-specific keywords)
+  if (vertical !== "general" && VERTICAL_KEYWORDS[vertical]?.test(combinedText)) {
+    score += 10;
+    reasons.push("Vertical keyword");
+  }
+  
   // 1. Keyword matches in title (+15 each, max 45)
   let titleMatches = 0;
   keywords.forEach(kw => {
@@ -559,20 +578,20 @@ function computeRelevanceScore(
   });
   if (bodyMatches > 0) reasons.push(`${bodyMatches} keyword(s) in body`);
   
-  // 3. Question post bonus (+20)
+  // 3. Question post bonus (+20) - EXPANDED PATTERNS
   const questionPatterns = language === "fr"
-    ? /^(comment|où|quel|quelle|quels|quelles|pourquoi|est-ce que|combien|qui|quand|faut-il|dois-je|peut-on|conseils?|avis|aide|besoin|cherche)/i
-    : /^(how|what|where|when|why|which|who|should|can|does|is|are|any|looking for|need|help|advice|recommend)/i;
+    ? /^(comment|où|quel|quelle|quels|quelles|pourquoi|est-ce que|combien|qui|quand|faut-il|dois-je|peut-on|conseils?|avis|aide|besoin|cherche|idées?|inspiration|premier|nouvelle?)/i
+    : /^(how|what|where|when|why|which|who|should|can|does|is|are|any|looking for|need|help|advice|recommend|ideas|inspiration|first|new)/i;
   
   if (questionPatterns.test(post.title)) {
     score += 20;
     reasons.push("Question post");
   }
   
-  // 4. Help/advice request bonus (+15)
+  // 4. Help/advice request bonus (+15) - EXPANDED PATTERNS
   const helpPatterns = language === "fr"
-    ? /(besoin d'aide|conseils?|avis|recommand|suggestion|cherche|où trouver|quel.*choisir|meilleur|pas cher|budget)/i
-    : /(need help|advice|recommend|suggest|looking for|where to|which.*should|best|budget|affordable)/i;
+    ? /(besoin|conseils?|avis|recommand|suggestion|cherche|où trouver|quel.*choisir|meilleur|pas cher|budget|opinion|retour d'expérience|petit budget|premier|nouvelle?|acheter|achat|qualité|durable|comparatif|alternative)/i
+    : /(need|advice|recommend|suggest|looking for|where to|which.*should|best|budget|affordable|opinion|first time|new|buy|buying|quality|durable|compare|alternative)/i;
   
   if (helpPatterns.test(combinedText)) {
     score += 15;
@@ -1141,8 +1160,8 @@ async function findOpportunities(
     };
   });
 
-  // 🔒 PATCH 5 — HIGHER MINIMUM RELEVANCE (40 instead of 15)
-  const MIN_RELEVANCE = 40;
+  // 🔒 PATCH 5 — LOWER MINIMUM RELEVANCE (25) - Vertical match provides +25 base
+  const MIN_RELEVANCE = 25;
   const relevantPosts = scoredPosts.filter(p => p.relevanceScore >= MIN_RELEVANCE);
   
   console.log(`[reddit-agent] ${relevantPosts.length}/${scoredPosts.length} posts passed relevance filter (>=${MIN_RELEVANCE})`);
