@@ -50,24 +50,24 @@ export default function AeoHistory() {
   const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
   const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
   
-  // Sort answers: Draft first, then Scheduled, then Published/Public - within each group by date desc
+  // Sort answers: Published first (to see latest on site), then Public, then Draft - within each group by date desc
   const answers = [...rawAnswers].sort((a, b) => {
     const getStatusOrder = (item: typeof a) => {
-      if (item.published_url) return 2; // Published last
+      if (item.published_url) return 0; // Published first
       if (item.is_public) return 1; // Public second
-      return 0; // Draft first
+      return 2; // Draft last
     };
     const statusDiff = getStatusOrder(a) - getStatusOrder(b);
     if (statusDiff !== 0) return statusDiff;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
   
-  // Sort articles: Draft first, then Scheduled, then Published - within each group by date desc
+  // Sort articles: Published first (to see latest on site), then Scheduled, then Draft - within each group by date desc
   const articles = [...rawArticles].sort((a, b) => {
     const getStatusOrder = (status: string | null) => {
-      if (status === "published") return 2;
+      if (status === "published") return 0; // Published first
       if (status === "scheduled") return 1;
-      return 0; // draft
+      return 2; // draft last
     };
     const statusDiff = getStatusOrder(a.status) - getStatusOrder(b.status);
     if (statusDiff !== 0) return statusDiff;
