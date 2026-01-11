@@ -390,15 +390,27 @@ interface ArticleSettings {
   sitePages?: Array<{ url: string; title: string | null }>;
 }
 
+// Business context interface for rich prompts
+interface BusinessContext {
+  brandName: string;
+  websiteUrl: string;
+  businessDescription: string;
+  audience: string;
+  businessType: string;
+  competitors: string[];
+  tone: string;
+}
+
 // Generate article content using Lovable AI with proper SEO structure and settings
 async function generateArticleContentWithSettings(
   question: string,
   answer: string,
-  brandName: string,
+  context: BusinessContext,
   language: string,
   apiKey: string,
   settings: ArticleSettings
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
+  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
   
   // Build dynamic instructions based on settings
   const wordRange = settings.articleLength <= 1500 ? "1000-1500" : 
@@ -441,8 +453,30 @@ ${pagesList}
 Format: <a href="[URL]">[natural anchor text]</a>`;
   }
 
+  // Build business context section for prompts
+  const businessContextFr = `
+CONTEXTE BUSINESS (utilise ces informations pour personnaliser l'article):
+- Marque: ${brandName}
+- Site: ${websiteUrl}
+${businessDescription ? `- Description: ${businessDescription}` : ""}
+${audience ? `- Audience cible: ${audience}` : ""}
+${businessType ? `- Type d'activité: ${businessType}` : ""}
+${competitors?.length > 0 ? `- Concurrents à différencier: ${competitors.join(", ")}` : ""}
+${tone ? `- Ton de voix: ${tone}` : ""}`;
+
+  const businessContextEn = `
+BUSINESS CONTEXT (use this information to personalize the article):
+- Brand: ${brandName}
+- Website: ${websiteUrl}
+${businessDescription ? `- Description: ${businessDescription}` : ""}
+${audience ? `- Target audience: ${audience}` : ""}
+${businessType ? `- Business type: ${businessType}` : ""}
+${competitors?.length > 0 ? `- Competitors to differentiate from: ${competitors.join(", ")}` : ""}
+${tone ? `- Tone of voice: ${tone}` : ""}`;
+
   const systemPrompt = language === 'fr'
     ? `Tu es un expert en rédaction AEO (Answer Engine Optimization). Tu génères des articles optimisés pour être CITÉS par ChatGPT, Gemini, Perplexity et autres IA.
+${businessContextFr}
 
 RÈGLE D'OR AEO : "Répondre d'abord comme Wikipédia, puis parler comme une marque."
 
@@ -463,12 +497,14 @@ STRUCTURE HTML:
 PARAMÈTRES SPÉCIFIQUES:
 - Longueur cible: ${wordRange} mots
 - Type d'anglais: ${settings.englishType}
+- Ton: ${tone || "Expert et factuel"}
 ${tocInstruction ? `- ${tocInstruction}` : ""}
 ${summaryInstruction ? `- ${summaryInstruction}` : ""}
 ${schemaInstruction ? `- ${schemaInstruction}` : ""}
 ${ctaInstruction ? `- ${ctaInstruction}` : ""}
 ${specialInst ? `- ${specialInst}` : ""}`
     : `You are an AEO (Answer Engine Optimization) writing expert. You generate articles optimized to be CITED by ChatGPT, Gemini, Perplexity and other AI assistants.
+${businessContextEn}
 
 GOLDEN AEO RULE: "Answer first like Wikipedia, then speak like a brand."
 
@@ -489,6 +525,7 @@ HTML STRUCTURE:
 SPECIFIC SETTINGS:
 - Target length: ${wordRange} words
 - English type: ${settings.englishType}
+- Tone: ${tone || "Expert and factual"}
 ${tocInstruction ? `- ${tocInstruction}` : ""}
 ${summaryInstruction ? `- ${summaryInstruction}` : ""}
 ${schemaInstruction ? `- ${schemaInstruction}` : ""}
@@ -502,6 +539,8 @@ SUJET:
 - Question: ${question}
 - Réponse courte: ${answer}
 - Marque: ${brandName}
+${businessDescription ? `- Description activité: ${businessDescription}` : ""}
+${audience ? `- Audience cible: ${audience}` : ""}
 
 STRUCTURE AEO OBLIGATOIRE (en HTML propre):
 
@@ -773,6 +812,31 @@ serve(async (req) => {
     const brandName = answer.projects?.brand_name || answer.projects?.name || "Brand";
     const websiteUrl = answer.projects?.website_url || "";
 
+    // Fetch generation settings for tone and additional context
+    const { data: genSettings } = await supabase
+      .from("generation_settings")
+      .select("*")
+      .eq("project_id", answer.project_id)
+      .maybeSingle();
+
+    // Build complete business context
+    const businessContext: BusinessContext = {
+      brandName,
+      websiteUrl,
+      businessDescription: genSettings?.business_description || answer.projects?.business_description || "",
+      audience: (genSettings?.target_audiences?.join(", ") || answer.projects?.audience || ""),
+      businessType: answer.projects?.business_type || "",
+      competitors: genSettings?.competitors || answer.projects?.competitors || [],
+      tone: genSettings?.tone || ""
+    };
+
+    console.log(`[generate-aeo-article] Business context loaded:`, {
+      brandName: businessContext.brandName,
+      hasDescription: !!businessContext.businessDescription,
+      hasAudience: !!businessContext.audience,
+      hasTone: !!businessContext.tone
+    });
+
     // Load project settings for article generation
     const { data: projectSettings } = await supabase
       .from("project_settings")
@@ -816,11 +880,11 @@ serve(async (req) => {
 
     console.log(`[generate-aeo-article] Using settings:`, { ...settings, sitePages: settings.sitePages.length });
 
-    // Generate article content with settings
+    // Generate article content with settings and full business context
     const articleContent = await generateArticleContentWithSettings(
       answer.question,
       answer.answer,
-      brandName,
+      businessContext,
       language,
       lovableApiKey,
       settings
