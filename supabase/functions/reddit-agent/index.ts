@@ -86,12 +86,52 @@ function detectVertical(context: { businessType?: string; businessDescription: s
   return "general";
 }
 
-// 🔒 PATCH 5 — Check if post matches the detected vertical
+// 🔒 PATCH 5 — Check if post matches the detected vertical (FALLBACK only)
 function isPostRelevantToVertical(post: RealRedditPost, vertical: Vertical): boolean {
   if (vertical === "general") return true;
   
   const text = `${post.title} ${post.body}`.toLowerCase();
   return VERTICAL_KEYWORDS[vertical].test(text);
+}
+
+// 🔥 NEW: KEYWORD-FIRST FILTER — Use project keywords as primary filter
+// This is MUCH more accurate than vertical-based filtering
+const STOP_WORDS = new Set([
+  // French
+  "pour", "avec", "dans", "comment", "quel", "quelle", "quels", "quelles",
+  "meilleur", "meilleure", "meilleurs", "meilleures", "acheter", "trouver",
+  "faire", "avoir", "être", "etre", "cette", "votre", "notre", "leur",
+  "très", "tres", "plus", "moins", "bien", "sont", "suis", "êtes", "etes",
+  // English
+  "what", "which", "where", "when", "best", "good", "find", "have", "make",
+  "your", "their", "this", "that", "with", "from", "about", "more", "less",
+  "very", "some", "most", "than", "been", "being", "would", "should", "could"
+]);
+
+function isPostRelevantToProject(
+  post: RealRedditPost,
+  projectKeywords: string[]
+): boolean {
+  const combinedText = `${post.title} ${post.body || ""}`.toLowerCase();
+  
+  // Extract significant terms from project keywords (>3 chars, not stop words)
+  const keywordTerms = new Set<string>();
+  projectKeywords.forEach(kw => {
+    kw.toLowerCase().split(/\s+/).forEach(term => {
+      if (term.length > 3 && !STOP_WORDS.has(term)) {
+        keywordTerms.add(term);
+      }
+    });
+  });
+  
+  // Post must contain at least ONE significant keyword term
+  for (const term of keywordTerms) {
+    if (combinedText.includes(term)) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 function sanitizeRedditReply(text: string): string {
@@ -537,23 +577,16 @@ function computeRelevanceScore(
   const bodyLower = (post.body || "").toLowerCase();
   const combinedText = `${titleLower} ${bodyLower}`;
   
-  // 🔥 NEW: 0. VERTICAL MATCH BONUS (+25 base)
-  // If the post matches the project's vertical, it deserves a base score
-  const vertical = detectVertical({ 
-    businessType: "", 
-    businessDescription: businessDescription 
+  // 🔥 NEW: 0. EXACT KEYWORD MATCH BONUS (+30)
+  // If the post contains a COMPLETE project keyword phrase, big bonus
+  const exactKeywordMatch = keywords.some(kw => {
+    const kwLower = kw.toLowerCase();
+    // Only count if keyword is 2+ words (phrases are more specific)
+    return kwLower.split(/\s+/).length >= 2 && combinedText.includes(kwLower);
   });
-  
-  if (vertical !== "general" && isPostRelevantToVertical(post, vertical)) {
-    score += 25;
-    reasons.push("Vertical match");
-  }
-  
-  // 🔥 NEW: 0.5. VERTICAL KEYWORDS BONUS (+10)
-  // If the post contains keywords from the vertical (beyond project-specific keywords)
-  if (vertical !== "general" && VERTICAL_KEYWORDS[vertical]?.test(combinedText)) {
-    score += 10;
-    reasons.push("Vertical keyword");
+  if (exactKeywordMatch) {
+    score += 30;
+    reasons.push("Exact keyword match");
   }
   
   // 1. Keyword matches in title (+15 each, max 45)
@@ -1114,21 +1147,29 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
-  // 🔒 VERTICAL FILTER ENGINE — Generic multi-sector filtering
-  const vertical = detectVertical(context);
-  console.log(`[reddit-agent] 🔒 Detected vertical: ${vertical}`);
-
-  // 🔒 PATCH 1 — HARD BUSINESS FILTER (by detected vertical)
+  // 🔥 KEYWORD-FIRST FILTER — Use project keywords as PRIMARY filter
+  // This is MUCH more accurate than generic vertical-based filtering
   let filteredPosts = allPosts;
   
-  if (vertical !== "general") {
-    console.log(`[reddit-agent] Applying ${vertical} filter...`);
-    filteredPosts = filteredPosts.filter(p => isPostRelevantToVertical(p, vertical));
-    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match ${vertical} vertical`);
+  if (keywords.length > 0) {
+    console.log(`[reddit-agent] 🔥 PRIMARY FILTER: Using ${keywords.length} project keywords...`);
+    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords));
+    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match project keywords`);
+  } else {
+    // FALLBACK: Use vertical detection only if NO keywords available
+    const vertical = detectVertical(context);
+    console.log(`[reddit-agent] ⚠️ FALLBACK: No keywords, using ${vertical} vertical filter`);
+    
+    if (vertical !== "general") {
+      filteredPosts = filteredPosts.filter(p => isPostRelevantToVertical(p, vertical));
+      console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match ${vertical} vertical`);
+    }
   }
 
-  // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS (by vertical)
+  // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS
+  const vertical = detectVertical(context);
   const forbiddenSubs = FORBIDDEN_SUBS_BY_VERTICAL[vertical] || [];
+
   if (forbiddenSubs.length > 0) {
     const beforeCount = filteredPosts.length;
     filteredPosts = filteredPosts.filter(
@@ -1136,12 +1177,19 @@ async function findOpportunities(
         (forbidden: string) => p.subreddit.toLowerCase() === forbidden.toLowerCase()
       )
     );
-    console.log(`[reddit-agent] Removed ${beforeCount - filteredPosts.length} posts from forbidden subreddits for ${vertical}`);
+    console.log(`[reddit-agent] Removed ${beforeCount - filteredPosts.length} posts from forbidden subreddits`);
   }
 
-  // 🔒 PATCH 3 — IF NOTHING LEFT → RETURN EMPTY (NO FALLBACK)
-  if (vertical !== "general" && filteredPosts.length === 0) {
-    console.log(`[reddit-agent] ❌ No ${vertical}-related posts found. Returning empty array (no fallback).`);
+  // 🔒 PATCH 3 — IF NOTHING LEFT → TRY REDDIT SEARCH WITH KEYWORDS
+  if (filteredPosts.length === 0 && keywords.length > 0) {
+    console.log(`[reddit-agent] ⚠️ No matching posts. Trying Reddit keyword search...`);
+    const searchPosts = await searchRedditByKeywords(keywords.slice(0, 5), context.language);
+    filteredPosts = searchPosts.filter(p => isPostRelevantToProject(p, keywords));
+    console.log(`[reddit-agent] Reddit search found ${filteredPosts.length} relevant posts`);
+  }
+  
+  if (filteredPosts.length === 0) {
+    console.log(`[reddit-agent] ❌ No keyword-matching posts found. Returning empty.`);
     return { opportunities: [] };
   }
 
