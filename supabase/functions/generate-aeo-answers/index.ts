@@ -260,8 +260,21 @@ function computeCitationScoreAEO(answer: string, platforms: Platform[]): number 
   return Math.min(100, Math.max(0, score));
 }
 
+// Business context interface for rich prompts
+interface BusinessContext {
+  brandName: string;
+  websiteUrl: string;
+  businessDescription: string;
+  audience: string;
+  businessType: string;
+  competitors: string[];
+  tone: string;
+}
+
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
-function getAEOStrictSystemPrompt(language: string, brandName: string, websiteUrl: string, intent: string): string {
+function getAEOStrictSystemPrompt(language: string, context: BusinessContext, intent: string): string {
+  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
+  
   const intentTemplates: Record<string, { fr: string; en: string }> = {
     price: {
       fr: "Structure: Prix moyen/fourchette + facteurs de variation + exemple concret",
@@ -298,9 +311,31 @@ function getAEOStrictSystemPrompt(language: string, brandName: string, websiteUr
   };
 
   const template = intentTemplates[intent] || intentTemplates.what;
+  
+  // Build business context section
+  const businessContextFr = `
+CONTEXTE BUSINESS (utilise ces informations pour personnaliser la réponse):
+- Marque: ${brandName}
+- Site: ${websiteUrl}
+${businessDescription ? `- Description: ${businessDescription}` : ""}
+${audience ? `- Audience cible: ${audience}` : ""}
+${businessType ? `- Type d'activité: ${businessType}` : ""}
+${competitors?.length > 0 ? `- Concurrents à différencier: ${competitors.join(", ")}` : ""}
+${tone ? `- Ton de voix: ${tone}` : ""}`;
+
+  const businessContextEn = `
+BUSINESS CONTEXT (use this information to personalize the answer):
+- Brand: ${brandName}
+- Website: ${websiteUrl}
+${businessDescription ? `- Description: ${businessDescription}` : ""}
+${audience ? `- Target audience: ${audience}` : ""}
+${businessType ? `- Business type: ${businessType}` : ""}
+${competitors?.length > 0 ? `- Competitors to differentiate from: ${competitors.join(", ")}` : ""}
+${tone ? `- Tone of voice: ${tone}` : ""}`;
 
   return language === "fr"
     ? `Tu es un expert AEO. Tu rédiges des réponses que ChatGPT, Gemini et Copilot voudront CITER.
+${businessContextFr}
 
 ⛔ INTERDICTIONS ABSOLUES :
 - Pas de définitions génériques ("X est un meuble qui...")
@@ -332,7 +367,7 @@ function getAEOStrictSystemPrompt(language: string, brandName: string, websiteUr
 ${template.fr}
 
 LONGUEUR : 80-120 mots
-TON : Expert conseil qui aide à DÉCIDER, pas encyclopédie
+TON : ${tone || "Expert conseil qui aide à DÉCIDER, pas encyclopédie"}
 INTENTION : ${intent}
 
 ❌ EXEMPLE À NE PAS FAIRE :
@@ -342,6 +377,7 @@ INTENTION : ${intent}
 "Un canapé design de qualité se reconnaît à trois critères : cohérence des proportions, confort réel après 30 minutes d'assise, et durabilité des matériaux. En 2026, les modèles les plus recherchés combinent structure légère et ergonomie. Éviter les modèles uniquement esthétiques sans test de confort. Plus de conseils sur ${brandName} (${websiteUrl})."`
 
     : `You are an AEO expert. You write answers that ChatGPT, Gemini, and Copilot will CITE.
+${businessContextEn}
 
 ⛔ ABSOLUTE BANS:
 - No generic definitions ("X is a furniture that...")
@@ -373,7 +409,7 @@ INTENTION : ${intent}
 ${template.en}
 
 LENGTH: 80-120 words
-TONE: Expert advisor helping to DECIDE, not encyclopedia
+TONE: ${tone || "Expert advisor helping to DECIDE, not encyclopedia"}
 INTENT: ${intent}
 
 ❌ DON'T DO THIS:
@@ -386,19 +422,21 @@ INTENT: ${intent}
 // Generate AI answer using Lovable AI with AEO Safe Mode
 async function generateAIAnswer(
   question: string,
-  brandName: string,
-  websiteUrl: string,
+  context: BusinessContext,
   intent: IntentType,
   language: string,
   apiKey: string
 ): Promise<{ answer: string; bullets: string[]; faq: Array<{q: string; a: string}> }> {
-  const systemPrompt = getAEOStrictSystemPrompt(language, brandName, websiteUrl, intent);
+  const systemPrompt = getAEOStrictSystemPrompt(language, context, intent);
+  const { brandName, websiteUrl, businessDescription, audience } = context;
 
   const userPrompt = language === 'fr'
     ? `Question : ${question}
 
 Marque : ${brandName}
 Site : ${websiteUrl}
+${businessDescription ? `Description activité : ${businessDescription}` : ""}
+${audience ? `Audience cible : ${audience}` : ""}
 
 Format JSON strict :
 {
@@ -413,6 +451,8 @@ Format JSON strict :
 
 Brand: ${brandName}
 Website: ${websiteUrl}
+${businessDescription ? `Business description: ${businessDescription}` : ""}
+${audience ? `Target audience: ${audience}` : ""}
 
 Strict JSON format:
 {
@@ -556,8 +596,32 @@ serve(async (req) => {
       });
     }
 
-    const brandName = project.brand_name || project.name;
-    const websiteUrl = project.website_url || "";
+    // Fetch generation settings for tone and additional context
+    const { data: genSettings } = await supabase
+      .from("generation_settings")
+      .select("*")
+      .eq("project_id", projectId)
+      .maybeSingle();
+
+    // Build complete business context
+    const businessContext: BusinessContext = {
+      brandName: project.brand_name || project.name,
+      websiteUrl: project.website_url || "",
+      businessDescription: genSettings?.business_description || project.business_description || "",
+      audience: (genSettings?.target_audiences?.join(", ") || project.audience || ""),
+      businessType: project.business_type || "",
+      competitors: genSettings?.competitors || project.competitors || [],
+      tone: genSettings?.tone || ""
+    };
+
+    console.log(`[generate-aeo-answers] Business context loaded:`, {
+      brandName: businessContext.brandName,
+      hasDescription: !!businessContext.businessDescription,
+      hasAudience: !!businessContext.audience,
+      hasTone: !!businessContext.tone,
+      competitorsCount: businessContext.competitors.length
+    });
+
     const generatedAnswers: any[] = [];
 
     // Determine questions to process
@@ -582,16 +646,6 @@ serve(async (req) => {
       const hasKeywords = keywords && keywords.length > 0;
       console.log(`[generate-aeo-answers] Found ${keywords?.length || 0} unused keywords`);
 
-      // Build context for question generation
-      const businessContext = {
-        brandName,
-        websiteUrl,
-        description: project.business_description || "",
-        audience: project.audience || "",
-        businessType: project.business_type || "",
-        competitors: project.competitors || []
-      };
-
       let questionGenPrompt: string;
       
       if (hasKeywords) {
@@ -601,8 +655,8 @@ serve(async (req) => {
           ? `Tu es un expert AEO (Answer Engine Optimization). À partir de ces mots-clés : ${keywordList}
           
 Contexte de la marque :
-- Nom : ${brandName}
-- Description : ${businessContext.description || "Non spécifiée"}
+- Nom : ${businessContext.brandName}
+- Description : ${businessContext.businessDescription || "Non spécifiée"}
 - Audience cible : ${businessContext.audience || "Non spécifiée"}
 - Type d'activité : ${businessContext.businessType || "Non spécifié"}
 
@@ -614,8 +668,8 @@ Format JSON strict : {"questions": ["question 1", "question 2", ...]}`
           : `You are an AEO (Answer Engine Optimization) expert. From these keywords: ${keywordList}
           
 Brand context:
-- Name: ${brandName}
-- Description: ${businessContext.description || "Not specified"}
+- Name: ${businessContext.brandName}
+- Description: ${businessContext.businessDescription || "Not specified"}
 - Target audience: ${businessContext.audience || "Not specified"}
 - Business type: ${businessContext.businessType || "Not specified"}
 
@@ -630,14 +684,14 @@ Strict JSON format: {"questions": ["question 1", "question 2", ...]}`;
           ? `Tu es un expert AEO (Answer Engine Optimization) spécialisé dans la création de contenu citable par les IA.
 
 Contexte de la marque :
-- Nom : ${brandName}
-- Site web : ${websiteUrl}
-- Description : ${businessContext.description || "Entreprise proposant des services/produits"}
+- Nom : ${businessContext.brandName}
+- Site web : ${businessContext.websiteUrl}
+- Description : ${businessContext.businessDescription || "Entreprise proposant des services/produits"}
 - Audience cible : ${businessContext.audience || "Professionnels et particuliers"}
 - Type d'activité : ${businessContext.businessType || "Services numériques"}
 - Concurrents : ${businessContext.competitors.join(", ") || "Non spécifiés"}
 
-Génère 10 questions AEO essentielles et VARIÉES que les utilisateurs poseraient à ChatGPT, Gemini ou Claude à propos de ${brandName}.
+Génère 10 questions AEO essentielles et VARIÉES que les utilisateurs poseraient à ChatGPT, Gemini ou Claude à propos de ${businessContext.brandName}.
 
 Types de questions à inclure :
 1. "Qu'est-ce que [marque] ?" - Définition
@@ -655,14 +709,14 @@ Format JSON strict : {"questions": ["question 1", "question 2", ...]}`
           : `You are an AEO (Answer Engine Optimization) expert specialized in creating AI-citable content.
 
 Brand context:
-- Name: ${brandName}
-- Website: ${websiteUrl}
-- Description: ${businessContext.description || "Company offering services/products"}
+- Name: ${businessContext.brandName}
+- Website: ${businessContext.websiteUrl}
+- Description: ${businessContext.businessDescription || "Company offering services/products"}
 - Target audience: ${businessContext.audience || "Professionals and individuals"}
 - Business type: ${businessContext.businessType || "Digital services"}
 - Competitors: ${businessContext.competitors.join(", ") || "Not specified"}
 
-Generate 10 essential and VARIED AEO questions that users would ask ChatGPT, Gemini or Claude about ${brandName}.
+Generate 10 essential and VARIED AEO questions that users would ask ChatGPT, Gemini or Claude about ${businessContext.brandName}.
 
 Question types to include:
 1. "What is [brand]?" - Definition
@@ -676,7 +730,7 @@ Question types to include:
 9. "What alternatives to [brand]?" - Alternatives
 10. "Why choose [brand]?" - Justification
 
-Strict JSON format: {"questions": ["question 1", "question 2", ...]}`;
+Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
       }
 
       try {
@@ -739,8 +793,7 @@ Strict JSON format: {"questions": ["question 1", "question 2", ...]}`;
         
         const generated = await generateAIAnswer(
           questionText,
-          brandName,
-          websiteUrl,
+          businessContext,
           intent,
           language,
           lovableApiKey
