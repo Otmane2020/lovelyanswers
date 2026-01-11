@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, X, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
+import { Sparkles, X, ExternalLink, Loader2, AlertTriangle, Link2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
+import { useSitePages, useParseSitemap, useSitePagesCount } from "@/hooks/useSitePages";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,11 +19,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function BusinessSettings() {
   const { project, isLoading } = useActiveProject();
   const updateProject = useUpdateProject();
+  const { data: sitePages = [] } = useSitePages();
+  const { data: sitePagesCount = 0 } = useSitePagesCount();
+  const parseSitemap = useParseSitemap();
 
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -36,6 +48,22 @@ export function BusinessSettings() {
   const [showUrlChangeWarning, setShowUrlChangeWarning] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [originalUrl, setOriginalUrl] = useState("");
+  const [showPagesDialog, setShowPagesDialog] = useState(false);
+
+  const handleParseSitemap = async () => {
+    if (!sitemapUrl.trim()) {
+      toast.error("Please enter a sitemap URL first");
+      return;
+    }
+
+    try {
+      const result = await parseSitemap.mutateAsync(sitemapUrl);
+      toast.success(`Found ${result.totalFound} pages, imported ${result.inserted} for internal linking`);
+      setShowPagesDialog(true);
+    } catch (error: any) {
+      toast.error("Failed to parse sitemap: " + (error.message || "Unknown error"));
+    }
+  };
 
   // Load data from project when it's available
   useEffect(() => {
@@ -302,7 +330,15 @@ export function BusinessSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sitemap">Sitemap URL</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sitemap">Sitemap URL</Label>
+              {sitePagesCount > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  <Link2 className="w-3 h-3" />
+                  {sitePagesCount} pages detected
+                </Badge>
+              )}
+            </div>
             <div className="flex gap-2">
               <Input
                 id="sitemap"
@@ -311,11 +347,37 @@ export function BusinessSettings() {
                 placeholder="https://example.com/sitemap.xml"
                 className="flex-1"
               />
-              <Button variant="outline" className="gap-1.5 shrink-0">
-                <ExternalLink className="w-4 h-4" />
-                View detected links
+              <Button 
+                variant="outline" 
+                className="gap-1.5 shrink-0"
+                onClick={handleParseSitemap}
+                disabled={parseSitemap.isPending}
+              >
+                {parseSitemap.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Parsing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Detect Links
+                  </>
+                )}
               </Button>
+              {sitePagesCount > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowPagesDialog(true)}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              We'll crawl your sitemap to create automatic internal links in generated articles
+            </p>
           </div>
 
           <Button 
@@ -339,6 +401,55 @@ export function BusinessSettings() {
           </Button>
         </div>
       </Card>
+
+      {/* Detected Pages Dialog */}
+      <Dialog open={showPagesDialog} onOpenChange={setShowPagesDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-primary" />
+              Detected Site Pages ({sitePagesCount})
+            </DialogTitle>
+            <DialogDescription>
+              These pages will be used for automatic internal linking in generated articles
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-2">
+              {sitePages.map((page) => (
+                <div 
+                  key={page.id}
+                  className="p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {page.title || "Untitled"}
+                      </p>
+                      <a 
+                        href={page.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground hover:text-primary truncate block"
+                      >
+                        {page.url}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {sitePages.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Link2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No pages detected yet</p>
+                  <p className="text-sm">Enter your sitemap URL and click "Detect Links"</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
