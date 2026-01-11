@@ -78,6 +78,7 @@ export default function AeoAnalytics() {
   const [availableSites, setAvailableSites] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const [publishedAnswers, setPublishedAnswers] = useState<PublishedAnswer[]>([]);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Check for OAuth callback
   useEffect(() => {
@@ -95,6 +96,13 @@ export default function AeoAnalytics() {
     }
   }, []);
 
+  // Load saved GSC settings
+  useEffect(() => {
+    if (currentProject?.id) {
+      loadGSCSettings();
+    }
+  }, [currentProject?.id]);
+
   // Load project stats and check GSC connection
   useEffect(() => {
     if (currentProject?.id && user?.id) {
@@ -106,10 +114,55 @@ export default function AeoAnalytics() {
 
   // Load GSC data when domain or period changes
   useEffect(() => {
-    if (isConnected && selectedDomain) {
+    if (isConnected && selectedDomain && settingsLoaded) {
       loadGSCData();
+      saveGSCSettings();
     }
-  }, [isConnected, selectedDomain, selectedPeriod]);
+  }, [isConnected, selectedDomain, selectedPeriod, settingsLoaded]);
+
+  const loadGSCSettings = async () => {
+    if (!currentProject?.id) return;
+    
+    try {
+      const { data: settings } = await supabase
+        .from("project_settings")
+        .select("gsc_selected_domain, gsc_analysis_period")
+        .eq("project_id", currentProject.id)
+        .single();
+      
+      if (settings) {
+        if (settings.gsc_selected_domain) {
+          setSelectedDomain(settings.gsc_selected_domain);
+        }
+        if (settings.gsc_analysis_period) {
+          setSelectedPeriod(settings.gsc_analysis_period);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading GSC settings:", error);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  };
+
+  const saveGSCSettings = async () => {
+    if (!currentProject?.id || !selectedDomain) return;
+    
+    try {
+      await supabase
+        .from("project_settings")
+        .upsert({
+          project_id: currentProject.id,
+          gsc_selected_domain: selectedDomain,
+          gsc_analysis_period: selectedPeriod,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: "project_id",
+        });
+    } catch (error) {
+      console.error("Error saving GSC settings:", error);
+    }
+  };
 
   const loadProjectStats = async () => {
     if (!currentProject?.id) return;
@@ -217,12 +270,15 @@ export default function AeoAnalytics() {
       const sites = (data?.sites || []).map((s: any) => s.siteUrl.replace("sc-domain:", ""));
       setAvailableSites(sites);
 
-      if (sites.length > 0 && currentProject?.website_url) {
-        const projectDomain = new URL(currentProject.website_url).hostname.replace("www.", "");
-        const matchingSite = sites.find((s: string) => s.includes(projectDomain));
-        setSelectedDomain(matchingSite || sites[0]);
-      } else if (sites.length > 0) {
-        setSelectedDomain(sites[0]);
+      // Only set domain if not already set from saved settings
+      if (!selectedDomain && sites.length > 0) {
+        if (currentProject?.website_url) {
+          const projectDomain = new URL(currentProject.website_url).hostname.replace("www.", "");
+          const matchingSite = sites.find((s: string) => s.includes(projectDomain));
+          setSelectedDomain(matchingSite || sites[0]);
+        } else {
+          setSelectedDomain(sites[0]);
+        }
       }
     } catch (error) {
       console.error("Error loading sites:", error);
