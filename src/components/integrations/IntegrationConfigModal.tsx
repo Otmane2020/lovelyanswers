@@ -48,15 +48,16 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
     ],
   },
   wix: {
-    title: "How to Get Your Wix API Key",
+    title: "🔑 Comment Obtenir Votre API Key Wix",
     steps: [
-      "Go to dev.wix.com and sign in with your Wix account",
-      "Click 'API Keys' in the left menu",
-      "Click 'Generate API Key'",
-      "Give it a name (e.g., 'AeoRocket Publishing')",
-      "Select permissions: Blog → Read & Write",
-      "Click 'Generate' and copy the API key",
-      "For Site ID: go to your Wix dashboard → the ID is in the URL after /dashboard/",
+      "1️⃣ Allez sur dev.wix.com et connectez-vous",
+      "2️⃣ Dans le menu gauche, cliquez 'API Keys'",
+      "3️⃣ Cliquez le bouton '+ Generate API Key'",
+      "4️⃣ Donnez un nom (ex: 'AeoRocket')",
+      "5️⃣ IMPORTANT: Cochez 'All site permissions' ou sélectionnez votre site",
+      "6️⃣ Dans les permissions, activez 'Wix Blog' → 'Read & Write Blog'",
+      "7️⃣ Cliquez 'Generate' et copiez la clé (commence par IST...)",
+      "8️⃣ Pour le Site ID: allez sur manage.wix.com → l'ID est dans l'URL après /dashboard/",
     ],
   },
   webflow: {
@@ -175,13 +176,13 @@ const CMS_CONFIG: Record<string, {
     icon: wixLogo,
     isImage: true,
     color: "from-yellow-500 to-yellow-600",
-    description: "Publish blog posts to your Wix site.",
-    helpText: "Get your API key from dev.wix.com → API Keys.",
+    description: "Publiez des articles sur votre blog Wix.",
+    helpText: "Créez une API Key sur dev.wix.com avec permissions Blog.",
     tutorialUrl: "https://dev.wix.com/docs/rest/account-level-apis/api-keys/generating-api-keys",
     fields: [
-      { key: "name", label: "Integration Name", placeholder: "My Wix Blog" },
-      { key: "token", label: "API Key", placeholder: "Enter your Wix API key", type: "password", helpText: "From dev.wix.com → API Keys" },
-      { key: "siteId", label: "Site ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", helpText: "Found in your Wix dashboard URL after /dashboard/" },
+      { key: "name", label: "Nom de l'intégration", placeholder: "Mon Blog Wix" },
+      { key: "token", label: "API Key", placeholder: "IST.eyJ... (commence par IST)", type: "password", helpText: "Depuis dev.wix.com → API Keys → Generate" },
+      { key: "siteId", label: "Site ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", helpText: "Dans l'URL: manage.wix.com/dashboard/SITE-ID-ICI/..." },
     ],
   },
   webflow: {
@@ -317,8 +318,14 @@ export function IntegrationConfigModal({
   };
 
   const handleTestConnection = async () => {
-    if (!formData.endpoint) {
-      toast.error("Please enter an endpoint URL");
+    // Validate required fields for testing based on platform
+    if (platform === "wix") {
+      if (!formData.token) {
+        toast.error("Veuillez entrer votre API Key Wix");
+        return;
+      }
+    } else if (!formData.endpoint && !formData.token) {
+      toast.error("Please enter required fields");
       return;
     }
 
