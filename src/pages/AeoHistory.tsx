@@ -47,8 +47,32 @@ const platformLogos: Record<string, string> = {
 export default function AeoHistory() {
   const navigate = useNavigate();
   const { project } = useActiveProject();
-  const { data: answers = [], isLoading: answersLoading } = useAnswers();
-  const { data: articles = [], isLoading: articlesLoading } = useArticles();
+  const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
+  const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
+  
+  // Sort answers: Draft first, then Scheduled, then Published/Public - within each group by date desc
+  const answers = [...rawAnswers].sort((a, b) => {
+    const getStatusOrder = (item: typeof a) => {
+      if (item.published_url) return 2; // Published last
+      if (item.is_public) return 1; // Public second
+      return 0; // Draft first
+    };
+    const statusDiff = getStatusOrder(a) - getStatusOrder(b);
+    if (statusDiff !== 0) return statusDiff;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+  
+  // Sort articles: Draft first, then Scheduled, then Published - within each group by date desc
+  const articles = [...rawArticles].sort((a, b) => {
+    const getStatusOrder = (status: string | null) => {
+      if (status === "published") return 2;
+      if (status === "scheduled") return 1;
+      return 0; // draft
+    };
+    const statusDiff = getStatusOrder(a.status) - getStatusOrder(b.status);
+    if (statusDiff !== 0) return statusDiff;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
   const publishAnswer = usePublishAnswer();
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
