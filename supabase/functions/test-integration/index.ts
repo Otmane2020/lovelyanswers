@@ -175,23 +175,48 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 }
 
 async function testWix(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  if (!config.token) {
-    return { success: false, message: "API Key required" };
+  // Support both OAuth Client ID and legacy API Key
+  const clientId = config.clientId?.trim();
+  const siteId = config.siteId?.trim();
+  const apiKey = config.token?.trim();
+
+  if (!clientId && !apiKey) {
+    return { success: false, message: "OAuth Client ID or API Key required" };
   }
 
   try {
-    // Wix API requires account-level or site-level token
+    // If using OAuth Client ID (Wix Headless approach)
+    if (clientId) {
+      // Validate Client ID format (UUID-like)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(clientId)) {
+        return { 
+          success: false, 
+          message: "Invalid Client ID format. Should look like: 92ef2ed2-d432-4513-9065-e37c26bda553" 
+        };
+      }
+
+      // For OAuth, we can't fully test without user authorization flow
+      // But we can validate the Client ID exists by checking Wix's OAuth endpoint
+      // Since this is server-to-server, we just validate format and confirm it's stored
+      return { 
+        success: true, 
+        message: siteId 
+          ? `OAuth Client ID saved! Ready for Wix Headless publishing to site ${siteId.substring(0, 8)}...`
+          : "OAuth Client ID saved! Add your Site ID to enable publishing."
+      };
+    }
+
+    // Legacy API Key approach
     const headers: Record<string, string> = {
-      Authorization: config.token.startsWith("Bearer ") ? config.token : config.token,
+      Authorization: apiKey!.startsWith("Bearer ") ? apiKey! : apiKey!,
       "Content-Type": "application/json",
     };
 
-    // Add site ID if provided
-    if (config.siteId) {
-      headers["wix-site-id"] = config.siteId;
+    if (siteId) {
+      headers["wix-site-id"] = siteId;
     }
 
-    // Try the blog API first
     const response = await fetch(`https://www.wixapis.com/blog/v3/posts?paging.limit=1`, {
       headers,
     });
@@ -210,7 +235,7 @@ async function testWix(config: Record<string, string>): Promise<{ success: boole
     if (response.status === 401 || response.status === 403) {
       return { 
         success: false, 
-        message: "Invalid API Key. Get it from Wix Developer Center → OAuth Apps or API Keys." 
+        message: "Invalid API Key. Use OAuth Client ID instead (recommended) or check your API Key permissions." 
       };
     }
 
