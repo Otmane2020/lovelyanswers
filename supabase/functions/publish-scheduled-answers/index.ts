@@ -138,7 +138,8 @@ function generateAnswerHTML(
   ${faqSection}
   
   <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0;">${language === 'fr' ? 'Source' : 'Source'}: <a href="${websiteUrl}" style="color: #667eea; text-decoration: none; font-weight: 500;">${brandName}</a> • ${language === 'fr' ? 'Mis à jour' : 'Updated'}: ${currentYear}</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://lovelyanswers.com" style="color: #667eea; text-decoration: none; font-weight: 500;" target="_blank">LovelyAnswers</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0; font-size: 12px; color: #999;">LovelyAnswers – Rank in ChatGPT</p>
   </footer>
 </article>`;
 
@@ -163,7 +164,8 @@ function generateArticleHTML(
   <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
   ${article.html_content}
   <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p>Source: <a href="${websiteUrl}" style="color: #667eea;">${brandName}</a> • ${currentYear}</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://lovelyanswers.com" style="color: #667eea;" target="_blank">LovelyAnswers</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0; font-size: 12px; color: #999;">LovelyAnswers – Rank in ChatGPT</p>
   </footer>
 </article>`
     };
