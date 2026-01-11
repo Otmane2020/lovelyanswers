@@ -112,6 +112,21 @@ const AeoSupport = () => {
         message: newTicketMessage,
       });
 
+      // Send confirmation email to user
+      try {
+        await supabase.functions.invoke("send-email", {
+          body: {
+            type: "ticket_created",
+            to: user.email,
+            name: user.user_metadata?.full_name || user.email?.split("@")[0],
+            ticketSubject: newTicketSubject,
+            message: newTicketMessage,
+          },
+        });
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+      }
+
       toast({
         title: "Ticket created",
         description: "Your support request has been sent.",
