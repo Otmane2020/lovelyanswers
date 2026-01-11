@@ -140,7 +140,7 @@ const CMS_CONFIG: Record<string, {
   description: string;
   tutorialUrl?: string;
   helpText?: string;
-  fields: { key: string; label: string; placeholder: string; type?: string; helpText?: string }[];
+  fields: { key: string; label: string; placeholder: string; type?: string; helpText?: string; optional?: boolean }[];
 }> = {
   wordpress: {
     name: "WordPress",
@@ -180,8 +180,8 @@ const CMS_CONFIG: Record<string, {
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Wix Site" },
       { key: "clientId", label: "OAuth Client ID", placeholder: "92ef2ed2-d432-4513-...", helpText: "From Wix Dashboard → Settings → Headless Settings" },
-      { key: "siteId", label: "Site ID", placeholder: "Enter your Wix Site ID", helpText: "Found in your Wix dashboard URL" },
-      { key: "token", label: "API Key (optional)", placeholder: "For legacy API access", type: "password", helpText: "Leave empty if using OAuth only" },
+      { key: "siteId", label: "Site ID", placeholder: "Enter your Wix Site ID", helpText: "Found in your Wix dashboard URL", optional: true },
+      { key: "token", label: "API Key (optional)", placeholder: "For legacy API access", type: "password", helpText: "Leave empty if using OAuth only", optional: true },
     ],
   },
   webflow: {
@@ -359,9 +359,9 @@ export function IntegrationConfigModal({
   };
 
   const handleConnect = async () => {
-    // Validate required fields
+    // Validate required fields (skip optional ones)
     const missingFields = config.fields
-      .filter(f => f.key !== "method" && !formData[f.key])
+      .filter(f => f.key !== "method" && !f.optional && !formData[f.key])
       .map(f => f.label);
 
     if (missingFields.length > 0) {
