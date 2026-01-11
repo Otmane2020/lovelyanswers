@@ -55,6 +55,14 @@ export default function AeoAnalytics() {
     const code = urlParams.get("code");
     
     if (code) {
+      // If we're in a popup, send message to parent and close
+      if (window.opener) {
+        window.opener.postMessage({ type: "GOOGLE_OAUTH_CODE", code }, window.location.origin);
+        window.close();
+        return;
+      }
+      
+      // Normal flow - handle callback directly
       handleOAuthCallback(code);
       window.history.replaceState({}, document.title, "/analytics");
     }

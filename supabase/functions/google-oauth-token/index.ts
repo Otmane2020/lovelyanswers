@@ -36,7 +36,10 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { code, state: redirectUri } = await req.json();
+    const body = await req.json();
+    const code = body.code;
+    // Accept both 'state' and 'redirectUri' for compatibility
+    const redirectUri = body.state || body.redirectUri;
 
     if (!code) {
       return new Response(JSON.stringify({ error: "Authorization code is required" }), { 
