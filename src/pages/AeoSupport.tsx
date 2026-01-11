@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle, ArrowLeft, ImagePlus, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 
@@ -29,6 +29,7 @@ interface SupportMessage {
   sender_type: string;
   message: string;
   created_at: string;
+  attachment_url?: string | null;
 }
 
 const AeoSupport = () => {
@@ -43,6 +44,11 @@ const AeoSupport = () => {
   const [newTicketMessage, setNewTicketMessage] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -118,11 +124,87 @@ const AeoSupport = () => {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isReply: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type (only images)
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file (PNG, JPG, GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setFilePreview(URL.createObjectURL(file));
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+      setFilePreview(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (replyFileInputRef.current) replyFileInputRef.current.value = '';
+  };
+
+  const uploadFile = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('support-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('support-attachments')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload the image. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleCreateTicket = async () => {
     if (!user || !newTicketSubject.trim() || !newTicketMessage.trim()) return;
 
     setIsSending(true);
     try {
+      // Upload file if selected
+      let attachmentUrl: string | null = null;
+      if (selectedFile) {
+        attachmentUrl = await uploadFile(selectedFile);
+      }
+
       const { data: ticketData, error: ticketError } = await supabase
         .from("support_tickets")
         .insert({
@@ -136,11 +218,12 @@ const AeoSupport = () => {
 
       if (ticketError) throw ticketError;
 
-      // Add the first message
+      // Add the first message with attachment
       await supabase.from("support_messages").insert({
         ticket_id: ticketData.id,
         sender_type: "user",
         message: newTicketMessage,
+        attachment_url: attachmentUrl,
       });
 
       // Send confirmation email to user
@@ -165,6 +248,7 @@ const AeoSupport = () => {
 
       setNewTicketSubject("");
       setNewTicketMessage("");
+      clearFile();
       setIsCreatingTicket(false);
       loadTickets();
     } catch (error) {
@@ -180,19 +264,27 @@ const AeoSupport = () => {
   };
 
   const handleSendReply = async () => {
-    if (!selectedTicket || !replyMessage.trim()) return;
+    if (!selectedTicket || (!replyMessage.trim() && !selectedFile)) return;
 
     setIsSending(true);
     try {
+      // Upload file if selected
+      let attachmentUrl: string | null = null;
+      if (selectedFile) {
+        attachmentUrl = await uploadFile(selectedFile);
+      }
+
       const { error } = await supabase.from("support_messages").insert({
         ticket_id: selectedTicket.id,
         sender_type: "user",
-        message: replyMessage,
+        message: replyMessage || "(Image attached)",
+        attachment_url: attachmentUrl,
       });
 
       if (error) throw error;
 
       setReplyMessage("");
+      clearFile();
       loadMessages(selectedTicket.id);
     } catch (error) {
       console.error("Error sending reply:", error);
@@ -259,12 +351,55 @@ const AeoSupport = () => {
                 rows={5}
               />
             </div>
+            
+            {/* File upload section */}
+            <div className="space-y-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e)}
+                className="hidden"
+              />
+              {filePreview ? (
+                <div className="relative inline-block">
+                  <img 
+                    src={filePreview} 
+                    alt="Preview" 
+                    className="max-h-32 rounded-lg border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={clearFile}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  Add Screenshot
+                </Button>
+              )}
+            </div>
+
             <div className="flex gap-2">
-              <Button onClick={handleCreateTicket} disabled={isSending}>
-                <Send className="h-4 w-4 mr-2" />
+              <Button onClick={handleCreateTicket} disabled={isSending || isUploading}>
+                {(isSending || isUploading) ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
                 Send
               </Button>
-              <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
+              <Button variant="outline" onClick={() => { setIsCreatingTicket(false); clearFile(); }}>
                 Cancel
               </Button>
             </div>
@@ -343,6 +478,15 @@ const AeoSupport = () => {
                               : "bg-muted"
                           }`}
                         >
+                          {msg.attachment_url && (
+                            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <img 
+                                src={msg.attachment_url} 
+                                alt="Attachment" 
+                                className="max-w-full max-h-48 rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                              />
+                            </a>
+                          )}
                           <p className="text-sm">{msg.message}</p>
                           <p className={`text-xs mt-1 ${msg.sender_type === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                             {format(new Date(msg.created_at), "MMM d, yyyy HH:mm", { locale: enUS })}
@@ -353,17 +497,61 @@ const AeoSupport = () => {
                   </div>
                 </ScrollArea>
                 <Separator />
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Your message..."
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
-                    rows={2}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSendReply} disabled={isSending || !replyMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                
+                {/* Reply section with file upload */}
+                <div className="space-y-2">
+                  {filePreview && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={filePreview} 
+                        alt="Preview" 
+                        className="max-h-24 rounded-lg border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5"
+                        onClick={clearFile}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      ref={replyFileInputRef}
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, true)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </Button>
+                    <Textarea
+                      placeholder="Your message..."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      rows={2}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleSendReply} 
+                      disabled={isSending || isUploading || (!replyMessage.trim() && !selectedFile)}
+                    >
+                      {(isSending || isUploading) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
