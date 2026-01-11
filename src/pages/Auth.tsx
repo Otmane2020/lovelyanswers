@@ -32,23 +32,74 @@ export default function Auth() {
 
   // Listen for password recovery event
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AUTH] Auth event:", event);
       if (event === "PASSWORD_RECOVERY") {
         console.log("[AUTH] Password recovery detected, showing reset form");
         setIsResetPassword(true);
       }
+      
+      // Handle SIGNED_IN event for OAuth - send welcome email if first login
+      if (event === "SIGNED_IN" && session?.user) {
+        const user = session.user;
+        const isOAuth = user.app_metadata?.provider && user.app_metadata.provider !== "email";
+        const createdAt = new Date(user.created_at);
+        const now = new Date();
+        const isNewUser = (now.getTime() - createdAt.getTime()) < 60000; // Created within last minute
+        
+        if (isOAuth && isNewUser) {
+          console.log("[AUTH] New OAuth user detected, sending welcome email");
+          try {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                type: "welcome",
+                to: user.email,
+                name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0],
+              },
+            });
+            console.log("[AUTH] Welcome email sent for OAuth user");
+          } catch (emailError) {
+            console.error("[AUTH] Failed to send welcome email:", emailError);
+          }
+        }
+      }
     });
 
-    // Check URL hash for recovery token (in case we missed the event)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('type') === 'recovery') {
-      console.log("[AUTH] Recovery type in URL, showing reset form");
-      setIsResetPassword(true);
-    }
+    // Check URL for recovery token (query params or hash)
+    const checkRecoveryToken = () => {
+      // Check URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      if (hashParams.get('type') === 'recovery') {
+        console.log("[AUTH] Recovery type in hash, showing reset form");
+        setIsResetPassword(true);
+        return;
+      }
+      
+      // Check URL search params (new Supabase format)
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('type') === 'recovery') {
+        console.log("[AUTH] Recovery type in search params, showing reset form");
+        setIsResetPassword(true);
+        return;
+      }
+      
+      // Check for error_code (expired/invalid token)
+      const errorCode = hashParams.get('error_code') || searchParams.get('error_code');
+      const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+      if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
+        console.log("[AUTH] Recovery token expired");
+        toast({
+          title: "Link expired",
+          description: "The password reset link has expired. Please request a new one.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    checkRecoveryToken();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     // Don't redirect if user is resetting password
@@ -149,13 +200,18 @@ export default function Auth() {
     setErrors({});
     setIsLoading(true);
     
+    // Use the current origin for redirect
+    const redirectUrl = `${window.location.origin}/auth`;
+    console.log("[AUTH] Password reset redirect URL:", redirectUrl);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth`,
+      redirectTo: redirectUrl,
     });
     
     setIsLoading(false);
     
     if (error) {
+      console.error("[AUTH] Reset password error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -166,7 +222,7 @@ export default function Auth() {
     
     toast({
       title: "Check your email",
-      description: "We've sent you a password reset link.",
+      description: "We've sent you a password reset link. Please check your inbox and spam folder.",
     });
     setIsForgotPassword(false);
   };
