@@ -162,59 +162,85 @@ export default function Dashboard() {
     fetchRealStats();
   }, [project?.id]);
 
-  // Auto-trigger FULL 30-day generation on first signup
+  // Auto-trigger 30-day generation when the planning window is incomplete
   useEffect(() => {
     const triggerAutoGeneration = async () => {
       if (!project || !user || hasTriggeredGeneration.current) return;
-      
-      // Check if there are any existing answers
-      const { count } = await supabase
-        .from("answers")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", project.id);
-      
-      // Only auto-generate if no answers exist (first signup)
-      if (count && count > 0) return;
-      
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(today.getTime() + 30 * 86400000);
+      const todayStr = today.toISOString().split("T")[0];
+      const endDateStr = endDate.toISOString().split("T")[0];
+
+      // Check if planning is complete for the next 30 days
+      const [{ count: planningRows }, { count: incompletePlanningRows }] = await Promise.all([
+        supabase
+          .from("planning")
+          .select("id", { count: "exact", head: true })
+          .eq("project_id", project.id)
+          .gte("day", todayStr)
+          .lt("day", endDateStr),
+        supabase
+          .from("planning")
+          .select("id", { count: "exact", head: true })
+          .eq("project_id", project.id)
+          .gte("day", todayStr)
+          .lt("day", endDateStr)
+          .or("answer_id.is.null,article_id.is.null"),
+      ]);
+
+      const totalRows = planningRows || 0;
+      const incompleteRows = incompletePlanningRows || 0;
+
+      // Nothing to do
+      if (totalRows >= 30 && incompleteRows === 0) return;
+
       hasTriggeredGeneration.current = true;
-      
-      // Use global context for progress - persists across route changes
-      startGeneration("🚀 Generating your 30-day content plan...");
-      
+
+      startGeneration("🔄 Remplissage automatique du planning (30 jours)...");
+
       const progressInterval = setInterval(() => {
-        setGenerationProgress((prev: number) => Math.min(prev + 2, 95));
+        setGenerationProgress((prev: number) => {
+          // Keep moving, but don't hit 100% until we finish
+          const next = typeof prev === "number" ? prev : 0;
+          return Math.min(next + 2, 95);
+        });
       }, 1500);
-      
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
-        toast.info("🚀 Generating your 30-day content plan...", { duration: 5000 });
-        
-        const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
-          body: { 
+
+        toast.info("🔄 Planning incomplet — génération automatique en cours...", {
+          duration: 5000,
+        });
+
+        const { data, error } = await supabase.functions.invoke("generate-30-days-content", {
+          body: {
             projectId: project.id,
-            language: project.language || 'fr',
-            days: 30
+            language: project.language || "fr",
+            days: 30,
           },
           headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
+            Authorization: `Bearer ${session?.access_token}`,
+          },
         });
-        
-        clearInterval(progressInterval);
-        
+
         if (error) {
-          console.error('Error generating 30-day content:', error);
-          toast.error("Error during content generation");
-        } else {
-          const answersCount = data?.answers_created || 0;
-          const articlesCount = data?.articles_created || 0;
-          toast.success(`✨ Generated ${answersCount} answers and ${articlesCount} articles!`, { duration: 5000 });
+          console.error("Error generating 30-day content:", error);
+          toast.error("Erreur pendant la génération du planning");
+          return;
         }
+
+        const answersCount = data?.answers_created || 0;
+        const articlesCount = data?.articles_created || 0;
+        toast.success(`✨ Planning mis à jour: ${answersCount} réponses, ${articlesCount} articles`, {
+          duration: 6000,
+        });
       } catch (error) {
-        console.error('Error generating content:', error);
-        clearInterval(progressInterval);
+        console.error("Error generating content:", error);
       } finally {
+        clearInterval(progressInterval);
         stopGeneration();
       }
     };
