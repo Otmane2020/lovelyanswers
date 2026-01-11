@@ -132,12 +132,12 @@ export default function AeoAnalytics() {
         throw new Error(msg || "Failed to connect");
       }
 
-      toast.success("Google Search Console connecté !");
+      toast.success("Google Search Console connected!");
       setIsConnected(true);
       setGoogleEmail(data.email || null);
       await loadAvailableSites();
     } catch (error: any) {
-      toast.error(error.message || "Erreur de connexion à GSC");
+      toast.error(error.message || "Error connecting to GSC");
     } finally {
       setIsLoading(false);
     }
@@ -217,9 +217,9 @@ export default function AeoAnalytics() {
         topPages: topPages,
       });
 
-      toast.success("Données GSC chargées !");
+      toast.success("GSC data loaded!");
     } catch (error: any) {
-      toast.error(error.message || "Erreur de chargement des données");
+      toast.error(error.message || "Error loading data");
     } finally {
       setIsLoading(false);
     }
@@ -267,7 +267,7 @@ export default function AeoAnalytics() {
       window.addEventListener("message", handleMessage);
       setTimeout(() => window.removeEventListener("message", handleMessage), 5 * 60 * 1000);
     } catch (error: any) {
-      toast.error(error.message || "Erreur de connexion");
+      toast.error(error.message || "Connection error");
     } finally {
       setIsLoading(false);
     }
@@ -292,9 +292,9 @@ export default function AeoAnalytics() {
       setGoogleEmail(null);
       setSelectedDomain(null);
       setAvailableSites([]);
-      toast.success("Google Search Console déconnecté");
+      toast.success("Google Search Console disconnected");
     } catch (error) {
-      toast.error("Erreur de déconnexion");
+      toast.error("Disconnection error");
     }
   };
 
@@ -316,7 +316,7 @@ export default function AeoAnalytics() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
             <p className="text-muted-foreground mt-1">
-              Signaux AEO via Google Search Console
+              AEO Signals via Google Search Console
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -336,10 +336,10 @@ export default function AeoAnalytics() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
                 <Search className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Connecter Google Search Console</h2>
+              <h2 className="text-xl font-semibold mb-2">Connect Google Search Console</h2>
               <p className="text-muted-foreground mb-6">
-                Analysez vos signaux AEO : impressions sans clics, requêtes questionnelles, 
-                et lift de marque indiquant une exposition IA.
+                Analyze your AEO signals: impressions without clicks, question queries, 
+                and brand lift indicating AI exposure.
               </p>
               <Button 
                 onClick={connectGSC} 
@@ -351,10 +351,10 @@ export default function AeoAnalytics() {
                 ) : (
                   <ExternalLink className="w-4 h-4" />
                 )}
-                Connecter GSC
+                Connect GSC
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                Lecture seule • Données sécurisées • OAuth 2.0
+                Read-only • Secure data • OAuth 2.0
               </p>
             </div>
           </Card>
@@ -365,7 +365,7 @@ export default function AeoAnalytics() {
               <Card className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <label className="text-sm font-medium">Domaine :</label>
+                    <label className="text-sm font-medium">Domain:</label>
                     <select
                       value={selectedDomain || ""}
                       onChange={(e) => setSelectedDomain(e.target.value)}
@@ -388,7 +388,7 @@ export default function AeoAnalytics() {
                       ) : (
                         <RefreshCw className="w-4 h-4" />
                       )}
-                      Actualiser
+                      Refresh
                     </Button>
                     <Button
                       variant="ghost"
@@ -396,7 +396,7 @@ export default function AeoAnalytics() {
                       onClick={disconnectGSC}
                     >
                       <LogOut className="w-4 h-4" />
-                      Déconnecter
+                      Disconnect
                     </Button>
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export default function AeoAnalytics() {
               <Card className="p-12">
                 <div className="flex flex-col items-center">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground">Chargement des données GSC...</p>
+                  <p className="text-muted-foreground">Loading GSC data...</p>
                 </div>
               </Card>
             )}
@@ -418,11 +418,11 @@ export default function AeoAnalytics() {
               <Card className="p-8">
                 <div className="flex flex-col items-center text-center">
                   <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Aucune donnée disponible</h3>
+                  <h3 className="text-lg font-semibold mb-2">No data available</h3>
                   <p className="text-muted-foreground mb-4">
-                    Vérifiez que le domaine est vérifié dans Google Search Console.
+                    Make sure the domain is verified in Google Search Console.
                   </p>
-                  <Button onClick={loadGSCData}>Réessayer</Button>
+                  <Button onClick={loadGSCData}>Retry</Button>
                 </div>
               </Card>
             )}
@@ -435,7 +435,7 @@ export default function AeoAnalytics() {
                   <Card className="p-5 bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Impressions GSC</p>
+                        <p className="text-sm text-muted-foreground">GSC Impressions</p>
                         <p className="text-3xl font-bold mt-1">
                           {gscData.impressions.toLocaleString()}
                         </p>
@@ -448,7 +448,7 @@ export default function AeoAnalytics() {
                           <span className={`text-sm ${gscData.impressionsDelta >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                             {gscData.impressionsDelta >= 0 ? '+' : ''}{gscData.impressionsDelta}%
                           </span>
-                          <span className="text-xs text-muted-foreground">vs période précédente</span>
+                          <span className="text-xs text-muted-foreground">vs previous period</span>
                         </div>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -461,7 +461,7 @@ export default function AeoAnalytics() {
                   <Card className="p-5 bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">CTR Moyen</p>
+                        <p className="text-sm text-muted-foreground">Average CTR</p>
                         <p className="text-3xl font-bold mt-1">{gscData.ctr.toFixed(1)}%</p>
                         <div className="flex items-center gap-1 mt-2">
                           {gscData.clicksDelta < 0 ? (
@@ -470,7 +470,7 @@ export default function AeoAnalytics() {
                             <TrendingUp className="w-4 h-4 text-emerald-500" />
                           )}
                           <span className="text-xs text-muted-foreground">
-                            {gscData.clicksDelta < 0 ? "Signal AEO positif" : "CTR normal"}
+                            {gscData.clicksDelta < 0 ? "Positive AEO signal" : "Normal CTR"}
                           </span>
                         </div>
                       </div>
@@ -484,12 +484,12 @@ export default function AeoAnalytics() {
                   <Card className="p-5 bg-gradient-to-br from-violet-500/5 to-transparent border-violet-500/20">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Score Exposition IA</p>
+                        <p className="text-sm text-muted-foreground">AI Exposure Score</p>
                         <p className="text-3xl font-bold mt-1">{aeoSignals?.exposureScore || 0}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Zap className="w-4 h-4 text-violet-500" />
                           <span className="text-xs text-muted-foreground">
-                            Impressions ↑ CTR ↓ = exposition IA
+                            Impressions ↑ CTR ↓ = AI exposure
                           </span>
                         </div>
                       </div>
@@ -503,11 +503,11 @@ export default function AeoAnalytics() {
                   <Card className="p-5 bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/20">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Réponses Publiées</p>
+                        <p className="text-sm text-muted-foreground">Published Answers</p>
                         <p className="text-3xl font-bold mt-1">{answersCount}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <span className="text-xs text-muted-foreground">
-                            Score moyen: {avgScore}%
+                            Average score: {avgScore}%
                           </span>
                         </div>
                       </div>
@@ -522,9 +522,9 @@ export default function AeoAnalytics() {
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold">Requêtes Questionnelles</h3>
+                      <h3 className="font-semibold">Question Queries</h3>
                       <p className="text-sm text-muted-foreground">
-                        Requêtes type question = signal d'exposition IA
+                        Question-type queries = AI exposure signal
                       </p>
                     </div>
                     <Badge variant="secondary">
@@ -553,7 +553,7 @@ export default function AeoAnalytics() {
                           </div>
                           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                             <span>{query.impressions.toLocaleString()} impressions</span>
-                            <span>{query.clicks} clics</span>
+                            <span>{query.clicks} clicks</span>
                             <span>CTR {query.ctr.toFixed(1)}%</span>
                             <span>Pos. {query.position.toFixed(1)}</span>
                           </div>
@@ -566,7 +566,7 @@ export default function AeoAnalytics() {
 
                 {/* Top Pages */}
                 <Card className="p-6">
-                  <h3 className="font-semibold mb-4">Pages Performantes</h3>
+                  <h3 className="font-semibold mb-4">Top Performing Pages</h3>
                   <div className="space-y-3">
                     {gscData.topPages.slice(0, 10).map((page, index) => (
                       <div key={index} className="flex items-center gap-4">
@@ -578,7 +578,7 @@ export default function AeoAnalytics() {
                             {page.page.replace(/^https?:\/\/[^/]+/, "")}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {page.impressions.toLocaleString()} impressions • {page.clicks} clics
+                            {page.impressions.toLocaleString()} impressions • {page.clicks} clicks
                           </p>
                         </div>
                         <div className="text-right">
@@ -594,7 +594,7 @@ export default function AeoAnalytics() {
 
                 {/* How AEO Tracking Works */}
                 <Card className="p-6 bg-gradient-to-br from-slate-500/5 to-transparent">
-                  <h3 className="font-semibold mb-3">Comment fonctionne le tracking AEO ?</h3>
+                  <h3 className="font-semibold mb-3">How does AEO tracking work?</h3>
                   <div className="grid md:grid-cols-3 gap-4 text-sm">
                     <div className="p-4 rounded-lg bg-background border">
                       <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
@@ -602,25 +602,25 @@ export default function AeoAnalytics() {
                       </div>
                       <p className="font-medium">Impressions ↑ + CTR ↓</p>
                       <p className="text-muted-foreground text-xs mt-1">
-                        Signal d'exposition IA : votre contenu est lu par les AI sans clic
+                        AI exposure signal: your content is read by AI without clicks
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-background border">
                       <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center mb-2">
                         <Search className="w-4 h-4 text-violet-500" />
                       </div>
-                      <p className="font-medium">Requêtes Questionnelles</p>
+                      <p className="font-medium">Question Queries</p>
                       <p className="text-muted-foreground text-xs mt-1">
-                        Les questions attirent les citations AI (comment, pourquoi...)
+                        Questions attract AI citations (how, why, what...)
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-background border">
                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
                       </div>
-                      <p className="font-medium">Lift de Marque</p>
+                      <p className="font-medium">Brand Lift</p>
                       <p className="text-muted-foreground text-xs mt-1">
-                        Augmentation des recherches marque = recommandation IA
+                        Increase in brand searches = AI recommendation
                       </p>
                     </div>
                   </div>
