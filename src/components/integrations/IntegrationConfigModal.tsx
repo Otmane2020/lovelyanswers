@@ -19,6 +19,8 @@ import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 import framerLogo from "@/assets/framer-logo.png";
+import boltLogo from "@/assets/bolt-logo.png";
+import lovableLogo from "@/assets/lovable-logo.svg";
 
 // Guide steps for each platform
 const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
@@ -129,6 +131,26 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
       "Use a third-party service like Zapier or Make",
       "Create a webhook that triggers a Framer action",
       "Or use Framer CMS with a custom integration",
+    ],
+  },
+  bolt: {
+    title: "How to Connect Bolt.new",
+    steps: [
+      "Bolt.new is an AI-powered web builder",
+      "Currently, use the Webhook integration to connect",
+      "Create a webhook endpoint in your Bolt project",
+      "Configure the webhook URL in the field below",
+      "Published content will be sent to your Bolt project",
+    ],
+  },
+  lovable: {
+    title: "How to Connect Lovable.dev",
+    steps: [
+      "Lovable.dev is an AI-powered web app builder",
+      "Use the Webhook or API integration to connect",
+      "Set up an Edge Function to receive published content",
+      "Configure the endpoint URL and API key below",
+      "Content will be sent to your Lovable project",
     ],
   },
 };
@@ -266,7 +288,33 @@ const CMS_CONFIG: Record<string, {
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Framer Site" },
       { key: "endpoint", label: "Webhook URL", placeholder: "https://your-webhook-url" },
-      { key: "token", label: "API Token", placeholder: "Enter your API token (optional)", type: "password" },
+      { key: "token", label: "API Token", placeholder: "Enter your API token (optional)", type: "password", optional: true },
+    ],
+  },
+  bolt: {
+    name: "Bolt.new",
+    icon: boltLogo,
+    isImage: true,
+    color: "from-yellow-400 to-amber-500",
+    description: "Connect your Bolt.new AI-powered web project.",
+    helpText: "Use webhooks or API to push content to your Bolt project.",
+    fields: [
+      { key: "name", label: "Integration Name", placeholder: "My Bolt Project" },
+      { key: "endpoint", label: "Webhook URL", placeholder: "https://your-bolt-webhook.com/..." },
+      { key: "token", label: "API Token", placeholder: "Enter your API token (optional)", type: "password", optional: true },
+    ],
+  },
+  lovable: {
+    name: "Lovable.dev",
+    icon: lovableLogo,
+    isImage: true,
+    color: "from-rose-500 to-pink-600",
+    description: "Connect your Lovable.dev AI-powered web app.",
+    helpText: "Use Edge Functions to receive published content.",
+    fields: [
+      { key: "name", label: "Integration Name", placeholder: "My Lovable Project" },
+      { key: "endpoint", label: "Edge Function URL", placeholder: "https://xxx.supabase.co/functions/v1/..." },
+      { key: "token", label: "API Key", placeholder: "Enter your anon key or service role key", type: "password", optional: true },
     ],
   },
 };
