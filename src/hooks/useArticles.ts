@@ -23,14 +23,16 @@ export function useArticles() {
     queryFn: async () => {
       if (!project) return [];
       
+      // Fetch all articles without limit, sorted by newest first
       const { data, error } = await supabase
         .from("articles")
         .select("*")
         .eq("project_id", project.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000); // Explicitly set high limit
 
       if (error) throw error;
-      return data as Article[];
+      return (data || []) as Article[];
     },
     enabled: !!project,
   });
