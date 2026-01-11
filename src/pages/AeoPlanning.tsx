@@ -99,7 +99,7 @@ export default function AeoPlanning() {
     }
   };
 
-  // Fetch scheduled answers and articles from database
+  // Fetch scheduled items from planning table
   useEffect(() => {
     const fetchScheduledItems = async () => {
       if (!user) return;
@@ -121,37 +121,48 @@ export default function AeoPlanning() {
 
         const projectId = projects[0].id;
 
-        // Fetch answers with scheduled_date
-        const { data: answers } = await supabase
-          .from("answers")
-          .select("id, question, scheduled_date, is_public, answer")
+        // Fetch from planning table with joined answers and articles
+        const { data: planningData } = await supabase
+          .from("planning")
+          .select(`
+            id,
+            day,
+            answer_id,
+            article_id,
+            answers:answer_id (id, question, is_public, answer),
+            articles:article_id (id, title, status)
+          `)
           .eq("project_id", projectId)
-          .not("scheduled_date", "is", null);
+          .order("day", { ascending: true });
 
-        // Fetch articles with scheduled_date  
-        const { data: articles } = await supabase
-          .from("articles")
-          .select("id, title, scheduled_date, status")
-          .eq("project_id", projectId)
-          .not("scheduled_date", "is", null);
-
-        const items: ScheduledItem[] = [
-          ...(answers || []).map(a => ({
-            id: a.id,
-            title: a.question,
-            type: "answer" as const,
-            date: new Date(a.scheduled_date!),
-            status: a.is_public ? "published" as const : "scheduled" as const,
-            answer: a.answer
-          })),
-          ...(articles || []).map(a => ({
-            id: a.id,
-            title: a.title,
-            type: "article" as const,
-            date: new Date(a.scheduled_date!),
-            status: a.status === "published" ? "published" as const : "scheduled" as const
-          }))
-        ];
+        const items: ScheduledItem[] = [];
+        
+        for (const p of planningData || []) {
+          // Add answer if exists
+          if (p.answers && p.answer_id) {
+            const answer = p.answers as any;
+            items.push({
+              id: answer.id,
+              title: answer.question,
+              type: "answer" as const,
+              date: new Date(p.day),
+              status: answer.is_public ? "published" as const : "scheduled" as const,
+              answer: answer.answer
+            });
+          }
+          
+          // Add article if exists
+          if (p.articles && p.article_id) {
+            const article = p.articles as any;
+            items.push({
+              id: article.id,
+              title: article.title,
+              type: "article" as const,
+              date: new Date(p.day),
+              status: article.status === "published" ? "published" as const : "scheduled" as const
+            });
+          }
+        }
 
         setScheduledItems(items);
       } catch (error) {
