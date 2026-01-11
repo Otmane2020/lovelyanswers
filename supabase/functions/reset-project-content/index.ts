@@ -60,8 +60,77 @@ serve(async (req) => {
 
     console.log(`[reset-project-content] Resetting content for project ${projectId}, new URL: ${newUrl}`);
 
-    // Update the project URL - this will trigger the on_project_url_change trigger
-    // which automatically deletes planning, articles, answers, keywords, reddit_responses
+    // First, remove article references from answers to avoid FK constraint
+    const { error: unlinkError } = await supabase
+      .from("answers")
+      .update({ article_id: null, has_article: false })
+      .eq("project_id", projectId);
+
+    if (unlinkError) {
+      console.error("[reset-project-content] Failed to unlink articles from answers:", unlinkError);
+    }
+
+    // Delete planning entries first (they reference answers and articles)
+    const { error: planningError } = await supabase
+      .from("planning")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (planningError) {
+      console.error("[reset-project-content] Failed to delete planning:", planningError);
+    }
+
+    // Delete reddit responses (they reference answers)
+    const { error: redditError } = await supabase
+      .from("reddit_responses")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (redditError) {
+      console.error("[reset-project-content] Failed to delete reddit responses:", redditError);
+    }
+
+    // Delete articles
+    const { error: articlesError } = await supabase
+      .from("articles")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (articlesError) {
+      console.error("[reset-project-content] Failed to delete articles:", articlesError);
+    }
+
+    // Delete answers
+    const { error: answersError } = await supabase
+      .from("answers")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (answersError) {
+      console.error("[reset-project-content] Failed to delete answers:", answersError);
+    }
+
+    // Delete keywords
+    const { error: keywordsError } = await supabase
+      .from("keywords")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (keywordsError) {
+      console.error("[reset-project-content] Failed to delete keywords:", keywordsError);
+    }
+
+    // Delete site pages
+    const { error: pagesError } = await supabase
+      .from("site_pages")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (pagesError) {
+      console.error("[reset-project-content] Failed to delete site pages:", pagesError);
+    }
+
+    // Update the project URL
     const { error: updateError } = await supabase
       .from("projects")
       .update({ 
@@ -78,7 +147,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[reset-project-content] Project URL updated, trigger should have cleaned content`);
+    console.log(`[reset-project-content] Project content deleted and URL updated`);
 
     // Now trigger the 30-day content generation
     const generateUrl = `${supabaseUrl}/functions/v1/generate-30-days-content`;
