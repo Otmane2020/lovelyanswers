@@ -39,39 +39,13 @@ import {
   Tooltip,
 } from "recharts";
 
-// Mock data for the reach chart
-const reachData = [
-  { month: "Jan", current: 0, projected: 5 },
-  { month: "Feb", current: 8, projected: 15 },
-  { month: "Mar", current: 22, projected: 30 },
-  { month: "Apr", current: 35, projected: 42 },
-  { month: "May", current: 42, projected: 55 },
-  { month: "Jun", current: 48, projected: 65 },
-  { month: "Jul", current: 52, projected: 72 },
-  { month: "Aug", current: 55, projected: 80 },
-  { month: "Sep", current: 58, projected: 88 },
-  { month: "Oct", current: 60, projected: 95 },
-  { month: "Nov", current: 62, projected: 102 },
-  { month: "Dec", current: 65, projected: 110 },
-];
-
-// Languages data
-const languages = [
-  { code: "ES", name: "Spanish", reach: "800M", flag: "🇪🇸" },
-  { code: "FR", name: "French", reach: "430M", flag: "🇫🇷" },
-  { code: "DE", name: "German", reach: "230M", flag: "🇩🇪" },
-  { code: "CZ", name: "Czech", reach: "11M", flag: "🇨🇿" },
-  { code: "RO", name: "Romanian", reach: "28M", flag: "🇷🇴" },
-  { code: "NL", name: "Dutch", reach: "30M", flag: "🇳🇱" },
-  { code: "PT", name: "Portuguese", reach: "280M", flag: "🇵🇹" },
-];
 
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { project } = useActiveProject();
-  const [languageCount, setLanguageCount] = useState([1]);
+  const [activityData, setActivityData] = useState<{week: string; answers: number; articles: number}[]>([]);
   const [showAutopilotModal, setShowAutopilotModal] = useState(false);
   const hasTriggeredGeneration = useRef(false);
   
@@ -91,7 +65,7 @@ export default function Dashboard() {
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
-  // Fetch real stats from database
+  // Fetch real stats and activity data from database
   useEffect(() => {
     const fetchRealStats = async () => {
       if (!project?.id) return;
@@ -130,6 +104,59 @@ export default function Dashboard() {
         redditOpportunities: redditCount || 0,
         avgScore
       });
+
+      // Fetch activity data for chart (last 8 weeks)
+      const { data: answersData } = await supabase
+        .from("answers")
+        .select("created_at")
+        .eq("project_id", project.id)
+        .gte("created_at", new Date(Date.now() - 56 * 24 * 60 * 60 * 1000).toISOString());
+
+      const { data: articlesData } = await supabase
+        .from("articles")
+        .select("created_at")
+        .eq("project_id", project.id)
+        .gte("created_at", new Date(Date.now() - 56 * 24 * 60 * 60 * 1000).toISOString());
+
+      // Group by week
+      const weeklyData: {[key: string]: {answers: number; articles: number}} = {};
+      const now = new Date();
+      
+      for (let i = 7; i >= 0; i--) {
+        const weekStart = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        const weekLabel = `S${8 - i}`;
+        weeklyData[weekLabel] = { answers: 0, articles: 0 };
+      }
+
+      answersData?.forEach(answer => {
+        const date = new Date(answer.created_at!);
+        const weeksAgo = Math.floor((now.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        if (weeksAgo >= 0 && weeksAgo < 8) {
+          const weekLabel = `S${8 - weeksAgo}`;
+          if (weeklyData[weekLabel]) {
+            weeklyData[weekLabel].answers++;
+          }
+        }
+      });
+
+      articlesData?.forEach(article => {
+        const date = new Date(article.created_at!);
+        const weeksAgo = Math.floor((now.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        if (weeksAgo >= 0 && weeksAgo < 8) {
+          const weekLabel = `S${8 - weeksAgo}`;
+          if (weeklyData[weekLabel]) {
+            weeklyData[weekLabel].articles++;
+          }
+        }
+      });
+
+      const chartData = Object.entries(weeklyData).map(([week, data]) => ({
+        week,
+        answers: data.answers,
+        articles: data.articles
+      }));
+
+      setActivityData(chartData);
     };
     
     fetchRealStats();
@@ -207,6 +234,79 @@ export default function Dashboard() {
           </h1>
         </div>
 
+        {/* Content Activity Chart */}
+        <Card className="p-6 border border-border/50">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Content Activity</h2>
+              <p className="text-sm text-muted-foreground">
+                Answers and articles created over the last 8 weeks
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-primary" />
+                <span className="text-sm text-muted-foreground">Answers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-violet-500" />
+                <span className="text-sm text-muted-foreground">Articles</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={activityData}>
+                <defs>
+                  <linearGradient id="colorAnswers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorArticles" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="week" 
+                  axisLine={false} 
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="answers"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#colorAnswers)"
+                  name="Answers"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="articles"
+                  stroke="hsl(271, 91%, 65%)"
+                  strokeWidth={2}
+                  fill="url(#colorArticles)"
+                  name="Articles"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
 
         {/* Your Overview Section */}
         <div>
