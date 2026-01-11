@@ -558,41 +558,43 @@ export default function Answers() {
                       {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
                     </div>
                     <div className="flex items-center gap-2 pt-2 flex-wrap">
-                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View Answer</Button>
+                      <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewAnswer(answer)}><Eye className="h-4 w-4" />View</Button>
                       {answer.has_article && (
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${answer.article_id}`)}><Newspaper className="h-4 w-4" />View Blog</Button>
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/articles/${answer.article_id}`)}><Newspaper className="h-4 w-4" />Article</Button>
                       )}
                       <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditAnswer(answer.id)}><Pencil className="h-4 w-4" />Edit</Button>
-                      {!answer.has_article && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2" 
+                        onClick={() => {
+                          const content = `Question: ${answer.question}\n\nAnswer: ${answer.answer}`;
+                          navigator.clipboard.writeText(content);
+                          toast.success("Answer copied to clipboard!");
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />Copy Answer
+                      </Button>
+                      {answer.has_article && (
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="gap-2" 
-                          onClick={() => handleGenerateArticle(answer.id)}
-                          disabled={generatingArticleId === answer.id}
+                          onClick={async () => {
+                            const { data: article } = await supabase
+                              .from("articles")
+                              .select("title, content, html_content")
+                              .eq("id", answer.article_id)
+                              .single();
+                            if (article) {
+                              navigator.clipboard.writeText(article.html_content || article.content || "");
+                              toast.success("Article HTML copied to clipboard!");
+                            }
+                          }}
                         >
-                          {generatingArticleId === answer.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Newspaper className="h-4 w-4" />
-                          )}
-                          Generate Article
+                          <Copy className="h-4 w-4" />Copy Article
                         </Button>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="gap-2 text-primary hover:text-primary" 
-                        onClick={() => handlePublishToCms(answer.id)}
-                        disabled={publishingId === answer.id}
-                      >
-                        {publishingId === answer.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                        Publish to CMS
-                      </Button>
                       {answer.is_public && (
                         <>
                           <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
