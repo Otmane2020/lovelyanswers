@@ -15,7 +15,22 @@ serve(async (req) => {
 
     const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
     if (!clientId) {
-      return new Response(JSON.stringify({ error: "Google OAuth not configured" }), { 
+      return new Response(JSON.stringify({ error: "GOOGLE_CLIENT_ID not configured" }), { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
+    // Validate client_id format - should end with .apps.googleusercontent.com
+    if (!clientId.includes(".apps.googleusercontent.com")) {
+      const hint = clientId.startsWith("GOCSPX-") 
+        ? "GOOGLE_CLIENT_ID looks like a Client Secret (starts with GOCSPX-). Swap ID and SECRET?"
+        : "GOOGLE_CLIENT_ID should end with .apps.googleusercontent.com";
+      console.error("Invalid GOOGLE_CLIENT_ID format:", hint);
+      return new Response(JSON.stringify({ 
+        error: "Invalid GOOGLE_CLIENT_ID format", 
+        details: hint 
+      }), { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
