@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import FloatingSupportButton from "@/components/FloatingSupportButton";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -45,6 +46,7 @@ const App = () => (
             <Toaster />
             <Sonner />
           <BrowserRouter>
+            <FloatingSupportButton />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/pricing" element={<Pricing />} />

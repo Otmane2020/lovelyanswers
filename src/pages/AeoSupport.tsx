@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 
@@ -31,6 +32,7 @@ interface SupportMessage {
 }
 
 const AeoSupport = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -174,9 +176,14 @@ const AeoSupport = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Support</h1>
-          <p className="text-muted-foreground">Contact our support team</p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Support</h1>
+            <p className="text-muted-foreground">Contact our support team</p>
+          </div>
         </div>
         <Button onClick={() => setIsCreatingTicket(true)}>
           <Plus className="h-4 w-4 mr-2" />
