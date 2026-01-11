@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 interface SupportTicket {
   id: string;
@@ -111,8 +111,8 @@ const AeoSupport = () => {
       });
 
       toast({
-        title: "Ticket créé",
-        description: "Votre demande de support a été envoyée.",
+        title: "Ticket created",
+        description: "Your support request has been sent.",
       });
 
       setNewTicketSubject("");
@@ -122,8 +122,8 @@ const AeoSupport = () => {
     } catch (error) {
       console.error("Error creating ticket:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de créer le ticket.",
+        title: "Error",
+        description: "Unable to create ticket.",
         variant: "destructive",
       });
     } finally {
@@ -149,8 +149,8 @@ const AeoSupport = () => {
     } catch (error) {
       console.error("Error sending reply:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible d'envoyer le message.",
+        title: "Error",
+        description: "Unable to send message.",
         variant: "destructive",
       });
     } finally {
@@ -161,11 +161,11 @@ const AeoSupport = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "open":
-        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"><AlertCircle className="h-3 w-3 mr-1" />Ouvert</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"><AlertCircle className="h-3 w-3 mr-1" />Open</Badge>;
       case "in_progress":
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20"><Clock className="h-3 w-3 mr-1" />En cours</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
       case "resolved":
-        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Résolu</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -176,31 +176,31 @@ const AeoSupport = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Support</h1>
-          <p className="text-muted-foreground">Contactez notre équipe de support</p>
+          <p className="text-muted-foreground">Contact our support team</p>
         </div>
         <Button onClick={() => setIsCreatingTicket(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Nouveau ticket
+          New Ticket
         </Button>
       </div>
 
       {isCreatingTicket && (
         <Card>
           <CardHeader>
-            <CardTitle>Nouveau ticket de support</CardTitle>
-            <CardDescription>Décrivez votre problème ou votre question</CardDescription>
+            <CardTitle>New Support Ticket</CardTitle>
+            <CardDescription>Describe your issue or question</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <Input
-                placeholder="Sujet de votre demande"
+                placeholder="Subject of your request"
                 value={newTicketSubject}
                 onChange={(e) => setNewTicketSubject(e.target.value)}
               />
             </div>
             <div>
               <Textarea
-                placeholder="Décrivez votre problème en détail..."
+                placeholder="Describe your issue in detail..."
                 value={newTicketMessage}
                 onChange={(e) => setNewTicketMessage(e.target.value)}
                 rows={5}
@@ -209,10 +209,10 @@ const AeoSupport = () => {
             <div className="flex gap-2">
               <Button onClick={handleCreateTicket} disabled={isSending}>
                 <Send className="h-4 w-4 mr-2" />
-                Envoyer
+                Send
               </Button>
               <Button variant="outline" onClick={() => setIsCreatingTicket(false)}>
-                Annuler
+                Cancel
               </Button>
             </div>
           </CardContent>
@@ -225,15 +225,15 @@ const AeoSupport = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              Mes tickets
+              My Tickets
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[500px]">
               {isLoading ? (
-                <p className="text-muted-foreground text-center py-4">Chargement...</p>
+                <p className="text-muted-foreground text-center py-4">Loading...</p>
               ) : tickets.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">Aucun ticket</p>
+                <p className="text-muted-foreground text-center py-4">No tickets</p>
               ) : (
                 <div className="space-y-2">
                   {tickets.map((ticket) => (
@@ -251,7 +251,7 @@ const AeoSupport = () => {
                         {getStatusBadge(ticket.status)}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(ticket.created_at), "d MMM yyyy", { locale: fr })}
+                        {format(new Date(ticket.created_at), "MMM d, yyyy", { locale: enUS })}
                       </p>
                     </div>
                   ))}
@@ -265,7 +265,7 @@ const AeoSupport = () => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              {selectedTicket ? selectedTicket.subject : "Sélectionnez un ticket"}
+              {selectedTicket ? selectedTicket.subject : "Select a ticket"}
             </CardTitle>
             {selectedTicket && (
               <div className="flex items-center gap-2">
@@ -292,7 +292,7 @@ const AeoSupport = () => {
                         >
                           <p className="text-sm">{msg.message}</p>
                           <p className={`text-xs mt-1 ${msg.sender_type === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                            {format(new Date(msg.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                            {format(new Date(msg.created_at), "MMM d, yyyy HH:mm", { locale: enUS })}
                           </p>
                         </div>
                       </div>
@@ -302,7 +302,7 @@ const AeoSupport = () => {
                 <Separator />
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder="Votre message..."
+                    placeholder="Your message..."
                     value={replyMessage}
                     onChange={(e) => setReplyMessage(e.target.value)}
                     rows={2}
@@ -315,7 +315,7 @@ const AeoSupport = () => {
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-20">
-                Sélectionnez un ticket pour voir la conversation
+                Select a ticket to view the conversation
               </p>
             )}
           </CardContent>
