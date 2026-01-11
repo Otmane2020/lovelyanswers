@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ChevronLeft, ChevronRight, Plus,
-  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare
+  FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare, RefreshCw
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -42,6 +42,7 @@ export default function AeoPlanning() {
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project || item.type !== "answer") {
@@ -57,6 +58,43 @@ export default function AeoPlanning() {
       ));
     } finally {
       setPublishingId(null);
+    }
+  };
+
+  const handleGenerate30Days = async () => {
+    if (!project) {
+      toast.error("No active project");
+      return;
+    }
+    
+    setIsGenerating(true);
+    toast.info("Generating 30 days of content... This may take a few minutes.");
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      
+      const response = await supabase.functions.invoke("generate-30-days-content", {
+        body: { 
+          projectId: project.id, 
+          language: project.language || "fr",
+          days: 30,
+          overwrite: true 
+        },
+      });
+      
+      if (response.error) throw response.error;
+      
+      const result = response.data;
+      toast.success(`Generated ${result.answers_created || 0} answers and ${result.articles_created || 0} articles!`);
+      
+      // Refresh the page to show new items
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Generation error:", error);
+      toast.error(error.message || "Failed to generate content");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -181,7 +219,7 @@ export default function AeoPlanning() {
               Schedule and manage your AEO content for the next 30 days
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
               onClick={() => setShowSettingsModal(true)}
@@ -189,9 +227,17 @@ export default function AeoPlanning() {
               <Settings className="w-4 h-4 mr-2" />
               Auto-Publish
             </Button>
-            <Button className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
-              <Plus className="w-4 h-4 mr-2" />
-              Schedule Content
+            <Button 
+              onClick={handleGenerate30Days}
+              disabled={isGenerating}
+              className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {isGenerating ? "Generating..." : "Generate 30 Q/A & Articles (30 days)"}
             </Button>
           </div>
         </div>
