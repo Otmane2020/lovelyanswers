@@ -231,19 +231,17 @@ function generateArticleHTML(
       </section>` 
     : '';
 
-  // Build footer with proper attribution
-  const footerContent = [];
-  if (brandName && brandName !== 'Brand') {
-    const sourceLink = websiteUrl 
-      ? `<a href="${websiteUrl}" rel="author">${brandName}</a>` 
-      : brandName;
-    footerContent.push(`<p>${sourceLabel}: ${sourceLink}</p>`);
-  }
-  footerContent.push(`<div class="aeo-meta"><span>${lastUpdatedLabel}: ${currentYear}</span></div>`);
+  // Build footer with LovelyAnswers branding
+  const lovelyAnswersUrl = "https://lovelyanswers.com";
+  const lovelyAnswersTagline = "Rank in ChatGPT Gemini & Google with AI Answers";
+  const lovelyAnswersShort = "Rank in ChatGPT";
   
-  const footer = footerContent.length > 0 
-    ? `<footer class="aeo-footer">${footerContent.join('')}</footer>` 
-    : '';
+  const footer = `<footer class="aeo-footer">
+    <p><a href="${lovelyAnswersUrl}" rel="author" target="_blank">LovelyAnswers</a> – ${lovelyAnswersTagline}</p>
+    <div class="aeo-meta">
+      <span>LovelyAnswers – ${lovelyAnswersShort}</span>
+    </div>
+  </footer>`;
 
   return `
 <article class="aeo-article" itemscope itemtype="https://schema.org/Article">
