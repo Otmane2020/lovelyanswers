@@ -175,28 +175,44 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 }
 
 async function testWix(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  const apiKey = config.token?.trim();
+  let apiKey = config.token?.trim();
   const siteId = config.siteId?.trim();
 
   if (!apiKey) {
     return { success: false, message: "API Key required. Get it from dev.wix.com → API Keys" };
   }
 
+  // Ensure API key is properly formatted - Wix keys should start with IST.
+  // If user provides just the key without the proper format, we can't fix it
+  if (!apiKey.startsWith("IST.")) {
+    return { 
+      success: false, 
+      message: "Invalid API Key format. Wix API Keys should start with 'IST.' - Get a valid key from dev.wix.com → API Keys" 
+    };
+  }
+
+  if (!siteId) {
+    return { 
+      success: false, 
+      message: "Site ID required. Find it in your Wix dashboard URL: manage.wix.com/dashboard/SITE-ID-HERE/..." 
+    };
+  }
+
   try {
     const headers: Record<string, string> = {
       Authorization: apiKey,
+      "wix-site-id": siteId,
       "Content-Type": "application/json",
     };
 
-    // Add site ID if provided
-    if (siteId) {
-      headers["wix-site-id"] = siteId;
-    }
+    console.log(`[test-wix] Testing with site ID: ${siteId.substring(0, 8)}...`);
 
     // Test the blog API
     const response = await fetch(`https://www.wixapis.com/blog/v3/posts?paging.limit=1`, {
       headers,
     });
+
+    console.log(`[test-wix] Response status: ${response.status}`);
 
     if (response.ok) {
       const data = await response.json();
@@ -204,29 +220,45 @@ async function testWix(config: Record<string, string>): Promise<{ success: boole
       return { 
         success: true, 
         message: postCount > 0 
-          ? `Connected! Found blog posts on your Wix site.` 
-          : "Connected! Blog is empty - ready to publish." 
+          ? `Connecté! Blog Wix trouvé avec des articles.` 
+          : "Connecté! Blog vide - prêt à publier." 
       };
     }
 
+    const errorData = await response.json().catch(() => ({}));
+    console.log(`[test-wix] Error response:`, JSON.stringify(errorData));
+
     if (response.status === 401 || response.status === 403) {
+      const errorMessage = errorData.message || "";
+      if (errorMessage.includes("site")) {
+        return { 
+          success: false, 
+          message: "API Key n'a pas accès à ce site. Vérifiez que vous avez sélectionné 'All site permissions' ou votre site spécifique lors de la création de l'API Key." 
+        };
+      }
+      if (errorMessage.includes("permission") || errorMessage.includes("scope")) {
+        return { 
+          success: false, 
+          message: "Permissions insuffisantes. Assurez-vous que 'Wix Blog → Read & Write Blog' est activé dans votre API Key." 
+        };
+      }
       return { 
         success: false, 
-        message: "Invalid API Key. Generate one at dev.wix.com → API Keys with Blog permissions." 
+        message: `API Key invalide ou permissions manquantes. Créez une nouvelle clé sur dev.wix.com → API Keys avec permissions Blog.` 
       };
     }
 
     if (response.status === 404) {
-      return { success: false, message: "Blog not found. Ensure Wix Blog app is installed on your site." };
+      return { success: false, message: "Blog non trouvé. Assurez-vous que l'app Wix Blog est installée sur votre site." };
     }
 
-    const errorData = await response.json().catch(() => ({}));
     return { 
       success: false, 
-      message: `Wix error (${response.status}): ${errorData.message || response.statusText}` 
+      message: `Erreur Wix (${response.status}): ${errorData.message || response.statusText}` 
     };
   } catch (error) {
-    return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
+    console.error("[test-wix] Exception:", error);
+    return { success: false, message: `Échec de connexion: ${error instanceof Error ? error.message : "Erreur réseau"}` };
   }
 }
 

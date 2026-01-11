@@ -400,16 +400,29 @@ async function publishToWix(
   content: { title: string; body: string },
   config: Record<string, string>
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  if (!config.token || !config.siteId) {
-    throw new Error("Wix token and site ID required");
+  const apiKey = config.token?.trim();
+  const siteId = config.siteId?.trim();
+
+  if (!apiKey) {
+    return { success: false, message: "Wix API Key required" };
+  }
+
+  if (!apiKey.startsWith("IST.")) {
+    return { success: false, message: "Invalid API Key format. Wix API Keys should start with 'IST.'" };
+  }
+
+  if (!siteId) {
+    return { success: false, message: "Wix Site ID required" };
   }
 
   try {
+    console.log(`[Wix] Publishing to site: ${siteId.substring(0, 8)}...`);
+
     const response = await fetch(`https://www.wixapis.com/blog/v3/posts`, {
       method: "POST",
       headers: {
-        Authorization: config.token,
-        "wix-site-id": config.siteId,
+        Authorization: apiKey,
+        "wix-site-id": siteId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -428,18 +441,27 @@ async function publishToWix(
       }),
     });
 
+    console.log(`[Wix] Response status: ${response.status}`);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Wix API error: ${errorText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[Wix] Error:`, JSON.stringify(errorData));
+      
+      if (response.status === 401 || response.status === 403) {
+        return { success: false, message: "API Key invalide ou permissions insuffisantes. Vérifiez les permissions Blog." };
+      }
+      return { success: false, message: `Wix API error (${response.status}): ${errorData.message || response.statusText}` };
     }
 
     const data = await response.json();
+    console.log(`[Wix] Published successfully: ${data.post?.id}`);
     return {
       success: true,
-      publishedId: data.post.id,
-      publishedUrl: data.post.url,
+      publishedId: data.post?.id,
+      publishedUrl: data.post?.url,
     };
   } catch (error) {
+    console.error("[Wix] Exception:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Wix publish failed",
