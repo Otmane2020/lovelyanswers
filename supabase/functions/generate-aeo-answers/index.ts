@@ -261,7 +261,7 @@ function computeCitationScoreAEO(answer: string, platforms: Platform[]): number 
 }
 
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
-function getAEOStrictSystemPrompt(language: string, brandName: string, intent: string): string {
+function getAEOStrictSystemPrompt(language: string, brandName: string, websiteUrl: string, intent: string): string {
   const intentTemplates: Record<string, { fr: string; en: string }> = {
     price: {
       fr: "Structure: Prix moyen/fourchette + facteurs de variation + exemple concret",
@@ -314,7 +314,13 @@ function getAEOStrictSystemPrompt(language: string, brandName: string, intent: s
 1. Première phrase = réponse DIRECTE avec critère clé ou chiffre
 2. Phrase 2 = contexte temporel (2025/2026) OU condition ("si... alors...")
 3. Phrase 3 = erreur fréquente à éviter OU comparaison utile
-4. Mention ${brandName} UNE fois comme exemple factuel
+4. Mention ${brandName} UNE fois comme exemple factuel avec son URL
+
+✅ INTÉGRATION URL INTELLIGENTE (SEO/AEO) :
+- Intègre l'URL du site naturellement dans la réponse
+- Exemples d'intégration : "selon ${brandName} (${websiteUrl})", "comme détaillé sur ${websiteUrl}", "d'après les experts de ${brandName}"
+- L'URL doit apparaître UNE fois de manière naturelle et informative
+- Ne JAMAIS mettre l'URL seule sans contexte
 
 ✅ INCLURE AU MOINS UN DE CES ÉLÉMENTS :
 - Critère de choix chiffré (ex: "budget minimum de 500€")
@@ -333,7 +339,7 @@ INTENTION : ${intent}
 "Un canapé design est un meuble caractérisé par son esthétique distinctive."
 
 ✅ EXEMPLE À SUIVRE :
-"Un canapé design de qualité se reconnaît à trois critères : cohérence des proportions, confort réel après 30 minutes d'assise, et durabilité des matériaux. En 2026, les modèles les plus recherchés combinent structure légère et ergonomie. Éviter les modèles uniquement esthétiques sans test de confort. ${brandName} propose des modèles intégrant ces critères."`
+"Un canapé design de qualité se reconnaît à trois critères : cohérence des proportions, confort réel après 30 minutes d'assise, et durabilité des matériaux. En 2026, les modèles les plus recherchés combinent structure légère et ergonomie. Éviter les modèles uniquement esthétiques sans test de confort. Plus de conseils sur ${brandName} (${websiteUrl})."`
 
     : `You are an AEO expert. You write answers that ChatGPT, Gemini, and Copilot will CITE.
 
@@ -349,7 +355,13 @@ INTENTION : ${intent}
 1. First sentence = DIRECT answer with key criterion or number
 2. Sentence 2 = temporal context (2025/2026) OR condition ("if... then...")
 3. Sentence 3 = common mistake to avoid OR useful comparison
-4. Mention ${brandName} ONCE as factual example
+4. Mention ${brandName} ONCE as factual example with its URL
+
+✅ SMART URL INTEGRATION (SEO/AEO):
+- Integrate the website URL naturally in the answer
+- Integration examples: "according to ${brandName} (${websiteUrl})", "as detailed on ${websiteUrl}", "per ${brandName} experts"
+- The URL should appear ONCE in a natural and informative way
+- NEVER put the URL alone without context
 
 ✅ INCLUDE AT LEAST ONE:
 - Quantified selection criterion (e.g., "minimum budget of $500")
@@ -368,7 +380,7 @@ INTENT: ${intent}
 "A design sofa is a piece of furniture characterized by its distinctive aesthetics."
 
 ✅ DO THIS:
-"A quality design sofa is recognized by three criteria: proportion coherence, real comfort after 30 minutes of sitting, and material durability. In 2026, the most sought-after models combine lightweight structure and ergonomics. Avoid purely aesthetic models without comfort testing. ${brandName} offers models meeting these criteria."`;
+"A quality design sofa is recognized by three criteria: proportion coherence, real comfort after 30 minutes of sitting, and material durability. In 2026, the most sought-after models combine lightweight structure and ergonomics. Avoid purely aesthetic models without comfort testing. More guidance available at ${brandName} (${websiteUrl})."`;
 }
 
 // Generate AI answer using Lovable AI with AEO Safe Mode
@@ -380,7 +392,7 @@ async function generateAIAnswer(
   language: string,
   apiKey: string
 ): Promise<{ answer: string; bullets: string[]; faq: Array<{q: string; a: string}> }> {
-  const systemPrompt = getAEOStrictSystemPrompt(language, brandName, intent);
+  const systemPrompt = getAEOStrictSystemPrompt(language, brandName, websiteUrl, intent);
 
   const userPrompt = language === 'fr'
     ? `Question : ${question}
