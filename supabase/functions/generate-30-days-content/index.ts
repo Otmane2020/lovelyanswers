@@ -650,21 +650,115 @@ serve(async (req) => {
       console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}... (day ${dayIndex + 1})`);
 
       try {
-        // GUARD: Check if this day already has content (1 question = 1 answer + 1 article)
-        const { count: existingAnswers } = await supabase
+        // Fetch existing content for this day
+        const { data: dayAnswers } = await supabase
           .from("answers")
-          .select("id", { count: "exact", head: true })
+          .select("id, question, answer, supporting_content, article_id, has_article, score, created_at")
           .eq("project_id", projectId)
           .gte("scheduled_date", dayStr)
-          .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0]);
-        
-        // Skip if this day already has the max number of questions (each question = 1 answer + 1 article)
-        if ((existingAnswers || 0) >= questionsPerDay) {
-          console.log(`[generate-30-days] Day ${dayStr} already has ${existingAnswers} answer(s), skipping...`);
+          .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0])
+          .order("created_at", { ascending: true });
+
+        const { data: dayArticles } = await supabase
+          .from("articles")
+          .select("id, linked_answer_id, created_at")
+          .eq("project_id", projectId)
+          .gte("scheduled_date", dayStr)
+          .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0])
+          .order("created_at", { ascending: true });
+
+        const answersCount = dayAnswers?.length || 0;
+        const articlesCount = dayArticles?.length || 0;
+
+        // If day already has 1 answer + 1 article, skip
+        if (answersCount >= 1 && articlesCount >= 1) {
+          console.log(`[generate-30-days] Day ${dayStr} already has answer+article, skipping...`);
           continue;
         }
 
-        // Generate answer
+        // If answer exists but article missing, generate ONLY the article for the existing answer
+        if (answersCount >= 1 && articlesCount === 0) {
+          const existingAnswer = (dayAnswers || []).find((a: any) => !a.article_id) || (dayAnswers || [])[0];
+          if (!existingAnswer) {
+            console.log(`[generate-30-days] Day ${dayStr} has answersCount=${answersCount} but no usable answer found, continuing normal flow...`);
+          } else {
+            console.log(`[generate-30-days] Day ${dayStr} has an answer but no article; generating article for existing answer ${existingAnswer.id}`);
+
+            const supporting = (existingAnswer.supporting_content || {}) as any;
+            const bullets = Array.isArray(supporting.bullets) ? supporting.bullets : [];
+            const faq = Array.isArray(supporting.faq) ? supporting.faq : [];
+
+            const articleData = await generateArticle(
+              existingAnswer.question,
+              existingAnswer.answer,
+              bullets,
+              faq,
+              brandName,
+              description,
+              language,
+              apiKey
+            );
+
+            const score = typeof existingAnswer.score === "number"
+              ? existingAnswer.score
+              : computeScore(existingAnswer.answer, brandName);
+
+            const { data: insertedArticle, error: articleError } = await supabase
+              .from("articles")
+              .insert({
+                project_id: projectId,
+                linked_answer_id: existingAnswer.id,
+                title: articleData.title,
+                content: articleData.content,
+                html_content: articleData.htmlContent,
+                meta_description: articleData.metaDescription,
+                word_count: articleData.wordCount,
+                slug: generateSlug(articleData.title),
+                status: "scheduled",
+                scheduled_date: scheduledDateStr,
+                aeo_score: score,
+              })
+              .select()
+              .single();
+
+            if (articleError) {
+              console.error(`[generate-30-days] Error inserting article for existing answer:`, articleError);
+              continue;
+            }
+
+            articlesCreated.push(insertedArticle);
+            console.log(`[generate-30-days] Article created for existing answer: ${insertedArticle.id}`);
+
+            // Link back to answer
+            await supabase
+              .from("answers")
+              .update({ article_id: insertedArticle.id, has_article: true })
+              .eq("id", existingAnswer.id);
+
+            // Update planning
+            const { error: planningError } = await supabase
+              .from("planning")
+              .upsert({
+                project_id: projectId,
+                day: dayStr,
+                answer_id: existingAnswer.id,
+                article_id: insertedArticle.id,
+              }, {
+                onConflict: "project_id,day",
+              });
+
+            if (planningError) {
+              console.error(`[generate-30-days] Error upserting planning (existing answer):`, planningError);
+            } else {
+              console.log(`[generate-30-days] Planning updated for ${dayStr} (existing answer)`);
+            }
+
+            // Done for this day
+            continue;
+          }
+        }
+
+        // Otherwise: generate a NEW answer (and article)
         const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
         const score = computeScore(answerData.answer, brandName);
 

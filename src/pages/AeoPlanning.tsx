@@ -149,9 +149,10 @@ export default function AeoPlanning() {
           totalDeleted += idsToDelete.length;
         }
         
-        // Track days that have NO content at all (after cleanup)
+        // Track days that are missing content (we want 1 answer + 1 article)
         const remainingAnswers = answersCount > 1 ? 1 : answersCount;
-        if (remainingAnswers === 0) {
+        const remainingArticles = articlesCount > 1 ? 1 : articlesCount;
+        if (remainingAnswers === 0 || remainingArticles === 0) {
           missingDays.push(dayOffset);
         }
       }
