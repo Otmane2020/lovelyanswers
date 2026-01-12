@@ -54,7 +54,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />

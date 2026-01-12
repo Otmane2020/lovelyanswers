@@ -217,7 +217,7 @@ export default function Index() {
               <Link to="/auth">Login</Link>
             </Button>
             <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90" asChild>
-              <Link to="/auth?mode=signup">
+              <Link to="/onboarding">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -263,8 +263,8 @@ export default function Index() {
             </p>
 
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
-              <Button size="lg" className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg px-6 md:px-8" asChild>
-                <Link to="/auth?mode=signup">
+            <Button size="lg" className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg px-6 md:px-8" asChild>
+                <Link to="/onboarding">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
