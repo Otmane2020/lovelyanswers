@@ -670,9 +670,41 @@ serve(async (req) => {
         const answersCount = dayAnswers?.length || 0;
         const articlesCount = dayArticles?.length || 0;
 
-        // If day already has 1 answer + 1 article, skip
+        // If day already has 1 answer + 1 article, ensure planning_days is synced, then skip generation
         if (answersCount >= 1 && articlesCount >= 1) {
-          console.log(`[generate-30-days] Day ${dayStr} already has answer+article, skipping...`);
+          const existingAnswer = (dayAnswers || [])[0];
+          const existingArticle =
+            (dayArticles || []).find((a: any) => a.linked_answer_id === existingAnswer.id) || (dayArticles || [])[0];
+
+          if (existingAnswer?.id && existingArticle?.id) {
+            const { error: syncError } = await supabase
+              .from("planning_days")
+              .upsert(
+                {
+                  project_id: projectId,
+                  scheduled_date: dayStr,
+                  answer_id: existingAnswer.id,
+                  article_id: existingArticle.id,
+                },
+                { onConflict: "project_id,scheduled_date" }
+              );
+
+            if (syncError) {
+              console.error(`[generate-30-days] Error syncing planning_days for existing day ${dayStr}:`, syncError);
+            } else {
+              console.log(`[generate-30-days] Synced planning_days for existing day ${dayStr}`);
+            }
+
+            // Also ensure answer is linked
+            if (!existingAnswer.article_id || existingAnswer.article_id !== existingArticle.id) {
+              await supabase
+                .from("answers")
+                .update({ article_id: existingArticle.id, has_article: true })
+                .eq("id", existingAnswer.id);
+            }
+          }
+
+          console.log(`[generate-30-days] Day ${dayStr} already has answer+article, skipping generation...`);
           continue;
         }
 

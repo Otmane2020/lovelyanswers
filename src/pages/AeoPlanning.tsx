@@ -232,15 +232,68 @@ export default function AeoPlanning() {
         });
 
         if (missingOffsets.length > 0) {
-          setGenerationMessage(`📝 Generating ${missingOffsets.length} missing days...`);
+          setGenerationMessage(`📝 Fixing ${missingOffsets.length} missing days...`);
 
           for (let i = 0; i < missingOffsets.length; i++) {
             const offset = missingOffsets[i];
             const ds = format(addDays(rangeStart, offset), "yyyy-MM-dd");
+            const nextDs = format(addDays(rangeStart, offset + 1), "yyyy-MM-dd");
 
             setGenerationProgress(10 + Math.round(((i + 1) / missingOffsets.length) * 85));
-            setGenerationMessage(`📝 Generating day ${i + 1}/${missingOffsets.length} (${ds})...`);
+            setGenerationMessage(`📝 Syncing day ${i + 1}/${missingOffsets.length} (${ds})...`);
 
+            // First try: if content already exists (answer + article), just upsert planning_days (no AI call)
+            const [{ data: dayAnswers }, { data: dayArticles }] = await Promise.all([
+              supabase
+                .from("answers")
+                .select("id, created_at, article_id")
+                .eq("project_id", project.id)
+                .gte("scheduled_date", ds)
+                .lt("scheduled_date", nextDs)
+                .order("created_at", { ascending: true }),
+              supabase
+                .from("articles")
+                .select("id, created_at, linked_answer_id")
+                .eq("project_id", project.id)
+                .gte("scheduled_date", ds)
+                .lt("scheduled_date", nextDs)
+                .order("created_at", { ascending: true }),
+            ]);
+
+            const answersCount = dayAnswers?.length || 0;
+            const articlesCount = dayArticles?.length || 0;
+
+            if (answersCount >= 1 && articlesCount >= 1) {
+              const answer = (dayAnswers || [])[0];
+              const article =
+                (dayArticles || []).find((a: any) => a.linked_answer_id === answer.id) || (dayArticles || [])[0];
+
+              if (answer?.id && article?.id) {
+                // Make sure the answer is linked
+                if (!answer.article_id || answer.article_id !== article.id) {
+                  await supabase
+                    .from("answers")
+                    .update({ article_id: article.id, has_article: true })
+                    .eq("id", answer.id);
+                }
+
+                // Upsert into planning_days (NOT NULL guarantees)
+                await supabase.from("planning_days").upsert(
+                  {
+                    project_id: project.id,
+                    scheduled_date: ds,
+                    answer_id: answer.id,
+                    article_id: article.id,
+                  },
+                  { onConflict: "project_id,scheduled_date" }
+                );
+
+                // Done for this day
+                continue;
+              }
+            }
+
+            // Otherwise: generate missing content (will also write planning_days)
             await supabase.functions.invoke("generate-30-days-content", {
               body: {
                 projectId: project.id,
@@ -255,7 +308,7 @@ export default function AeoPlanning() {
             await new Promise((r) => setTimeout(r, 400));
           }
 
-          toast.success(`✨ ${missingOffsets.length} days generated`);
+          toast.success(`✨ Planning fixed for ${missingOffsets.length} days`);
         }
       } catch (e) {
         console.error("[AeoPlanning] fill error:", e);
