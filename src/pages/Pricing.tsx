@@ -90,7 +90,7 @@ export default function Pricing() {
               <Link to="/auth">Sign In</Link>
             </Button>
             <Button className="gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90" asChild>
-              <Link to="/auth">
+              <Link to="/signup">
                 Try 3-day trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -142,7 +142,7 @@ export default function Pricing() {
               </div>
 
               <Button className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90 mb-8" size="lg" asChild>
-                <Link to="/auth">
+                <Link to="/signup">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>

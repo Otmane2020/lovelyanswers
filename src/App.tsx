@@ -11,6 +11,7 @@ import FloatingSupportButton from "@/components/FloatingSupportButton";
 import { VisitorTracker } from "@/components/VisitorTracker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Answers from "./pages/Answers";
 import AeoArticles from "./pages/AeoArticles";
@@ -52,6 +53,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
