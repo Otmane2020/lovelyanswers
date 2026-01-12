@@ -19,10 +19,18 @@ export default function Auth() {
   const { user, signIn, signUp, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   
-  // Check URL params for signup mode
+  // Check URL params for signup mode - redirect to /signup for new signups
   const searchParams = new URLSearchParams(location.search);
   const modeFromUrl = searchParams.get('mode');
-  const [isLogin, setIsLogin] = useState(modeFromUrl !== 'signup');
+  
+  // Redirect signup to the new signup flow (URL first)
+  useEffect(() => {
+    if (modeFromUrl === 'signup') {
+      navigate('/signup', { replace: true });
+    }
+  }, [modeFromUrl, navigate]);
+  
+  const [isLogin, setIsLogin] = useState(true); // Auth page is now login-only
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
