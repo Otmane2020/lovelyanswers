@@ -292,7 +292,7 @@ export default function AeoPublicAnswer() {
             <p className="text-muted-foreground mb-4">
               Optimize your visibility on AI assistants
             </p>
-            <Link to="/auth?mode=signup">
+            <Link to="/signup">
               <Button className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600">
                 Create your AEO answers
                 <ExternalLink className="w-4 h-4 ml-2" />
