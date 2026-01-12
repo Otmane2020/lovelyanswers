@@ -217,7 +217,7 @@ export default function Index() {
               <Link to="/auth">Login</Link>
             </Button>
             <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90" asChild>
-              <Link to="/auth">
+              <Link to="/auth?mode=signup">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -264,7 +264,7 @@ export default function Index() {
 
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
               <Button size="lg" className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg px-6 md:px-8" asChild>
-                <Link to="/auth">
+                <Link to="/auth?mode=signup">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -674,7 +674,7 @@ export default function Index() {
           className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-2xl hover:opacity-90 text-base font-semibold py-6" 
           asChild
         >
-          <Link to="/auth">
+          <Link to="/auth?mode=signup">
             <Bot className="h-5 w-5" />
             Start ChatGPT Rank
             <ArrowRight className="h-5 w-5" />

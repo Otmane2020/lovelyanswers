@@ -561,8 +561,8 @@ serve(async (req) => {
 
     const body = await req.json();
     // CHANGED: overwrite = false by default to prevent deleting existing content
-    // itemsPerDay = 2 to generate 2 items per day as requested
-    const { projectId, language = "fr", days = 5, overwrite = false, startOffset = 0, itemsPerDay = 2 } = body;
+    // questionsPerDay = 1 means 1 question generates 1 answer + 1 article = 2 items per day
+    const { projectId, language = "fr", days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
 
     if (!projectId) throw new Error("Missing projectId");
 
@@ -579,7 +579,7 @@ serve(async (req) => {
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
 
-    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}, itemsPerDay=${itemsPerDay}`);
+    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}, questionsPerDay=${questionsPerDay}`);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -629,20 +629,20 @@ serve(async (req) => {
         .lt("day", endDate.toISOString().split('T')[0]);
     }
 
-    // Generate questions for this batch (2 per day = days * itemsPerDay)
-    const totalQuestions = days * itemsPerDay;
-    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${itemsPerDay} per day for ${days} days)...`);
+    // Generate questions for this batch (1 question per day = 1 answer + 1 article = 2 items per day)
+    const totalQuestions = days * questionsPerDay;
+    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per day for ${days} days, each produces 1 answer + 1 article)...`);
     const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Process each question - distribute across days (2 per day)
+    // Process each question - 1 question per day (each question generates 1 answer + 1 article = 2 items)
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      // Calculate which day this question belongs to (e.g., questions 0-1 = day 0, 2-3 = day 1, etc.)
-      const dayIndex = Math.floor(i / itemsPerDay);
+      // Calculate which day this question belongs to (1 question per day)
+      const dayIndex = Math.floor(i / questionsPerDay);
       const scheduledDate = new Date(startDate.getTime() + dayIndex * 86400000);
       const scheduledDateStr = scheduledDate.toISOString();
       const dayStr = scheduledDateStr.split('T')[0];
@@ -650,7 +650,7 @@ serve(async (req) => {
       console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}... (day ${dayIndex + 1})`);
 
       try {
-        // GUARD: Check how many items this day already has (max itemsPerDay per day)
+        // GUARD: Check if this day already has content (1 question = 1 answer + 1 article)
         const { count: existingAnswers } = await supabase
           .from("answers")
           .select("id", { count: "exact", head: true })
@@ -658,9 +658,9 @@ serve(async (req) => {
           .gte("scheduled_date", dayStr)
           .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0]);
         
-        // Only skip if this day already has the max number of items
-        if ((existingAnswers || 0) >= itemsPerDay) {
-          console.log(`[generate-30-days] Day ${dayStr} already has ${existingAnswers} items (max ${itemsPerDay}), skipping...`);
+        // Skip if this day already has the max number of questions (each question = 1 answer + 1 article)
+        if ((existingAnswers || 0) >= questionsPerDay) {
+          console.log(`[generate-30-days] Day ${dayStr} already has ${existingAnswers} answer(s), skipping...`);
           continue;
         }
 
