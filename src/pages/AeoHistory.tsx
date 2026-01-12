@@ -52,37 +52,13 @@ export default function AeoHistory() {
   
   // Sort answers: most recently published first, then by created_at desc
   const answers = [...rawAnswers].sort((a, b) => {
-    // Both have published_url - sort by published_at desc (or created_at if no published_at)
-    if (a.published_url && b.published_url) {
-      const aDate = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
-      const bDate = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
-      return bDate - aDate;
-    }
-    // Published items first
-    if (a.published_url && !b.published_url) return -1;
-    if (!a.published_url && b.published_url) return 1;
-    // Then public items
-    if (a.is_public && !b.is_public) return -1;
-    if (!a.is_public && b.is_public) return 1;
-    // Finally by created_at desc
+    // Sort by created_at desc (most recent first)
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
   
   // Sort articles: most recently published first, then by created_at desc
   const articles = [...rawArticles].sort((a, b) => {
-    // Both published - sort by updated_at/created_at desc
-    if (a.status === "published" && b.status === "published") {
-      const aDate = new Date(a.updated_at || a.created_at || 0).getTime();
-      const bDate = new Date(b.updated_at || b.created_at || 0).getTime();
-      return bDate - aDate;
-    }
-    // Published first
-    if (a.status === "published" && b.status !== "published") return -1;
-    if (a.status !== "published" && b.status === "published") return 1;
-    // Then scheduled
-    if (a.status === "scheduled" && b.status !== "scheduled") return -1;
-    if (a.status !== "scheduled" && b.status === "scheduled") return 1;
-    // Finally by created_at desc
+    // Sort by created_at desc (most recent first)
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
   const publishAnswer = usePublishAnswer();
