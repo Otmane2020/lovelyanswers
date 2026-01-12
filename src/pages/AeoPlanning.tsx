@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   ExternalLink,
   FileText,
@@ -59,6 +61,9 @@ export default function AeoPlanning() {
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
+  // Calendar navigation - offset in weeks from today
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const hasRunFill = useRef(false);
 
@@ -69,6 +74,24 @@ export default function AeoPlanning() {
   }, []);
 
   const rangeEnd = useMemo(() => addDays(rangeStart, 30), [rangeStart]);
+
+  // Visible range for calendar display (with navigation)
+  const visibleStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return addDays(d, weekOffset * 7);
+  }, [weekOffset]);
+
+  const visibleEnd = useMemo(() => addDays(visibleStart, 27), [visibleStart]); // 4 weeks = 28 days
+
+  const visibleDays = useMemo(
+    () =>
+      eachDayOfInterval({
+        start: visibleStart,
+        end: visibleEnd,
+      }),
+    [visibleStart, visibleEnd]
+  );
 
   const rangeDays = useMemo(
     () =>
@@ -125,8 +148,13 @@ export default function AeoPlanning() {
 
     setIsLoading(true);
     try {
-      const startStr = format(rangeStart, "yyyy-MM-dd");
-      const endStr = format(rangeEnd, "yyyy-MM-dd");
+      // Fetch a wider range to support navigation (today + 120 days)
+      const fetchStart = new Date();
+      fetchStart.setHours(0, 0, 0, 0);
+      const fetchEnd = addDays(fetchStart, 120);
+      
+      const startStr = format(fetchStart, "yyyy-MM-dd");
+      const endStr = format(fetchEnd, "yyyy-MM-dd");
 
       // 1) Read canonical planning table (guarantees NOT NULL answer_id + article_id)
       const { data: planningRows, error } = await supabase
@@ -396,29 +424,63 @@ export default function AeoPlanning() {
         <div className="grid lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 p-6">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Next 30 Days</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {format(rangeStart, "d MMM yyyy", { locale: enUS })} – {format(rangeEnd, "d MMM yyyy", { locale: enUS })}
-                </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Content Calendar</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {format(visibleStart, "d MMM yyyy", { locale: enUS })} – {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
+                  </p>
+                </div>
               </div>
-              <div className="flex border rounded-lg overflow-hidden">
-                <Button
-                  variant={monthViewMode === "calendar" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setMonthViewMode("calendar")}
-                  className="rounded-none"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={monthViewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setMonthViewMode("list")}
-                  className="rounded-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-2">
+                {/* Navigation buttons */}
+                <div className="flex border rounded-lg overflow-hidden">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWeekOffset(Math.max(0, weekOffset - 4))}
+                    disabled={weekOffset === 0}
+                    className="rounded-none"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWeekOffset(0)}
+                    disabled={weekOffset === 0}
+                    className="rounded-none text-xs px-2"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWeekOffset(weekOffset + 4)}
+                    className="rounded-none"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* View mode toggle */}
+                <div className="flex border rounded-lg overflow-hidden">
+                  <Button
+                    variant={monthViewMode === "calendar" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setMonthViewMode("calendar")}
+                    className="rounded-none"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={monthViewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setMonthViewMode("list")}
+                    className="rounded-none"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -433,11 +495,11 @@ export default function AeoPlanning() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: (rangeStart.getDay() + 6) % 7 }).map((_, i) => (
+                  {Array.from({ length: (visibleStart.getDay() + 6) % 7 }).map((_, i) => (
                     <div key={`empty-${i}`} className="h-24 p-1" />
                   ))}
 
-                  {rangeDays.map((day) => {
+                  {visibleDays.map((day) => {
                     const items = getItemsForDate(day);
                     const hasItems = items.length > 0;
                     const isSelected =

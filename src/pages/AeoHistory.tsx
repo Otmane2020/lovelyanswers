@@ -50,28 +50,40 @@ export default function AeoHistory() {
   const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
   const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
   
-  // Sort answers: Published first (to see latest on site), then Public, then Draft - within each group by date desc
+  // Sort answers: most recently published first, then by created_at desc
   const answers = [...rawAnswers].sort((a, b) => {
-    const getStatusOrder = (item: typeof a) => {
-      if (item.published_url) return 0; // Published first
-      if (item.is_public) return 1; // Public second
-      return 2; // Draft last
-    };
-    const statusDiff = getStatusOrder(a) - getStatusOrder(b);
-    if (statusDiff !== 0) return statusDiff;
+    // Both have published_url - sort by published_at desc (or created_at if no published_at)
+    if (a.published_url && b.published_url) {
+      const aDate = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
+      const bDate = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
+      return bDate - aDate;
+    }
+    // Published items first
+    if (a.published_url && !b.published_url) return -1;
+    if (!a.published_url && b.published_url) return 1;
+    // Then public items
+    if (a.is_public && !b.is_public) return -1;
+    if (!a.is_public && b.is_public) return 1;
+    // Finally by created_at desc
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
   
-  // Sort articles: Published first (to see latest on site), then Scheduled, then Draft - within each group by date desc
+  // Sort articles: most recently published first, then by created_at desc
   const articles = [...rawArticles].sort((a, b) => {
-    const getStatusOrder = (status: string | null) => {
-      if (status === "published") return 0; // Published first
-      if (status === "scheduled") return 1;
-      return 2; // draft last
-    };
-    const statusDiff = getStatusOrder(a.status) - getStatusOrder(b.status);
-    if (statusDiff !== 0) return statusDiff;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    // Both published - sort by updated_at/created_at desc
+    if (a.status === "published" && b.status === "published") {
+      const aDate = new Date(a.updated_at || a.created_at || 0).getTime();
+      const bDate = new Date(b.updated_at || b.created_at || 0).getTime();
+      return bDate - aDate;
+    }
+    // Published first
+    if (a.status === "published" && b.status !== "published") return -1;
+    if (a.status !== "published" && b.status === "published") return 1;
+    // Then scheduled
+    if (a.status === "scheduled" && b.status !== "scheduled") return -1;
+    if (a.status !== "scheduled" && b.status === "scheduled") return 1;
+    // Finally by created_at desc
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
   const publishAnswer = usePublishAnswer();
   const [publishingId, setPublishingId] = useState<string | null>(null);
