@@ -71,20 +71,22 @@ export default function AeoPlanning() {
     }
   };
 
-  // Auto-cleanup: Remove extra items if a day has more than 2 items (1 answer + 1 article)
+  // Combined: Auto-cleanup excess items + fill missing days
   useEffect(() => {
-    const autoCleanupExcessItems = async () => {
-      if (!project) return;
+    const autoCleanupAndFill = async () => {
+      if (!project || isGenerating) return;
       
-      console.log("[AeoPlanning] Starting auto-cleanup check...");
+      console.log("[AeoPlanning] Starting auto-cleanup and fill check...");
+      setIsGenerating(true);
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       let totalDeleted = 0;
+      const missingDays: number[] = []; // Store day offsets that need content
       
-      // Check each day for the next 60 days
-      for (let dayOffset = 0; dayOffset < 60; dayOffset++) {
+      // STEP 1: Check each day for the next 30 days - cleanup excess AND identify gaps
+      for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
         const dayDate = new Date(today.getTime() + dayOffset * 86400000);
         const dayStr = dayDate.toISOString().split('T')[0];
         const nextDayStr = new Date(dayDate.getTime() + 86400000).toISOString().split('T')[0];
@@ -115,13 +117,11 @@ export default function AeoPlanning() {
           const idsToDelete = dayAnswers!.slice(1).map(a => a.id);
           console.log(`[AeoPlanning] Day ${dayStr}: Deleting ${idsToDelete.length} extra answers`);
           
-          // First unlink from articles
           await supabase
             .from("answers")
             .update({ article_id: null, has_article: false })
             .in("id", idsToDelete);
           
-          // Then delete
           await supabase
             .from("answers")
             .delete()
@@ -142,97 +142,73 @@ export default function AeoPlanning() {
           
           totalDeleted += idsToDelete.length;
         }
+        
+        // Track days that have NO content at all (after cleanup)
+        const remainingAnswers = answersCount > 1 ? 1 : answersCount;
+        if (remainingAnswers === 0) {
+          missingDays.push(dayOffset);
+        }
       }
       
       if (totalDeleted > 0) {
-        console.log(`[AeoPlanning] Auto-cleanup completed: ${totalDeleted} excess items deleted`);
-        toast.success(`🧹 Nettoyage automatique: ${totalDeleted} items en trop supprimés`);
-        fetchScheduledItems(); // Refresh the view
-      } else {
-        console.log("[AeoPlanning] Auto-cleanup: No excess items found");
-      }
-    };
-    
-    // Run cleanup on mount with a small delay
-    const timer = setTimeout(autoCleanupExcessItems, 500);
-    return () => clearTimeout(timer);
-  }, [project]);
-
-  // Auto-generate content in background to ensure 30 rolling days
-  useEffect(() => {
-    const autoGenerateIfNeeded = async () => {
-      if (!project || isGenerating) return;
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      // Count UNIQUE days that have at least 1 answer in the next 30 days
-      const daysWithContent: Set<string> = new Set();
-      
-      for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
-        const dayDate = new Date(today.getTime() + dayOffset * 86400000);
-        const dayStr = dayDate.toISOString().split('T')[0];
-        const nextDayStr = new Date(dayDate.getTime() + 86400000).toISOString().split('T')[0];
-        
-        const { count } = await supabase
-          .from("answers")
-          .select("id", { count: "exact", head: true })
-          .eq("project_id", project.id)
-          .gte("scheduled_date", dayStr)
-          .lt("scheduled_date", nextDayStr);
-        
-        if ((count || 0) >= 1) {
-          daysWithContent.add(dayStr);
-        }
+        console.log(`[AeoPlanning] Cleanup completed: ${totalDeleted} excess items deleted`);
+        toast.success(`🧹 Nettoyage: ${totalDeleted} items en trop supprimés`);
       }
       
-      const daysWithContentCount = daysWithContent.size;
-      const missingDays = 30 - daysWithContentCount;
-      
-      // If less than 30 days have content, generate the missing ones
-      if (missingDays > 0) {
-        console.log(`[AeoPlanning] ${daysWithContentCount}/30 days have content, generating ${missingDays} more...`);
-        setIsGenerating(true);
+      // STEP 2: Fill missing days
+      if (missingDays.length > 0) {
+        console.log(`[AeoPlanning] Found ${missingDays.length} days without content:`, missingDays);
+        toast.info(`📝 Génération de contenu pour ${missingDays.length} jours manquants...`);
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          
-          // Generate in smaller batches to avoid timeout (5 days at a time)
-          const batchSize = Math.min(missingDays, 5);
-          
-          await supabase.functions.invoke("generate-30-days-content", {
-            body: { 
-              projectId: project.id, 
-              language: project.language || "fr",
-              days: batchSize,
-              overwrite: false,
-              startOffset: daysWithContentCount,
-              questionsPerDay: 1 // 1 question = 1 answer + 1 article = 2 items per day
-            },
-          });
-          
-          console.log(`[AeoPlanning] Generated ${batchSize} days, refreshing...`);
-          fetchScheduledItems();
-          
-          // If still more to generate, trigger again after a delay
-          if (missingDays > batchSize) {
-            setTimeout(() => {
-              setIsGenerating(false); // Reset to allow next batch
-            }, 3000);
+          if (!session) {
+            setIsGenerating(false);
+            return;
           }
+          
+          // Generate content for each missing day individually
+          for (const dayOffset of missingDays) {
+            const dayDate = new Date(today.getTime() + dayOffset * 86400000);
+            const dayStr = dayDate.toISOString().split('T')[0];
+            
+            console.log(`[AeoPlanning] Generating content for day ${dayStr} (offset ${dayOffset})...`);
+            
+            await supabase.functions.invoke("generate-30-days-content", {
+              body: { 
+                projectId: project.id, 
+                language: project.language || "fr",
+                days: 1, // Just 1 day
+                overwrite: false,
+                startOffset: dayOffset,
+                questionsPerDay: 1 // 1 question = 1 answer + 1 article
+              },
+            });
+            
+            // Small delay between generations to avoid rate limits
+            await new Promise(r => setTimeout(r, 500));
+          }
+          
+          console.log(`[AeoPlanning] Content generation completed for ${missingDays.length} days`);
+          toast.success(`✨ ${missingDays.length} jours de contenu générés!`);
+          
         } catch (error) {
-          console.error("[AeoPlanning] Background generation error:", error);
-        } finally {
-          setIsGenerating(false);
+          console.error("[AeoPlanning] Generation error:", error);
+          toast.error("Erreur lors de la génération du contenu");
         }
+      } else {
+        console.log("[AeoPlanning] All 30 days have content, nothing to generate");
       }
+      
+      // Refresh the view
+      fetchScheduledItems();
+      setIsGenerating(false);
     };
     
-    // Delay auto-generation to let initial load and cleanup complete
-    const timer = setTimeout(autoGenerateIfNeeded, 3000);
+    // Run cleanup and fill on mount with a small delay
+    const timer = setTimeout(autoCleanupAndFill, 1000);
     return () => clearTimeout(timer);
-  }, [project, isGenerating]);
+  }, [project]);
 
   // Fetch scheduled items from answers/articles tables
   const fetchScheduledItems = async () => {
