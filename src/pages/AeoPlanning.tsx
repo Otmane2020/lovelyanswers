@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGeneration } from "@/contexts/GenerationContext";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ interface ScheduledItem {
 export default function AeoPlanning() {
   const { user } = useAuth();
   const { project } = useActiveProject();
+  const { startGeneration, stopGeneration, setGenerationProgress, setGenerationMessage, isGenerating } = useGeneration();
   const publishAnswer = usePublishAnswer();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -47,8 +49,8 @@ export default function AeoPlanning() {
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
+  const hasRunCleanup = useRef(false);
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (item.id.startsWith("placeholder-")) {
@@ -74,10 +76,11 @@ export default function AeoPlanning() {
   // Combined: Auto-cleanup excess items + fill missing days
   useEffect(() => {
     const autoCleanupAndFill = async () => {
-      if (!project || isGenerating) return;
+      if (!project || isGenerating || hasRunCleanup.current) return;
+      hasRunCleanup.current = true;
       
       console.log("[AeoPlanning] Starting auto-cleanup and fill check...");
-      setIsGenerating(true);
+      startGeneration("🔍 Vérification du planning...");
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -87,6 +90,9 @@ export default function AeoPlanning() {
       
       // STEP 1: Check each day for the next 30 days - cleanup excess AND identify gaps
       for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+        setGenerationProgress(Math.round((dayOffset / 30) * 40)); // 0-40% for cleanup phase
+        setGenerationMessage(`🔍 Vérification jour ${dayOffset + 1}/30...`);
+        
         const dayDate = new Date(today.getTime() + dayOffset * 86400000);
         const dayStr = dayDate.toISOString().split('T')[0];
         const nextDayStr = new Date(dayDate.getTime() + 86400000).toISOString().split('T')[0];
@@ -158,19 +164,23 @@ export default function AeoPlanning() {
       // STEP 2: Fill missing days
       if (missingDays.length > 0) {
         console.log(`[AeoPlanning] Found ${missingDays.length} days without content:`, missingDays);
-        toast.info(`📝 Génération de contenu pour ${missingDays.length} jours manquants...`);
+        setGenerationMessage(`📝 Génération de ${missingDays.length} jours manquants...`);
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
-            setIsGenerating(false);
+            stopGeneration();
             return;
           }
           
           // Generate content for each missing day individually
-          for (const dayOffset of missingDays) {
+          for (let i = 0; i < missingDays.length; i++) {
+            const dayOffset = missingDays[i];
             const dayDate = new Date(today.getTime() + dayOffset * 86400000);
             const dayStr = dayDate.toISOString().split('T')[0];
+            
+            setGenerationProgress(40 + Math.round(((i + 1) / missingDays.length) * 55)); // 40-95%
+            setGenerationMessage(`📝 Génération jour ${i + 1}/${missingDays.length} (${dayStr})...`);
             
             console.log(`[AeoPlanning] Generating content for day ${dayStr} (offset ${dayOffset})...`);
             
@@ -202,7 +212,7 @@ export default function AeoPlanning() {
       
       // Refresh the view
       fetchScheduledItems();
-      setIsGenerating(false);
+      stopGeneration();
     };
     
     // Run cleanup and fill on mount with a small delay
