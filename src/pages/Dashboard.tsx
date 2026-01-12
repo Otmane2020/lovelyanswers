@@ -198,7 +198,7 @@ export default function Dashboard() {
 
       hasTriggeredGeneration.current = true;
 
-      startGeneration("🔄 Remplissage automatique du planning (30 jours)...");
+      startGeneration("🔄 Auto-filling planning (30 days)...");
 
       const progressInterval = setInterval(() => {
         setGenerationProgress((prev: number) => {
@@ -211,7 +211,7 @@ export default function Dashboard() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        toast.info("🔄 Planning incomplet — génération automatique en cours...", {
+        toast.info("🔄 Incomplete planning — auto-generation in progress...", {
           duration: 5000,
         });
 
@@ -228,13 +228,13 @@ export default function Dashboard() {
 
         if (error) {
           console.error("Error generating 30-day content:", error);
-          toast.error("Erreur pendant la génération du planning");
+          toast.error("Error during planning generation");
           return;
         }
 
         const answersCount = data?.answers_created || 0;
         const articlesCount = data?.articles_created || 0;
-        toast.success(`✨ Planning mis à jour: ${answersCount} réponses, ${articlesCount} articles`, {
+        toast.success(`✨ Planning updated: ${answersCount} answers, ${articlesCount} articles`, {
           duration: 6000,
         });
       } catch (error) {

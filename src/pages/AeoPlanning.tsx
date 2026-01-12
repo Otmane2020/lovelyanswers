@@ -10,7 +10,7 @@ import {
   FileText, Clock, Loader2, Send, ExternalLink, CheckCircle2, X, Calendar, Settings, MessageSquare, RefreshCw, List, LayoutGrid
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,7 +52,7 @@ export default function AeoPlanning() {
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (item.id.startsWith("placeholder-")) {
-      toast.error("Contenu pas encore généré");
+      toast.error("Content not yet generated");
       return;
     }
     if (!project || item.type !== "answer") {
@@ -328,7 +328,7 @@ export default function AeoPlanning() {
               <Card className="lg:col-span-2 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">
-                    {format(currentDate, "MMMM yyyy", { locale: fr })}
+                    {format(currentDate, "MMMM yyyy", { locale: enUS })}
                   </h2>
                   <div className="flex gap-2">
                     {/* View Mode Toggle */}
@@ -363,7 +363,7 @@ export default function AeoPlanning() {
                   <>
                     {/* Calendar Grid */}
                     <div className="grid grid-cols-7 gap-1 mb-2">
-                      {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(day => (
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
                         <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                           {day}
                         </div>
@@ -453,10 +453,10 @@ export default function AeoPlanning() {
                                 "text-sm font-semibold",
                                 isToday(day) && "text-primary"
                               )}>
-                                {format(day, "EEEE d MMMM", { locale: fr })}
+                                {format(day, "EEEE d MMMM", { locale: enUS })}
                               </span>
                               {isToday(day) && (
-                                <Badge variant="default" className="text-xs">Aujourd'hui</Badge>
+                                <Badge variant="default" className="text-xs">Today</Badge>
                               )}
                             </div>
                             <Badge variant="secondary">{items.length} item{items.length > 1 ? "s" : ""}</Badge>
@@ -571,7 +571,7 @@ export default function AeoPlanning() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{item.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              {format(item.date, "d MMM yyyy", { locale: fr })}
+                              {format(item.date, "d MMM yyyy", { locale: enUS })}
                             </p>
                             {item.status === "published" && (
                               <Badge className="mt-1 bg-emerald-500/20 text-emerald-600 border-0 text-xs">
@@ -687,7 +687,7 @@ export default function AeoPlanning() {
                       "border-primary"
                     )}
                   >
-                    <p className="font-medium">{format(date, "MMM", { locale: fr })}</p>
+                    <p className="font-medium">{format(date, "MMM", { locale: enUS })}</p>
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center gap-2 text-xs text-violet-600 dark:text-violet-400">
                         <MessageSquare className="h-3 w-3" />
@@ -711,7 +711,7 @@ export default function AeoPlanning() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                {selectedDate && format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}
+                {selectedDate && format(selectedDate, "EEEE d MMMM yyyy", { locale: enUS })}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 max-h-[60vh] overflow-y-auto">

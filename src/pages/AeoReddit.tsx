@@ -305,21 +305,21 @@ export default function AeoReddit() {
         
         if (transformedPosts.length > 0) {
           toast({
-            title: "Posts chargés",
-            description: `${transformedPosts.length} opportunités pertinentes pour votre activité`,
+            title: "Posts loaded",
+            description: `${transformedPosts.length} relevant opportunities for your business`,
           });
         } else {
           toast({
-            title: "Aucun post pertinent",
-            description: "Aucune discussion pertinente trouvée pour vos mots-clés. Essayez d'ajouter plus de keywords ou réessayez plus tard.",
+            title: "No relevant posts",
+            description: "No relevant discussions found for your keywords. Try adding more keywords or try again later.",
             variant: "destructive"
           });
         }
       } else {
         setPosts([]);
         toast({
-          title: "Aucun post trouvé",
-          description: "Pas de discussions pertinentes pour votre activité en ce moment.",
+          title: "No posts found",
+          description: "No relevant discussions for your business at the moment.",
         });
       }
     } catch (error) {
@@ -491,7 +491,7 @@ export default function AeoReddit() {
     return (
       <Badge className={color} title={reason || ""}>
         <TrendingUp className="w-3 h-3 mr-1" />
-        {score}% pertinent
+        {score}% relevant
       </Badge>
     );
   };
@@ -523,9 +523,9 @@ export default function AeoReddit() {
       howto: { label: "How-to", color: "bg-blue-500/20 text-blue-600" },
       best: { label: "Best/Recommend", color: "bg-emerald-500/20 text-emerald-600" },
       why: { label: "Why", color: "bg-purple-500/20 text-purple-600" },
-      price: { label: "Prix/Budget", color: "bg-amber-500/20 text-amber-600" },
-      comparison: { label: "Comparaison", color: "bg-pink-500/20 text-pink-600" },
-      criteria: { label: "Critères", color: "bg-cyan-500/20 text-cyan-600" },
+      price: { label: "Price/Budget", color: "bg-amber-500/20 text-amber-600" },
+      comparison: { label: "Comparison", color: "bg-pink-500/20 text-pink-600" },
+      criteria: { label: "Criteria", color: "bg-cyan-500/20 text-cyan-600" },
       what: { label: "Info", color: "bg-gray-500/20 text-gray-600" }
     };
     
@@ -687,14 +687,14 @@ export default function AeoReddit() {
           ) : posts.length === 0 ? (
             <Card className="p-8 text-center">
               <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Aucun post pertinent trouvé</h3>
+              <h3 className="font-semibold text-lg mb-2">No relevant posts found</h3>
               <p className="text-muted-foreground mb-4">
-                Aucun post Reddit ne correspond à vos mots-clés ({generationSettings?.language === "fr" ? "français" : "anglais"}).
-                Ajoutez plus de mots-clés dans les paramètres ou cliquez sur Refresh.
+                No Reddit posts match your keywords ({generationSettings?.language === "fr" ? "French" : "English"}).
+                Add more keywords in settings or click Refresh.
               </p>
               <Button onClick={refreshPosts} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Rechercher sur Reddit
+                Search Reddit
               </Button>
             </Card>
           ) : (
