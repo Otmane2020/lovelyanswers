@@ -8,6 +8,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import FloatingSupportButton from "@/components/FloatingSupportButton";
+import { VisitorTracker } from "@/components/VisitorTracker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +47,7 @@ const App = () => (
             <Toaster />
             <Sonner />
           <BrowserRouter>
+            <VisitorTracker />
             <FloatingSupportButton />
             <Routes>
               <Route path="/" element={<Index />} />

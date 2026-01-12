@@ -14,10 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
-  LogOut, Clock, CheckCircle, AlertCircle, Mail
+  LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3
 } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 
 interface SupportTicket {
   id: string;
@@ -243,8 +244,8 @@ const SuperAdmin = () => {
       }
 
       toast({
-        title: "Réponse envoyée",
-        description: "Votre réponse a été envoyée à l'utilisateur.",
+        title: "Reply sent",
+        description: "Your reply has been sent to the user.",
       });
 
       setReplyMessage("");
@@ -253,8 +254,8 @@ const SuperAdmin = () => {
     } catch (error) {
       console.error("Error sending reply:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible d'envoyer la réponse.",
+        title: "Error",
+        description: "Unable to send the reply.",
         variant: "destructive",
       });
     } finally {
@@ -272,7 +273,7 @@ const SuperAdmin = () => {
       if (error) throw error;
 
       toast({
-        title: "Statut mis à jour",
+        title: "Status updated",
       });
       loadTickets();
       if (selectedTicket?.id === ticketId) {
@@ -291,11 +292,11 @@ const SuperAdmin = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "open":
-        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"><AlertCircle className="h-3 w-3 mr-1" />Ouvert</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"><AlertCircle className="h-3 w-3 mr-1" />Open</Badge>;
       case "in_progress":
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20"><Clock className="h-3 w-3 mr-1" />En cours</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
       case "resolved":
-        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Résolu</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -304,7 +305,7 @@ const SuperAdmin = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Chargement...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -316,18 +317,18 @@ const SuperAdmin = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Accès Super Admin
+              Super Admin Access
             </CardTitle>
             <CardDescription>
-              Vous devez être connecté avec le compte administrateur.
+              You must be logged in with the administrator account.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Connectez-vous avec le compte administrateur pour accéder à cette page.
+              Log in with the administrator account to access this page.
             </p>
             <Button onClick={() => navigate("/auth")} className="w-full">
-              Se connecter
+              Sign In
             </Button>
           </CardContent>
         </Card>
@@ -346,7 +347,7 @@ const SuperAdmin = () => {
           </div>
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
-            Déconnexion
+            Logout
           </Button>
         </div>
       </header>
@@ -362,7 +363,7 @@ const SuperAdmin = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{tickets.filter(t => t.status === "open").length}</p>
-                  <p className="text-sm text-muted-foreground">Tickets ouverts</p>
+                  <p className="text-sm text-muted-foreground">Open Tickets</p>
                 </div>
               </div>
             </CardContent>
@@ -375,7 +376,7 @@ const SuperAdmin = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{tickets.filter(t => t.status === "in_progress").length}</p>
-                  <p className="text-sm text-muted-foreground">En cours</p>
+                  <p className="text-sm text-muted-foreground">In Progress</p>
                 </div>
               </div>
             </CardContent>
@@ -388,7 +389,7 @@ const SuperAdmin = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{subscribers.length}</p>
-                  <p className="text-sm text-muted-foreground">Abonnés</p>
+                  <p className="text-sm text-muted-foreground">Subscribers</p>
                 </div>
               </div>
             </CardContent>
@@ -408,21 +409,30 @@ const SuperAdmin = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="support" className="space-y-6">
+        <Tabs defaultValue="analytics" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="support" className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
               Support
             </TabsTrigger>
             <TabsTrigger value="subscribers" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
-              Abonnés
+              Subscribers
             </TabsTrigger>
             <TabsTrigger value="prospects" className="flex items-center gap-2">
               <UserX className="h-4 w-4" />
               Prospects
             </TabsTrigger>
           </TabsList>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <VisitorAnalytics />
+          </TabsContent>
 
           {/* Support Tab */}
           <TabsContent value="support">
@@ -453,7 +463,7 @@ const SuperAdmin = () => {
                             {getStatusBadge(ticket.status)}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(ticket.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                            {format(new Date(ticket.created_at), "d MMM yyyy HH:mm", { locale: enUS })}
                           </p>
                         </div>
                       ))}
@@ -513,7 +523,7 @@ const SuperAdmin = () => {
                                 </p>
                                 <p className="text-sm">{msg.message}</p>
                                 <p className={`text-xs mt-1 ${msg.sender_type === "admin" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                                  {format(new Date(msg.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                                  {format(new Date(msg.created_at), "d MMM yyyy HH:mm", { locale: enUS })}
                                 </p>
                               </div>
                             </div>
@@ -621,14 +631,14 @@ const SuperAdmin = () => {
                         <TableCell>{prospect.full_name || "-"}</TableCell>
                         <TableCell>
                           {prospect.created_at 
-                            ? format(new Date(prospect.created_at), "d MMM yyyy", { locale: fr })
+                            ? format(new Date(prospect.created_at), "d MMM yyyy", { locale: enUS })
                             : "-"
                           }
                         </TableCell>
                         <TableCell>
                           <Button variant="outline" size="sm">
                             <Mail className="h-4 w-4 mr-2" />
-                            Relancer
+                            Follow Up
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -636,7 +646,7 @@ const SuperAdmin = () => {
                     {prospects.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground">
-                          Aucun prospect pour le moment
+                          No prospects at the moment
                         </TableCell>
                       </TableRow>
                     )}
