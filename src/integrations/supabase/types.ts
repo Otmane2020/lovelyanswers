@@ -542,6 +542,39 @@ export type Database = {
           },
         ]
       }
+      page_views: {
+        Row: {
+          created_at: string
+          id: string
+          page_path: string
+          page_title: string | null
+          scroll_depth: number | null
+          session_id: string
+          time_on_page_seconds: number | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_path: string
+          page_title?: string | null
+          scroll_depth?: number | null
+          session_id: string
+          time_on_page_seconds?: number | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_path?: string
+          page_title?: string | null
+          scroll_depth?: number | null
+          session_id?: string
+          time_on_page_seconds?: number | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       planning: {
         Row: {
           answer_id: string | null
@@ -1019,6 +1052,111 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      visitor_sessions: {
+        Row: {
+          browser: string | null
+          converted: boolean | null
+          converted_at: string | null
+          created_at: string
+          device_type: string | null
+          fb_ad_id: string | null
+          fb_adset_id: string | null
+          fb_campaign_id: string | null
+          fbclid: string | null
+          gclid: string | null
+          id: string
+          ip_address: string | null
+          is_bounce: boolean | null
+          landing_page: string | null
+          language: string | null
+          last_page: string | null
+          os: string | null
+          page_views: number | null
+          referrer: string | null
+          screen_resolution: string | null
+          session_duration_seconds: number | null
+          session_id: string
+          timezone: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string
+        }
+        Insert: {
+          browser?: string | null
+          converted?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          device_type?: string | null
+          fb_ad_id?: string | null
+          fb_adset_id?: string | null
+          fb_campaign_id?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          ip_address?: string | null
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          language?: string | null
+          last_page?: string | null
+          os?: string | null
+          page_views?: number | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_duration_seconds?: number | null
+          session_id: string
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id: string
+        }
+        Update: {
+          browser?: string | null
+          converted?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          device_type?: string | null
+          fb_ad_id?: string | null
+          fb_adset_id?: string | null
+          fb_campaign_id?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          ip_address?: string | null
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          language?: string | null
+          last_page?: string | null
+          os?: string | null
+          page_views?: number | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_duration_seconds?: number | null
+          session_id?: string
+          timezone?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
