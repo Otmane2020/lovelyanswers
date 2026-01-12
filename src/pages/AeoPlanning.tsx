@@ -73,23 +73,42 @@ export default function AeoPlanning() {
     }
   };
 
-  // Combined: Auto-cleanup excess items + fill missing days
+  // Combined: Auto-cleanup excess items + fill missing days using planning_days table
   useEffect(() => {
     const autoCleanupAndFill = async () => {
       if (!project || isGenerating || hasRunCleanup.current) return;
       hasRunCleanup.current = true;
       
-      console.log("[AeoPlanning] Starting auto-cleanup and fill check...");
+      console.log("[AeoPlanning] Starting auto-cleanup and fill check using planning_days...");
       startGeneration("🔍 Checking planning...");
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
       
       let totalDeleted = 0;
       const missingDays: number[] = []; // Store day offsets that need content
       
+      // STEP 0: PRIORITY CHECK - Ensure today is filled FIRST
+      const { data: todayPlanning } = await supabase
+        .from("planning_days")
+        .select("id, answer_id, article_id")
+        .eq("project_id", project.id)
+        .eq("scheduled_date", todayStr)
+        .maybeSingle();
+      
+      const isTodayComplete = todayPlanning?.answer_id && todayPlanning?.article_id;
+      
+      if (!isTodayComplete) {
+        console.log("[AeoPlanning] TODAY is not complete - adding as priority day 0");
+        missingDays.push(0);
+      }
+      
       // STEP 1: Check each day for the next 30 days - cleanup excess AND identify gaps
       for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+        // Skip day 0 if already added above
+        if (dayOffset === 0 && !isTodayComplete) continue;
+        
         setGenerationProgress(Math.round((dayOffset / 30) * 40)); // 0-40% for cleanup phase
         setGenerationMessage(`🔍 Checking day ${dayOffset + 1}/30...`);
         
@@ -97,7 +116,21 @@ export default function AeoPlanning() {
         const dayStr = dayDate.toISOString().split('T')[0];
         const nextDayStr = new Date(dayDate.getTime() + 86400000).toISOString().split('T')[0];
         
-        // Fetch all answers for this day
+        // Check planning_days table for this day (should have both answer_id AND article_id NOT NULL)
+        const { data: dayPlanning } = await supabase
+          .from("planning_days")
+          .select("id, answer_id, article_id")
+          .eq("project_id", project.id)
+          .eq("scheduled_date", dayStr)
+          .maybeSingle();
+        
+        // If planning_days entry exists with both IDs, day is complete
+        if (dayPlanning?.answer_id && dayPlanning?.article_id) {
+          console.log(`[AeoPlanning] Day ${dayStr} is complete in planning_days`);
+          continue;
+        }
+        
+        // Fallback check: Look at actual answers/articles tables
         const { data: dayAnswers } = await supabase
           .from("answers")
           .select("id, created_at")
@@ -106,7 +139,6 @@ export default function AeoPlanning() {
           .lt("scheduled_date", nextDayStr)
           .order("created_at", { ascending: true });
         
-        // Fetch all articles for this day
         const { data: dayArticles } = await supabase
           .from("articles")
           .select("id, created_at")

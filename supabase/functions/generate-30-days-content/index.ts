@@ -735,22 +735,22 @@ serve(async (req) => {
               .update({ article_id: insertedArticle.id, has_article: true })
               .eq("id", existingAnswer.id);
 
-            // Update planning
+            // Update planning_days (with NOT NULL constraints)
             const { error: planningError } = await supabase
-              .from("planning")
+              .from("planning_days")
               .upsert({
                 project_id: projectId,
-                day: dayStr,
+                scheduled_date: dayStr,
                 answer_id: existingAnswer.id,
                 article_id: insertedArticle.id,
               }, {
-                onConflict: "project_id,day",
+                onConflict: "project_id,scheduled_date",
               });
 
             if (planningError) {
-              console.error(`[generate-30-days] Error upserting planning (existing answer):`, planningError);
+              console.error(`[generate-30-days] Error upserting planning_days (existing answer):`, planningError);
             } else {
-              console.log(`[generate-30-days] Planning updated for ${dayStr} (existing answer)`);
+              console.log(`[generate-30-days] planning_days updated for ${dayStr} (existing answer)`);
             }
 
             // Done for this day
@@ -828,22 +828,24 @@ serve(async (req) => {
             .eq("id", insertedAnswer.id);
         }
 
-        // Update planning table
-        const { error: planningError } = await supabase
-          .from("planning")
-          .upsert({
-            project_id: projectId,
-            day: dayStr,
-            answer_id: insertedAnswer.id,
-            article_id: insertedArticle?.id || null,
-          }, {
-            onConflict: "project_id,day",
-          });
+        // Update planning_days table (with NOT NULL constraints - only insert if we have both)
+        if (insertedArticle?.id) {
+          const { error: planningError } = await supabase
+            .from("planning_days")
+            .upsert({
+              project_id: projectId,
+              scheduled_date: dayStr,
+              answer_id: insertedAnswer.id,
+              article_id: insertedArticle.id,
+            }, {
+              onConflict: "project_id,scheduled_date",
+            });
 
-        if (planningError) {
-          console.error(`[generate-30-days] Error upserting planning:`, planningError);
-        } else {
-          console.log(`[generate-30-days] Planning updated for ${dayStr}`);
+          if (planningError) {
+            console.error(`[generate-30-days] Error upserting planning_days:`, planningError);
+          } else {
+            console.log(`[generate-30-days] planning_days updated for ${dayStr}`);
+          }
         }
 
         // Small delay to avoid rate limits
