@@ -80,7 +80,7 @@ export default function AeoPlanning() {
       hasRunCleanup.current = true;
       
       console.log("[AeoPlanning] Starting auto-cleanup and fill check...");
-      startGeneration("🔍 Vérification du planning...");
+      startGeneration("🔍 Checking planning...");
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -91,7 +91,7 @@ export default function AeoPlanning() {
       // STEP 1: Check each day for the next 30 days - cleanup excess AND identify gaps
       for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
         setGenerationProgress(Math.round((dayOffset / 30) * 40)); // 0-40% for cleanup phase
-        setGenerationMessage(`🔍 Vérification jour ${dayOffset + 1}/30...`);
+        setGenerationMessage(`🔍 Checking day ${dayOffset + 1}/30...`);
         
         const dayDate = new Date(today.getTime() + dayOffset * 86400000);
         const dayStr = dayDate.toISOString().split('T')[0];
@@ -159,13 +159,13 @@ export default function AeoPlanning() {
       
       if (totalDeleted > 0) {
         console.log(`[AeoPlanning] Cleanup completed: ${totalDeleted} excess items deleted`);
-        toast.success(`🧹 Nettoyage: ${totalDeleted} items en trop supprimés`);
+        toast.success(`🧹 Cleanup: ${totalDeleted} excess items removed`);
       }
       
       // STEP 2: Fill missing days
       if (missingDays.length > 0) {
         console.log(`[AeoPlanning] Found ${missingDays.length} days without content:`, missingDays);
-        setGenerationMessage(`📝 Génération de ${missingDays.length} jours manquants...`);
+        setGenerationMessage(`📝 Generating ${missingDays.length} missing days...`);
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -181,7 +181,7 @@ export default function AeoPlanning() {
             const dayStr = dayDate.toISOString().split('T')[0];
             
             setGenerationProgress(40 + Math.round(((i + 1) / missingDays.length) * 55)); // 40-95%
-            setGenerationMessage(`📝 Génération jour ${i + 1}/${missingDays.length} (${dayStr})...`);
+            setGenerationMessage(`📝 Generating day ${i + 1}/${missingDays.length} (${dayStr})...`);
             
             console.log(`[AeoPlanning] Generating content for day ${dayStr} (offset ${dayOffset})...`);
             
@@ -201,11 +201,11 @@ export default function AeoPlanning() {
           }
           
           console.log(`[AeoPlanning] Content generation completed for ${missingDays.length} days`);
-          toast.success(`✨ ${missingDays.length} jours de contenu générés!`);
+          toast.success(`✨ ${missingDays.length} days of content generated!`);
           
         } catch (error) {
           console.error("[AeoPlanning] Generation error:", error);
-          toast.error("Erreur lors de la génération du contenu");
+          toast.error("Error generating content");
         }
       } else {
         console.log("[AeoPlanning] All 30 days have content, nothing to generate");
