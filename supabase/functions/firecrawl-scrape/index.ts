@@ -285,25 +285,41 @@ async function findCompetitorsViaGoogleSearch(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    // Build search query based on business description
+    // Build search query based on business description - IMPROVED LOGIC
     const descWords = description.toLowerCase();
     let searchQuery = '';
     
-    // Detect business type and build appropriate query
-    if (descWords.includes('location') && (descWords.includes('meuble') || descWords.includes('furniture'))) {
+    // Extract meaningful keywords from description
+    const meaningfulWords = description
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 4)
+      .filter(w => !['about', 'their', 'these', 'those', 'which', 'would', 'could', 'should', 'being', 'there', 'where', 'every', 'other'].includes(w.toLowerCase()))
+      .slice(0, 3);
+    
+    // Detect specific business types
+    if (descWords.includes('shopify') || descWords.includes('e-commerce') || descWords.includes('ecommerce')) {
+      // For Shopify apps/tools - search for similar tools
+      if (descWords.includes('new year') || descWords.includes('countdown') || descWords.includes('timer')) {
+        searchQuery = 'shopify countdown timer sales app alternatives';
+      } else if (descWords.includes('banner') || descWords.includes('promotion')) {
+        searchQuery = 'shopify promotional banner apps';
+      } else if (descWords.includes('discount') || descWords.includes('sale')) {
+        searchQuery = 'shopify sales discount apps best';
+      } else {
+        searchQuery = `shopify app ${meaningfulWords.join(' ')} alternatives`;
+      }
+    } else if (descWords.includes('location') && (descWords.includes('meuble') || descWords.includes('furniture'))) {
       searchQuery = language === 'fr' ? 'location meubles entreprise Paris' : 'furniture rental business';
     } else if (descWords.includes('meuble') || descWords.includes('furniture')) {
       searchQuery = language === 'fr' ? 'acheter meubles design en ligne' : 'buy furniture online';
-    } else if (descWords.includes('seo') || descWords.includes('référencement')) {
-      searchQuery = 'best SEO tools software';
+    } else if (descWords.includes('seo') || descWords.includes('référencement') || descWords.includes('search engine')) {
+      searchQuery = 'SEO optimization tools alternatives';
+    } else if (descWords.includes('ai') || descWords.includes('artificial intelligence')) {
+      searchQuery = `AI ${meaningfulWords.join(' ')} tools alternatives`;
     } else {
-      // Extract key terms from description
-      const keyTerms = description
-        .split(/\s+/)
-        .filter(w => w.length > 4)
-        .slice(0, 5)
-        .join(' ');
-      searchQuery = keyTerms || brandName + ' alternatives';
+      // Use brand name + "alternatives" + key words
+      searchQuery = `${brandName} alternatives ${meaningfulWords.join(' ')}`.trim();
     }
 
     console.log('[COMPETITORS] Google search query:', searchQuery);
@@ -316,7 +332,7 @@ async function findCompetitorsViaGoogleSearch(
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 10,
+        limit: 15,
         lang: language === 'fr' ? 'fr' : 'en',
         country: language === 'fr' ? 'FR' : 'US',
       }),
@@ -337,14 +353,32 @@ async function findCompetitorsViaGoogleSearch(
       return [];
     }
 
-    // Extract domains from search results
+    // Extract domains from search results - EXPANDED blocked list
     const blocked = new Set([
+      // Social media
       'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
-      'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com', 'google.fr',
-      'amazon.com', 'amazon.fr', 'ebay.com', 'ebay.fr', 'wikipedia.org', 
+      'youtube.com', 'tiktok.com', 'pinterest.com', 'x.com',
+      // Search engines
+      'google.com', 'google.fr', 'bing.com', 'yahoo.com',
+      // Marketplaces
+      'amazon.com', 'amazon.fr', 'ebay.com', 'ebay.fr', 'etsy.com',
+      // Generic platforms
       'shopify.com', 'wix.com', 'wordpress.com', 'squarespace.com', 
-      'webflow.com', 'cdiscount.com', 'leboncoin.fr', 'fnac.com',
-      'trustpilot.com', 'yelp.com', 'tripadvisor.com', 'pagesjaunes.fr'
+      'webflow.com', 'medium.com', 'substack.com', 'notion.so',
+      // French marketplaces
+      'cdiscount.com', 'leboncoin.fr', 'fnac.com',
+      // Review/directory sites
+      'trustpilot.com', 'yelp.com', 'tripadvisor.com', 'pagesjaunes.fr',
+      'g2.com', 'capterra.com', 'getapp.com', 'softwareadvice.com',
+      // Generic tech blogs
+      'reddit.com', 'quora.com', 'stackoverflow.com', 'github.com',
+      'techcrunch.com', 'producthunt.com', 'crunchbase.com',
+      // App stores
+      'apps.shopify.com', 'play.google.com', 'apps.apple.com',
+      // Generic comparison sites
+      'whatagraph.com', 'marketermilk.com', 'technologyadvice.com', 'seo.com',
+      // Wikipedia
+      'wikipedia.org', 'wikimedia.org',
     ]);
 
     const ownDomainBase = domain.split('.')[0].toLowerCase();
@@ -359,8 +393,15 @@ async function findCompetitorsViaGoogleSearch(
         const urlObj = new URL(url);
         const resultDomain = urlObj.hostname.replace('www.', '').toLowerCase();
         
-        // Skip blocked domains
-        if (blocked.has(resultDomain)) continue;
+        // Skip blocked domains (also check if it ends with any blocked domain)
+        let isBlocked = blocked.has(resultDomain);
+        for (const b of blocked) {
+          if (resultDomain.endsWith(`.${b}`) || resultDomain === b) {
+            isBlocked = true;
+            break;
+          }
+        }
+        if (isBlocked) continue;
         
         // Skip own domain
         if (resultDomain.includes(ownDomainBase)) continue;
@@ -369,7 +410,11 @@ async function findCompetitorsViaGoogleSearch(
         if (seenDomains.has(resultDomain)) continue;
         
         // Skip generic TLDs that are likely not competitors
-        if (resultDomain.endsWith('.gov') || resultDomain.endsWith('.edu')) continue;
+        if (resultDomain.endsWith('.gov') || resultDomain.endsWith('.edu') || resultDomain.endsWith('.org')) continue;
+        
+        // Skip if result domain contains generic words suggesting it's a directory/blog
+        const domainWords = resultDomain.split('.')[0].toLowerCase();
+        if (['blog', 'news', 'review', 'compare', 'best', 'top', 'list'].some(w => domainWords.includes(w))) continue;
         
         seenDomains.add(resultDomain);
         competitors.push(resultDomain);
