@@ -220,6 +220,8 @@ export default function Dashboard() {
             projectId: project.id,
             language: project.language || "fr",
             days: 30,
+            overwrite: false, // IMPORTANT: Don't delete existing content, only fill gaps
+            itemsPerDay: 2,   // Generate 2 items per day
           },
           headers: {
             Authorization: `Bearer ${session?.access_token}`,

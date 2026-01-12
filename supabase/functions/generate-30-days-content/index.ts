@@ -560,8 +560,9 @@ serve(async (req) => {
     if (authError || !userData?.user) throw new Error("Invalid token");
 
     const body = await req.json();
-    // REDUCED DEFAULT: 5 days instead of 30 to avoid timeouts
-    const { projectId, language = "fr", days = 5, overwrite = true, startOffset = 0 } = body;
+    // CHANGED: overwrite = false by default to prevent deleting existing content
+    // itemsPerDay = 2 to generate 2 items per day as requested
+    const { projectId, language = "fr", days = 5, overwrite = false, startOffset = 0, itemsPerDay = 2 } = body;
 
     if (!projectId) throw new Error("Missing projectId");
 
@@ -578,7 +579,7 @@ serve(async (req) => {
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
 
-    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}`);
+    console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}, itemsPerDay=${itemsPerDay}`);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -628,25 +629,28 @@ serve(async (req) => {
         .lt("day", endDate.toISOString().split('T')[0]);
     }
 
-    // Generate questions for this batch
-    console.log(`[generate-30-days] Generating ${days} questions...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, days);
+    // Generate questions for this batch (2 per day = days * itemsPerDay)
+    const totalQuestions = days * itemsPerDay;
+    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${itemsPerDay} per day for ${days} days)...`);
+    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Process each question
+    // Process each question - distribute across days (2 per day)
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      const scheduledDate = new Date(startDate.getTime() + i * 86400000);
+      // Calculate which day this question belongs to (e.g., questions 0-1 = day 0, 2-3 = day 1, etc.)
+      const dayIndex = Math.floor(i / itemsPerDay);
+      const scheduledDate = new Date(startDate.getTime() + dayIndex * 86400000);
       const scheduledDateStr = scheduledDate.toISOString();
       const dayStr = scheduledDateStr.split('T')[0];
 
-      console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}...`);
+      console.log(`[generate-30-days] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}... (day ${dayIndex + 1})`);
 
       try {
-        // GUARD: Check if this day already has an answer (max 1 per day)
+        // GUARD: Check how many items this day already has (max itemsPerDay per day)
         const { count: existingAnswers } = await supabase
           .from("answers")
           .select("id", { count: "exact", head: true })
@@ -654,8 +658,9 @@ serve(async (req) => {
           .gte("scheduled_date", dayStr)
           .lt("scheduled_date", new Date(scheduledDate.getTime() + 86400000).toISOString().split('T')[0]);
         
-        if ((existingAnswers || 0) >= 1) {
-          console.log(`[generate-30-days] Day ${dayStr} already has an answer, skipping...`);
+        // Only skip if this day already has the max number of items
+        if ((existingAnswers || 0) >= itemsPerDay) {
+          console.log(`[generate-30-days] Day ${dayStr} already has ${existingAnswers} items (max ${itemsPerDay}), skipping...`);
           continue;
         }
 
