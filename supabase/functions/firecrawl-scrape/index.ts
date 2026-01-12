@@ -181,21 +181,24 @@ Deno.serve(async (req) => {
     const contentPreview = markdown.substring(0, 2000);
     
     // Extract keywords first - they'll be used for AI competitor fallback
-    const keywords = lovableApiKey 
-      ? await extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) 
-      : [];
+    const keywordsPromise = lovableApiKey 
+      ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) 
+      : Promise.resolve([]);
     
     // ============= STEP 3: Audiences + Competitors in PARALLEL =============
-    const [audiences, dataForSeoCompetitors] = await Promise.all([
+    const [audiences, dataForSeoCompetitors, keywords] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
-      competitorsPromise || Promise.resolve([])
+      competitorsPromise || Promise.resolve([]),
+      keywordsPromise
     ]);
 
     // If DataForSEO returned no competitors, use Google Search via Firecrawl
+    // NOW we can use keywords from the site to build better search queries!
     let competitors = dataForSeoCompetitors;
     if (competitors.length === 0 && apiKey) {
       console.log('[COMPETITORS] DataForSEO returned nothing, using Google Search fallback');
-      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey);
+      // Pass keywords to help build better search query
+      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords);
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -273,23 +276,37 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
-// Find competitors via Google Search using Firecrawl
+// Find competitors via Google Search using Firecrawl + extracted keywords
 async function findCompetitorsViaGoogleSearch(
   description: string,
   brandName: string,
   domain: string,
   language: string,
-  firecrawlApiKey: string
+  firecrawlApiKey: string,
+  extractedKeywords: Array<{keyword: string, intent: string}> = []
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    // Build search query based on business description - IMPROVED LOGIC
+    // Build search query based on EXTRACTED KEYWORDS + description
     const descWords = description.toLowerCase();
     let searchQuery = '';
     
-    // Extract meaningful keywords from description
+    // USE EXTRACTED KEYWORDS FIRST - they're the most relevant!
+    const keywordTerms = extractedKeywords
+      .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
+      .slice(0, 3)
+      .map(k => k.keyword)
+      .join(' ');
+    
+    // All keywords for fallback
+    const allKeywordTerms = extractedKeywords
+      .slice(0, 5)
+      .map(k => k.keyword)
+      .join(' ');
+    
+    // Extract meaningful words from description as backup
     const meaningfulWords = description
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
@@ -299,8 +316,10 @@ async function findCompetitorsViaGoogleSearch(
     
     // Detect specific business types
     if (descWords.includes('shopify') || descWords.includes('e-commerce') || descWords.includes('ecommerce')) {
-      // For Shopify apps/tools - search for similar tools
-      if (descWords.includes('new year') || descWords.includes('countdown') || descWords.includes('timer')) {
+      // For Shopify apps/tools - use keywords if available
+      if (keywordTerms) {
+        searchQuery = `shopify ${keywordTerms} app alternatives`;
+      } else if (descWords.includes('new year') || descWords.includes('countdown') || descWords.includes('timer')) {
         searchQuery = 'shopify countdown timer sales app alternatives';
       } else if (descWords.includes('banner') || descWords.includes('promotion')) {
         searchQuery = 'shopify promotional banner apps';
@@ -314,14 +333,18 @@ async function findCompetitorsViaGoogleSearch(
     } else if (descWords.includes('meuble') || descWords.includes('furniture')) {
       searchQuery = language === 'fr' ? 'acheter meubles design en ligne' : 'buy furniture online';
     } else if (descWords.includes('seo') || descWords.includes('référencement') || descWords.includes('search engine')) {
-      searchQuery = 'SEO optimization tools alternatives';
+      searchQuery = keywordTerms ? `${keywordTerms} tools` : 'SEO optimization tools alternatives';
     } else if (descWords.includes('ai') || descWords.includes('artificial intelligence')) {
-      searchQuery = `AI ${meaningfulWords.join(' ')} tools alternatives`;
+      searchQuery = keywordTerms ? `AI ${keywordTerms} alternatives` : `AI ${meaningfulWords.join(' ')} tools alternatives`;
+    } else if (keywordTerms || allKeywordTerms) {
+      // USE KEYWORDS for search query!
+      searchQuery = `${keywordTerms || allKeywordTerms} alternatives best`;
     } else {
-      // Use brand name + "alternatives" + key words
+      // Ultimate fallback - brand name + meaningful words
       searchQuery = `${brandName} alternatives ${meaningfulWords.join(' ')}`.trim();
     }
-
+    
+    console.log('[COMPETITORS] Using keywords:', extractedKeywords.slice(0, 3).map(k => k.keyword));
     console.log('[COMPETITORS] Google search query:', searchQuery);
 
     const response = await fetch('https://api.firecrawl.dev/v1/search', {
