@@ -133,14 +133,6 @@ export default function Auth() {
 
       console.log("[AUTH] Projects found:", projects?.length);
 
-      // Check if there's a pending onboarding to continue
-      const pendingOnboarding = localStorage.getItem('pendingOnboarding');
-      if (pendingOnboarding) {
-        console.log("[AUTH] Pending onboarding found, redirecting to onboarding...");
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-
       if (projects && projects.length > 0) {
         // Existing user with project → Dashboard (ProtectedRoute handles subscription check)
         console.log("[AUTH] Redirecting to dashboard...");

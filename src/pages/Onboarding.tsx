@@ -9,12 +9,7 @@ import {
   X,
   Plus,
   Check,
-  ChevronDown,
-  Mail,
-  Lock,
-  User,
-  Eye,
-  EyeOff
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,14 +20,12 @@ import { cn } from "@/lib/utils";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { z } from "zod";
 
 interface OnboardingData {
   websiteUrl: string;
@@ -64,13 +57,9 @@ const referralSources = [
   { id: "other", label: "Other", icon: "?" },
 ];
 
-const emailSchema = z.string().email("Invalid email address");
-const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn, signUp } = useAuth();
   const createProject = useCreateProject();
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -83,19 +72,9 @@ export default function Onboarding() {
   const [isCheckingUser, setIsCheckingUser] = useState(true);
   const analysisStartedRef = useRef<string | null>(null);
   
-  // Auth step state
-  const [showAuthStep, setShowAuthStep] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authErrors, setAuthErrors] = useState<{ email?: string; password?: string }>({});
-  
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
-    language: "en",
+    language: "en", // Default to English before detection
     businessDescription: "",
     targetAudiences: [],
     competitors: [],
@@ -105,67 +84,53 @@ export default function Onboarding() {
     keywords: [],
   });
 
-  const totalSteps = 7; // Added auth step
+  const totalSteps = 6;
 
-  // Check for pending onboarding data (after OAuth redirect)
+  // Redirect existing users with projects to dashboard
   useEffect(() => {
-    const checkPendingOnboarding = async () => {
-      const stored = localStorage.getItem('pendingOnboarding');
-      
-      if (stored && user) {
-        // User just authenticated via OAuth, continue with stored data
-        console.log('[ONBOARDING] Resuming after OAuth with stored data');
-        const savedData = JSON.parse(stored) as OnboardingData;
-        setData(savedData);
-        localStorage.removeItem('pendingOnboarding');
-        
-        // Auto-continue to create project
-        setIsAnalyzing(true);
-        try {
-          await createProjectWithData(savedData);
-        } catch (error) {
-          console.error('[ONBOARDING] Error creating project after OAuth:', error);
-          toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
-          setIsAnalyzing(false);
-        }
+    const checkExistingProject = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsCheckingUser(false);
         return;
       }
-      
-      // Check if user already has projects
-      if (user) {
-        const { data: projects } = await supabase
-          .from("projects")
-          .select("id")
-          .eq("user_id", user.id)
-          .limit(1);
 
-        if (projects && projects.length > 0) {
-          navigate("/dashboard", { replace: true });
-          return;
-        }
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (projects && projects.length > 0) {
+        // User has a project, redirect to dashboard
+        navigate("/dashboard", { replace: true });
+      } else {
+        setIsCheckingUser(false);
       }
-      
-      setIsCheckingUser(false);
     };
 
-    checkPendingOnboarding();
-  }, [user, navigate]);
+    checkExistingProject();
+  }, [navigate]);
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Validate URL format
   const isValidUrl = (url: string): boolean => {
     if (!url || url.length < 3) return false;
+    // Allow domain formats like example.com or full URLs
     const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
     return urlPattern.test(url.trim());
   };
 
+  // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
     
     setIsLoadingFast(true);
     
+    // PHASE 1: Fast scrape (3-4s) - gets language + description + audiences
     const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
       body: { url }
     }).then(({ data: fastResult, error }) => {
@@ -185,11 +150,12 @@ export default function Onboarding() {
       setIsLoadingFast(false);
     });
 
+    // PHASE 2: Full enrichment (8-15s) - gets audiences, competitors, keywords
     const enrichPromise = supabase.functions.invoke('firecrawl-scrape', {
       body: { url }
     }).then(({ data: scrapeResult, error }) => {
       if (!error && scrapeResult?.success) {
-        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
+        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords, description, language: detectedLang } = scrapeResult.data;
         
         console.log('[ONBOARDING] Enrichment data received:', {
           audiences: scrapedAudiences?.length,
@@ -197,8 +163,10 @@ export default function Onboarding() {
           keywords: scrapedKeywords?.length
         });
         
+        // Phase 2: Only add competitors and keywords - DO NOT overwrite Phase 1 data
         setData(prev => ({
           ...prev,
+          // Keep language, description, and audiences from Phase 1 - never overwrite!
           competitors: prev.competitors.length > 0 ? prev.competitors : (scrapedCompetitors || []),
           keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
         }));
@@ -207,6 +175,7 @@ export default function Onboarding() {
       console.error('[ONBOARDING] Enrichment error:', err);
     });
 
+    // Run both in parallel - Phase 1 will complete much faster
     try {
       await Promise.all([fastPromise, enrichPromise]);
     } catch (err) {
@@ -217,16 +186,20 @@ export default function Onboarding() {
     }
   }, []);
 
+  // Trigger analysis when URL becomes valid
   useEffect(() => {
     const url = data.websiteUrl.trim();
     
+    // Don't analyze our own domain
     const isOwnDomain = url.toLowerCase().includes('lovelyanswers.io') || 
                          url.toLowerCase().includes('lovableproject.com') ||
                          url.toLowerCase().includes('localhost');
     
     if (isValidUrl(url) && !isOwnDomain && analysisStartedRef.current !== url) {
+      // Debounce: wait 800ms after last keystroke to ensure user finished typing
       const timer = setTimeout(() => {
         const currentUrl = data.websiteUrl.trim();
+        // Re-check that URL hasn't changed during debounce
         if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
           console.log('[ONBOARDING] Auto-triggering analysis for:', url);
           analysisStartedRef.current = url;
@@ -240,6 +213,7 @@ export default function Onboarding() {
   const handleUrlChange = (value: string) => {
     updateData("websiteUrl", value);
     setUrlError("");
+    // Reset analysis flag if URL changes significantly
     if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
       setHasAnalyzed(false);
       analysisStartedRef.current = null;
@@ -280,7 +254,7 @@ export default function Onboarding() {
       language: detectedLanguage,
       businessDescription: `${brandName} is a professional service provider offering high-quality solutions to its target audience.`,
       targetAudiences: ["business owners", "professionals", "decision makers"],
-      competitors: [],
+      competitors: [], // Empty - user adds manually
       exampleUrl: `https://${domain}`,
     }));
     
@@ -290,6 +264,14 @@ export default function Onboarding() {
     });
   };
 
+  // No more hardcoded competitors - let user add manually if API fails
+  const generateCompetitors = (_url: string): string[] => {
+    // Return empty - user can add competitors manually
+    return [];
+  };
+
+  // Analysis now auto-triggers on valid URL input (see useEffect above)
+
   const canProceed = () => {
     switch (currentStep) {
       case 1: return data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
@@ -298,7 +280,6 @@ export default function Onboarding() {
       case 4: return true;
       case 5: return true;
       case 6: return true;
-      case 7: return true; // Auth step - handled separately
       default: return false;
     }
   };
@@ -307,161 +288,84 @@ export default function Onboarding() {
     if (!validateAndProceed()) return;
     
     if (currentStep < totalSteps) {
+      // If advancing from step 2 without language, default to English
       if (currentStep === 2 && !data.language) {
         updateData("language", "en");
       }
       setCurrentStep(currentStep + 1);
     } else {
-      // Final step - trigger auth or complete
+      // Ensure we have minimum data before completing
       if (!data.language) updateData("language", "en");
       handleComplete();
     }
   };
 
-  const createProjectWithData = async (projectData: OnboardingData) => {
-    let domain = "";
-    try {
-      const urlObj = new URL(projectData.websiteUrl.startsWith("http") ? projectData.websiteUrl : `https://${projectData.websiteUrl}`);
-      domain = urlObj.hostname.replace("www.", "");
-    } catch { domain = projectData.websiteUrl; }
-    
-    const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-    
-    const newProject = await createProject.mutateAsync({
-      name: brandName,
-      website_url: projectData.websiteUrl,
-      domain: domain,
-      language: projectData.language,
-      business_description: projectData.businessDescription,
-      business_type: "service",
-      audience: projectData.targetAudiences.join(", "),
-      brand_name: brandName,
-      example_url: projectData.exampleUrl || undefined,
-      competitors: projectData.competitors,
-    });
-    
-    if (projectData.keywords && projectData.keywords.length > 0) {
-      console.log('[ONBOARDING] Saving', projectData.keywords.length, 'keywords to database');
-      const keywordsToInsert = projectData.keywords.map(k => ({
-        project_id: newProject.id,
-        keyword: k.keyword,
-        intent: k.intent || 'informational',
-        source_url: projectData.websiteUrl,
-        is_used: false,
-      }));
-      
-      const { error: keywordsError } = await supabase
-        .from('keywords')
-        .insert(keywordsToInsert);
-      
-      if (keywordsError) {
-        console.error('Keywords save error:', keywordsError);
-      }
-    }
-    
-    try {
-      await supabase.functions.invoke('auto-generate-aeo', {
-        body: { 
-          projectId: newProject.id,
-          language: projectData.language 
-        }
-      });
-    } catch (aeoError) {
-      console.error('AEO generation error:', aeoError);
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    navigate("/checkout");
-  };
-
   const handleComplete = async () => {
-    // If not authenticated, show auth step
-    if (!user) {
-      setShowAuthStep(true);
-      return;
-    }
-    
-    // User is authenticated, create project
     setIsAnalyzing(true);
     try {
-      await createProjectWithData(data);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
-      setIsAnalyzing(false);
-    }
-  };
-
-  const validateAuthForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-    const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) newErrors.email = emailResult.error.errors[0].message;
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) newErrors.password = passwordResult.error.errors[0].message;
-    setAuthErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateAuthForm()) return;
-    
-    setAuthLoading(true);
-    
-    if (isLogin) {
-      const { error } = await signIn(email, password);
-      if (error) {
-        setAuthLoading(false);
-        toast({
-          title: "Sign in failed",
-          description: error.message === "Invalid login credentials" ? "Invalid email or password." : error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-    } else {
-      const { error } = await signUp(email, password, fullName);
-      if (error) {
-        setAuthLoading(false);
-        let message = error.message;
-        if (error.message.includes("already registered")) message = "This email is already registered. Please sign in.";
-        toast({ title: "Sign up failed", description: message, variant: "destructive" });
-        return;
-      }
-    }
-    
-    // Auth successful, create project
-    setIsAnalyzing(true);
-    setAuthLoading(false);
-    
-    // Wait a bit for auth state to propagate
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    try {
-      await createProjectWithData(data);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    // Store onboarding data before OAuth redirect
-    localStorage.setItem('pendingOnboarding', JSON.stringify(data));
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/onboarding`,
-      },
-    });
-    
-    if (error) {
-      localStorage.removeItem('pendingOnboarding');
-      toast({
-        title: "Google sign in failed",
-        description: error.message,
-        variant: "destructive",
+      let domain = "";
+      try {
+        const urlObj = new URL(data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`);
+        domain = urlObj.hostname.replace("www.", "");
+      } catch { domain = data.websiteUrl; }
+      
+      const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+      
+      const newProject = await createProject.mutateAsync({
+        name: brandName,
+        website_url: data.websiteUrl,
+        domain: domain,
+        language: data.language,
+        business_description: data.businessDescription,
+        business_type: "service",
+        audience: data.targetAudiences.join(", "),
+        brand_name: brandName,
+        example_url: data.exampleUrl || undefined,
+        competitors: data.competitors,
       });
+      
+      // Save extracted keywords to database
+      if (data.keywords && data.keywords.length > 0) {
+        console.log('[ONBOARDING] Saving', data.keywords.length, 'keywords to database');
+        const keywordsToInsert = data.keywords.map(k => ({
+          project_id: newProject.id,
+          keyword: k.keyword,
+          intent: k.intent || 'informational',
+          source_url: data.websiteUrl,
+          is_used: false,
+        }));
+        
+        const { error: keywordsError } = await supabase
+          .from('keywords')
+          .insert(keywordsToInsert);
+        
+        if (keywordsError) {
+          console.error('Keywords save error:', keywordsError);
+        } else {
+          console.log('[ONBOARDING] Keywords saved successfully');
+        }
+      }
+      
+      // Auto-generate initial AEO content
+      try {
+        await supabase.functions.invoke('auto-generate-aeo', {
+          body: { 
+            projectId: newProject.id,
+            language: data.language 
+          }
+        });
+      } catch (aeoError) {
+        console.error('AEO generation error:', aeoError);
+        // Continue even if AEO generation fails
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Redirect to checkout page
+      navigate("/checkout");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
+      setIsAnalyzing(false);
     }
   };
 
@@ -513,159 +417,6 @@ export default function Onboarding() {
     return <AnalyzingScreen websiteUrl={data.websiteUrl} />;
   }
 
-  // Auth step modal/overlay
-  if (showAuthStep) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-          <div className="container flex h-16 items-center justify-center">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
-                <Heart className="h-5 w-5 text-white fill-white" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">
-                Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 flex items-center justify-center px-8 py-12">
-          <div className="w-full max-w-md space-y-8">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold tracking-tight">Last step: Create your account</h1>
-              <p className="text-muted-foreground mt-2">
-                {isLogin ? "Sign in to continue" : "Create an account to start your free trial"}
-              </p>
-            </div>
-
-            {/* Google OAuth Button */}
-            <Button
-              variant="outline"
-              className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
-              onClick={handleGoogleAuth}
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continue with Google
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            {/* Email/Password Form */}
-            <form onSubmit={handleEmailAuth} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-muted-foreground">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10 h-12 bg-muted/50 border-border"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-muted-foreground">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 bg-muted/50 border-border"
-                    required
-                  />
-                </div>
-                {authErrors.email && <p className="text-sm text-destructive">{authErrors.email}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-muted-foreground">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-muted/50 border-border"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {authErrors.password && <p className="text-sm text-destructive">{authErrors.password}</p>}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-12 gap-2 bg-foreground text-background hover:bg-foreground/90 text-base font-medium"
-                disabled={authLoading}
-              >
-                {authLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    {isLogin ? "Sign in" : "Create account"}
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-muted-foreground">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary font-medium hover:underline"
-              >
-                {isLogin ? "Sign up" : "Sign in"}
-              </button>
-            </p>
-
-            <p className="text-center text-xs text-muted-foreground">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
-            </p>
-
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setShowAuthStep(false)}
-            >
-              ← Back to onboarding
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -698,7 +449,6 @@ export default function Onboarding() {
                   {currentStep === 4 && "Step 4 (Optional)"}
                   {currentStep === 5 && "Step 5 (Optional)"}
                   {currentStep === 6 && "Survey"}
-                  {currentStep === 7 && "Final Step"}
                 </span>
               </div>
               <span className="text-muted-foreground text-sm">Step {currentStep} of {totalSteps}</span>
@@ -911,7 +661,7 @@ export default function Onboarding() {
                 {currentStep === 6 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">How did you hear about LovelyAnswers?</h1>
+                      <h1 className="text-3xl font-bold tracking-tight">How did you hear about AeoRocket?</h1>
                       <p className="text-muted-foreground mt-2">Your answer helps us improve our marketing strategies.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -933,42 +683,6 @@ export default function Onboarding() {
                     </div>
                   </div>
                 )}
-
-                {currentStep === 7 && (
-                  <div className="space-y-6">
-                    <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Ready to start!</h1>
-                      <p className="text-muted-foreground mt-2">Review your setup and continue to create your account.</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Website</span>
-                        <span className="font-medium">{data.websiteUrl}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Language</span>
-                        <span className="font-medium">{languages.find(l => l.code === data.language)?.name}</span>
-                      </div>
-                      {data.targetAudiences.length > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Audiences</span>
-                          <span className="font-medium">{data.targetAudiences.length} defined</span>
-                        </div>
-                      )}
-                      {data.competitors.length > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Competitors</span>
-                          <span className="font-medium">{data.competitors.length} added</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <p className="text-sm text-center">
-                        🎉 You'll get a <strong>3-day free trial</strong> with full access to all features!
-                      </p>
-                    </div>
-                  </div>
-                )}
               </motion.div>
             </AnimatePresence>
 
@@ -978,7 +692,7 @@ export default function Onboarding() {
               disabled={!canProceed()}
               className="w-full h-14 mt-8 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
             >
-              {currentStep === totalSteps ? "Create Account & Continue" : "Continue"}
+              Continue
               <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
