@@ -45,8 +45,26 @@ interface Project {
 }
 
 interface ProjectSettings {
+  project_id: string;
   auto_publish_enabled: boolean;
   publish_hour: string;
+  timezone: string | null;
+}
+
+// Convert UTC time to local hour in a specific timezone
+function getLocalHour(timezone: string): number {
+  try {
+    const now = new Date();
+    const localTime = now.toLocaleString("en-US", { 
+      timeZone: timezone, 
+      hour: "2-digit", 
+      hour12: false 
+    });
+    return parseInt(localTime, 10);
+  } catch (e) {
+    console.error(`[publish-scheduled] ⚠️ Invalid timezone: ${timezone}, falling back to UTC`);
+    return new Date().getUTCHours();
+  }
 }
 
 function generateAnswerHTML(
@@ -202,17 +220,29 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Parse request body for manual trigger
+    let forceToday = false;
+    let forceProjectId: string | null = null;
+    try {
+      const body = await req.json();
+      forceToday = body?.forceToday === true;
+      forceProjectId = body?.projectId || null;
+    } catch {
+      // No body or invalid JSON - that's fine for cron calls
+    }
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    const currentHour = today.getUTCHours().toString().padStart(2, '0');
+    const currentUtcHour = today.getUTCHours();
     
-    console.log(`[publish-scheduled] 🚀 Starting auto-publish cron`);
-    console.log(`[publish-scheduled] Date: ${todayStr}, Hour: ${currentHour} UTC`);
+    console.log(`[publish-scheduled] 🚀 Starting auto-publish`);
+    console.log(`[publish-scheduled] Date: ${todayStr}, UTC Hour: ${currentUtcHour}`);
+    console.log(`[publish-scheduled] Manual trigger: forceToday=${forceToday}, projectId=${forceProjectId}`);
 
-    // Get projects with auto-publish enabled for current hour
+    // Get ALL projects with auto-publish enabled (we'll filter by timezone below)
     const { data: projectSettings, error: settingsError } = await supabase
       .from("project_settings")
-      .select("project_id, publish_hour")
+      .select("project_id, publish_hour, timezone")
       .eq("auto_publish_enabled", true);
 
     if (settingsError) {
@@ -220,19 +250,52 @@ Deno.serve(async (req) => {
       throw settingsError;
     }
 
-    // Filter projects for current hour
-    let projectsToPublish = projectSettings?.filter(
-      ps => ps.publish_hour === currentHour
-    ) || [];
+    console.log(`[publish-scheduled] 📊 Found ${projectSettings?.length || 0} projects with auto-publish enabled`);
 
-    console.log(`[publish-scheduled] 📊 Found ${projectsToPublish.length} projects with settings for ${currentHour}:00 UTC`);
+    // Filter projects where the LOCAL hour matches the configured publish_hour
+    // OR if forceToday is true and projectId matches
+    let projectsToPublish: ProjectSettings[] = [];
+    
+    if (forceToday && forceProjectId) {
+      // Manual trigger for a specific project - bypass hour check
+      const matchingProject = (projectSettings || []).find(ps => ps.project_id === forceProjectId);
+      if (matchingProject) {
+        projectsToPublish.push(matchingProject as ProjectSettings);
+        console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Publishing for project ${forceProjectId}`);
+      } else {
+        // Project doesn't have auto_publish_enabled, but we still want to publish
+        projectsToPublish.push({
+          project_id: forceProjectId,
+          publish_hour: "00",
+          auto_publish_enabled: true,
+          timezone: "UTC"
+        });
+        console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Force publishing for project ${forceProjectId}`);
+      }
+    } else {
+      // Normal cron behavior - check hour for each project's timezone
+      for (const ps of projectSettings || []) {
+        const timezone = ps.timezone || "UTC";
+        const localHour = getLocalHour(timezone);
+        const configuredHour = parseInt(ps.publish_hour || "10", 10);
+        
+        console.log(`[publish-scheduled] 🕐 Project ${ps.project_id}: timezone=${timezone}, localHour=${localHour}, publishHour=${configuredHour}`);
+        
+        if (localHour === configuredHour) {
+          projectsToPublish.push(ps as ProjectSettings);
+          console.log(`[publish-scheduled] ✅ Project ${ps.project_id} MATCHED for publication`);
+        }
+      }
+    }
+
+    console.log(`[publish-scheduled] 📊 ${projectsToPublish.length} projects to publish`);
 
     // FALLBACK: If no project_settings exist, find all projects with active integrations
     if (!projectSettings || projectSettings.length === 0) {
       console.log(`[publish-scheduled] ⚠️ No project_settings found, using FALLBACK mode`);
       
       // Only run fallback at 10:00 UTC (default hour)
-      if (currentHour === "10") {
+      if (currentUtcHour === 10) {
         const { data: projectsWithIntegrations } = await supabase
           .from("integrations")
           .select("project_id")
@@ -240,7 +303,12 @@ Deno.serve(async (req) => {
         
         if (projectsWithIntegrations && projectsWithIntegrations.length > 0) {
           const uniqueProjectIds = [...new Set(projectsWithIntegrations.map(i => i.project_id))];
-          projectsToPublish = uniqueProjectIds.map(pid => ({ project_id: pid, publish_hour: "10" }));
+          projectsToPublish = uniqueProjectIds.map(pid => ({ 
+            project_id: pid, 
+            publish_hour: "10", 
+            auto_publish_enabled: true, 
+            timezone: "UTC" 
+          }));
           console.log(`[publish-scheduled] 🔄 FALLBACK: Found ${projectsToPublish.length} projects with active integrations`);
         }
       }
@@ -250,9 +318,9 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `No projects scheduled for ${currentHour}:00 UTC`, 
+          message: `No projects scheduled for current hour (UTC: ${currentUtcHour})`, 
           published: 0,
-          currentHour,
+          currentUtcHour,
           totalProjects: projectSettings?.length || 0,
           fallbackUsed: !projectSettings || projectSettings.length === 0
         }),
@@ -462,7 +530,7 @@ Deno.serve(async (req) => {
         failed: failedCount,
         answers: answerCount,
         articles: articleCount,
-        currentHour,
+        currentUtcHour,
         results 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

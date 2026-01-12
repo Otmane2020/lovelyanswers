@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   List,
   Loader2,
+  Play,
   MessageSquare,
   Send,
   Settings,
@@ -56,6 +57,7 @@ export default function AeoPlanning() {
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [isPublishingAll, setIsPublishingAll] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
@@ -114,6 +116,41 @@ export default function AeoPlanning() {
       setScheduledItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "published" } : i)));
     } finally {
       setPublishingId(null);
+    }
+  };
+
+  // Manual trigger for publishing all scheduled content for today
+  const handlePublishAllToday = async () => {
+    if (!project) return;
+    
+    setIsPublishingAll(true);
+    try {
+      toast.info("🚀 Déclenchement de la publication automatique...");
+      
+      const { data, error } = await supabase.functions.invoke("publish-scheduled-answers", {
+        body: { projectId: project.id, forceToday: true }
+      });
+      
+      if (error) throw error;
+      
+      console.log("[AeoPlanning] publish-scheduled-answers result:", data);
+      
+      const successCount = data?.results?.filter((r: any) => r.success).length || 0;
+      const failedCount = data?.results?.filter((r: any) => !r.success).length || 0;
+      
+      if (successCount > 0) {
+        toast.success(`✅ ${successCount} élément(s) publié(s) avec succès`);
+        await fetchScheduledItems();
+      } else if (failedCount > 0) {
+        toast.error(`❌ ${failedCount} échec(s) de publication`);
+      } else {
+        toast.info("ℹ️ Aucun contenu à publier pour aujourd'hui");
+      }
+    } catch (err) {
+      console.error("[AeoPlanning] handlePublishAllToday error:", err);
+      toast.error("Erreur lors de la publication");
+    } finally {
+      setIsPublishingAll(false);
     }
   };
 
@@ -377,6 +414,19 @@ export default function AeoPlanning() {
                 <span>Generating content...</span>
               </div>
             )}
+            <Button 
+              variant="default" 
+              onClick={handlePublishAllToday}
+              disabled={isPublishingAll}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              {isPublishingAll ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 mr-2" />
+              )}
+              Publier aujourd'hui
+            </Button>
             <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Auto-Publish
