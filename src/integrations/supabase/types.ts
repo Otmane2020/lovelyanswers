@@ -627,6 +627,58 @@ export type Database = {
           },
         ]
       }
+      planning_days: {
+        Row: {
+          answer_id: string
+          article_id: string
+          created_at: string
+          id: string
+          project_id: string
+          scheduled_date: string
+          updated_at: string
+        }
+        Insert: {
+          answer_id: string
+          article_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+          scheduled_date: string
+          updated_at?: string
+        }
+        Update: {
+          answer_id?: string
+          article_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          scheduled_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_days_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_days_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_days_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -1163,7 +1215,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_planning_completeness: {
+        Args: { p_project_id: string }
+        Returns: {
+          filled_days: number
+          is_today_filled: boolean
+          missing_dates: string[]
+          total_days: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
