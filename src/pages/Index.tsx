@@ -11,10 +11,11 @@ import {
   FileText,
   Target,
   Bot,
-  ChevronRight,
-  ChevronDown,
   Star,
   Quote,
+  TrendingUp,
+  Search,
+  BarChart3,
 } from "lucide-react";
 import {
   Accordion,
@@ -23,6 +24,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -32,6 +41,18 @@ import framerLogo from "@/assets/framer-logo.png";
 import boltLogo from "@/assets/bolt-logo.png";
 import lovableLogo from "@/assets/lovable-logo.svg";
 import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
+
+// AI Platform logos
+import chatgptLogo from "@/assets/chatgpt-logo.png";
+import geminiLogo from "@/assets/gemini-logo.png";
+import claudeLogo from "@/assets/claude-logo.png";
+import perplexityLogo from "@/assets/perplexity-logo.png";
+
+// Company logos for testimonials
+import companyTechflow from "@/assets/company-techflow.png";
+import companyGrowthlab from "@/assets/company-growthlab.png";
+import companyNexus from "@/assets/company-nexus.png";
+import companyNordic from "@/assets/company-nordic.png";
 
 const features = [
   {
@@ -56,7 +77,12 @@ const features = [
   },
 ];
 
-const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
+const aiPlatforms = [
+  { name: "ChatGPT", logo: chatgptLogo },
+  { name: "Gemini", logo: geminiLogo },
+  { name: "Claude", logo: claudeLogo },
+  { name: "Perplexity", logo: perplexityLogo },
+];
 
 const comparisons = [
   { feature: "Focus", seo: "Search rankings", aeo: "AI citations" },
@@ -120,6 +146,7 @@ const testimonials = [
     name: "Sarah Mitchell",
     role: "Marketing Director",
     company: "TechFlow Solutions",
+    companyLogo: companyTechflow,
     avatar: "SM",
     rating: 5,
     text: "LovelyAnswers has completely transformed our content strategy. We went from 0 AI citations to being recommended by ChatGPT within 3 weeks. Our organic traffic increased by 340%.",
@@ -129,6 +156,7 @@ const testimonials = [
     name: "Marc Dubois",
     role: "Founder & CEO",
     company: "GrowthLab Agency",
+    companyLogo: companyGrowthlab,
     avatar: "MD",
     rating: 5,
     text: "As an agency, we've integrated LovelyAnswers for all our clients. The ROI is incredible - backlinks alone would cost us 10x more elsewhere. Game changer for AEO.",
@@ -138,6 +166,7 @@ const testimonials = [
     name: "Emily Chen",
     role: "Head of SEO",
     company: "Nexus Digital",
+    companyLogo: companyNexus,
     avatar: "EC",
     rating: 5,
     text: "We were skeptical about AEO at first, but the results speak for themselves. Our brand is now cited by Gemini and Perplexity. The automated article generation saves us 40 hours/week.",
@@ -147,11 +176,22 @@ const testimonials = [
     name: "Thomas Bergman",
     role: "E-commerce Manager",
     company: "Nordic Brands Co",
+    companyLogo: companyNordic,
     avatar: "TB",
     rating: 5,
     text: "Integration with Shopify was seamless. Within a month, our product pages started appearing in AI-generated shopping recommendations. Sales from AI referrals are now 15% of total.",
     metric: "15% sales from AI",
   },
+];
+
+// Sample traffic data for the showcase
+const trafficData = [
+  { month: "Jan", impressions: 2400, clicks: 180 },
+  { month: "Feb", impressions: 3600, clicks: 290 },
+  { month: "Mar", impressions: 5800, clicks: 480 },
+  { month: "Apr", impressions: 8200, clicks: 720 },
+  { month: "May", impressions: 12400, clicks: 1100 },
+  { month: "Jun", impressions: 18600, clicks: 1680 },
 ];
 
 export default function Index() {
@@ -185,21 +225,29 @@ export default function Index() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero with gradient background */}
       <section className="relative overflow-hidden pt-32 pb-20">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] bg-gradient-to-br from-fuchsia-500/20 to-primary/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-violet-500/10 to-cyan-500/10 rounded-full blur-[150px]" />
+        </div>
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-[120px] opacity-30" />
         
         <div className="container relative">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
+            <Badge className="mb-6 bg-gradient-to-r from-primary/20 to-violet-500/20 text-primary border-primary/30 backdrop-blur-sm">
               <Bot className="mr-1 h-3 w-3" />
               Answer Engine Optimization
             </Badge>
             
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Be cited by{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">ChatGPT, Gemini</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 animate-gradient">
+                ChatGPT, Gemini
+              </span>
               {" "}& AI assistants
             </h1>
             
@@ -208,51 +256,166 @@ export default function Index() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90 text-lg px-8" asChild>
+              <Button size="lg" className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-lg px-8" asChild>
                 <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8">
+              <Button size="lg" variant="outline" className="text-lg px-8 border-2 hover:bg-primary/5">
                 Watch Demo
               </Button>
             </div>
 
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-              <span className="text-sm text-muted-foreground">Optimized for:</span>
-              {platforms.map((platform) => (
-                <Badge key={platform} variant="secondary" className="text-sm">
-                  {platform}
-                </Badge>
-              ))}
+            {/* AI Platform logos */}
+            <div className="mt-16">
+              <p className="text-sm text-muted-foreground mb-6">Optimized for leading AI platforms</p>
+              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+                {aiPlatforms.map((platform) => (
+                  <div key={platform.name} className="group flex flex-col items-center gap-2">
+                    <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-muted/50 to-muted p-3 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all">
+                      <img 
+                        src={platform.logo} 
+                        alt={platform.name} 
+                        className="h-10 w-10 object-contain"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{platform.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SEO vs AEO */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
+      {/* Google Search Console Traffic Showcase */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
+        <div className="container relative">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">SEO vs AEO</h2>
+            <Badge className="mb-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+              <Search className="mr-1 h-3 w-3" />
+              Real Results
+            </Badge>
+            <h2 className="text-3xl font-bold mb-4">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">Google Search Console</span> Potential
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              See how AEO-optimized content drives exponential growth in impressions and clicks
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <GlassCard className="p-8 bg-gradient-to-br from-background to-muted/30">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Traffic Growth</h3>
+                    <p className="text-sm text-muted-foreground">Last 6 months</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10">
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-semibold text-emerald-600">+675% impressions</span>
+                </div>
+              </div>
+
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trafficData}>
+                    <defs>
+                      <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="impressions"
+                      stroke="hsl(160, 84%, 39%)"
+                      strokeWidth={3}
+                      fill="url(#colorImpressions)"
+                      name="Impressions"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="clicks"
+                      stroke="hsl(271, 91%, 65%)"
+                      strokeWidth={3}
+                      fill="url(#colorClicks)"
+                      name="Clicks"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex items-center justify-center gap-8 mt-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                  <span className="text-sm text-muted-foreground">Impressions</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-violet-500" />
+                  <span className="text-sm text-muted-foreground">Clicks</span>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      </section>
+
+      {/* SEO vs AEO with gradient */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
+        <div className="container relative">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">SEO</span> vs <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">AEO</span>
+            </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Answer Engine Optimization is the future. While SEO focuses on search rankings, AEO ensures AI assistants cite your content.
             </p>
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <GlassCard className="overflow-hidden">
-              <div className="grid grid-cols-3 text-center font-semibold border-b border-border p-4">
+            <GlassCard className="overflow-hidden bg-gradient-to-br from-background to-muted/30">
+              <div className="grid grid-cols-3 text-center font-semibold border-b border-border p-4 bg-muted/30">
                 <div></div>
                 <div className="text-muted-foreground">Traditional SEO</div>
                 <div className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">AEO (LovelyAnswers)</div>
               </div>
               {comparisons.map((row, i) => (
-                <div key={row.feature} className={`grid grid-cols-3 text-center p-4 ${i !== comparisons.length - 1 ? "border-b border-border" : ""}`}>
+                <div key={row.feature} className={`grid grid-cols-3 text-center p-4 ${i !== comparisons.length - 1 ? "border-b border-border" : ""} hover:bg-muted/20 transition-colors`}>
                   <div className="font-medium">{row.feature}</div>
                   <div className="text-muted-foreground">{row.seo}</div>
-                  <div className="text-primary font-medium">{row.aeo}</div>
+                  <div className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-fuchsia-500 font-semibold">{row.aeo}</div>
                 </div>
               ))}
             </GlassCard>
@@ -260,8 +423,8 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20">
+      {/* Features with gradient cards */}
+      <section className="py-20 relative">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">How LovelyAnswers Works</h2>
@@ -271,10 +434,15 @@ export default function Index() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature) => (
-              <GlassCard key={feature.title} hover gradient className="p-6">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
-                  <feature.icon className="h-6 w-6 text-white" />
+            {features.map((feature, index) => (
+              <GlassCard key={feature.title} hover gradient className="p-6 group">
+                <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition-transform group-hover:scale-110 ${
+                  index === 0 ? 'bg-gradient-to-br from-primary to-violet-500' :
+                  index === 1 ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500' :
+                  index === 2 ? 'bg-gradient-to-br from-fuchsia-500 to-pink-500' :
+                  'bg-gradient-to-br from-cyan-500 to-primary'
+                }`}>
+                  <feature.icon className="h-7 w-7 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -284,9 +452,10 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Integration Logos */}
-      <section className="py-16 bg-muted/30">
-        <div className="container">
+      {/* Integration Logos with gradient background */}
+      <section className="py-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-muted/50 via-primary/5 to-muted/50" />
+        <div className="container relative">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold mb-3">Integrates with your favorite platforms</h2>
             <p className="text-muted-foreground">
@@ -298,28 +467,29 @@ export default function Index() {
             {integrationLogos.map((integration) => (
               <div 
                 key={integration.name}
-                className="group flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+                className="group flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-all hover:scale-110"
               >
-                <div className="h-12 w-20 flex items-center justify-center">
+                <div className="h-14 w-24 flex items-center justify-center rounded-xl bg-background/80 backdrop-blur-sm shadow-lg p-3">
                   <img 
                     src={integration.logo} 
                     alt={integration.name} 
-                    className={`h-10 w-auto object-contain grayscale group-hover:grayscale-0 transition-all ${integration.invert ? 'dark:invert' : ''}`}
+                    className={`h-8 w-auto object-contain grayscale group-hover:grayscale-0 transition-all ${integration.invert ? 'dark:invert' : ''}`}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">{integration.name}</span>
+                <span className="text-xs text-muted-foreground font-medium">{integration.name}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20">
-        <div className="container">
+      {/* Testimonials with company logos */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-violet-500/5 to-background" />
+        <div className="container relative">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-              <Star className="mr-1 h-3 w-3 fill-primary" />
+            <Badge className="mb-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-amber-500/30">
+              <Star className="mr-1 h-3 w-3 fill-amber-500" />
               Customer Stories
             </Badge>
             <h2 className="text-3xl font-bold mb-4">Trusted by Growth-Focused Teams</h2>
@@ -330,31 +500,40 @@ export default function Index() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {testimonials.map((testimonial, index) => (
-              <GlassCard key={index} hover className="p-6 flex flex-col">
-                <div className="flex items-center gap-1 mb-4">
+              <GlassCard key={index} hover className="p-6 flex flex-col bg-gradient-to-br from-background to-muted/30 group">
+                {/* Company Logo */}
+                <div className="h-12 mb-4 flex items-center">
+                  <img 
+                    src={testimonial.companyLogo} 
+                    alt={testimonial.company}
+                    className="h-10 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-1 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
                 
-                <Quote className="h-8 w-8 text-primary/20 mb-2" />
+                <Quote className="h-6 w-6 text-primary/30 mb-2" />
                 
-                <p className="text-sm text-muted-foreground flex-1 mb-4">
+                <p className="text-sm text-muted-foreground flex-1 mb-4 leading-relaxed">
                   "{testimonial.text}"
                 </p>
                 
                 <div className="mt-auto">
-                  <Badge variant="secondary" className="mb-4 text-xs bg-emerald-500/10 text-emerald-600 border-0">
+                  <Badge variant="secondary" className="mb-4 text-xs bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 border-emerald-500/20">
                     {testimonial.metric}
                   </Badge>
                   
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary via-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
                       {testimonial.avatar}
                     </div>
                     <div>
                       <p className="font-semibold text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground">{testimonial.role}, {testimonial.company}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                     </div>
                   </div>
                 </div>
@@ -364,9 +543,10 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
+      {/* Pricing with gradient */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-fuchsia-500/5 to-violet-500/5" />
+        <div className="container relative">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-2">Invest in Long-Term Growth</h2>
             <p className="text-sm text-muted-foreground">For smart entrepreneurs</p>
@@ -374,25 +554,26 @@ export default function Index() {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Main Plan */}
-            <GlassCard gradient className="p-8">
-              <Badge className="mb-4 bg-gradient-to-r from-primary to-violet-500 text-white border-0">All-in-One</Badge>
-              <div className="mt-2 mb-2">
+            <GlassCard gradient className="p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-3xl" />
+              <Badge className="mb-4 bg-gradient-to-r from-primary to-violet-500 text-white border-0 shadow-lg">All-in-One</Badge>
+              <div className="mt-2 mb-2 relative">
                 <span className="text-2xl text-muted-foreground line-through mr-2">$247</span>
-                <span className="text-5xl font-bold">$99</span>
+                <span className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">$99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
               <p className="text-primary font-medium text-sm mb-2">Only 34 spots left in January</p>
               <p className="text-xs text-muted-foreground mb-6">
                 We limit monthly admissions to maintain backlink quality and network balance.
               </p>
-              <Button className="w-full gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90 mb-6" size="lg" asChild>
+              <Button className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all mb-6" size="lg" asChild>
                 <Link to="/auth">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <p className="text-sm font-medium mb-4">What's included:</p>
-              <ul className="space-y-3 text-left">
+              <ul className="space-y-3 text-left relative">
                 {pricingFeatures.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
@@ -403,14 +584,14 @@ export default function Index() {
             </GlassCard>
 
             {/* Agency Plan */}
-            <GlassCard className="p-8 flex flex-col">
+            <GlassCard className="p-8 flex flex-col bg-gradient-to-br from-background to-muted/30">
               <Badge variant="secondary" className="mb-4 w-fit">For agencies</Badge>
               <h3 className="text-2xl font-bold">Agency Plan</h3>
               <p className="text-muted-foreground mt-4 flex-1">
                 For businesses which want to resell our services to their clients.
               </p>
               <div className="mt-8 space-y-3">
-                <Button variant="outline" className="w-full" size="lg" asChild>
+                <Button variant="outline" className="w-full border-2 hover:bg-primary/5" size="lg" asChild>
                   <Link to="/pricing">
                     Learn More
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -450,19 +631,23 @@ export default function Index() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
-          <GlassCard className="p-12 text-center bg-gradient-to-r from-primary to-violet-500 text-white overflow-hidden relative">
+      {/* CTA with enhanced gradient */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/30" />
+        <div className="container relative">
+          <GlassCard className="p-12 text-center overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500" />
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-            <div className="relative">
-              <h2 className="text-3xl font-bold mb-4">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+            <div className="relative text-white">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Become an AI-cited source today
               </h2>
-              <p className="text-white/80 max-w-xl mx-auto mb-8">
+              <p className="text-white/80 max-w-xl mx-auto mb-8 text-lg">
                 Join businesses optimizing for the AI-first future. Start generating citable answers in minutes.
               </p>
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl hover:scale-105 transition-all" asChild>
                 <Link to="/auth">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
