@@ -414,19 +414,6 @@ export default function AeoPlanning() {
                 <span>Generating content...</span>
               </div>
             )}
-            <Button 
-              variant="default" 
-              onClick={handlePublishAllToday}
-              disabled={isPublishingAll}
-              className="bg-violet-600 hover:bg-violet-700"
-            >
-              {isPublishingAll ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4 mr-2" />
-              )}
-              Publier aujourd'hui
-            </Button>
             <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Auto-Publish
