@@ -223,21 +223,24 @@ Deno.serve(async (req) => {
     // Parse request body for manual trigger
     let forceToday = false;
     let forceProjectId: string | null = null;
+    let targetDate: string | null = null;
     try {
       const body = await req.json();
       forceToday = body?.forceToday === true;
       forceProjectId = body?.projectId || null;
+      targetDate = body?.targetDate || null;
     } catch {
       // No body or invalid JSON - that's fine for cron calls
     }
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // Use targetDate if provided (for retroactive publishing), otherwise use today
+    const todayStr = targetDate || today.toISOString().split('T')[0];
     const currentUtcHour = today.getUTCHours();
     
     console.log(`[publish-scheduled] 🚀 Starting auto-publish`);
     console.log(`[publish-scheduled] Date: ${todayStr}, UTC Hour: ${currentUtcHour}`);
-    console.log(`[publish-scheduled] Manual trigger: forceToday=${forceToday}, projectId=${forceProjectId}`);
+    console.log(`[publish-scheduled] Manual trigger: forceToday=${forceToday}, projectId=${forceProjectId}, targetDate=${targetDate}`);
 
     // Get ALL projects with auto-publish enabled (we'll filter by timezone below)
     const { data: projectSettings, error: settingsError } = await supabase
@@ -256,21 +259,29 @@ Deno.serve(async (req) => {
     // OR if forceToday is true and projectId matches
     let projectsToPublish: ProjectSettings[] = [];
     
-    if (forceToday && forceProjectId) {
-      // Manual trigger for a specific project - bypass hour check
-      const matchingProject = (projectSettings || []).find(ps => ps.project_id === forceProjectId);
-      if (matchingProject) {
-        projectsToPublish.push(matchingProject as ProjectSettings);
-        console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Publishing for project ${forceProjectId}`);
+    if (forceToday || targetDate) {
+      // Manual trigger OR retroactive publishing - bypass hour check
+      if (forceProjectId) {
+        // Specific project
+        const matchingProject = (projectSettings || []).find(ps => ps.project_id === forceProjectId);
+        if (matchingProject) {
+          projectsToPublish.push(matchingProject as ProjectSettings);
+          console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Publishing for project ${forceProjectId}`);
+        } else {
+          projectsToPublish.push({
+            project_id: forceProjectId,
+            publish_hour: "00",
+            auto_publish_enabled: true,
+            timezone: "UTC"
+          });
+          console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Force publishing for project ${forceProjectId}`);
+        }
       } else {
-        // Project doesn't have auto_publish_enabled, but we still want to publish
-        projectsToPublish.push({
-          project_id: forceProjectId,
-          publish_hour: "00",
-          auto_publish_enabled: true,
-          timezone: "UTC"
-        });
-        console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Force publishing for project ${forceProjectId}`);
+        // All projects with auto-publish enabled
+        for (const ps of projectSettings || []) {
+          projectsToPublish.push(ps as ProjectSettings);
+        }
+        console.log(`[publish-scheduled] 🔧 RETROACTIVE: Publishing for ALL ${projectsToPublish.length} projects for date ${todayStr}`);
       }
     } else {
       // Normal cron behavior - check hour for each project's timezone
@@ -330,29 +341,45 @@ Deno.serve(async (req) => {
 
     const projectIds = projectsToPublish.map(ps => ps.project_id);
     
-    // Fetch answers scheduled for today or earlier (catch up on missed)
-    const { data: answers, error: answersError } = await supabase
+    // Fetch answers scheduled for the target date (exact match if targetDate provided)
+    let answersQuery = supabase
       .from("answers")
       .select("*")
       .in("project_id", projectIds)
-      .lte("scheduled_date", todayStr + "T23:59:59Z")
       .eq("is_public", false)
-      .not("scheduled_date", "is", null)
-      .order("scheduled_date", { ascending: true });
+      .not("scheduled_date", "is", null);
+
+    if (targetDate) {
+      // Exact date match for retroactive publishing
+      answersQuery = answersQuery.eq("scheduled_date", todayStr);
+    } else {
+      // Today or earlier for normal operation
+      answersQuery = answersQuery.lte("scheduled_date", todayStr + "T23:59:59Z");
+    }
+
+    const { data: answers, error: answersError } = await answersQuery.order("scheduled_date", { ascending: true });
 
     if (answersError) {
       console.error("[publish-scheduled] ❌ Error fetching answers:", answersError);
     }
 
-    // Fetch articles scheduled for today or earlier (catch up on missed)
-    const { data: articles, error: articlesError } = await supabase
+    // Fetch articles scheduled for the target date
+    let articlesQuery = supabase
       .from("articles")
       .select("*")
       .in("project_id", projectIds)
-      .lte("scheduled_date", todayStr + "T23:59:59Z")
       .neq("status", "published")
-      .not("scheduled_date", "is", null)
-      .order("scheduled_date", { ascending: true });
+      .not("scheduled_date", "is", null);
+
+    if (targetDate) {
+      // Exact date match for retroactive publishing
+      articlesQuery = articlesQuery.eq("scheduled_date", todayStr);
+    } else {
+      // Today or earlier for normal operation
+      articlesQuery = articlesQuery.lte("scheduled_date", todayStr + "T23:59:59Z");
+    }
+
+    const { data: articles, error: articlesError } = await articlesQuery.order("scheduled_date", { ascending: true });
 
     if (articlesError) {
       console.error("[publish-scheduled] ❌ Error fetching articles:", articlesError);
