@@ -48,14 +48,7 @@ const languages = [
   { code: "pt", name: "Português", flag: "🇧🇷", audience: "260 million" },
 ];
 
-const referralSources = [
-  { id: "google", label: "Google", icon: "G" },
-  { id: "linkedin", label: "LinkedIn", icon: "in" },
-  { id: "twitter", label: "Twitter/X", icon: "𝕏" },
-  { id: "facebook", label: "Facebook", icon: "f" },
-  { id: "friend", label: "Friend", icon: "👤" },
-  { id: "other", label: "Other", icon: "?" },
-];
+// Removed referral sources - no longer needed
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -84,7 +77,7 @@ export default function Onboarding() {
     keywords: [],
   });
 
-  const totalSteps = 6;
+  const totalSteps = 5; // URL, language, description, audience, competitors - then auth & checkout
 
   // Redirect existing users with projects to dashboard
   useEffect(() => {
@@ -279,12 +272,11 @@ export default function Onboarding() {
       case 3: return true;
       case 4: return true;
       case 5: return true;
-      case 6: return true;
       default: return false;
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateAndProceed()) return;
     
     if (currentStep < totalSteps) {
@@ -294,44 +286,50 @@ export default function Onboarding() {
       }
       setCurrentStep(currentStep + 1);
     } else {
-      // Ensure we have minimum data before completing
+      // Last step - save to localStorage and redirect to auth
       if (!data.language) updateData("language", "en");
-      handleComplete();
+      
+      // Store onboarding data in localStorage for after auth
+      localStorage.setItem('onboarding_data', JSON.stringify(data));
+      
+      // Redirect to auth signup
+      navigate("/auth?mode=signup");
     }
   };
 
-  const handleComplete = async () => {
+  // Called after user signs up and redirects back
+  const handleComplete = async (savedData: OnboardingData) => {
     setIsAnalyzing(true);
     try {
       let domain = "";
       try {
-        const urlObj = new URL(data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`);
+        const urlObj = new URL(savedData.websiteUrl.startsWith("http") ? savedData.websiteUrl : `https://${savedData.websiteUrl}`);
         domain = urlObj.hostname.replace("www.", "");
-      } catch { domain = data.websiteUrl; }
+      } catch { domain = savedData.websiteUrl; }
       
       const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
       
       const newProject = await createProject.mutateAsync({
         name: brandName,
-        website_url: data.websiteUrl,
+        website_url: savedData.websiteUrl,
         domain: domain,
-        language: data.language,
-        business_description: data.businessDescription,
+        language: savedData.language,
+        business_description: savedData.businessDescription,
         business_type: "service",
-        audience: data.targetAudiences.join(", "),
+        audience: savedData.targetAudiences.join(", "),
         brand_name: brandName,
-        example_url: data.exampleUrl || undefined,
-        competitors: data.competitors,
+        example_url: savedData.exampleUrl || undefined,
+        competitors: savedData.competitors,
       });
       
       // Save extracted keywords to database
-      if (data.keywords && data.keywords.length > 0) {
-        console.log('[ONBOARDING] Saving', data.keywords.length, 'keywords to database');
-        const keywordsToInsert = data.keywords.map(k => ({
+      if (savedData.keywords && savedData.keywords.length > 0) {
+        console.log('[ONBOARDING] Saving', savedData.keywords.length, 'keywords to database');
+        const keywordsToInsert = savedData.keywords.map(k => ({
           project_id: newProject.id,
           keyword: k.keyword,
           intent: k.intent || 'informational',
-          source_url: data.websiteUrl,
+          source_url: savedData.websiteUrl,
           is_used: false,
         }));
         
@@ -351,7 +349,7 @@ export default function Onboarding() {
         await supabase.functions.invoke('auto-generate-aeo', {
           body: { 
             projectId: newProject.id,
-            language: data.language 
+            language: savedData.language 
           }
         });
       } catch (aeoError) {
@@ -361,7 +359,8 @@ export default function Onboarding() {
       
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Redirect to checkout page
+      // Clear onboarding data and redirect to checkout
+      localStorage.removeItem('onboarding_data');
       navigate("/checkout");
     } catch (error) {
       toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
@@ -443,12 +442,11 @@ export default function Onboarding() {
               <div className="flex items-center gap-2">
                 <div className="h-4 w-1 bg-primary rounded-full" />
                 <span className="font-semibold">
-                  {currentStep === 1 && "Let's begin"}
-                  {currentStep === 2 && "Step 2"}
-                  {currentStep === 3 && "Step 3"}
-                  {currentStep === 4 && "Step 4 (Optional)"}
-                  {currentStep === 5 && "Step 5 (Optional)"}
-                  {currentStep === 6 && "Survey"}
+                  {currentStep === 1 && "Website URL"}
+                  {currentStep === 2 && "Language"}
+                  {currentStep === 3 && "Business Info"}
+                  {currentStep === 4 && "Competitors (Optional)"}
+                  {currentStep === 5 && "Brand (Optional)"}
                 </span>
               </div>
               <span className="text-muted-foreground text-sm">Step {currentStep} of {totalSteps}</span>
@@ -629,6 +627,7 @@ export default function Onboarding() {
                   <div className="space-y-6">
                     <div>
                       <h1 className="text-3xl font-bold tracking-tight">Customize Your Brand</h1>
+                      <p className="text-muted-foreground mt-2">Optional - personalize your content styling.</p>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-1">
                       <p className="text-sm">• <strong>Brand color</strong> is used to style your articles</p>
@@ -658,31 +657,6 @@ export default function Onboarding() {
                   </div>
                 )}
 
-                {currentStep === 6 && (
-                  <div className="space-y-6">
-                    <div>
-                      <h1 className="text-3xl font-bold tracking-tight">How did you hear about AeoRocket?</h1>
-                      <p className="text-muted-foreground mt-2">Your answer helps us improve our marketing strategies.</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {referralSources.map((source) => (
-                        <button
-                          key={source.id}
-                          onClick={() => updateData("referralSource", source.id)}
-                          className={cn(
-                            "flex items-center justify-center gap-2 p-4 rounded-xl border transition-all",
-                            data.referralSource === source.id
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50"
-                          )}
-                        >
-                          <span className="text-lg">{source.icon}</span>
-                          <span className="font-medium">{source.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             </AnimatePresence>
 
@@ -692,7 +666,7 @@ export default function Onboarding() {
               disabled={!canProceed()}
               className="w-full h-14 mt-8 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
             >
-              Continue
+              {currentStep === totalSteps ? "Create Account & Continue" : "Continue"}
               <ArrowRight className="h-5 w-5" />
             </Button>
           </div>

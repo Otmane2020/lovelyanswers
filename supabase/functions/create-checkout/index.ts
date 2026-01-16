@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRICE_ID = "price_1Sks8AEfti9t9nN9ehp1o79Y"; // All-in-One $99/month
+const PRICE_ID = "price_1SqLNNEfti9t9nN9WpZtChEW"; // LovelyAnswers Weekly $29/week
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
