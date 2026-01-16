@@ -16,13 +16,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { cn } from "@/lib/utils";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 
 const highlights = [
-  "Unlimited AEO Answers",
-  "30 SEO articles/month",
-  "Automatic backlinks",
-  "GEO Audit & Reddit",
+  "30 AEO LovelyAnswers",
+  "30 AEO/SEO articles",
+  "Keyword research",
+  "Auto-publishing",
   "20+ languages",
 ];
 
@@ -36,6 +37,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
   const [isLoading, setIsLoading] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"weekly" | "annual">("weekly");
   const [aeoExamples, setAeoExamples] = useState<AeoExample[]>([]);
   const [brandName, setBrandName] = useState<string>("");
 
@@ -117,7 +119,9 @@ export default function Checkout() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: billingCycle }
+      });
       
       if (error || !data?.url) {
         console.error("Checkout error:", error);
@@ -154,17 +158,23 @@ export default function Checkout() {
     );
   }
 
+  // Pricing calculations
+  const weeklyPrice = 29;
+  const annualPrice = 1206; // $29 × 52 × 0.8 = $1,206.40 rounded
+  const annualMonthlyEquiv = Math.round(annualPrice / 12);
+  const weeklySavings = Math.round((weeklyPrice * 52 - annualPrice));
+
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-0">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
               <Heart className="h-5 w-5 text-white fill-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
+              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           </Link>
           <Button
@@ -239,21 +249,67 @@ export default function Checkout() {
 
             {/* Card */}
             <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold tracking-tight mb-2">
                   Start Your Free Trial
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  3 days free, then $29/week
+                  3 days free, cancel anytime
                 </p>
               </div>
 
-              {/* Price */}
-              <div className="flex items-baseline justify-center gap-2 mb-8">
-                <span className="text-lg text-muted-foreground line-through">$99</span>
-                <span className="text-5xl font-bold">$29</span>
-                <span className="text-muted-foreground">/week</span>
+              {/* Billing Toggle */}
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <button
+                  onClick={() => setBillingCycle("weekly")}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    billingCycle === "weekly"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setBillingCycle("annual")}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all relative",
+                    billingCycle === "annual"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Annual
+                  <span className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500 text-white rounded-full">
+                    -20%
+                  </span>
+                </button>
               </div>
+
+              {/* Price */}
+              {billingCycle === "weekly" ? (
+                <div className="text-center mb-6">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold">${weeklyPrice}</span>
+                    <span className="text-muted-foreground">/week</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ${weeklyPrice * 4}/month equivalent
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center mb-6">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-lg text-muted-foreground line-through">${weeklyPrice * 52}</span>
+                    <span className="text-5xl font-bold">${annualPrice}</span>
+                    <span className="text-muted-foreground">/year</span>
+                  </div>
+                  <p className="text-sm text-emerald-600 font-medium mt-1">
+                    Save ${weeklySavings}/year • ${annualMonthlyEquiv}/month
+                  </p>
+                </div>
+              )}
 
               {/* CTA Button */}
               <Button 
@@ -325,7 +381,7 @@ export default function Checkout() {
             </>
           ) : (
             <>
-              Start Free Trial
+              Start Free Trial ({billingCycle === "weekly" ? `$${weeklyPrice}/week` : `$${annualPrice}/year`})
               <ArrowRight className="h-5 w-5" />
             </>
           )}
