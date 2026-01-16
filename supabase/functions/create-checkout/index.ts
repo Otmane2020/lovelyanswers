@@ -7,7 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRICE_ID = "price_1SqLQnEfti9t9nN9FABsGTDW"; // LovelyAnswers Weekly $29/week - 30 AEO + 30 Articles
+const PRICE_WEEKLY = "price_1SqLQnEfti9t9nN9FABsGTDW"; // LovelyAnswers Weekly $29/week
+const PRICE_ANNUAL = "price_1SqLRmEfti9t9nN9KqByqw5P"; // LovelyAnswers Annual $1,206/year (-20%)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -32,6 +33,18 @@ serve(async (req) => {
 
     console.log("[CREATE-CHECKOUT] User authenticated:", user.email);
 
+    // Get plan from request body
+    let plan = "weekly";
+    try {
+      const body = await req.json();
+      plan = body.plan || "weekly";
+    } catch {
+      // Default to weekly if no body
+    }
+
+    const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_WEEKLY;
+    console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId);
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -44,7 +57,7 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Existing customer found:", customerId);
     }
 
-    const origin = req.headers.get("origin") || "https://aeoreply.lovable.dev";
+    const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
 
     // Create checkout session with 3-day trial and promo codes enabled
     const session = await stripe.checkout.sessions.create({
@@ -52,7 +65,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
