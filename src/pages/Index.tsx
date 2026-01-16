@@ -1,7 +1,9 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
+import { Input } from "@/components/ui/input";
 import {
   Heart,
   ArrowRight,
@@ -16,6 +18,12 @@ import {
   TrendingUp,
   Search,
   BarChart3,
+  X,
+  Zap,
+  Users,
+  Clock,
+  ExternalLink,
+  ChevronRight,
 } from "lucide-react";
 import {
   Accordion,
@@ -24,14 +32,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -54,80 +54,140 @@ import companyGrowthlab from "@/assets/company-growthlab.png";
 import companyNexus from "@/assets/company-nexus.png";
 import companyNordic from "@/assets/company-nordic.png";
 
-const features = [
+const stats = [
+  { value: "216%", label: "Avg Traffic Increase" },
+  { value: "527+", label: "Businesses Growing" },
+  { value: "Zero", label: "Technical Skills Needed" },
+];
+
+const testimonialsTweets = [
   {
-    icon: Sparkles,
-    title: "AEO Answer Generator",
-    description: "Generate AI-ready, citable answers optimized for LLM understanding",
+    name: "Mike",
+    handle: "@MikeRoofingDFW",
+    role: "Roofing Company Owner",
+    date: "Oct 28, 2025",
+    text: "Honestly thought \"another SEO tool that won't deliver.\" Started in June anyway. Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service. If you run a local service biz, try this. You'll stop wasting time on content.",
   },
   {
-    icon: Globe,
-    title: "Public Answer Hub",
-    description: "Indexable answer pages that AI assistants can discover and cite",
+    name: "David",
+    handle: "@davidmakees",
+    role: "SaaS Founder",
+    date: "Sep 15, 2025",
+    text: "I'm bootstrapping, so it's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
   },
   {
-    icon: Target,
-    title: "AI Platform Targeting",
-    description: "Optimize for ChatGPT, Gemini, Claude, Perplexity & Copilot",
+    name: "Amanda",
+    handle: "@AmandaEcomLife",
+    role: "Online Store Owner",
+    date: "Aug 3, 2025",
+    text: "Was scared AI content would tank my rankings. Opposite happened. Went from page 3 to page 1 for 12+ keywords in 8 weeks. The keyword research is genuinely smart - finds gaps competitors miss. Any e-commerce owner: this beats hiring writers. Your SEO will thank you.",
   },
   {
-    icon: FileText,
-    title: "LLMs.txt Generation",
-    description: "Auto-generate machine-readable files for AI crawlers",
+    name: "Ryan",
+    handle: "@RyanGrowthCo",
+    role: "Agency Owner",
+    date: "Jul 12, 2025",
+    text: "Burned through $1,200/mo on Jasper + Surfer + SEMrush. Results were meh. Tried this expecting nothing. Canceled all 3 tools, now paying $29/week and getting better rankings. Saved $13,800 this year.",
+  },
+  {
+    name: "Jessica",
+    handle: "@JessicaWrites_",
+    role: "Blogger",
+    date: "Jun 21, 2025",
+    text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results! ⚡",
+  },
+  {
+    name: "Tom",
+    handle: "@TomLocalBiz",
+    role: "Local Business Owner",
+    date: "May 17, 2025",
+    text: "Set it up once with the WordPress plugin, and now articles just appear on my site every day. Like having a full-time content team for $29/week.",
   },
 ];
 
-const aiPlatforms = [
-  { name: "ChatGPT", logo: chatgptLogo },
-  { name: "Gemini", logo: geminiLogo },
-  { name: "Claude", logo: claudeLogo },
-  { name: "Perplexity", logo: perplexityLogo },
+const comparisonWithout = [
+  "Your business: Not mentioned",
+  "AI doesn't know you exist",
+  "Lost customer to competitor",
+  "They click on someone else",
 ];
 
-const comparisons = [
-  { feature: "Focus", seo: "Search rankings", aeo: "AI citations" },
-  { feature: "Content", seo: "Keywords & backlinks", aeo: "Answers & structure" },
-  { feature: "Goal", seo: "Google traffic", aeo: "LLM recommendations" },
-  { feature: "Format", seo: "Long-form pages", aeo: "Citable answers" },
+const comparisonWith = [
+  "Your business: Top recommendation",
+  "AI knows you're the expert",
+  "Customer clicks to YOUR site",
+  "They trust AI's top pick",
+];
+
+const aiStats = [
+  { value: "67%", label: "of people now start with AI search", source: "Gartner Research 2024" },
+  { value: "3x", label: "more clicks than position #2 on Google", source: "AI recommendations convert better" },
+  { value: "319%+", label: "traffic gains for first movers", source: "Early adopters winning big" },
+];
+
+const steps = [
+  {
+    number: "1",
+    title: "Deep Research on YOUR Business",
+    description: "Our AI studies your business, customers, and competitors",
+    example: "For 'Dallas Electrician': We discover people search 'smart thermostat installation' NOT just 'electrician near me'",
+    badge: "Analyzes 500+ competitor keywords",
+  },
+  {
+    number: "2",
+    title: "Write 1 Expert Article Daily",
+    description: "High-quality content that solves real customer problems",
+    example: "Not fluff. Articles like '5 Signs Your Circuit Breaker is Dangerous' that build trust",
+    badge: "1,500-2,500 words avg",
+  },
+  {
+    number: "3",
+    title: "Get 100 Domain Authority worth of Backlinks Monthly (Autopilot)",
+    description: "Other trusted sites mention and link to your articles",
+    example: "Like getting public votes of confidence",
+    badge: "Strict ZERO spam policy",
+  },
+  {
+    number: "4",
+    title: "Watch Traffic Explode",
+    description: "AI chatbots recommend you. Google ranks you higher.",
+    example: "More customers find you organically = $0 ad spend",
+    badge: "216% avg traffic increase",
+  },
 ];
 
 const pricingFeatures = [
-  "30 SEO/LLM optimized articles automatically generated and published",
-  "Articles with citations, internal links and branded infographics",
-  "Automatic quality backlinks (valued at $800+ per month) through our exclusive network of 1,000+ vetted partner sites",
-  "We find technical issues on your website that block Google and ChatGPT from properly reading and ranking your site",
-  "Articles backed by real-time research and expert insights",
-  "Automated keyword research and SERP-based clustering",
-  "Reddit agent that builds your brand visibility and authority",
-  "Integrates with WordPress, Webflow, Shopify, Wix, API and many other platforms",
-  "JSON-LD schema markup for featured snippets",
-  "Articles available in 20+ languages (purchase option available)",
+  "30 SEO-optimized articles",
+  "100 Domain Authority worth of high-authority backlinks",
+  "Keyword research & competitor analysis",
+  "WordPress auto-publishing",
+  "Custom images & infographics",
 ];
 
 const faqs = [
   {
-    question: "What is Answer Engine Optimization (AEO)?",
-    answer: "AEO is a new approach to content optimization that focuses on making your content citable by AI assistants like ChatGPT, Gemini, Claude, and Perplexity. Unlike traditional SEO which targets search engine rankings, AEO ensures AI models understand and recommend your content to users.",
+    question: "Can I really cancel anytime?",
+    answer: "Yes, 1-click cancellation. No questions asked, no hidden fees.",
   },
   {
-    question: "How does LovelyAnswers generate content?",
-    answer: "LovelyAnswers uses advanced AI to analyze your business, industry, and target audience. It then generates SEO/LLM optimized articles backed by real-time research, complete with citations, internal links, and branded infographics - all automatically published to your site.",
+    question: "Do I need technical skills?",
+    answer: "No, we handle everything. Just enter your website URL and we do the rest.",
   },
   {
-    question: "What platforms does LovelyAnswers integrate with?",
-    answer: "LovelyAnswers integrates with WordPress, Webflow, Shopify, Wix, and offers an API for custom integrations. Setup takes just a few minutes and content is automatically published to your platform.",
+    question: "Will this work for my industry?",
+    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
   },
   {
-    question: "How do the backlinks work?",
-    answer: "Through our exclusive network, we provide automatic quality backlinks valued at $800+ per month. We limit monthly admissions to maintain backlink quality and network balance, ensuring maximum value for all members.",
+    question: "Is the content actually good, or just AI spam?",
+    answer: "We're anti-robot. Our motto: \"If you wouldn't share it on LinkedIn, it's not good enough.\" Every article: 1,500+ words, expert-level, with sources and infographics.",
   },
   {
-    question: "Can I try LovelyAnswers before committing?",
-    answer: "Yes! We offer a 3-day free trial so you can experience the full power of LovelyAnswers. No credit card required to start. Cancel anytime if it's not the right fit.",
+    question: "I've been burned by SEO agencies before.",
+    answer: "Unlike agencies that keep you in the dark: See every article before it publishes, track every backlink we build, dashboard updates in real-time. You're in control, we do the work.",
   },
   {
-    question: "What languages are supported?",
-    answer: "LovelyAnswers generates articles in 20+ languages, allowing you to reach global audiences and optimize for AI assistants in multiple regions.",
+    question: "Will AI content hurt my Google rankings?",
+    answer: "Google cares about quality, not who wrote it. Our AI-assisted content follows E-E-A-T guidelines and is reviewed for accuracy. Many clients see rankings improve within weeks.",
   },
 ];
 
@@ -141,60 +201,15 @@ const integrationLogos = [
   { name: "BigCommerce", logo: bigcommerceLogo, invert: true },
 ];
 
-const testimonials = [
-  {
-    name: "Sarah Mitchell",
-    role: "Marketing Director",
-    company: "TechFlow Solutions",
-    companyLogo: companyTechflow,
-    avatar: "SM",
-    rating: 5,
-    text: "LovelyAnswers has completely transformed our content strategy. We went from 0 AI citations to being recommended by ChatGPT within 3 weeks. Our organic traffic increased by 340%.",
-    metric: "+340% organic traffic",
-  },
-  {
-    name: "Marc Dubois",
-    role: "Founder & CEO",
-    company: "GrowthLab Agency",
-    companyLogo: companyGrowthlab,
-    avatar: "MD",
-    rating: 5,
-    text: "As an agency, we've integrated LovelyAnswers for all our clients. The ROI is incredible - backlinks alone would cost us 10x more elsewhere. Game changer for AEO.",
-    metric: "10x ROI on backlinks",
-  },
-  {
-    name: "Emily Chen",
-    role: "Head of SEO",
-    company: "Nexus Digital",
-    companyLogo: companyNexus,
-    avatar: "EC",
-    rating: 5,
-    text: "We were skeptical about AEO at first, but the results speak for themselves. Our brand is now cited by Gemini and Perplexity. The automated article generation saves us 40 hours/week.",
-    metric: "40 hours saved weekly",
-  },
-  {
-    name: "Thomas Bergman",
-    role: "E-commerce Manager",
-    company: "Nordic Brands Co",
-    companyLogo: companyNordic,
-    avatar: "TB",
-    rating: 5,
-    text: "Integration with Shopify was seamless. Within a month, our product pages started appearing in AI-generated shopping recommendations. Sales from AI referrals are now 15% of total.",
-    metric: "15% sales from AI",
-  },
-];
-
-// Sample traffic data for the showcase
-const trafficData = [
-  { month: "Jan", impressions: 2400, clicks: 180 },
-  { month: "Feb", impressions: 3600, clicks: 290 },
-  { month: "Mar", impressions: 5800, clicks: 480 },
-  { month: "Apr", impressions: 8200, clicks: 720 },
-  { month: "May", impressions: 12400, clicks: 1100 },
-  { month: "Jun", impressions: 18600, clicks: 1680 },
-];
-
 export default function Index() {
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    // Navigate to onboarding with URL pre-filled
+    navigate(`/onboarding?url=${encodeURIComponent(websiteUrl)}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -208,7 +223,6 @@ export default function Index() {
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           </Link>
-          {/* Desktop navigation */}
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" asChild>
               <Link to="/pricing">Pricing</Link>
@@ -223,7 +237,6 @@ export default function Index() {
               </Link>
             </Button>
           </div>
-          {/* Mobile navigation */}
           <div className="flex md:hidden items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/auth">Login</Link>
@@ -232,383 +245,476 @@ export default function Index() {
         </div>
       </nav>
 
-      {/* Hero with gradient background */}
-      <section className="relative overflow-hidden pt-32 pb-20">
-        {/* Animated gradient background */}
+      {/* Hero Section with URL Input */}
+      <section className="relative overflow-hidden pt-24 md:pt-32 pb-12 md:pb-20">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[120px] animate-pulse" />
           <div className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] bg-gradient-to-br from-fuchsia-500/20 to-primary/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-violet-500/10 to-cyan-500/10 rounded-full blur-[150px]" />
         </div>
-        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         
-        <div className="container relative">
+        <div className="container relative px-4">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge className="mb-6 bg-gradient-to-r from-primary/20 to-violet-500/20 text-primary border-primary/30 backdrop-blur-sm">
-              <Bot className="mr-1 h-3 w-3" />
-              Answer Engine Optimization
+            {/* Urgency Badge */}
+            <Badge className="mb-4 md:mb-6 bg-amber-500/10 text-amber-600 border-amber-500/30">
+              <Clock className="mr-1 h-3 w-3" />
+              ⏰ You're 2.5 years behind competitors who do SEO
             </Badge>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight px-2">
-              Be cited by{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 animate-gradient">
-                ChatGPT, Gemini
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 md:mb-6">
+              Get Found & Recommended by{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500">
+                ChatGPT, Perplexity
               </span>
-              {" "}& AI assistants
+              {" "}AND Google
             </h1>
             
-            <p className="mt-4 md:mt-6 text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-              Generate AI-ready answers that LLMs trust and cite. Turn your website into a trusted source for the next generation of search.
+            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8 px-4">
+              📚 We catch you up with 1 expert article daily + building trust (backlinks).
+              <br className="hidden md:block" />
+              Get more customers from ChatGPT & Google on autopilot 👇
             </p>
 
-            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
-              <Button size="lg" className="w-full sm:w-auto gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg px-6 md:px-8" asChild>
-                <Link to="/auth?mode=signup">
-                  Start Free Trial
+            {/* URL Input Section */}
+            <div className="max-w-xl mx-auto mb-6 md:mb-8">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    placeholder="https://yourwebsite.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    className="pl-12 h-14 text-base md:text-lg border-2 border-primary/20 focus:border-primary"
+                  />
+                </div>
+                <Button 
+                  size="lg" 
+                  className="h-14 px-6 md:px-8 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg whitespace-nowrap"
+                  onClick={handleGetStarted}
+                >
+                  Get 3 Articles + 30-Day Plan
                   <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 border-2 hover:bg-primary/5">
-                Watch Demo
-              </Button>
+                </Button>
+              </div>
             </div>
 
-            {/* AI Platform logos */}
-            <div className="mt-12 md:mt-16">
-              <p className="text-xs md:text-sm text-muted-foreground mb-4 md:mb-6">Optimized for leading AI platforms</p>
-              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 lg:gap-12 px-4">
-                {aiPlatforms.map((platform) => (
-                  <div key={platform.name} className="group flex flex-col items-center gap-1 md:gap-2">
-                    <div className="h-12 w-12 md:h-16 md:w-16 flex items-center justify-center rounded-xl md:rounded-2xl bg-gradient-to-br from-muted/50 to-muted p-2 md:p-3 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all">
-                      <img 
-                        src={platform.logo} 
-                        alt={platform.name} 
-                        className="h-8 w-8 md:h-10 md:w-10 object-contain"
-                      />
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{platform.name}</span>
-                  </div>
-                ))}
-              </div>
+            {/* Stats Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 mb-8 md:mb-12">
+              {stats.map((stat) => (
+                <div key={stat.label} className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm md:text-base">
+                    <span className="font-bold text-foreground">{stat.value}</span>
+                    <span className="text-muted-foreground ml-1">{stat.label}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Google Search Console Traffic Showcase */}
+      {/* Example Article Card */}
+      <section className="py-8 md:py-16 relative">
+        <div className="container px-4">
+          <div className="max-w-4xl mx-auto">
+            <GlassCard className="p-4 md:p-8 bg-gradient-to-br from-background to-muted/30 overflow-hidden">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs md:text-sm font-medium">
+                  <FileText className="h-3 w-3" />
+                  Example Article
+                </div>
+                <Badge variant="secondary" className="text-xs">Private home care provider</Badge>
+              </div>
+              
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Keyword: dementia • 1,564 words + custom infographic</p>
+                  <h3 className="text-lg md:text-xl font-bold">Dementia Home Care: A Comprehensive Guide to Navigating Symptoms and Stages</h3>
+                </div>
+              </div>
+              
+              <p className="text-sm md:text-base text-muted-foreground mb-4 line-clamp-3">
+                When a loved one's behavior begins to change and forgetfulness becomes a daily reality, it's natural to feel worried and uncertain. A dementia diagnosis can be shocking, but with the right knowledge and support, you can provide dignified and loving care...
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>Created: Jan 16, 2026</span>
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                    "Your Money Your Life"-Compliant
+                  </Badge>
+                </div>
+                <Button variant="outline" size="sm" className="gap-1">
+                  Read Example
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials - Tweet Style */}
       <section className="py-12 md:py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
         <div className="container relative px-4">
           <div className="text-center mb-8 md:mb-12">
-            <Badge className="mb-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-              <Search className="mr-1 h-3 w-3" />
-              Real Results
-            </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 px-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">Google Search Console</span> Potential
-            </h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
-              See how AEO-optimized content drives exponential growth in impressions and clicks
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Real Businesses. Real Growth. Real Fast.</h2>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+              We used to grow enterprises like Vodafone (+62% conversion). Now we help small businesses grow.
+              <br />
+              Same $10,000/month expertise for <span className="line-through">$400</span> <span className="text-primary font-bold">$29/week</span>.
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <GlassCard className="p-4 md:p-8 bg-gradient-to-br from-background to-muted/30">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-white" />
+          {/* Company Logos */}
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 mb-8 md:mb-12 opacity-60">
+            {integrationLogos.slice(0, 5).map((logo) => (
+              <img 
+                key={logo.name}
+                src={logo.logo} 
+                alt={logo.name}
+                className={`h-6 md:h-8 w-auto object-contain grayscale ${logo.invert ? 'dark:invert' : ''}`}
+              />
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {testimonialsTweets.map((tweet, index) => (
+              <GlassCard key={index} className="p-4 md:p-6 bg-gradient-to-br from-background to-muted/30">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white font-bold">
+                    {tweet.name[0]}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm md:text-base">Traffic Growth</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground">Last 6 months</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{tweet.name}</span>
+                      <span className="text-xs text-muted-foreground">{tweet.handle}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{tweet.role}</p>
                   </div>
+                  <span className="text-xs text-muted-foreground">{tweet.date}</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-emerald-500/10">
-                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
-                  <span className="text-xs md:text-sm font-semibold text-emerald-600">+675% impressions</span>
-                </div>
-              </div>
-
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trafficData}>
-                    <defs>
-                      <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(271, 91%, 65%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="impressions"
-                      stroke="hsl(160, 84%, 39%)"
-                      strokeWidth={3}
-                      fill="url(#colorImpressions)"
-                      name="Impressions"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="clicks"
-                      stroke="hsl(271, 91%, 65%)"
-                      strokeWidth={3}
-                      fill="url(#colorClicks)"
-                      name="Clicks"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="flex items-center justify-center gap-4 md:gap-8 mt-4 md:mt-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-500" />
-                  <span className="text-xs md:text-sm text-muted-foreground">Impressions</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-violet-500" />
-                  <span className="text-xs md:text-sm text-muted-foreground">Clicks</span>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
-        </div>
-      </section>
-
-      {/* SEO vs AEO with gradient */}
-      <section className="py-12 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
-        <div className="container relative px-4">
-          <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 px-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">SEO</span> vs <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">AEO</span>
-            </h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
-              Answer Engine Optimization is the future. While SEO focuses on search rankings, AEO ensures AI assistants cite your content.
-            </p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            <GlassCard className="overflow-hidden bg-gradient-to-br from-background to-muted/30">
-              <div className="grid grid-cols-3 text-center font-semibold border-b border-border p-3 md:p-4 bg-muted/30">
-                <div></div>
-                <div className="text-xs md:text-sm text-muted-foreground">Traditional SEO</div>
-                <div className="text-xs md:text-sm text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">AEO</div>
-              </div>
-              {comparisons.map((row, i) => (
-                <div key={row.feature} className={`grid grid-cols-3 text-center p-3 md:p-4 ${i !== comparisons.length - 1 ? "border-b border-border" : ""} hover:bg-muted/20 transition-colors`}>
-                  <div className="text-xs md:text-sm font-medium">{row.feature}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">{row.seo}</div>
-                  <div className="text-xs md:text-sm text-transparent bg-clip-text bg-gradient-to-r from-primary to-fuchsia-500 font-semibold">{row.aeo}</div>
-                </div>
-              ))}
-            </GlassCard>
-          </div>
-        </div>
-      </section>
-
-      {/* Features with gradient cards */}
-      <section className="py-12 md:py-20 relative">
-        <div className="container px-4">
-          <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">How LovelyAnswers Works</h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
-              A complete platform to make your content AI-citable
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
-            {features.map((feature, index) => (
-              <GlassCard key={feature.title} hover gradient className="p-4 md:p-6 group">
-                <div className={`mb-3 md:mb-4 flex h-10 w-10 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl shadow-lg transition-transform group-hover:scale-110 ${
-                  index === 0 ? 'bg-gradient-to-br from-primary to-violet-500' :
-                  index === 1 ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500' :
-                  index === 2 ? 'bg-gradient-to-br from-fuchsia-500 to-pink-500' :
-                  'bg-gradient-to-br from-cyan-500 to-primary'
-                }`}>
-                  <feature.icon className="h-5 w-5 md:h-7 md:w-7 text-white" />
-                </div>
-                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">{feature.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground">{feature.description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{tweet.text}</p>
               </GlassCard>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Integration Logos with gradient background */}
-      <section className="py-12 md:py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-muted/50 via-primary/5 to-muted/50" />
-        <div className="container relative px-4">
-          <div className="text-center mb-8 md:mb-10">
-            <h2 className="text-xl md:text-2xl font-bold mb-2 md:mb-3">Integrates with your favorite platforms</h2>
-            <p className="text-sm md:text-base text-muted-foreground px-4">
-              Connect LovelyAnswers with your CMS and publish content automatically
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 lg:gap-12">
-            {integrationLogos.map((integration) => (
-              <div 
-                key={integration.name}
-                className="group flex flex-col items-center gap-1 md:gap-2 opacity-70 hover:opacity-100 transition-all hover:scale-110"
-              >
-                <div className="h-10 w-16 md:h-14 md:w-24 flex items-center justify-center rounded-lg md:rounded-xl bg-background/80 backdrop-blur-sm shadow-lg p-2 md:p-3">
-                  <img 
-                    src={integration.logo} 
-                    alt={integration.name} 
-                    className={`h-5 md:h-8 w-auto object-contain grayscale group-hover:grayscale-0 transition-all ${integration.invert ? 'dark:invert' : ''}`}
-                  />
-                </div>
-                <span className="text-[10px] md:text-xs text-muted-foreground font-medium">{integration.name}</span>
-              </div>
-            ))}
+          <div className="text-center mt-8">
+            <p className="text-sm text-muted-foreground mb-4">Join 527+ businesses growing on autopilot</p>
+            <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
+              <Link to="/auth?mode=signup">
+                Start Growing Like They Did
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Testimonials with company logos */}
+      {/* AI Comparison Section */}
       <section className="py-12 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-violet-500/5 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-background to-emerald-500/5" />
         <div className="container relative px-4">
           <div className="text-center mb-8 md:mb-12">
-            <Badge className="mb-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-amber-500/30">
-              <Star className="mr-1 h-3 w-3 fill-amber-500" />
-              Customer Stories
-            </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Trusted by Growth-Focused Teams</h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
-              See how businesses are leveraging LovelyAnswers to dominate AI search results
-            </p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">While You Read This, AI is Recommending Your Competitors</h2>
           </div>
 
-          <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {testimonials.map((testimonial, index) => (
-              <GlassCard key={index} hover className="p-4 md:p-6 flex flex-col bg-gradient-to-br from-background to-muted/30 group">
-                {/* Company Logo */}
-                <div className="h-10 md:h-12 mb-3 md:mb-4 flex items-center">
-                  <img 
-                    src={testimonial.companyLogo} 
-                    alt={testimonial.company}
-                    className="h-8 md:h-10 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto mb-12">
+            {/* Without LovelyAnswers */}
+            <GlassCard className="p-6 border-red-500/20 bg-gradient-to-br from-red-500/5 to-background">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <Bot className="h-5 w-5 text-white" />
                 </div>
-                
-                <div className="flex items-center gap-1 mb-2 md:mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-3 w-3 md:h-4 md:w-4 fill-amber-400 text-amber-400" />
-                  ))}
+                <div>
+                  <h3 className="font-semibold">ChatGPT</h3>
+                  <p className="text-xs text-muted-foreground">AI Assistant</p>
                 </div>
-                
-                <Quote className="h-5 w-5 md:h-6 md:w-6 text-primary/30 mb-2" />
-                
-                <p className="text-xs md:text-sm text-muted-foreground flex-1 mb-3 md:mb-4 leading-relaxed line-clamp-4 md:line-clamp-none">
-                  "{testimonial.text}"
-                </p>
-                
-                <div className="mt-auto">
-                  <Badge variant="secondary" className="mb-3 md:mb-4 text-[10px] md:text-xs bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 border-emerald-500/20">
-                    {testimonial.metric}
-                  </Badge>
-                  
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-primary via-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-xs md:text-sm font-semibold shadow-lg">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-xs md:text-sm">{testimonial.name}</p>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing with gradient */}
-      <section className="py-12 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-fuchsia-500/5 to-violet-500/5" />
-        <div className="container relative px-4">
-          <div className="text-center mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Invest in Long-Term Growth</h2>
-            <p className="text-xs md:text-sm text-muted-foreground">For smart entrepreneurs</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-            {/* Main Plan */}
-            <GlassCard gradient className="p-4 md:p-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-3xl" />
-              <Badge className="mb-3 md:mb-4 bg-gradient-to-r from-primary to-violet-500 text-white border-0 shadow-lg">All-in-One</Badge>
-              <div className="mt-2 mb-2 relative">
-                <span className="text-lg md:text-2xl text-muted-foreground line-through mr-2">$247</span>
-                <span className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">$99</span>
-                <span className="text-sm md:text-base text-muted-foreground">/month</span>
               </div>
-              <p className="text-primary font-medium text-xs md:text-sm mb-2">Only 34 spots left in January</p>
-              <p className="text-[10px] md:text-xs text-muted-foreground mb-4 md:mb-6">
-                We limit monthly admissions to maintain backlink quality and network balance.
-              </p>
-              <Button className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all mb-4 md:mb-6 text-sm md:text-base" size="lg" asChild>
-                <Link to="/auth">
-                  Start 3-Day Free Trial
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <p className="text-xs md:text-sm font-medium mb-3 md:mb-4">What's included:</p>
-              <ul className="space-y-2 md:space-y-3 text-left relative">
-                {pricingFeatures.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 md:h-5 md:w-5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span className="text-xs md:text-sm">{item}</span>
+              <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium mb-2">What's the best roofing company in Dallas?</p>
+                <p className="text-sm text-muted-foreground mb-2">Based on customer reviews and industry reputation, here are the top roofing companies in Dallas:</p>
+                <ol className="text-sm space-y-1">
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold">1.</span>
+                    <span>CompetitorRoof Pro - Highly rated, 20+ years experience</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold">2.</span>
+                    <span>RivalRoofing Solutions - Excellent warranty options</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold">3.</span>
+                    <span>OtherCompany Roofing - Fast response times</span>
+                  </li>
+                </ol>
+              </div>
+              <Badge variant="destructive" className="mb-3">WITHOUT LovelyAnswers</Badge>
+              <ul className="space-y-2">
+                {comparisonWithout.map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <X className="h-4 w-4 text-red-500" />
+                    {item}
                   </li>
                 ))}
               </ul>
             </GlassCard>
 
-            {/* Agency Plan */}
-            <GlassCard className="p-4 md:p-8 flex flex-col bg-gradient-to-br from-background to-muted/30">
-              <Badge variant="secondary" className="mb-3 md:mb-4 w-fit text-xs">For agencies</Badge>
-              <h3 className="text-xl md:text-2xl font-bold">Agency Plan</h3>
-              <p className="text-sm md:text-base text-muted-foreground mt-3 md:mt-4 flex-1">
-                For businesses which want to resell our services to their clients.
-              </p>
-              <div className="mt-6 md:mt-8 space-y-3">
-                <Button variant="outline" className="w-full border-2 hover:bg-primary/5 text-sm md:text-base" size="lg" asChild>
-                  <Link to="/pricing">
-                    Learn More
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button variant="ghost" className="w-full text-muted-foreground text-sm" asChild>
-                  <a href="#case-study">View Case Study</a>
-                </Button>
+            {/* With LovelyAnswers */}
+            <GlassCard className="p-6 border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-background">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <Bot className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">ChatGPT</h3>
+                  <p className="text-xs text-muted-foreground">AI Assistant</p>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium mb-2">What's the best roofing company in Dallas?</p>
+                <p className="text-sm text-muted-foreground mb-2">Based on customer reviews and industry reputation, here are the top roofing companies in Dallas:</p>
+                <ol className="text-sm space-y-1">
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold text-primary">1.</span>
+                    <span className="font-semibold text-primary">YOUR BUSINESS - Top-rated service, expert team</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold">2.</span>
+                    <span>CompetitorRoof Pro - Also well reviewed</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="font-bold">3.</span>
+                    <span>RivalRoofing Solutions - Good local option</span>
+                  </li>
+                </ol>
+              </div>
+              <Badge className="mb-3 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">WITH LovelyAnswers</Badge>
+              <ul className="space-y-2">
+                {comparisonWith.map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          </div>
+
+          {/* AI Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
+            {aiStats.map((stat) => (
+              <GlassCard key={stat.label} className="p-6 text-center">
+                <p className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500 mb-2">{stat.value}</p>
+                <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                <p className="text-xs text-muted-foreground/70">{stat.source}</p>
+              </GlassCard>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Button size="lg" className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl" asChild>
+              <Link to="/auth?mode=signup">
+                Start Getting AI Traffic
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground mt-2">Every day you wait, your competitors get further ahead.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works - 4 Steps */}
+      <section className="py-12 md:py-20 relative">
+        <div className="container px-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Your Growth Engine: From Research to Revenue in 4 Simple Steps</h2>
+          </div>
+
+          <div className="grid gap-6 md:gap-8 max-w-4xl mx-auto">
+            {steps.map((step, index) => (
+              <GlassCard key={step.number} className="p-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-2xl" />
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white font-bold text-xl">
+                    {step.number}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg md:text-xl font-bold mb-2">{step.title}</h3>
+                    <p className="text-muted-foreground mb-3">{step.description}</p>
+                    <p className="text-sm text-muted-foreground/80 italic mb-3">{step.example}</p>
+                    <Badge variant="secondary" className="text-xs">{step.badge}</Badge>
+                  </div>
+                </div>
+                {index < steps.length - 1 && (
+                  <div className="absolute left-10 -bottom-4 w-0.5 h-8 bg-gradient-to-b from-primary/50 to-transparent" />
+                )}
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Comparison */}
+      <section className="py-12 md:py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-fuchsia-500/5 to-violet-500/5" />
+        <div className="container relative px-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Agency-Quality SEO. Without the $5,000/Month Bill.</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto mb-12">
+            {/* Traditional Agency */}
+            <GlassCard className="p-6 md:p-8 border-muted">
+              <h3 className="text-xl font-bold mb-2">Traditional SEO Agency</h3>
+              <p className="text-3xl font-bold text-muted-foreground mb-4">$3,000-$8,000<span className="text-base font-normal">/month</span></p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <X className="h-4 w-4 text-red-500" />
+                  Huge upfront investment
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <X className="h-4 w-4 text-red-500" />
+                  3-month minimum contract
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <X className="h-4 w-4 text-red-500" />
+                  Black box reporting
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <X className="h-4 w-4 text-red-500" />
+                  Maybe 4-8 articles/month
+                </li>
+              </ul>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <p className="text-sm text-muted-foreground">Average Agency Annual Cost:</p>
+                <p className="text-xl font-bold">$36,000 - $96,000</p>
               </div>
             </GlassCard>
+
+            {/* LovelyAnswers */}
+            <GlassCard gradient className="p-6 md:p-8 relative overflow-hidden">
+              <Badge className="absolute top-4 right-4 bg-primary text-white">Most Popular Choice</Badge>
+              <h3 className="text-xl font-bold mb-2">LovelyAnswers</h3>
+              <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500 mb-4">$29<span className="text-base font-normal text-foreground">/week</span></p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  Affordable for any business
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  Cancel anytime with 1 click
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  Full transparency dashboard
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  30 articles/month guaranteed
+                </li>
+              </ul>
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-sm text-muted-foreground">LovelyAnswers Annual Cost:</p>
+                <p className="text-xl font-bold text-emerald-600">Only $1,508</p>
+              </div>
+            </GlassCard>
+          </div>
+
+          {/* Savings Calculator */}
+          <GlassCard className="max-w-2xl mx-auto p-6 text-center">
+            <h3 className="text-lg font-bold mb-4">Your Savings Breakdown</h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Traditional SEO Cost:</p>
+                <p className="font-bold">$60,000/year</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">LovelyAnswers Cost:</p>
+                <p className="font-bold text-primary">$1,508/year</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">You Save:</p>
+                <p className="font-bold text-emerald-600">$58,492/year</p>
+              </div>
+            </div>
+            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">98% cost reduction</Badge>
+          </GlassCard>
+        </div>
+      </section>
+
+      {/* Pricing Plans */}
+      <section className="py-12 md:py-20">
+        <div className="container px-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Choose Your Growth Plan</h2>
+            <p className="text-muted-foreground">Start with $1. See results in 3 days. Cancel anytime.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Annual */}
+            <GlassCard className="p-6 relative">
+              <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/20">💰 Best Value</Badge>
+              <h3 className="text-xl font-bold mb-2">Annual</h3>
+              <p className="text-3xl font-bold mb-1">$990<span className="text-base font-normal text-muted-foreground">/year</span></p>
+              <p className="text-sm text-emerald-600 mb-4">Save 2 months</p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />365 SEO articles/year</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />1,200 DA worth of backlinks/year</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />VIP support</li>
+              </ul>
+              <Button className="w-full" variant="outline" asChild>
+                <Link to="/auth?mode=signup">Start Growing</Link>
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">🛡️ 30-day money-back guarantee</p>
+            </GlassCard>
+
+            {/* Weekly - Featured */}
+            <GlassCard gradient className="p-6 relative scale-105 shadow-xl">
+              <Badge className="mb-4 bg-primary text-white">⭐ Most Popular</Badge>
+              <h3 className="text-xl font-bold mb-2">Weekly</h3>
+              <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500 mb-1">$29<span className="text-base font-normal text-foreground">/week</span></p>
+              <p className="text-sm text-muted-foreground mb-4">Best for serious growth</p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />30 SEO articles/month</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />100 DA worth of backlinks/month</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />Priority support</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />Cancel with 1 click</li>
+              </ul>
+              <Button className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white" asChild>
+                <Link to="/auth?mode=signup">
+                  Start Growing
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </GlassCard>
+
+            {/* Monthly */}
+            <GlassCard className="p-6">
+              <Badge variant="secondary" className="mb-4">Monthly</Badge>
+              <h3 className="text-xl font-bold mb-2">Monthly</h3>
+              <p className="text-3xl font-bold mb-1">$99<span className="text-base font-normal text-muted-foreground">/month</span></p>
+              <p className="text-sm text-muted-foreground mb-4">Flexible monthly plan</p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />30 SEO articles/month</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />100 DA worth of backlinks/month</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-500" />Cancel anytime</li>
+              </ul>
+              <Button className="w-full" variant="outline" asChild>
+                <Link to="/auth?mode=signup">Start Growing</Link>
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">🛡️ 7-day money-back guarantee</p>
+            </GlassCard>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-sm text-muted-foreground">
+              Your Trial Includes: 3 days for just $1 • Full access to all features • Cancel anytime with 1 click
+            </p>
           </div>
         </div>
       </section>
@@ -617,10 +723,7 @@ export default function Index() {
       <section className="py-12 md:py-20 pb-32 md:pb-20">
         <div className="container px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
-              Everything you need to know about LovelyAnswers and Answer Engine Optimization
-            </p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Still on the Fence? Let's Clear That Up.</h2>
           </div>
 
           <div className="max-w-3xl mx-auto">
@@ -635,31 +738,54 @@ export default function Index() {
               ))}
             </Accordion>
           </div>
+
+          <div className="text-center mt-8">
+            <Button size="lg" className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl" asChild>
+              <Link to="/auth?mode=signup">
+                Your Only Risk is NOT Trying - Start
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
-      {/* CTA with enhanced gradient */}
+      {/* Final CTA */}
       <section className="py-12 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/30" />
-        <div className="container relative px-4">
+        <div className="container px-4">
           <GlassCard className="p-6 md:p-12 text-center overflow-hidden relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500" />
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
             <div className="relative text-white">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 px-2">
-                Become an AI-cited source today
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
+                The Choice is Yours
               </h2>
-              <p className="text-white/80 max-w-xl mx-auto mb-6 md:mb-8 text-sm md:text-lg px-4">
-                Join businesses optimizing for the AI-first future. Start generating citable answers in minutes.
-              </p>
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-sm md:text-base" asChild>
-                <Link to="/auth">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+              <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-8">
+                <div className="text-left p-4 rounded-lg bg-black/20">
+                  <h3 className="font-bold mb-2">Keep Struggling</h3>
+                  <ul className="space-y-1 text-sm text-white/80">
+                    <li>• Keep paying $500+/month for SEO tools</li>
+                    <li>• Spend hours writing content yourself</li>
+                    <li>• Watch competitors dominate AI search</li>
+                  </ul>
+                </div>
+                <div className="text-left p-4 rounded-lg bg-white/20">
+                  <h3 className="font-bold mb-2">Start Growing Today</h3>
+                  <ul className="space-y-1 text-sm">
+                    <li>• Pay just $29/week (start with $1)</li>
+                    <li>• Get 30 expert articles published automatically</li>
+                    <li>• Be recommended by ChatGPT & Perplexity</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="text-white/80 mb-6">🔥 Early adopters are already winning. Don't be left behind.</p>
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-xl" asChild>
+                <Link to="/auth?mode=signup">
+                  Start Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
+              <p className="text-sm text-white/60 mt-4">3 days to test everything. Cancel anytime.</p>
             </div>
           </GlassCard>
         </div>
@@ -667,22 +793,20 @@ export default function Index() {
 
       <PublicFooter />
 
-      {/* Mobile Sticky CTA Button */}
+      {/* Mobile Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden">
         <Button 
           size="lg" 
-          className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-2xl hover:opacity-90 text-base font-semibold py-6" 
+          className="w-full gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-2xl text-base font-semibold py-6" 
           asChild
         >
           <Link to="/auth?mode=signup">
-            <Bot className="h-5 w-5" />
-            Start ChatGPT Rank
+            Start Growing
             <ArrowRight className="h-5 w-5" />
           </Link>
         </Button>
       </div>
       
-      {/* Bottom padding for mobile to account for sticky button */}
       <div className="h-24 md:hidden" />
     </div>
   );
