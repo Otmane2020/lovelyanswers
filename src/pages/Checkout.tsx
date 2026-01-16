@@ -244,15 +244,15 @@ export default function Checkout() {
                   Start Your Free Trial
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  3 days free, then $99/month
+                  3 days free, then $29/week
                 </p>
               </div>
 
               {/* Price */}
               <div className="flex items-baseline justify-center gap-2 mb-8">
-                <span className="text-lg text-muted-foreground line-through">$247</span>
-                <span className="text-5xl font-bold">$99</span>
-                <span className="text-muted-foreground">/mo</span>
+                <span className="text-lg text-muted-foreground line-through">$99</span>
+                <span className="text-5xl font-bold">$29</span>
+                <span className="text-muted-foreground">/week</span>
               </div>
 
               {/* CTA Button */}

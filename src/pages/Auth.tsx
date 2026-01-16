@@ -119,6 +119,82 @@ export default function Auth() {
 
       console.log("[AUTH] User found, checking for projects...", user.id);
 
+      // Check if there's saved onboarding data
+      const savedOnboardingData = localStorage.getItem('onboarding_data');
+      
+      if (savedOnboardingData) {
+        console.log("[AUTH] Found saved onboarding data, creating project...");
+        try {
+          const onboardingData = JSON.parse(savedOnboardingData);
+          
+          let domain = "";
+          try {
+            const urlObj = new URL(onboardingData.websiteUrl.startsWith("http") ? onboardingData.websiteUrl : `https://${onboardingData.websiteUrl}`);
+            domain = urlObj.hostname.replace("www.", "");
+          } catch { domain = onboardingData.websiteUrl; }
+          
+          const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+          
+          // Create the project
+          const { data: newProject, error: projectError } = await supabase
+            .from("projects")
+            .insert({
+              user_id: user.id,
+              name: brandName,
+              website_url: onboardingData.websiteUrl,
+              domain: domain,
+              language: onboardingData.language || "en",
+              business_description: onboardingData.businessDescription,
+              business_type: "service",
+              audience: onboardingData.targetAudiences?.join(", ") || "",
+              brand_name: brandName,
+              example_url: onboardingData.exampleUrl || null,
+              competitors: onboardingData.competitors || [],
+            })
+            .select()
+            .single();
+          
+          if (projectError) {
+            console.error("[AUTH] Project creation error:", projectError);
+          } else if (newProject) {
+            console.log("[AUTH] Project created:", newProject.id);
+            
+            // Save keywords if any
+            if (onboardingData.keywords && onboardingData.keywords.length > 0) {
+              const keywordsToInsert = onboardingData.keywords.map((k: any) => ({
+                project_id: newProject.id,
+                keyword: k.keyword,
+                intent: k.intent || 'informational',
+                source_url: onboardingData.websiteUrl,
+                is_used: false,
+              }));
+              
+              await supabase.from('keywords').insert(keywordsToInsert);
+            }
+            
+            // Auto-generate initial AEO content
+            try {
+              await supabase.functions.invoke('auto-generate-aeo', {
+                body: { 
+                  projectId: newProject.id,
+                  language: onboardingData.language || "en"
+                }
+              });
+            } catch (aeoError) {
+              console.error('[AUTH] AEO generation error:', aeoError);
+            }
+            
+            // Clear onboarding data and redirect to checkout
+            localStorage.removeItem('onboarding_data');
+            navigate("/checkout", { replace: true });
+            return;
+          }
+        } catch (parseError) {
+          console.error("[AUTH] Error parsing onboarding data:", parseError);
+          localStorage.removeItem('onboarding_data');
+        }
+      }
+
       // Check if user has an existing project
       const { data: projects, error } = await supabase
         .from("projects")
