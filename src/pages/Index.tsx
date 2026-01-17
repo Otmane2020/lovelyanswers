@@ -390,151 +390,274 @@ export default function Index() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-12 md:py-20 relative overflow-hidden">
+      <section className="py-16 md:py-24 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-full blur-[80px]" />
+        
         <div className="container relative px-4">
-          <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Real Businesses. Real Growth. Real Fast.</h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              We used to grow enterprises like Vodafone (+62% conversion). Now we help small businesses grow.
+          <div className="text-center mb-10 md:mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 text-emerald-600 border-emerald-500/30">
+              <TrendingUp className="mr-1 h-3 w-3" />
+              Proven Results
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500">Real Businesses.</span>{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500">Real Growth.</span>{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-red-500">Real Fast.</span>
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+              We used to grow enterprises like <span className="font-semibold text-foreground">Vodafone</span> (+62% conversion). Now we help small businesses grow.
               <br />
-              Same $10,000/month expertise for <span className="line-through">$400</span> <span className="text-primary font-bold">$29/week</span>.
+              Same <span className="text-muted-foreground/60 line-through">$10,000/month</span> expertise for <span className="text-emerald-500 font-bold text-xl">$29/week</span>
             </p>
           </div>
 
-          {/* Company Logos */}
-          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 mb-8 md:mb-12 opacity-60">
+          {/* Company Logos - Now in color with hover effects */}
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 mb-12 md:mb-16">
             {integrationLogos.slice(0, 5).map((logo) => (
-              <img 
+              <div 
                 key={logo.name}
-                src={logo.logo} 
-                alt={logo.name}
-                className={`h-6 md:h-8 w-auto object-contain grayscale ${logo.invert ? 'dark:invert' : ''}`}
-              />
+                className="group relative p-3 rounded-xl transition-all duration-300 hover:bg-muted/50 hover:scale-110"
+              >
+                <img 
+                  src={logo.logo} 
+                  alt={logo.name}
+                  className={`h-8 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105 ${logo.invert ? 'dark:invert' : ''}`}
+                />
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {logo.name}
+                </span>
+              </div>
             ))}
           </div>
 
-          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {testimonialsTweets.map((tweet, index) => (
-              <GlassCard key={index} className="p-4 md:p-6 bg-gradient-to-br from-background to-muted/30">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white font-bold">
-                    {tweet.name[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">{tweet.name}</span>
-                      <span className="text-xs text-muted-foreground">{tweet.handle}</span>
+          {/* Testimonials Grid with colorful accents */}
+          <div className="grid gap-5 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {testimonialsTweets.map((tweet, index) => {
+              const gradients = [
+                'from-emerald-500 to-cyan-500',
+                'from-violet-500 to-fuchsia-500',
+                'from-amber-500 to-orange-500',
+                'from-rose-500 to-pink-500',
+                'from-blue-500 to-indigo-500',
+                'from-teal-500 to-green-500',
+              ];
+              const borderColors = [
+                'hover:border-emerald-500/40',
+                'hover:border-violet-500/40',
+                'hover:border-amber-500/40',
+                'hover:border-rose-500/40',
+                'hover:border-blue-500/40',
+                'hover:border-teal-500/40',
+              ];
+              return (
+                <GlassCard 
+                  key={index} 
+                  className={`p-5 md:p-6 bg-gradient-to-br from-background to-muted/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${borderColors[index % borderColors.length]}`}
+                >
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className={`h-11 w-11 rounded-full bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center text-white font-bold shadow-lg`}>
+                      {tweet.name[0]}
                     </div>
-                    <p className="text-xs text-muted-foreground">{tweet.role}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{tweet.name}</span>
+                        <span className="text-xs text-primary/70">{tweet.handle}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-medium">{tweet.role}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{tweet.date}</span>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{tweet.text}</p>
-              </GlassCard>
-            ))}
+                  <p className="text-sm text-foreground/80 leading-relaxed">{tweet.text}</p>
+                </GlassCard>
+              );
+            })}
           </div>
 
-          <div className="text-center mt-8">
-            <p className="text-sm text-muted-foreground mb-4">Join 527+ businesses growing on autopilot</p>
-            <Button 
-              size="lg"
-              className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white"
-              onClick={() => navigate("/onboarding")}
-            >
-              Start Growing Like They Did
-              <ArrowRight className="h-5 w-5" />
-            </Button>
+          <div className="text-center mt-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
+              <div className="flex -space-x-2">
+                {['M', 'D', 'A', 'R'].map((letter, i) => (
+                  <div key={i} className={`h-6 w-6 rounded-full bg-gradient-to-br ${['from-emerald-500 to-cyan-500', 'from-violet-500 to-fuchsia-500', 'from-amber-500 to-orange-500', 'from-rose-500 to-pink-500'][i]} flex items-center justify-center text-white text-xs font-bold border-2 border-background`}>
+                    {letter}
+                  </div>
+                ))}
+              </div>
+              <span className="text-sm font-medium text-emerald-600">527+ businesses growing on autopilot</span>
+            </div>
+            <div>
+              <Button 
+                size="lg"
+                className="gap-2 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-xl hover:shadow-emerald-500/25 hover:scale-105 transition-all h-14 px-8 text-lg"
+                onClick={() => navigate("/onboarding")}
+              >
+                Start Growing Like They Did
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="py-12 md:py-20 bg-muted/30">
-        <div className="container px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              Your Growth Engine: From Research to Revenue
+      <section className="py-16 md:py-24 bg-gradient-to-b from-muted/50 via-muted/30 to-background relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
+        
+        <div className="container px-4 relative">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-600 border-violet-500/30">
+              <Zap className="mr-1 h-3 w-3" />
+              Simple 4-Step Process
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Your{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500">Growth Engine</span>
+              : From Research to Revenue
             </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Set it up once, watch your traffic grow on autopilot
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {steps.map((step, i) => (
-              <div key={i} className="relative">
-                <div className="bg-card rounded-xl p-6 border border-border h-full">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white font-bold">
-                      {step.number}
+            {steps.map((step, i) => {
+              const stepGradients = [
+                { bg: 'from-blue-500 to-cyan-500', border: 'hover:border-blue-500/40', shadow: 'hover:shadow-blue-500/20' },
+                { bg: 'from-violet-500 to-purple-500', border: 'hover:border-violet-500/40', shadow: 'hover:shadow-violet-500/20' },
+                { bg: 'from-amber-500 to-orange-500', border: 'hover:border-amber-500/40', shadow: 'hover:shadow-amber-500/20' },
+                { bg: 'from-emerald-500 to-green-500', border: 'hover:border-emerald-500/40', shadow: 'hover:shadow-emerald-500/20' },
+              ];
+              const stepIcons = [
+                <FileText key={0} className="h-5 w-5" />,
+                <Sparkles key={1} className="h-5 w-5" />,
+                <ExternalLink key={2} className="h-5 w-5" />,
+                <TrendingUp key={3} className="h-5 w-5" />,
+              ];
+              return (
+                <div key={i} className="relative group">
+                  {/* Connector line */}
+                  {i < steps.length - 1 && (
+                    <div className="hidden lg:block absolute top-8 left-[calc(100%+0.5rem)] w-[calc(100%-2rem)] h-0.5 bg-gradient-to-r from-border via-primary/30 to-border" />
+                  )}
+                  <div className={`bg-card rounded-2xl p-6 border border-border h-full transition-all duration-300 ${stepGradients[i].border} ${stepGradients[i].shadow} hover:shadow-xl hover:-translate-y-1`}>
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${stepGradients[i].bg} flex items-center justify-center text-white font-bold shadow-lg`}>
+                        {stepIcons[i]}
+                      </div>
+                      <span className="text-3xl font-bold text-muted-foreground/30">0{step.number}</span>
                     </div>
+                    <h3 className="font-bold text-lg mb-2">{step.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">{step.description}</p>
+                    <Badge className={`text-xs bg-gradient-to-r ${stepGradients[i].bg} text-white border-0`}>{step.badge}</Badge>
                   </div>
-                  <h3 className="font-bold mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{step.description}</p>
-                  <Badge variant="secondary" className="text-xs">{step.badge}</Badge>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="py-12 md:py-20">
-        <div className="container px-4">
+      <section className="py-16 md:py-24 relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-violet-500/5 to-background" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-full blur-[120px]" />
+        
+        <div className="container px-4 relative">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Simple, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">Transparent</span> Pricing
+            </h2>
+          </div>
+          
           <div className="max-w-lg mx-auto">
-            <GlassCard className="p-8 text-center border-primary/20">
-              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-                <Sparkles className="mr-1 h-3 w-3" />
-                Most Popular
-              </Badge>
+            <div className="relative">
+              {/* Glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500 rounded-3xl blur opacity-30" />
               
-              <h2 className="text-2xl font-bold mb-2">Weekly Plan</h2>
-              <p className="text-muted-foreground mb-6">Best for serious growth</p>
-              
-              <div className="flex items-baseline justify-center gap-2 mb-6">
-                <span className="text-5xl font-bold">$29</span>
-                <span className="text-muted-foreground">/week</span>
-              </div>
+              <GlassCard className="relative p-8 md:p-10 text-center border-2 border-violet-500/30 bg-card/95">
+                <Badge className="mb-4 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-600 border-violet-500/30">
+                  <Sparkles className="mr-1 h-3 w-3" />
+                  Most Popular
+                </Badge>
+                
+                <h2 className="text-2xl font-bold mb-2">Weekly Plan</h2>
+                <p className="text-muted-foreground mb-6">Best for serious growth</p>
+                
+                <div className="flex items-baseline justify-center gap-2 mb-8">
+                  <span className="text-muted-foreground/50 line-through text-xl">$116</span>
+                  <span className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">$29</span>
+                  <span className="text-muted-foreground">/week</span>
+                </div>
 
-              <ul className="space-y-3 text-left mb-8">
-                {pricingFeatures.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-emerald-500 shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+                <ul className="space-y-4 text-left mb-8">
+                  {pricingFeatures.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3">
+                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shrink-0">
+                        <Check className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-medium">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
 
-              <Button 
-                size="lg" 
-                className="w-full h-14 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
-                onClick={() => navigate("/onboarding")}
-              >
-                Start Growing
-                <ArrowRight className="h-5 w-5" />
-              </Button>
+                <Button 
+                  size="lg" 
+                  className="w-full h-14 gap-2 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500 text-white hover:opacity-90 text-lg font-semibold shadow-xl hover:shadow-violet-500/30 transition-all"
+                  onClick={() => navigate("/onboarding")}
+                >
+                  Start Growing
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
 
-              <p className="text-xs text-muted-foreground mt-4">
-                3-day free trial • Cancel anytime • Annual plan saves 20%
-              </p>
-            </GlassCard>
+                <div className="flex items-center justify-center gap-4 mt-6 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    3-day free trial
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    Cancel anytime
+                  </span>
+                </div>
+              </GlassCard>
+            </div>
           </div>
         </div>
       </section>
 
       {/* FAQs */}
-      <section className="py-12 md:py-20 bg-muted/30">
+      <section className="py-16 md:py-24 bg-gradient-to-b from-muted/30 to-background">
         <div className="container px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold">Frequently Asked Questions</h2>
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+              Got Questions?
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold">
+              Frequently Asked <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Questions</span>
+            </h2>
           </div>
 
           <div className="max-w-2xl mx-auto">
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-xl border border-border px-6">
-                  <AccordionTrigger className="text-left font-medium py-4">
-                    {faq.question}
+                <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-2xl border border-border px-6 transition-all duration-300 hover:border-primary/30 hover:shadow-md data-[state=open]:border-primary/40 data-[state=open]:shadow-lg">
+                  <AccordionTrigger className="text-left font-semibold py-5 hover:no-underline">
+                    <span className="flex items-center gap-3">
+                      <span className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      {faq.question}
+                    </span>
                   </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground pb-4">
+                  <AccordionContent className="text-muted-foreground pb-5 pl-11">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -545,26 +668,46 @@ export default function Index() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 md:py-24">
-        <div className="container px-4">
+      <section className="py-20 md:py-32 relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-violet-500/10 to-fuchsia-500/10" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-emerald-500/30 to-cyan-500/30 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+        
+        <div className="container px-4 relative">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl md:text-4xl font-bold mb-6">
-              Your Only Risk is NOT Trying
+            <Badge className="mb-6 bg-gradient-to-r from-rose-500/10 to-orange-500/10 text-rose-600 border-rose-500/30 text-sm px-4 py-1">
+              🔥 Early adopters are already winning
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              Your Only Risk is{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500">NOT Trying</span>
             </h2>
-            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              🔥 Early adopters are already winning. Don't be left behind.
+            <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
+              While you're reading this, your competitors are getting AI traffic. Don't be left behind.
             </p>
             <Button 
               size="lg" 
-              className="h-14 px-8 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl text-lg"
+              className="h-16 px-10 gap-3 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-2xl hover:shadow-emerald-500/30 text-xl font-semibold hover:scale-105 transition-all"
               onClick={() => navigate("/onboarding")}
             >
-              Start Now
-              <ArrowRight className="h-5 w-5" />
+              Start Your Free Trial Now
+              <ArrowRight className="h-6 w-6" />
             </Button>
-            <p className="text-sm text-muted-foreground mt-4">
-              3 days to test everything. Cancel anytime.
-            </p>
+            <div className="flex items-center justify-center gap-6 mt-8 text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-emerald-500" />
+                3-day free trial
+              </span>
+              <span className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-emerald-500" />
+                No credit card required
+              </span>
+              <span className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-emerald-500" />
+                Cancel anytime
+              </span>
+            </div>
           </div>
         </div>
       </section>
