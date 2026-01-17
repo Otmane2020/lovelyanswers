@@ -162,11 +162,14 @@ export default function Onboarding() {
           keywords: scrapedKeywords?.length
         });
 
-        // Phase 2: Add competitors, keywords, and audiences if Phase 1 returned empty
+        // Phase 2: Enrichment can improve/expand Phase 1 audiences
         setData(prev => ({
           ...prev,
-          // Add audiences from Phase 2 if Phase 1 returned empty
-          targetAudiences: prev.targetAudiences.length > 0 ? prev.targetAudiences : (scrapedAudiences || []),
+          // Prefer the richer list (usually enrichment returns more/better audiences)
+          targetAudiences:
+            (scrapedAudiences?.length ?? 0) > (prev.targetAudiences?.length ?? 0)
+              ? (scrapedAudiences || [])
+              : prev.targetAudiences,
           competitors: prev.competitors.length > 0 ? prev.competitors : (scrapedCompetitors || []),
           keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
         }));
