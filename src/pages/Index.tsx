@@ -202,8 +202,15 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Announcement Bar */}
+      <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-2 px-4 text-center text-sm font-medium">
+        <span className="inline-flex items-center gap-2">
+          👉 Start with <span className="font-bold">20% OFF</span> with Code <span className="bg-white/20 px-2 py-0.5 rounded font-bold">FLASHSALE</span>
+        </span>
+      </div>
+      
       {/* Navigation */}
-      <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-[36px] z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
             <AnimatedLogo size="md" />
@@ -234,7 +241,7 @@ export default function Index() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-24 md:pt-32 pb-12 md:pb-20">
+      <section className="relative overflow-hidden pt-32 md:pt-40 pb-12 md:pb-20">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[120px] animate-pulse" />
