@@ -414,7 +414,7 @@ export default function Index() {
 
           {/* Company Logos - Now in color with hover effects */}
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 mb-12 md:mb-16">
-            {integrationLogos.slice(0, 5).map((logo) => (
+            {integrationLogos.slice(0, 6).map((logo) => (
               <div 
                 key={logo.name}
                 className="group relative p-3 rounded-xl transition-all duration-300 hover:bg-muted/50 hover:scale-110"
@@ -590,7 +590,6 @@ export default function Index() {
                 <p className="text-muted-foreground mb-6">Best for serious growth</p>
                 
                 <div className="flex items-baseline justify-center gap-2 mb-8">
-                  <span className="text-muted-foreground/50 line-through text-xl">$116</span>
                   <span className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">$29</span>
                   <span className="text-muted-foreground">/week</span>
                 </div>
