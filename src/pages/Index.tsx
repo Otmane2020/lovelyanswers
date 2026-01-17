@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -182,7 +183,18 @@ const integrationLogos = [
 
 export default function Index() {
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [showFloatingCTA, setShowFloatingCTA] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show floating CTA after scrolling past 500px (roughly past hero section)
+      setShowFloatingCTA(window.scrollY > 500);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleGetStarted = () => {
     navigate(`/onboarding?url=${encodeURIComponent(websiteUrl)}`);
@@ -710,6 +722,30 @@ export default function Index() {
       </section>
 
       <PublicFooter />
+
+      {/* Floating CTA Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ 
+          opacity: showFloatingCTA ? 1 : 0, 
+          y: showFloatingCTA ? 0 : 100 
+        }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+        style={{ pointerEvents: showFloatingCTA ? 'auto' : 'none' }}
+      >
+        <Button 
+          size="lg"
+          className="gap-2 px-8 py-6 text-lg bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-2xl hover:shadow-primary/30 hover:scale-105 transition-all rounded-full"
+          asChild
+        >
+          <Link to="/onboarding">
+            <Zap className="h-5 w-5" />
+            Start Free Trial
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        </Button>
+      </motion.div>
     </div>
   );
 }
