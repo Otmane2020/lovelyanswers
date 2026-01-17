@@ -87,27 +87,6 @@ export default function Onboarding() {
     return urlPattern.test(url.trim());
   };
 
-  // Initialize from URL param (from homepage)
-  useEffect(() => {
-    if (hasInitializedFromUrl) return;
-    
-    const urlFromParam = searchParams.get('url');
-    if (urlFromParam && isValidUrl(urlFromParam)) {
-      console.log('[ONBOARDING] URL received from homepage:', urlFromParam);
-      setData(prev => ({ ...prev, websiteUrl: urlFromParam }));
-      setHasInitializedFromUrl(true);
-      
-      // Wait for state update, then auto-advance to step 2 with animation
-      setTimeout(() => {
-        setCurrentStep(2);
-        // Trigger analysis
-        analysisStartedRef.current = urlFromParam;
-      }, 100);
-    } else {
-      setHasInitializedFromUrl(true);
-    }
-  }, [searchParams, hasInitializedFromUrl]);
-
   const totalSteps = 5; // URL, language, description, audience, competitors - then auth & checkout
 
   // Redirect existing users with projects to dashboard
@@ -204,7 +183,30 @@ export default function Onboarding() {
     }
   }, []);
 
-  // Trigger analysis when URL becomes valid or when coming from homepage
+  // Initialize from URL param (from homepage) and trigger analysis
+  useEffect(() => {
+    if (hasInitializedFromUrl) return;
+    
+    const urlFromParam = searchParams.get('url');
+    if (urlFromParam && isValidUrl(urlFromParam)) {
+      console.log('[ONBOARDING] URL received from homepage:', urlFromParam);
+      setData(prev => ({ ...prev, websiteUrl: urlFromParam }));
+      setHasInitializedFromUrl(true);
+      analysisStartedRef.current = urlFromParam;
+      
+      // Trigger analysis immediately
+      analyzeWebsite(urlFromParam);
+      
+      // Advance to step 2 with animation
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 300);
+    } else {
+      setHasInitializedFromUrl(true);
+    }
+  }, [searchParams, hasInitializedFromUrl, analyzeWebsite]);
+
+  // Trigger analysis when URL becomes valid (manual input only - homepage URLs handled separately)
   useEffect(() => {
     const url = data.websiteUrl.trim();
     
@@ -215,26 +217,20 @@ export default function Onboarding() {
     
     if (!isValidUrl(url) || isOwnDomain) return;
     
-    // If coming from homepage with URL param, trigger analysis immediately
-    if (hasInitializedFromUrl && analysisStartedRef.current === url && !hasAnalyzed && !isLoadingFast) {
-      console.log('[ONBOARDING] Triggering analysis for URL from homepage:', url);
-      analyzeWebsite(url);
-      return;
-    }
+    // Skip if already analyzed (e.g., from homepage URL param)
+    if (analysisStartedRef.current === url) return;
     
-    // Normal case: debounce for manual input
-    if (analysisStartedRef.current !== url) {
-      const timer = setTimeout(() => {
-        const currentUrl = data.websiteUrl.trim();
-        if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
-          console.log('[ONBOARDING] Auto-triggering analysis for:', url);
-          analysisStartedRef.current = url;
-          analyzeWebsite(url);
-        }
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [data.websiteUrl, analyzeWebsite, hasInitializedFromUrl, hasAnalyzed, isLoadingFast]);
+    // Debounce for manual input
+    const timer = setTimeout(() => {
+      const currentUrl = data.websiteUrl.trim();
+      if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
+        console.log('[ONBOARDING] Auto-triggering analysis for manual input:', url);
+        analysisStartedRef.current = url;
+        analyzeWebsite(url);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [data.websiteUrl, analyzeWebsite]);
 
   const handleUrlChange = (value: string) => {
     updateData("websiteUrl", value);
