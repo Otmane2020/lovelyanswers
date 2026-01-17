@@ -59,6 +59,7 @@ export default function Onboarding() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isLoadingFast, setIsLoadingFast] = useState(false);
+  const [isLoadingEnrich, setIsLoadingEnrich] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [urlError, setUrlError] = useState("");
   const [newAudience, setNewAudience] = useState("");
@@ -124,9 +125,10 @@ export default function Onboarding() {
   // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
-    
+
     setIsLoadingFast(true);
-    
+    setIsLoadingEnrich(true);
+
     // PHASE 1: Fast scrape (3-4s) - gets language + description + audiences
     const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
       body: { url }
@@ -152,14 +154,14 @@ export default function Onboarding() {
       body: { url }
     }).then(({ data: scrapeResult, error }) => {
       if (!error && scrapeResult?.success) {
-        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords, description, language: detectedLang } = scrapeResult.data;
-        
+        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
+
         console.log('[ONBOARDING] Enrichment data received:', {
           audiences: scrapedAudiences?.length,
           competitors: scrapedCompetitors?.length,
           keywords: scrapedKeywords?.length
         });
-        
+
         // Phase 2: Add competitors, keywords, and audiences if Phase 1 returned empty
         setData(prev => ({
           ...prev,
@@ -169,8 +171,10 @@ export default function Onboarding() {
           keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
         }));
       }
+      setIsLoadingEnrich(false);
     }).catch(err => {
       console.error('[ONBOARDING] Enrichment error:', err);
+      setIsLoadingEnrich(false);
     });
 
     // Run both in parallel - Phase 1 will complete much faster
@@ -594,7 +598,7 @@ export default function Onboarding() {
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {isLoadingFast && data.targetAudiences.length === 0 ? (
+                        {(isLoadingFast || isLoadingEnrich) && data.targetAudiences.length === 0 ? (
                           <>
                             <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
                             <div className="h-8 w-28 bg-muted rounded-full animate-pulse" />
