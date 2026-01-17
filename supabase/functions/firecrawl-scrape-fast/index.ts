@@ -12,7 +12,7 @@ async function extractAudiencesFast(
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000); // 4s max
+    const timeout = setTimeout(() => controller.abort(), 2500); // 2.5s max
 
     // Use very short content to minimize processing time
     const shortDesc = description.substring(0, 150);
@@ -314,55 +314,24 @@ Deno.serve(async (req) => {
     console.log(`[FAST] Local processing complete: ${totalTime}ms`);
     console.log(`[FAST] Detected language: ${language}`);
 
-    // Start audience extraction in background but don't wait for it
-    // The enrichment function will provide audiences later
+    // Try quick audience extraction (best effort) so step 3 can show something quickly.
+    // This is intentionally time-bounded; enrichment will refine later.
     let audiences: string[] = [];
-    
-    // Only extract audiences if we have API key AND total time is still under 1.5s
-    // This keeps the response fast for the user
-    if (lovableApiKey && totalTime < 1500) {
+
+    if (lovableApiKey) {
       console.log('[FAST] Starting quick audience extraction...');
       const aiStart = Date.now();
-      
-      // Very aggressive timeout for fast response
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 2000); // 2s max
-        
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-lite',
-            messages: [{
-              role: 'user',
-              content: `4 target audiences for: ${description.substring(0, 100)}. Return ONLY: ["a","b","c","d"]`
-            }],
-            temperature: 0.1,
-            max_tokens: 80,
-          }),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeout);
-        
-        if (response.ok) {
-          const result = await response.json();
-          const text = result.choices?.[0]?.message?.content || '';
-          const match = text.match(/\[[\s\S]*?\]/);
-          if (match) {
-            audiences = JSON.parse(match[0]).slice(0, 4);
-          }
-        }
-      } catch {
-        // Timeout or error - just skip audiences for fast path
-        console.log('[FAST] Audience extraction skipped (timeout)');
-      }
-      
-      console.log(`[FAST] Audience extraction: ${Date.now() - aiStart}ms`);
+
+      audiences = await extractAudiencesFast(description, markdown, language, lovableApiKey);
+
+      console.log(`[FAST] Audience extraction: ${Date.now() - aiStart}ms (found ${audiences.length})`);
+    }
+
+    // Fallback: never return empty audiences (keeps UX consistent)
+    if (!audiences || audiences.length === 0) {
+      audiences = language === 'fr'
+        ? ['Clients potentiels', 'Acheteurs en ligne', 'Amateurs de déco', 'Propriétaires']
+        : ['Potential customers', 'Online shoppers', 'Home decor lovers', 'Homeowners'];
     }
 
     return new Response(
