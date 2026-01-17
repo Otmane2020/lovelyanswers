@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -363,9 +364,7 @@ export default function Auth() {
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-12">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
-              <Heart className="h-5 w-5 text-white fill-white" />
-            </div>
+            <AnimatedLogo size="md" />
             <span className="text-2xl font-bold tracking-tight">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>

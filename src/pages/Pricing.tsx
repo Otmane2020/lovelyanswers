@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import { 
-  Heart, 
   ArrowRight, 
   Check, 
   Sparkles,
@@ -23,6 +22,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 const features = [
   { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
@@ -75,9 +75,7 @@ export default function Pricing() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
-              <Heart className="h-5 w-5 text-white fill-white" />
-            </div>
+            <AnimatedLogo size="md" />
             <span className="text-xl font-bold tracking-tight">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
