@@ -203,9 +203,13 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       {/* Announcement Bar */}
-      <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-2 px-4 text-center text-sm font-medium">
-        <span className="inline-flex items-center gap-2">
-          👉 Start with <span className="font-bold">20% OFF</span> with Code <span className="bg-white/20 px-2 py-0.5 rounded font-bold">FLASHSALE</span>
+      <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">
+        <span className="inline-flex flex-wrap items-center justify-center gap-1 md:gap-2">
+          <span className="hidden md:inline">👉</span>
+          <span><span className="line-through opacity-75">$99</span> → <span className="font-bold">$79</span></span>
+          <span className="hidden sm:inline">•</span>
+          <span><span className="font-bold">20% OFF</span> Code</span>
+          <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded font-bold">FLASHSALE</span>
         </span>
       </div>
       
