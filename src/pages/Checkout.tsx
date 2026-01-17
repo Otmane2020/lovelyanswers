@@ -292,9 +292,6 @@ export default function Checkout() {
                     <span className="text-5xl font-bold">${weeklyPrice}</span>
                     <span className="text-muted-foreground">/week</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    ${weeklyPrice * 4}/month equivalent
-                  </p>
                 </div>
               ) : (
                 <div className="text-center mb-6">
