@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Globe, 
@@ -52,6 +52,7 @@ const languages = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const createProject = useCreateProject();
   const [currentStep, setCurrentStep] = useState(1);
@@ -63,6 +64,7 @@ export default function Onboarding() {
   const [newAudience, setNewAudience] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
   const [isCheckingUser, setIsCheckingUser] = useState(true);
+  const [hasInitializedFromUrl, setHasInitializedFromUrl] = useState(false);
   const analysisStartedRef = useRef<string | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
@@ -76,6 +78,35 @@ export default function Onboarding() {
     referralSource: "",
     keywords: [],
   });
+
+  // Validate URL format
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.length < 3) return false;
+    // Allow domain formats like example.com or full URLs
+    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+    return urlPattern.test(url.trim());
+  };
+
+  // Initialize from URL param (from homepage)
+  useEffect(() => {
+    if (hasInitializedFromUrl) return;
+    
+    const urlFromParam = searchParams.get('url');
+    if (urlFromParam && isValidUrl(urlFromParam)) {
+      console.log('[ONBOARDING] URL received from homepage:', urlFromParam);
+      setData(prev => ({ ...prev, websiteUrl: urlFromParam }));
+      setHasInitializedFromUrl(true);
+      
+      // Wait for state update, then auto-advance to step 2 with animation
+      setTimeout(() => {
+        setCurrentStep(2);
+        // Trigger analysis
+        analysisStartedRef.current = urlFromParam;
+      }, 100);
+    } else {
+      setHasInitializedFromUrl(true);
+    }
+  }, [searchParams, hasInitializedFromUrl]);
 
   const totalSteps = 5; // URL, language, description, audience, competitors - then auth & checkout
 
@@ -109,13 +140,7 @@ export default function Onboarding() {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Validate URL format
-  const isValidUrl = (url: string): boolean => {
-    if (!url || url.length < 3) return false;
-    // Allow domain formats like example.com or full URLs
-    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
-    return urlPattern.test(url.trim());
-  };
+  // isValidUrl is defined earlier in the component
 
   // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
@@ -179,7 +204,7 @@ export default function Onboarding() {
     }
   }, []);
 
-  // Trigger analysis when URL becomes valid
+  // Trigger analysis when URL becomes valid or when coming from homepage
   useEffect(() => {
     const url = data.websiteUrl.trim();
     
@@ -188,11 +213,19 @@ export default function Onboarding() {
                          url.toLowerCase().includes('lovableproject.com') ||
                          url.toLowerCase().includes('localhost');
     
-    if (isValidUrl(url) && !isOwnDomain && analysisStartedRef.current !== url) {
-      // Debounce: wait 800ms after last keystroke to ensure user finished typing
+    if (!isValidUrl(url) || isOwnDomain) return;
+    
+    // If coming from homepage with URL param, trigger analysis immediately
+    if (hasInitializedFromUrl && analysisStartedRef.current === url && !hasAnalyzed && !isLoadingFast) {
+      console.log('[ONBOARDING] Triggering analysis for URL from homepage:', url);
+      analyzeWebsite(url);
+      return;
+    }
+    
+    // Normal case: debounce for manual input
+    if (analysisStartedRef.current !== url) {
       const timer = setTimeout(() => {
         const currentUrl = data.websiteUrl.trim();
-        // Re-check that URL hasn't changed during debounce
         if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
           console.log('[ONBOARDING] Auto-triggering analysis for:', url);
           analysisStartedRef.current = url;
@@ -201,7 +234,7 @@ export default function Onboarding() {
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [data.websiteUrl, analyzeWebsite]);
+  }, [data.websiteUrl, analyzeWebsite, hasInitializedFromUrl, hasAnalyzed, isLoadingFast]);
 
   const handleUrlChange = (value: string) => {
     updateData("websiteUrl", value);
