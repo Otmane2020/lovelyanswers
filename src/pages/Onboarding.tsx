@@ -160,10 +160,11 @@ export default function Onboarding() {
           keywords: scrapedKeywords?.length
         });
         
-        // Phase 2: Only add competitors and keywords - DO NOT overwrite Phase 1 data
+        // Phase 2: Add competitors, keywords, and audiences if Phase 1 returned empty
         setData(prev => ({
           ...prev,
-          // Keep language, description, and audiences from Phase 1 - never overwrite!
+          // Add audiences from Phase 2 if Phase 1 returned empty
+          targetAudiences: prev.targetAudiences.length > 0 ? prev.targetAudiences : (scrapedAudiences || []),
           competitors: prev.competitors.length > 0 ? prev.competitors : (scrapedCompetitors || []),
           keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
         }));

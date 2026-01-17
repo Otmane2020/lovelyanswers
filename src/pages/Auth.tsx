@@ -263,10 +263,10 @@ export default function Auth() {
       return;
     }
 
-    // Account created - redirect to onboarding
-    toast({ title: "Account created!", description: "Let's set up your project..." });
+    // Account created - the useEffect will handle redirect based on onboarding_data
+    toast({ title: "Account created!", description: "Setting up your project..." });
     setIsLoading(false);
-    navigate("/onboarding");
+    // Don't navigate here - let useEffect handle it based on onboarding_data in localStorage
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
