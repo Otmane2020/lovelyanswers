@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Globe, 
   ArrowRight,
-  Heart,
   Loader2,
   X,
   Plus,
   Check,
   ChevronDown
 } from "lucide-react";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -459,9 +459,7 @@ export default function Onboarding() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-center">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg">
-              <Heart className="h-5 w-5 text-white fill-white" />
-            </div>
+            <AnimatedLogo size="md" />
             <span className="text-xl font-bold tracking-tight">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
             </span>
@@ -797,9 +795,7 @@ function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="max-w-md w-full text-center space-y-8">
         <div className="flex justify-center">
-          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg animate-pulse">
-            <Heart className="h-10 w-10 text-white fill-white" />
-          </div>
+          <AnimatedLogo size="lg" className="animate-pulse" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Analyzing your website</h1>

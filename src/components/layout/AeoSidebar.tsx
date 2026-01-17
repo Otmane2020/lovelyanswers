@@ -8,11 +8,11 @@ import {
   Settings,
   CreditCard,
   LogOut,
-  Heart,
   CalendarDays,
   History,
   HelpCircle,
 } from "lucide-react";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -77,9 +77,7 @@ export function AeoSidebar() {
           onClick={handleNavClick} 
           className="flex items-center gap-2.5 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center shadow-lg">
-            <Heart className="w-4 h-4 text-white fill-white" />
-          </div>
+          <AnimatedLogo size="sm" />
           {state === "expanded" && (
             <span className="font-bold text-lg text-foreground">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>

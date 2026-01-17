@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import {
-  Heart,
   ArrowRight,
   Check,
   Globe,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -194,9 +194,7 @@ export default function Index() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
-              <Heart className="h-4 w-4 md:h-5 md:w-5 text-white fill-white" />
-            </div>
+            <AnimatedLogo size="md" />
             <span className="text-lg md:text-xl font-bold tracking-tight">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>

@@ -7,12 +7,12 @@ import {
   Check, 
   Loader2,
   Shield,
-  Heart,
   MessageSquare,
   TrendingUp,
   Globe,
   LogOut,
 } from "lucide-react";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
@@ -170,9 +170,7 @@ export default function Checkout() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 shadow-lg">
-              <Heart className="h-5 w-5 text-white fill-white" />
-            </div>
+            <AnimatedLogo size="md" />
             <span className="text-xl font-bold tracking-tight">
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
