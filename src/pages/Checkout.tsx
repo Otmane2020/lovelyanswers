@@ -160,12 +160,20 @@ export default function Checkout() {
 
   // Pricing calculations
   const weeklyPrice = 29;
+  const originalWeeklyPrice = Math.round(weeklyPrice * 1.2); // $35 before discount
   const annualPrice = 1206; // $29 × 52 × 0.8 = $1,206.40 rounded
   const annualMonthlyEquiv = Math.round(annualPrice / 12);
   const weeklySavings = Math.round((weeklyPrice * 52 - annualPrice));
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-0">
+      {/* Announcement Bar */}
+      <div className="bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-2.5 px-4 text-center text-sm font-medium">
+        <span className="inline-flex items-center gap-2">
+          👉 Start with <span className="font-bold">20% OFF</span> with Code <span className="bg-white/20 px-2 py-0.5 rounded font-bold">FLASHSALE</span>
+        </span>
+      </div>
+      
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
@@ -289,9 +297,13 @@ export default function Checkout() {
               {billingCycle === "weekly" ? (
                 <div className="text-center mb-6">
                   <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-lg text-muted-foreground line-through">${originalWeeklyPrice}</span>
                     <span className="text-5xl font-bold">${weeklyPrice}</span>
                     <span className="text-muted-foreground">/week</span>
                   </div>
+                  <p className="text-sm text-emerald-600 font-medium mt-1">
+                    20% OFF applied
+                  </p>
                 </div>
               ) : (
                 <div className="text-center mb-6">
