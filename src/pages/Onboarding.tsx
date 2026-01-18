@@ -212,28 +212,50 @@ export default function Onboarding() {
     }
   }, []);
 
-  // Initialize from URL param (from homepage) and trigger analysis
+  // Initialize from URL param (from homepage OR from URL change in settings) and trigger analysis
   useEffect(() => {
     if (hasInitializedFromUrl) return;
     
     const urlFromParam = searchParams.get('url');
-    if (urlFromParam && isValidUrl(urlFromParam)) {
-      console.log('[ONBOARDING] URL received from homepage:', urlFromParam);
-      setData(prev => ({ ...prev, websiteUrl: urlFromParam }));
+    if (urlFromParam) {
+      // Decode the URL in case it was encoded
+      const decodedUrl = decodeURIComponent(urlFromParam);
+      console.log('[ONBOARDING] URL received:', decodedUrl, 'forceOnboarding:', forceOnboarding);
+      
+      // CRITICAL: Reset ALL data when coming from URL change
+      if (forceOnboarding) {
+        console.log('[ONBOARDING] Forcing complete data reset for URL change');
+        setData({
+          websiteUrl: decodedUrl,
+          language: "en",
+          businessDescription: "",
+          targetAudiences: [],
+          competitors: [],
+          brandColor: "#000000",
+          exampleUrl: "",
+          referralSource: "",
+          keywords: [],
+        });
+      } else {
+        setData(prev => ({ ...prev, websiteUrl: decodedUrl }));
+      }
+      
       setHasInitializedFromUrl(true);
-      analysisStartedRef.current = urlFromParam;
+      analysisStartedRef.current = decodedUrl;
       
-      // Trigger analysis immediately
-      analyzeWebsite(urlFromParam);
-      
-      // Advance to step 2 with animation
-      setTimeout(() => {
-        setCurrentStep(2);
-      }, 300);
+      // Trigger analysis immediately with the decoded URL
+      if (isValidUrl(decodedUrl)) {
+        analyzeWebsite(decodedUrl);
+        
+        // Advance to step 2 with animation
+        setTimeout(() => {
+          setCurrentStep(2);
+        }, 300);
+      }
     } else {
       setHasInitializedFromUrl(true);
     }
-  }, [searchParams, hasInitializedFromUrl, analyzeWebsite]);
+  }, [searchParams, hasInitializedFromUrl, analyzeWebsite, forceOnboarding]);
 
   // Trigger analysis when URL becomes valid (manual input only - homepage URLs handled separately)
   useEffect(() => {
