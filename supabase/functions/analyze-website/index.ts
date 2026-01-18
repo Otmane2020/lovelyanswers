@@ -71,17 +71,24 @@ serve(async (req) => {
     let targetAudiences: string[] = [];
     let keywords: string[] = [];
 
-    // Step 1: Fetch website content to extract description and keywords
-    console.log("[ANALYZE-WEBSITE] 📄 Fetching website content...");
+    // Step 1: Fetch and analyze FULL website content
+    console.log("[ANALYZE-WEBSITE] 📄 Fetching full website content...");
+    let pageContent = "";
+    let allHeadings: string[] = [];
+    let allLinks: string[] = [];
+    
     try {
       const siteResponse = await fetch(cleanUrl, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AEOBot/1.0)",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
         },
       });
       
       if (siteResponse.ok) {
         const html = await siteResponse.text();
+        console.log("[ANALYZE-WEBSITE] 📄 Fetched HTML:", html.length, "chars");
         
         // Extract meta description
         const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
@@ -91,7 +98,7 @@ serve(async (req) => {
           console.log("[ANALYZE-WEBSITE] 📝 Found meta description:", description.substring(0, 100) + "...");
         }
         
-        // Extract meta keywords
+        // Extract meta keywords (if any)
         const keywordsMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i) ||
                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']keywords["']/i);
         if (keywordsMatch) {
@@ -104,46 +111,209 @@ serve(async (req) => {
         if (titleMatch) {
           const title = titleMatch[1].trim();
           console.log("[ANALYZE-WEBSITE] 📌 Found title:", title);
-          // Use title to enhance brand name if needed
           if (title && !brandName) {
             brandName = title.split(/[-|–]/)[0].trim();
           }
+          pageContent += `Titre: ${title}\n`;
         }
 
-        // Extract H1 for additional context
-        const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-        if (h1Match) {
-          console.log("[ANALYZE-WEBSITE] 📌 Found H1:", h1Match[1].trim());
+        // Extract ALL headings (H1, H2, H3)
+        const h1Matches = html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi);
+        for (const match of h1Matches) {
+          const text = match[1].replace(/<[^>]+>/g, '').trim();
+          if (text) {
+            allHeadings.push(text);
+            pageContent += `H1: ${text}\n`;
+          }
+        }
+        
+        const h2Matches = html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi);
+        for (const match of h2Matches) {
+          const text = match[1].replace(/<[^>]+>/g, '').trim();
+          if (text) {
+            allHeadings.push(text);
+            pageContent += `H2: ${text}\n`;
+          }
+        }
+        
+        const h3Matches = html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/gi);
+        for (const match of h3Matches) {
+          const text = match[1].replace(/<[^>]+>/g, '').trim();
+          if (text) allHeadings.push(text);
+        }
+        
+        console.log("[ANALYZE-WEBSITE] 📌 Found", allHeadings.length, "headings");
+
+        // Extract paragraphs
+        const pMatches = html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi);
+        let paragraphCount = 0;
+        for (const match of pMatches) {
+          const text = match[1].replace(/<[^>]+>/g, '').trim();
+          if (text && text.length > 20) {
+            pageContent += `${text}\n`;
+            paragraphCount++;
+            if (paragraphCount >= 20) break; // Limit to avoid too much content
+          }
+        }
+        console.log("[ANALYZE-WEBSITE] 📄 Extracted", paragraphCount, "paragraphs");
+
+        // Extract list items
+        const liMatches = html.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+        let liCount = 0;
+        for (const match of liMatches) {
+          const text = match[1].replace(/<[^>]+>/g, '').trim();
+          if (text && text.length > 10) {
+            pageContent += `- ${text}\n`;
+            liCount++;
+            if (liCount >= 30) break;
+          }
+        }
+
+        // Extract navigation/menu links for context
+        const linkMatches = html.matchAll(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi);
+        for (const match of linkMatches) {
+          const href = match[1];
+          const text = match[2].replace(/<[^>]+>/g, '').trim();
+          if (text && text.length > 2 && text.length < 50 && !href.startsWith('#') && !href.startsWith('javascript:')) {
+            allLinks.push(text);
+          }
+        }
+        console.log("[ANALYZE-WEBSITE] 🔗 Found", allLinks.length, "link texts");
+        
+        // Add unique link texts to content
+        const uniqueLinks = [...new Set(allLinks)].slice(0, 20);
+        if (uniqueLinks.length > 0) {
+          pageContent += `\nLiens de navigation: ${uniqueLinks.join(", ")}\n`;
         }
       }
     } catch (e) {
       console.error("[ANALYZE-WEBSITE] ⚠️ Error fetching website:", e);
     }
 
-    // Step 2: Use AI to analyze the site and find competitors based on description/keywords
-    if (openaiApiKey && (description || keywords.length > 0)) {
-      try {
-        console.log("[ANALYZE-WEBSITE] 🤖 Using AI to find competitors based on content...");
-        
-        const prompt = `Analyse ce site web et trouve ses 5 principaux concurrents directs.
+    console.log("[ANALYZE-WEBSITE] 📄 Total page content extracted:", pageContent.length, "chars");
 
+    // Step 2: Use AI to analyze the FULL page content and find competitors + keywords
+    if (openaiApiKey && pageContent.length > 50) {
+      try {
+        console.log("[ANALYZE-WEBSITE] 🤖 Using AI to analyze full page content...");
+        
+        // Truncate content if too long
+        const contentForAI = pageContent.substring(0, 8000);
+        
+        const analysisPrompt = `Analyse ce contenu de page d'accueil et extrais les informations suivantes:
+
+CONTENU DU SITE (${domain}):
+${contentForAI}
+
+${description ? `META DESCRIPTION: ${description}` : ''}
+
+TÂCHES:
+1. CONCURRENTS: Identifie 5 sites web concurrents directs français qui:
+   - Offrent des produits/services similaires
+   - Ciblent la même audience
+   - Sont des acteurs majeurs sur le même marché
+
+2. KEYWORDS: Extrais 15-20 mots-clés SEO pertinents basés sur:
+   - Les titres et headings de la page
+   - Les services/produits mentionnés
+   - Les termes métier utilisés
+   - Les questions que les utilisateurs pourraient poser
+
+3. DESCRIPTION: Résume l'activité de ce site en 2-3 phrases.
+
+4. AUDIENCES: Identifie 3 audiences cibles principales.
+
+IMPORTANT:
+- Pour les concurrents: retourne UNIQUEMENT des domaines réels (ex: leboncoin.fr, vinted.fr)
+- Pour les keywords: focus sur des termes de recherche que les gens utiliseraient vraiment
+- NE retourne PAS le site analysé lui-même dans les concurrents
+
+Réponds UNIQUEMENT avec ce JSON (pas d'explication):
+{
+  "competitors": ["domaine1.fr", "domaine2.com"],
+  "keywords": [{"keyword": "mot clé 1", "intent": "informational"}, {"keyword": "mot clé 2", "intent": "transactional"}],
+  "description": "Description du site...",
+  "audiences": ["audience 1", "audience 2", "audience 3"]
+}`;
+
+        const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openaiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
+              { role: "user", content: analysisPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const content = aiData.choices?.[0]?.message?.content?.trim() || "";
+          console.log("[ANALYZE-WEBSITE] 🤖 AI analysis response:", content.substring(0, 500) + "...");
+          
+          try {
+            // Parse JSON response
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              
+              // Extract competitors
+              if (Array.isArray(parsed.competitors)) {
+                competitors = parsed.competitors
+                  .filter((c: string) => c && typeof c === "string" && !c.includes(domain))
+                  .slice(0, 5);
+                console.log("[ANALYZE-WEBSITE] ✅ AI found competitors:", competitors);
+              }
+              
+              // Extract keywords
+              if (Array.isArray(parsed.keywords)) {
+                keywords = parsed.keywords.map((k: any) => {
+                  if (typeof k === 'string') return { keyword: k, intent: 'informational' };
+                  return { keyword: k.keyword, intent: k.intent || 'informational' };
+                }).slice(0, 20);
+                console.log("[ANALYZE-WEBSITE] ✅ AI found", keywords.length, "keywords");
+              }
+              
+              // Extract description if better than meta
+              if (parsed.description && (!description || description.length < 50)) {
+                description = parsed.description;
+                console.log("[ANALYZE-WEBSITE] ✅ AI generated description");
+              }
+              
+              // Extract audiences
+              if (Array.isArray(parsed.audiences)) {
+                targetAudiences = parsed.audiences.slice(0, 3);
+                console.log("[ANALYZE-WEBSITE] ✅ AI found audiences:", targetAudiences);
+              }
+            }
+          } catch (parseError) {
+            console.error("[ANALYZE-WEBSITE] ⚠️ Error parsing AI response:", parseError);
+          }
+        }
+      } catch (e) {
+        console.error("[ANALYZE-WEBSITE] ⚠️ AI analysis error:", e);
+      }
+    }
+
+    // Step 2b: Fallback - Use simpler AI call if main analysis failed
+    if (competitors.length === 0 && openaiApiKey && (description || allHeadings.length > 0)) {
+      try {
+        console.log("[ANALYZE-WEBSITE] 🤖 Fallback: Simple competitor search...");
+        
+        const prompt = `Trouve 5 concurrents français pour ce site:
 Site: ${domain}
 ${description ? `Description: ${description}` : ''}
-${keywords.length > 0 ? `Mots-clés: ${keywords.join(", ")}` : ''}
+${allHeadings.length > 0 ? `Contenu: ${allHeadings.slice(0, 5).join(", ")}` : ''}
 
-Basé sur ces informations, identifie les 5 principaux sites web concurrents qui:
-1. Offrent des produits/services similaires
-2. Ciblent la même audience
-3. Opèrent sur le même marché
-
-IMPORTANT: 
-- Retourne UNIQUEMENT les noms de domaine (ex: amazon.fr, cdiscount.com)
-- Ne retourne PAS le site analysé lui-même
-- Concentre-toi sur des concurrents réels et existants
-- Privilégie les concurrents français si le site est français
-
-Réponds UNIQUEMENT avec un JSON array de domaines, sans explication:
-["concurrent1.com", "concurrent2.fr", "concurrent3.com"]`;
+Réponds UNIQUEMENT avec un JSON array de domaines:
+["concurrent1.com", "concurrent2.fr"]`;
 
         const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -229,50 +399,8 @@ Réponds UNIQUEMENT avec un JSON array de domaines, sans explication:
       description = `${brandName} est une entreprise offrant des produits et services de qualité.`;
     }
 
-    // Try to infer target audiences from description and keywords
-    if (targetAudiences.length === 0 && openaiApiKey && description) {
-      try {
-        const audiencePrompt = `Basé sur cette description de site web, identifie 3 audiences cibles principales (en français, maximum 5 mots chacune):
-
-Description: ${description}
-${keywords.length > 0 ? `Mots-clés: ${keywords.join(", ")}` : ''}
-
-Réponds UNIQUEMENT avec un JSON array:
-["audience1", "audience2", "audience3"]`;
-
-        const audienceResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openaiApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: "Tu identifies les audiences cibles. Réponds uniquement avec du JSON valide." },
-              { role: "user", content: audiencePrompt }
-            ],
-            temperature: 0.3,
-            max_tokens: 200,
-          }),
-        });
-
-        if (audienceResponse.ok) {
-          const audienceData = await audienceResponse.json();
-          const audienceContent = audienceData.choices?.[0]?.message?.content?.trim() || "";
-          const jsonMatch = audienceContent.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            const parsedAudiences = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(parsedAudiences)) {
-              targetAudiences = parsedAudiences.slice(0, 3);
-              console.log("[ANALYZE-WEBSITE] ✅ Found target audiences:", targetAudiences);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("[ANALYZE-WEBSITE] ⚠️ Error finding audiences:", e);
-      }
-    }
+    // Audiences already extracted in main AI call, skip if we have them
+    // (legacy fallback removed to avoid duplicate API calls)
 
     console.log("[ANALYZE-WEBSITE] ✅ Analysis complete:", {
       domain,
