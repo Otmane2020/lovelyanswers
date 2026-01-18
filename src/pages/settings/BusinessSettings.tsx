@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function BusinessSettings() {
+  const navigate = useNavigate();
   const { project, isLoading } = useActiveProject();
   const updateProject = useUpdateProject();
   const { data: sitePages = [] } = useSitePages();
@@ -138,21 +140,10 @@ export function BusinessSettings() {
     setShowUrlChangeWarning(false);
 
     try {
-      await updateProject.mutateAsync({
-        projectId: project.id,
-        updates: {
-          business_description: description,
-          audience: JSON.stringify(audienceTags),
-          brand_color: brandColor,
-          brand_voice_url: brandVoice,
-          sitemap_url: sitemapUrl,
-        },
-      });
-
-      const response = await supabase.functions.invoke("reset-project-content", {
+      // Delete the project and all its content
+      const response = await supabase.functions.invoke("delete-project-content", {
         body: {
           projectId: project.id,
-          newUrl: websiteUrl.trim(),
         },
       });
 
@@ -160,14 +151,17 @@ export function BusinessSettings() {
         throw new Error(response.error.message);
       }
 
-      setOriginalUrl(websiteUrl.trim());
-      toast.success("URL changed! All data deleted and 30-day content generation started.");
+      toast.success("Project deleted. Redirecting to onboarding...");
       
-    } catch (error: any) {
+      // Redirect to onboarding with the new URL
+      const encodedUrl = encodeURIComponent(websiteUrl.trim());
+      navigate(`/onboarding?url=${encodedUrl}`);
+      
+    } catch (error: unknown) {
       console.error("URL change failed:", error);
-      toast.error("Failed to change URL: " + (error.message || "Unknown error"));
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to change URL: " + errorMessage);
       setWebsiteUrl(originalUrl);
-    } finally {
       setIsResetting(false);
     }
   };
