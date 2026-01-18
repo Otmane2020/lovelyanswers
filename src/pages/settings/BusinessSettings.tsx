@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, X, ExternalLink, Loader2, AlertTriangle, Link2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Sparkles, X, ExternalLink, Loader2, AlertTriangle, Link2, RefreshCw, CheckCircle2, Trash2, Plus } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
 import { useSitePages, useParseSitemap, useSitePagesCount } from "@/hooks/useSitePages";
 import { toast } from "sonner";
@@ -51,6 +51,10 @@ export function BusinessSettings() {
   const [isResetting, setIsResetting] = useState(false);
   const [originalUrl, setOriginalUrl] = useState("");
   const [showPagesDialog, setShowPagesDialog] = useState(false);
+  const [showDeleteAllWarning, setShowDeleteAllWarning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showAddUrlDialog, setShowAddUrlDialog] = useState(false);
+  const [newUrl, setNewUrl] = useState("");
 
   const handleParseSitemap = async () => {
     if (!sitemapUrl.trim()) {
@@ -167,6 +171,47 @@ export function BusinessSettings() {
       setWebsiteUrl(originalUrl);
       setIsResetting(false);
     }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!project) return;
+    
+    setIsDeleting(true);
+    setShowDeleteAllWarning(false);
+
+    try {
+      const response = await supabase.functions.invoke("delete-project-content", {
+        body: {
+          projectId: project.id,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast.success("All data deleted. Redirecting to onboarding...");
+      
+      localStorage.removeItem('onboarding_data');
+      navigate("/onboarding");
+      
+    } catch (error: unknown) {
+      console.error("Delete all failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete: " + errorMessage);
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAddUrl = () => {
+    if (!newUrl.trim()) {
+      toast.error("Please enter a URL");
+      return;
+    }
+
+    localStorage.removeItem('onboarding_data');
+    const encodedUrl = encodeURIComponent(newUrl.trim());
+    navigate(`/onboarding?url=${encodedUrl}`);
   };
 
   if (isLoading) {
@@ -377,25 +422,49 @@ export function BusinessSettings() {
             </p>
           </div>
 
-          <Button 
-            className="w-full" 
-            onClick={handleSave}
-            disabled={updateProject.isPending || isResetting}
-          >
-            {isResetting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Resetting & Regenerating...
-              </>
-            ) : updateProject.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save"
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              className="flex-1" 
+              onClick={handleSave}
+              disabled={updateProject.isPending || isResetting || isDeleting}
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : updateProject.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowAddUrlDialog(true)}
+              disabled={isDeleting || isResetting}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add URL
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => setShowDeleteAllWarning(true)}
+              disabled={isDeleting || isResetting}
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -445,6 +514,72 @@ export function BusinessSettings() {
               )}
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Confirmation */}
+      <AlertDialog open={showDeleteAllWarning} onOpenChange={setShowDeleteAllWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Delete All Data
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-semibold text-foreground">
+                This will permanently delete ALL your project data:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All generated answers</li>
+                <li>All articles</li>
+                <li>Complete content planning</li>
+                <li>All keywords</li>
+                <li>All Reddit responses</li>
+                <li>Website URL and settings</li>
+              </ul>
+              <p className="pt-2 text-destructive font-medium">
+                This action is IRREVERSIBLE!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add URL Dialog */}
+      <Dialog open={showAddUrlDialog} onOpenChange={setShowAddUrlDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              Add New Website URL
+            </DialogTitle>
+            <DialogDescription>
+              Enter the URL of the website you want to analyze. This will start a fresh onboarding process.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newUrl">Website URL</Label>
+              <Input
+                id="newUrl"
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <Button className="w-full" onClick={handleAddUrl}>
+              Start Onboarding
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
