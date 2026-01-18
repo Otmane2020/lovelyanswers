@@ -7,6 +7,7 @@ import { ArticleSettings } from "./settings/ArticleSettings";
 import { ArticleVisuals } from "./settings/ArticleVisuals";
 import { IntegrationsSettings } from "./settings/IntegrationsSettings";
 import { CompetitorSettings } from "./settings/CompetitorSettings";
+import { KeywordsSettings } from "./settings/KeywordsSettings";
 
 export default function AeoSettings() {
   return (
@@ -30,6 +31,12 @@ export default function AeoSettings() {
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
             >
               Business Settings
+            </TabsTrigger>
+            <TabsTrigger 
+              value="keywords"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Keywords
             </TabsTrigger>
             <TabsTrigger 
               value="team"
@@ -69,6 +76,9 @@ export default function AeoSettings() {
             </TabsContent>
             <TabsContent value="business" className="mt-0">
               <BusinessSettings />
+            </TabsContent>
+            <TabsContent value="keywords" className="mt-0">
+              <KeywordsSettings />
             </TabsContent>
             <TabsContent value="team" className="mt-0">
               <TeamMembers />
