@@ -564,17 +564,53 @@ serve(async (req) => {
     // questionsPerDay = 1 means 1 question generates 1 answer + 1 article = 2 items per day
     const { projectId, language = "fr", days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
 
+    console.log(`[generate-30-days] Request params: projectId=${projectId}, userId=${userData.user.id}, days=${days}`);
+
     if (!projectId) throw new Error("Missing projectId");
 
-    // Get project
-    const { data: project } = await supabase
+    // Get project - first try with user_id check
+    let { data: project, error: projectError } = await supabase
       .from("projects")
       .select("*")
       .eq("id", projectId)
       .eq("user_id", userData.user.id)
       .single();
 
-    if (!project) throw new Error("Project not found");
+    // If not found with user_id, check if user is a team member
+    if (!project) {
+      console.log(`[generate-30-days] Project not found for owner, checking team membership...`);
+      
+      const { data: teamMember } = await supabase
+        .from("team_members")
+        .select("project_id, role")
+        .eq("project_id", projectId)
+        .eq("user_id", userData.user.id)
+        .eq("status", "accepted")
+        .single();
+      
+      if (teamMember) {
+        console.log(`[generate-30-days] User is team member with role: ${teamMember.role}`);
+        const { data: projectData } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", projectId)
+          .single();
+        project = projectData;
+      }
+    }
+
+    if (!project) {
+      console.error(`[generate-30-days] Project not found: projectId=${projectId}, userId=${userData.user.id}`);
+      
+      // Log what projects this user has
+      const { data: userProjects } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", userData.user.id);
+      console.log(`[generate-30-days] User's projects:`, userProjects);
+      
+      throw new Error("Project not found");
+    }
 
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
