@@ -90,9 +90,19 @@ export default function Onboarding() {
 
   const totalSteps = 5; // URL, language, description, audience, competitors - then auth & checkout
 
-  // Redirect existing users with projects to dashboard
+  // Check if we're coming from URL change (force onboarding)
+  const urlFromParam = searchParams.get('url');
+  const forceOnboarding = !!urlFromParam;
+
+  // Redirect existing users with projects to dashboard (unless forced)
   useEffect(() => {
     const checkExistingProject = async () => {
+      // If we have a URL param, we're coming from URL change - skip redirect
+      if (forceOnboarding) {
+        setIsCheckingUser(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setIsCheckingUser(false);
@@ -114,7 +124,7 @@ export default function Onboarding() {
     };
 
     checkExistingProject();
-  }, [navigate]);
+  }, [navigate, forceOnboarding]);
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -125,6 +135,17 @@ export default function Onboarding() {
   // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
+
+    // RESET all fields before analysis to ensure clean state
+    setData(prev => ({
+      ...prev,
+      websiteUrl: url,
+      businessDescription: "",
+      targetAudiences: [],
+      competitors: [],
+      keywords: [],
+      exampleUrl: "",
+    }));
 
     setIsLoadingFast(true);
     setIsLoadingEnrich(true);

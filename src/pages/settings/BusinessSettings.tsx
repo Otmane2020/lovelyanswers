@@ -153,6 +153,9 @@ export function BusinessSettings() {
 
       toast.success("Project deleted. Redirecting to onboarding...");
       
+      // Clear any cached onboarding data
+      localStorage.removeItem('onboarding_data');
+      
       // Redirect to onboarding with the new URL
       const encodedUrl = encodeURIComponent(websiteUrl.trim());
       navigate(`/onboarding?url=${encodedUrl}`);
