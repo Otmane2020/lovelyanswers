@@ -179,6 +179,16 @@ serve(async (req) => {
       console.error("[delete-project-content] Failed to delete project_settings:", projectSettingsError);
     }
 
+    // Delete team_members
+    const { error: teamMembersError } = await supabase
+      .from("team_members")
+      .delete()
+      .eq("project_id", projectId);
+
+    if (teamMembersError) {
+      console.error("[delete-project-content] Failed to delete team_members:", teamMembersError);
+    }
+
     // Finally delete the project itself
     const { error: deleteProjectError } = await supabase
       .from("projects")
