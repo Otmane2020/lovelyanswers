@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Keyword {
+interface KeywordRow {
   id: string;
   keyword: string;
   intent: string | null;
@@ -34,32 +34,51 @@ interface Keyword {
   difficulty: number | null;
 }
 
-const INTENT_COLORS: Record<string, string> = {
-  informational: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  transactional: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  navigational: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-  commercial: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+type IntentKey = "informational" | "transactional" | "navigational" | "commercial";
+
+const INTENT_BADGE: Record<IntentKey, { label: string; className: string }> = {
+  informational: {
+    label: "Informational",
+    className: "bg-primary/10 text-primary border-primary/20",
+  },
+  transactional: {
+    label: "Transactional",
+    className: "bg-accent text-accent-foreground border-border",
+  },
+  navigational: {
+    label: "Navigational",
+    className: "bg-secondary text-secondary-foreground border-border",
+  },
+  commercial: {
+    label: "Commercial",
+    className: "bg-muted text-foreground border-border",
+  },
 };
+
+function normalizeIntent(intent: string | null): IntentKey {
+  const v = (intent || "informational").toLowerCase();
+  if (v === "transactional" || v === "navigational" || v === "commercial") return v;
+  return "informational";
+}
 
 export function KeywordsSettings() {
   const { project } = useActiveProject();
-  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [keywords, setKeywords] = useState<KeywordRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newKeyword, setNewKeyword] = useState("");
-  const [newIntent, setNewIntent] = useState("informational");
+  const [newIntent, setNewIntent] = useState<IntentKey>("informational");
   const [isAdding, setIsAdding] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   useEffect(() => {
-    if (project?.id) {
-      fetchKeywords();
-    }
+    if (project?.id) fetchKeywords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
   const fetchKeywords = async () => {
     if (!project?.id) return;
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -69,10 +88,10 @@ export function KeywordsSettings() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setKeywords(data || []);
+      setKeywords((data as KeywordRow[]) || []);
     } catch (error) {
       console.error("Error fetching keywords:", error);
-      toast.error("Erreur lors du chargement des mots-clés");
+      toast.error("Failed to load keywords");
     } finally {
       setIsLoading(false);
     }
@@ -81,9 +100,8 @@ export function KeywordsSettings() {
   const handleAddKeyword = async () => {
     if (!project?.id || !newKeyword.trim()) return;
 
-    // Check if keyword already exists
-    if (keywords.some(k => k.keyword.toLowerCase() === newKeyword.trim().toLowerCase())) {
-      toast.error("Ce mot-clé existe déjà");
+    if (keywords.some((k) => k.keyword.toLowerCase() === newKeyword.trim().toLowerCase())) {
+      toast.error("This keyword already exists");
       return;
     }
 
@@ -101,13 +119,12 @@ export function KeywordsSettings() {
         .single();
 
       if (error) throw error;
-
-      setKeywords([data, ...keywords]);
+      setKeywords([data as KeywordRow, ...keywords]);
       setNewKeyword("");
-      toast.success("Mot-clé ajouté");
+      toast.success("Keyword added");
     } catch (error) {
       console.error("Error adding keyword:", error);
-      toast.error("Erreur lors de l'ajout du mot-clé");
+      toast.error("Failed to add keyword");
     } finally {
       setIsAdding(false);
     }
@@ -115,18 +132,14 @@ export function KeywordsSettings() {
 
   const handleDeleteKeyword = async (keywordId: string) => {
     try {
-      const { error } = await supabase
-        .from("keywords")
-        .delete()
-        .eq("id", keywordId);
-
+      const { error } = await supabase.from("keywords").delete().eq("id", keywordId);
       if (error) throw error;
 
-      setKeywords(keywords.filter(k => k.id !== keywordId));
-      toast.success("Mot-clé supprimé");
+      setKeywords(keywords.filter((k) => k.id !== keywordId));
+      toast.success("Keyword removed");
     } catch (error) {
       console.error("Error deleting keyword:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error("Failed to remove keyword");
     }
   };
 
@@ -135,32 +148,26 @@ export function KeywordsSettings() {
 
     setIsDeletingAll(true);
     try {
-      const { error } = await supabase
-        .from("keywords")
-        .delete()
-        .eq("project_id", project.id);
-
+      const { error } = await supabase.from("keywords").delete().eq("project_id", project.id);
       if (error) throw error;
 
       setKeywords([]);
       setShowDeleteAll(false);
-      toast.success("Tous les mots-clés ont été supprimés");
+      toast.success("All keywords removed");
     } catch (error) {
       console.error("Error deleting all keywords:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error("Failed to remove keywords");
     } finally {
       setIsDeletingAll(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && newKeyword.trim()) {
-      handleAddKeyword();
-    }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && newKeyword.trim()) handleAddKeyword();
   };
 
-  const usedCount = keywords.filter(k => k.is_used).length;
-  const unusedCount = keywords.filter(k => !k.is_used).length;
+  const usedCount = keywords.filter((k) => k.is_used).length;
+  const unusedCount = keywords.filter((k) => !k.is_used).length;
 
   return (
     <div className="space-y-6">
@@ -168,158 +175,141 @@ export function KeywordsSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Mots-clés SEO
+            SEO Keywords
           </CardTitle>
           <CardDescription>
-            Gérez les mots-clés utilisés pour générer vos Q&A et articles. Ces mots-clés sont extraits de votre site et utilisés pour créer du contenu pertinent.
+            Manage the keywords used to generate your Q&A and articles. These keywords should reflect the real topics on
+            your website.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Stats */}
           <div className="flex gap-4 text-sm">
             <div className="flex items-center gap-2">
               <span className="font-medium">{keywords.length}</span>
-              <span className="text-muted-foreground">mots-clés total</span>
+              <span className="text-muted-foreground">total</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-green-600">{usedCount}</span>
-              <span className="text-muted-foreground">utilisés</span>
+              <span className="font-medium">{usedCount}</span>
+              <span className="text-muted-foreground">used</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-blue-600">{unusedCount}</span>
-              <span className="text-muted-foreground">disponibles</span>
+              <span className="font-medium">{unusedCount}</span>
+              <span className="text-muted-foreground">available</span>
             </div>
           </div>
 
-          {/* Add new keyword */}
           <div className="flex gap-2">
             <Input
-              placeholder="Ajouter un mot-clé..."
+              placeholder="Add a keyword…"
               value={newKeyword}
               onChange={(e) => setNewKeyword(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               className="flex-1"
             />
-            <Select value={newIntent} onValueChange={setNewIntent}>
-              <SelectTrigger className="w-[150px]">
+            <Select value={newIntent} onValueChange={(v) => setNewIntent(v as IntentKey)}>
+              <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="informational">Informationnel</SelectItem>
-                <SelectItem value="transactional">Transactionnel</SelectItem>
-                <SelectItem value="navigational">Navigationnel</SelectItem>
+                <SelectItem value="informational">Informational</SelectItem>
+                <SelectItem value="transactional">Transactional</SelectItem>
+                <SelectItem value="navigational">Navigational</SelectItem>
                 <SelectItem value="commercial">Commercial</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              onClick={handleAddKeyword} 
-              disabled={isAdding || !newKeyword.trim()}
-              size="icon"
-            >
+            <Button onClick={handleAddKeyword} disabled={isAdding || !newKeyword.trim()} size="icon">
               {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </Button>
           </div>
 
-          {/* Keywords list as tags */}
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : keywords.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Aucun mot-clé. Ajoutez-en manuellement ou relancez l'analyse de votre site.
+              No keywords yet. Add some manually or re-run the website analysis.
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {keywords.map((kw) => (
-                <Badge
-                  key={kw.id}
-                  variant="outline"
-                  className={`
-                    px-3 py-1.5 text-sm flex items-center gap-2 
-                    ${kw.is_used ? 'opacity-50' : ''} 
-                    ${INTENT_COLORS[kw.intent || 'informational']}
-                  `}
-                >
-                  <span>{kw.keyword}</span>
-                  {kw.is_used && <span className="text-xs">(utilisé)</span>}
-                  <button
-                    onClick={() => handleDeleteKeyword(kw.id)}
-                    className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+              {keywords.map((kw) => {
+                const intent = normalizeIntent(kw.intent);
+                return (
+                  <Badge
+                    key={kw.id}
+                    variant="outline"
+                    className={`px-3 py-1.5 text-sm flex items-center gap-2 ${kw.is_used ? "opacity-60" : ""} ${
+                      INTENT_BADGE[intent].className
+                    }`}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+                    <span>{kw.keyword}</span>
+                    {kw.is_used && <span className="text-xs">(used)</span>}
+                    <button
+                      onClick={() => handleDeleteKeyword(kw.id)}
+                      className="ml-1 rounded-full p-0.5 hover:bg-muted/60"
+                      aria-label={`Remove keyword ${kw.keyword}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
-          {/* Delete all button */}
           {keywords.length > 0 && (
             <div className="pt-4 border-t">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteAll(true)}
-              >
+              <Button variant="destructive" size="sm" onClick={() => setShowDeleteAll(true)}>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer tous les mots-clés
+                Remove all keywords
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Legend */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Légende des intentions</CardTitle>
+          <CardTitle className="text-sm">Intent legend</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Badge className={INTENT_COLORS.informational}>Info</Badge>
-              <span className="text-muted-foreground">Questions générales</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={INTENT_COLORS.transactional}>Trans</Badge>
-              <span className="text-muted-foreground">Intention d'achat</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={INTENT_COLORS.commercial}>Comm</Badge>
-              <span className="text-muted-foreground">Recherche produit</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={INTENT_COLORS.navigational}>Nav</Badge>
-              <span className="text-muted-foreground">Recherche de site</span>
-            </div>
+            {(Object.keys(INTENT_BADGE) as IntentKey[]).map((k) => (
+              <div key={k} className="flex items-center gap-2">
+                <Badge className={INTENT_BADGE[k].className}>{INTENT_BADGE[k].label}</Badge>
+                <span className="text-muted-foreground">
+                  {k === "informational"
+                    ? "General questions"
+                    : k === "transactional"
+                      ? "Buying intent"
+                      : k === "commercial"
+                        ? "Research / comparison"
+                        : "Find a specific site"}
+                </span>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Delete all confirmation */}
       <AlertDialog open={showDeleteAll} onOpenChange={setShowDeleteAll}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer tous les mots-clés ?</AlertDialogTitle>
+            <AlertDialogTitle>Remove all keywords?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action supprimera définitivement les {keywords.length} mots-clés. 
-              Vous devrez relancer l'analyse de votre site ou les ajouter manuellement.
+              This will permanently remove {keywords.length} keywords. You can re-run the website analysis or add them back
+              manually.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAllKeywords}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeletingAll}
             >
-              {isDeletingAll ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
-              )}
-              Supprimer tout
+              {isDeletingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Remove all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
