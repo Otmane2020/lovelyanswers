@@ -178,18 +178,29 @@ Deno.serve(async (req) => {
     }
 
     // ============= STEP 2: Extract Keywords FIRST (needed for competitor detection) =============
-    const contentPreview = markdown.substring(0, 2000);
-    
+    // Use a sampled context from the whole page (top + middle + bottom) so keywords reflect the full scroll.
+    const midStart = Math.max(0, Math.floor(markdown.length / 2) - 1500);
+    const midEnd = Math.min(markdown.length, midStart + 3000);
+
+    const contentPreview = [
+      markdown.substring(0, 3000),
+      markdown.substring(midStart, midEnd),
+      markdown.substring(Math.max(0, markdown.length - 3000)),
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .substring(0, 9000);
+
     // Extract keywords first - they'll be used for AI competitor fallback
-    const keywordsPromise = lovableApiKey 
-      ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey) 
+    const keywordsPromise = lovableApiKey
+      ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
       : Promise.resolve([]);
-    
+
     // ============= STEP 3: Audiences + Competitors in PARALLEL =============
     const [audiences, dataForSeoCompetitors, keywords] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
       competitorsPromise || Promise.resolve([]),
-      keywordsPromise
+      keywordsPromise,
     ]);
 
     // If DataForSEO returned no competitors, use Google Search via Firecrawl
@@ -461,11 +472,14 @@ async function findCompetitorsViaGoogleSearch(
 async function extractKeywordsFast(description: string, content: string, brandName: string, language: string, apiKey: string): Promise<Array<{keyword: string, intent: string}>> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const langInstruction = language === 'fr' 
+    const langInstruction = language === 'fr'
       ? 'Génère des mots-clés en FRANÇAIS adaptés au marché francophone.'
       : 'Generate keywords in ENGLISH.';
+
+    // Content is already sampled across the page; keep it reasonably sized for speed.
+    const contentForModel = content.substring(0, 5000);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -477,26 +491,27 @@ async function extractKeywordsFast(description: string, content: string, brandNa
         model: 'google/gemini-2.5-flash-lite',
         messages: [{
           role: 'user',
-          content: `Extract 15-20 SEO/AEO keywords for this business. ${langInstruction}
+          content: `Extract 18-22 SEO/AEO keywords for this business. ${langInstruction}
 
 Business: ${brandName}
 Description: ${description}
-Content: ${content.substring(0, 1200)}
+Page content (sampled from top/middle/bottom): ${contentForModel}
 
 Rules:
 - Include a mix of:
-  - Head terms (1-2 words, high volume)
-  - Long-tail keywords (3-5 words, specific)
-  - Question-based keywords (how, what, why, when)
+  - Head terms (1-2 words)
+  - Long-tail keywords (3-6 words)
+  - Question-based keywords (how/what/why/when)
   - Comparison keywords (vs, alternative, best)
   - Intent keywords (buy, price, review, tutorial)
+- Avoid generic words ("home", "welcome", etc.)
 - Classify each keyword intent: informational, transactional, navigational, commercial
 
 Return ONLY a JSON array:
-[{"keyword": "keyword here", "intent": "informational"}, ...]`
+[{"keyword":"...","intent":"informational"}, ...]`
         }],
         temperature: 0.4,
-        max_tokens: 600,
+        max_tokens: 700,
       }),
       signal: controller.signal,
     });
@@ -508,12 +523,12 @@ Return ONLY a JSON array:
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || '';
     const match = text.match(/\[[\s\S]*?\]/);
-    
+
     if (match) {
       const parsed = JSON.parse(match[0]);
       if (Array.isArray(parsed)) {
         console.log('[KEYWORDS] Extracted:', parsed.length, 'keywords');
-        return parsed.slice(0, 20);
+        return parsed.slice(0, 22);
       }
     }
     return [];
