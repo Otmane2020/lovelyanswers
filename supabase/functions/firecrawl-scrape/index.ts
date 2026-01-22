@@ -119,12 +119,6 @@ Deno.serve(async (req) => {
       }),
     });
 
-    // Start competitors fetch immediately (don't wait for scrape)
-    let competitorsPromise: Promise<string[]> | null = null;
-    if (dfLogin && dfPassword) {
-      competitorsPromise = fetchCompetitorsFast(ownDomain, dfLogin, dfPassword);
-    }
-
     // Wait for scrape
     const response = await scrapePromise;
     const data = await response.json();
@@ -196,19 +190,29 @@ Deno.serve(async (req) => {
       ? extractKeywordsFast(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
       : Promise.resolve([]);
 
-    // ============= STEP 3: Audiences + Competitors in PARALLEL =============
-    const [audiences, dataForSeoCompetitors, keywords] = await Promise.all([
+    // ============= STEP 3: Audiences + Keywords in PARALLEL =============
+    const [audiences, keywords] = await Promise.all([
       lovableApiKey ? extractAudiencesFast(enrichedDescription, contentPreview, language, lovableApiKey) : Promise.resolve([]),
-      competitorsPromise || Promise.resolve([]),
       keywordsPromise,
     ]);
 
-    // If DataForSEO returned no competitors, use Google Search via Firecrawl
-    // NOW we can use keywords from the site to build better search queries!
-    let competitors = dataForSeoCompetitors;
+    // ============= STEP 4: Competitors detection (uses keywords + language) =============
+    let competitors: string[] = [];
+    
+    // Use DataForSEO with correct location based on detected language
+    if (dfLogin && dfPassword) {
+      competitors = await fetchCompetitorsFast(ownDomain, dfLogin, dfPassword, language);
+    }
+    
+    // Fallback to SERP-based detection if DataForSEO returned nothing
+    if (competitors.length === 0 && dfLogin && dfPassword && keywords.length > 0) {
+      console.log('[COMPETITORS] Domain API returned nothing, trying SERP-based detection');
+      competitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language);
+    }
+    
+    // Final fallback: Google Search via Firecrawl
     if (competitors.length === 0 && apiKey) {
-      console.log('[COMPETITORS] DataForSEO returned nothing, using Google Search fallback');
-      // Pass keywords to help build better search query
+      console.log('[COMPETITORS] SERP returned nothing, using Google Search fallback');
       competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords);
     }
 
@@ -538,13 +542,65 @@ Return ONLY a JSON array:
   }
 }
 
-// Fast competitors fetch - single API call only
-async function fetchCompetitorsFast(domain: string, login: string, password: string): Promise<string[]> {
+// Location codes for DataForSEO based on language
+function getLocationCode(language: string): number {
+  const locations: Record<string, number> = {
+    'fr': 2250,  // France
+    'de': 2276,  // Germany
+    'es': 2724,  // Spain
+    'it': 2380,  // Italy
+    'pt': 2076,  // Brazil (Portuguese)
+    'en': 2840,  // USA (default for English)
+  };
+  return locations[language] || 2840;
+}
+
+// Blocked domains list - comprehensive
+const BLOCKED_DOMAINS = new Set([
+  // Social media
+  'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
+  'youtube.com', 'tiktok.com', 'pinterest.com', 'x.com',
+  // Search engines
+  'google.com', 'google.fr', 'google.de', 'bing.com', 'yahoo.com',
+  // Marketplaces
+  'amazon.com', 'amazon.fr', 'amazon.de', 'ebay.com', 'ebay.fr', 'etsy.com',
+  // Generic platforms
+  'shopify.com', 'wix.com', 'wordpress.com', 'wordpress.org', 'squarespace.com', 
+  'webflow.com', 'medium.com', 'substack.com', 'notion.so', 'canva.com',
+  // Review/directory sites
+  'trustpilot.com', 'yelp.com', 'tripadvisor.com', 'pagesjaunes.fr',
+  'g2.com', 'capterra.com', 'getapp.com', 'softwareadvice.com',
+  // Wikipedia
+  'wikipedia.org', 'wikimedia.org',
+  // Tech sites
+  'reddit.com', 'quora.com', 'stackoverflow.com', 'github.com',
+  'techcrunch.com', 'producthunt.com', 'crunchbase.com',
+  // App stores
+  'apps.shopify.com', 'play.google.com', 'apps.apple.com',
+  // French marketplaces
+  'cdiscount.com', 'leboncoin.fr', 'fnac.com', 'darty.com',
+]);
+
+function isBlockedDomain(domain: string): boolean {
+  const lower = domain.toLowerCase();
+  if (BLOCKED_DOMAINS.has(lower)) return true;
+  for (const blocked of BLOCKED_DOMAINS) {
+    if (lower.endsWith(`.${blocked}`)) return true;
+  }
+  return false;
+}
+
+// Fast competitors fetch - with proper location based on language
+async function fetchCompetitorsFast(domain: string, login: string, password: string, language: string): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // 8s max
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const auth = btoa(`${login}:${password}`);
+    const locationCode = getLocationCode(language);
+    const languageCode = language === 'fr' ? 'fr' : language === 'de' ? 'de' : language === 'es' ? 'es' : 'en';
+    
+    console.log('[COMPETITORS] Using DataForSEO with location:', locationCode, 'language:', languageCode);
     
     const response = await fetch('https://api.dataforseo.com/v3/dataforseo_labs/google/competitors_domain/live', {
       method: 'POST',
@@ -554,10 +610,10 @@ async function fetchCompetitorsFast(domain: string, login: string, password: str
       },
       body: JSON.stringify([{
         target: domain,
-        location_code: 2840, // US - most data
-        language_code: 'en',
-        limit: 10,
-        filters: ["intersections", ">", 1] // Lowered from 3 to get more results
+        location_code: locationCode,
+        language_code: languageCode,
+        limit: 20, // Get more to filter
+        filters: ["intersections", ">", 0] // Any intersection counts
       }]),
       signal: controller.signal,
     });
@@ -567,34 +623,131 @@ async function fetchCompetitorsFast(domain: string, login: string, password: str
     const data = await response.json();
     
     if (data.status_code !== 20000 || !data.tasks?.[0]?.result?.[0]?.items) {
-      console.log('[COMPETITORS] No results from DataForSEO');
+      console.log('[COMPETITORS] No results from DataForSEO domain API:', data.status_message || 'empty');
       return [];
     }
 
-    // Blocked domains filter
-    const blocked = new Set([
-      'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
-      'youtube.com', 'tiktok.com', 'pinterest.com', 'google.com',
-      'amazon.com', 'ebay.com', 'wikipedia.org', 'shopify.com',
-      'wix.com', 'wordpress.com', 'squarespace.com', 'webflow.com'
-    ]);
-
+    const ownDomainBase = domain.split('.')[0].toLowerCase();
+    
     const competitors = data.tasks[0].result[0].items
       .map((item: any) => item.domain)
       .filter((d: string) => {
         if (!d) return false;
         const lower = d.toLowerCase();
-        if (lower.includes(domain.split('.')[0])) return false;
-        if (blocked.has(lower)) return false;
+        // Skip own domain
+        if (lower.includes(ownDomainBase) || ownDomainBase.includes(lower.split('.')[0])) return false;
+        // Skip blocked domains
+        if (isBlockedDomain(lower)) return false;
         return true;
       })
       .slice(0, 5);
 
-    console.log('[COMPETITORS] Found:', competitors);
+    console.log('[COMPETITORS] Domain API found:', competitors);
     return competitors;
 
   } catch (e) {
-    console.error('[COMPETITORS] Error:', e);
+    console.error('[COMPETITORS] Domain API error:', e);
+    return [];
+  }
+}
+
+// NEW: Fetch competitors from SERP based on keywords
+async function fetchCompetitorsFromSERP(
+  keywords: Array<{keyword: string, intent: string}>,
+  ownDomain: string,
+  login: string,
+  password: string,
+  language: string
+): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    const auth = btoa(`${login}:${password}`);
+    const locationCode = getLocationCode(language);
+    const languageCode = language === 'fr' ? 'fr' : language === 'de' ? 'de' : language === 'es' ? 'es' : 'en';
+    
+    // Use the top commercial/transactional keywords for SERP analysis
+    const topKeywords = keywords
+      .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
+      .slice(0, 3)
+      .map(k => k.keyword);
+    
+    if (topKeywords.length === 0) {
+      // Fallback to any keywords
+      topKeywords.push(...keywords.slice(0, 3).map(k => k.keyword));
+    }
+    
+    if (topKeywords.length === 0) {
+      console.log('[COMPETITORS] No keywords for SERP analysis');
+      return [];
+    }
+    
+    console.log('[COMPETITORS] SERP analysis with keywords:', topKeywords);
+    
+    // Query SERP for each keyword
+    const tasks = topKeywords.map(keyword => ({
+      keyword,
+      location_code: locationCode,
+      language_code: languageCode,
+      depth: 20, // Top 20 results
+    }));
+    
+    const response = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/regular', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tasks),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const data = await response.json();
+    
+    if (data.status_code !== 20000 || !data.tasks) {
+      console.log('[COMPETITORS] SERP API error:', data.status_message || 'empty');
+      return [];
+    }
+
+    const ownDomainBase = ownDomain.split('.')[0].toLowerCase();
+    const domainScores = new Map<string, number>();
+    
+    // Aggregate domains from all SERP results
+    for (const task of data.tasks) {
+      if (!task.result?.[0]?.items) continue;
+      
+      for (const item of task.result[0].items) {
+        if (item.type !== 'organic') continue;
+        
+        const domain = item.domain?.toLowerCase();
+        if (!domain) continue;
+        
+        // Skip own domain
+        if (domain.includes(ownDomainBase) || ownDomainBase.includes(domain.split('.')[0])) continue;
+        // Skip blocked domains
+        if (isBlockedDomain(domain)) continue;
+        
+        // Score by position (higher position = higher score)
+        const position = item.rank_group || 20;
+        const score = Math.max(0, 21 - position); // Position 1 = 20 points, Position 20 = 1 point
+        domainScores.set(domain, (domainScores.get(domain) || 0) + score);
+      }
+    }
+    
+    // Sort by score and return top competitors
+    const competitors = [...domainScores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([domain]) => domain);
+    
+    console.log('[COMPETITORS] SERP found:', competitors);
+    return competitors;
+
+  } catch (e) {
+    console.error('[COMPETITORS] SERP API error:', e);
     return [];
   }
 }
