@@ -128,7 +128,9 @@ export default function AeoIntegrations() {
     setIndexTestResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("gsc-request-indexing", {
+      // For manual URL testing, we use the test-index-url edge function
+      // which doesn't require an articleId
+      const { data, error } = await supabase.functions.invoke("gsc-test-indexation", {
         body: { url: testIndexUrl.trim() },
       });
 
@@ -137,7 +139,7 @@ export default function AeoIntegrations() {
       if (data?.success) {
         setIndexTestResult({
           success: true,
-          message: `✅ URL submitted for indexation: ${data.notificationTime || "Request sent"}`,
+          message: `✅ URL submitted for indexation: ${data.notifyTime || "Request sent"}`,
         });
         toast.success("URL submitted to Google for indexation!");
       } else {
