@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send } from "lucide-react";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,9 @@ export default function AeoIntegrations() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<any>(null);
   const [deletingIntegration, setDeletingIntegration] = useState<string | null>(null);
+  const [testIndexUrl, setTestIndexUrl] = useState("");
+  const [isTestingIndex, setIsTestingIndex] = useState(false);
+  const [indexTestResult, setIndexTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Handle OAuth callback for Google Search Console
   useEffect(() => {
@@ -111,6 +115,47 @@ export default function AeoIntegrations() {
       console.error("GSC connect error:", error);
       toast.error(error.message || "Failed to connect to Google Search Console");
       setConnectingGsc(false);
+    }
+  };
+
+  const handleTestIndexation = async () => {
+    if (!testIndexUrl.trim()) {
+      toast.error("Please enter a URL to test");
+      return;
+    }
+
+    setIsTestingIndex(true);
+    setIndexTestResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("gsc-request-indexing", {
+        body: { url: testIndexUrl.trim() },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setIndexTestResult({
+          success: true,
+          message: `✅ URL submitted for indexation: ${data.notificationTime || "Request sent"}`,
+        });
+        toast.success("URL submitted to Google for indexation!");
+      } else {
+        setIndexTestResult({
+          success: false,
+          message: data?.error || "Indexation request failed",
+        });
+        toast.error(data?.error || "Failed to request indexation");
+      }
+    } catch (error: any) {
+      console.error("Indexation test error:", error);
+      setIndexTestResult({
+        success: false,
+        message: error.message || "Connection error",
+      });
+      toast.error("Failed to test indexation: " + (error.message || "Unknown error"));
+    } finally {
+      setIsTestingIndex(false);
     }
   };
 
@@ -236,7 +281,7 @@ export default function AeoIntegrations() {
 
         {/* Google Search Console */}
         <Card className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center shadow-lg">
                 <Search className="h-6 w-6 text-white" />
@@ -244,7 +289,7 @@ export default function AeoIntegrations() {
               <div>
                 <h3 className="font-semibold">Google Search Console</h3>
                 <p className="text-sm text-muted-foreground">
-                  Track search performance, keywords, and rankings
+                  Track search performance, keywords, and request indexation
                 </p>
               </div>
             </div>
@@ -273,6 +318,77 @@ export default function AeoIntegrations() {
               </Button>
             )}
           </div>
+
+          {/* Indexation Test Section */}
+          {gscConnected && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                Test Indexation
+              </h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Submit a URL to Google for indexation. Use this to quickly index new published articles.
+              </p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    placeholder="https://yoursite.com/blog/article-slug"
+                    value={testIndexUrl}
+                    onChange={(e) => setTestIndexUrl(e.target.value)}
+                    className="pl-10"
+                    disabled={isTestingIndex}
+                  />
+                </div>
+                <Button
+                  onClick={handleTestIndexation}
+                  disabled={isTestingIndex || !testIndexUrl.trim()}
+                  className="gap-2 min-w-[140px]"
+                >
+                  {isTestingIndex ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Request Index
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Test Result */}
+              {indexTestResult && (
+                <div
+                  className={`mt-3 p-3 rounded-lg text-sm flex items-start gap-2 ${
+                    indexTestResult.success
+                      ? "bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20"
+                      : "bg-destructive/10 text-destructive border border-destructive/20"
+                  }`}
+                >
+                  {indexTestResult.success ? (
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>{indexTestResult.message}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Not Connected Message */}
+          {!gscConnected && !gscLoading && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <AlertCircle className="h-4 w-4" />
+                Connect Google Search Console to enable automatic indexation of your published articles.
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* CMS Integrations Grid */}
