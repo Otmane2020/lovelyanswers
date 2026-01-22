@@ -1,3 +1,7 @@
+# Robots.txt for LovelyAnswers
+# https://lovelyanswers.lovable.app
+
+# Allow all major search engines
 User-agent: Googlebot
 Allow: /
 
@@ -10,7 +14,54 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
 
-Sitemap: https://lovelyanswers.io/sitemap.xml
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# AI Crawlers - Allow for AEO
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Default rule
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /wizard
+Disallow: /answers/
+Disallow: /articles
+Disallow: /planning
+Disallow: /reddit
+Disallow: /history
+Disallow: /analytics
+Disallow: /integrations
+Disallow: /subscription
+Disallow: /billing
+Disallow: /support
+Disallow: /settings
+Disallow: /superadmin
+Disallow: /seo-audit
+Disallow: /keywords
+Disallow: /checkout
+
+# Sitemap location
+Sitemap: https://lovelyanswers.lovable.app/sitemap.xml
