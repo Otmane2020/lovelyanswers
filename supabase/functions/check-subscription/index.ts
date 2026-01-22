@@ -16,6 +16,7 @@ const logStep = (step: string, details?: any) => {
 const VIP_EMAILS = [
   "oben.rockman@gmail.com",
   "oben.rocman@gmail.com",
+  "expertt.webdev@gmail.com",
 ];
 
 serve(async (req) => {
