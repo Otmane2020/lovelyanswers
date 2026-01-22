@@ -12,6 +12,115 @@ interface IndexingRequest {
   userId?: string;
 }
 
+interface ServiceAccountKey {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+}
+
+// Create a JWT signed with the service account's private key
+async function createServiceAccountJWT(
+  serviceAccount: ServiceAccountKey,
+  scopes: string[]
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 3600; // 1 hour expiry
+
+  const header = {
+    alg: "RS256",
+    typ: "JWT",
+  };
+
+  const payload = {
+    iss: serviceAccount.client_email,
+    scope: scopes.join(" "),
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: exp,
+  };
+
+  // Encode header and payload
+  const encoder = new TextEncoder();
+  const headerB64 = base64UrlEncode(JSON.stringify(header));
+  const payloadB64 = base64UrlEncode(JSON.stringify(payload));
+  const unsignedToken = `${headerB64}.${payloadB64}`;
+
+  // Import the private key and sign
+  const privateKey = await importPrivateKey(serviceAccount.private_key);
+  const signature = await crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" },
+    privateKey,
+    encoder.encode(unsignedToken)
+  );
+
+  const signatureB64 = base64UrlEncode(
+    String.fromCharCode(...new Uint8Array(signature))
+  );
+
+  return `${unsignedToken}.${signatureB64}`;
+}
+
+function base64UrlEncode(str: string): string {
+  const base64 = btoa(str);
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function importPrivateKey(pem: string): Promise<CryptoKey> {
+  // Remove PEM headers and decode
+  const pemContents = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
+
+  const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+
+  return await crypto.subtle.importKey(
+    "pkcs8",
+    binaryDer,
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
+  );
+}
+
+// Get access token using service account JWT
+async function getServiceAccountAccessToken(
+  serviceAccount: ServiceAccountKey
+): Promise<string> {
+  const jwt = await createServiceAccountJWT(serviceAccount, [
+    "https://www.googleapis.com/auth/indexing",
+  ]);
+
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.text();
+    throw new Error(`Failed to get access token: ${error}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  return tokenData.access_token;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,7 +131,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { articleId, publishedUrl, userId }: IndexingRequest = await req.json();
+    const { articleId, publishedUrl }: IndexingRequest = await req.json();
 
     if (!articleId || !publishedUrl) {
       throw new Error("Article ID and published URL are required");
@@ -30,104 +139,44 @@ serve(async (req) => {
 
     console.log(`[gsc-indexing] Requesting indexation for: ${publishedUrl}`);
 
-    // Get the article to find the project
-    const { data: article, error: articleError } = await supabase
-      .from("articles")
-      .select("project_id")
-      .eq("id", articleId)
-      .single();
-
-    if (articleError || !article) {
-      throw new Error("Article not found");
-    }
-
-    // Get project owner's Google OAuth tokens
-    const { data: project } = await supabase
-      .from("projects")
-      .select("user_id")
-      .eq("id", article.project_id)
-      .single();
-
-    const targetUserId = userId || project?.user_id;
-
-    if (!targetUserId) {
-      // No user to get OAuth token from - mark as pending
+    // Get the service account key from secrets
+    const serviceAccountKeyJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    
+    if (!serviceAccountKeyJson) {
       await supabase
         .from("articles")
         .update({
           gsc_indexed: null,
-          gsc_index_error: "No Google account connected",
+          gsc_index_error: "Google Service Account not configured",
         })
         .eq("id", articleId);
 
       return new Response(
-        JSON.stringify({ success: false, error: "No Google account connected" }),
+        JSON.stringify({ success: false, error: "Google Service Account not configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get user's Google OAuth token
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("google_oauth_token, google_refresh_token, google_token_expires_at")
-      .eq("id", targetUserId)
-      .single();
-
-    if (!profile?.google_oauth_token) {
+    let serviceAccount: ServiceAccountKey;
+    try {
+      serviceAccount = JSON.parse(serviceAccountKeyJson);
+    } catch {
       await supabase
         .from("articles")
         .update({
-          gsc_indexed: null,
-          gsc_index_error: "Google Search Console not connected",
+          gsc_indexed: false,
+          gsc_index_error: "Invalid service account key format",
         })
         .eq("id", articleId);
 
       return new Response(
-        JSON.stringify({ success: false, error: "Google Search Console not connected" }),
+        JSON.stringify({ success: false, error: "Invalid service account key format" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    let accessToken = profile.google_oauth_token;
-
-    // Check if token is expired and refresh if needed
-    if (profile.google_token_expires_at) {
-      const expiresAt = new Date(profile.google_token_expires_at);
-      if (expiresAt <= new Date() && profile.google_refresh_token) {
-        // Refresh the token
-        const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-        const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
-
-        if (clientId && clientSecret) {
-          const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-              client_id: clientId,
-              client_secret: clientSecret,
-              refresh_token: profile.google_refresh_token,
-              grant_type: "refresh_token",
-            }),
-          });
-
-          if (refreshResponse.ok) {
-            const tokenData = await refreshResponse.json();
-            accessToken = tokenData.access_token;
-
-            // Update stored token
-            await supabase
-              .from("profiles")
-              .update({
-                google_oauth_token: accessToken,
-                google_token_expires_at: new Date(
-                  Date.now() + tokenData.expires_in * 1000
-                ).toISOString(),
-              })
-              .eq("id", targetUserId);
-          }
-        }
-      }
-    }
+    // Get access token using service account
+    const accessToken = await getServiceAccountAccessToken(serviceAccount);
 
     // Request indexation via Google Indexing API
     const indexingResponse = await fetch(
