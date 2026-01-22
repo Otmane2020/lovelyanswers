@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send, FileText } from "lucide-react";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send, FileText, Clock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -560,6 +560,12 @@ export default function Answers() {
                       {answer.platforms?.map((p) => <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>)}
                       {answer.high_citation && <Badge className="bg-emerald-500/20 text-emerald-500 border-0">High Citation</Badge>}
                       {answer.is_public && <Badge className="bg-blue-500/20 text-blue-500 border-0"><Globe className="mr-1 h-3 w-3" />Public</Badge>}
+                      {!answer.is_public && answer.scheduled_date && (
+                        <Badge className="bg-amber-500/20 text-amber-500 border-0">
+                          <Clock className="mr-1 h-3 w-3" />
+                          Planned: {new Date(answer.scheduled_date).toLocaleDateString()}
+                        </Badge>
+                      )}
                       {answer.has_article && <Badge className="bg-violet-500/20 text-violet-500 border-0"><Newspaper className="mr-1 h-3 w-3" />Has Article</Badge>}
                     </div>
                     <div className="flex items-center gap-2 pt-2 flex-wrap">

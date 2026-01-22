@@ -50,17 +50,22 @@ export default function AeoHistory() {
   const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
   const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
   
-  // Sort answers: most recently published first, then by created_at desc
-  const answers = [...rawAnswers].sort((a, b) => {
-    // Sort by created_at desc (most recent first)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  // Filter only published answers (is_public=true) and sort by published_at desc
+  const answers = [...rawAnswers]
+    .filter((a) => a.is_public)
+    .sort((a, b) => {
+      // Sort by published_at desc if available, otherwise by created_at desc
+      const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
+      const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
   
-  // Sort articles: most recently published first, then by created_at desc
-  const articles = [...rawArticles].sort((a, b) => {
-    // Sort by created_at desc (most recent first)
-    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-  });
+  // Filter only published articles and sort by created_at desc
+  const articles = [...rawArticles]
+    .filter((a) => a.status === "published")
+    .sort((a, b) => {
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
   const publishAnswer = usePublishAnswer();
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
@@ -198,7 +203,7 @@ export default function AeoHistory() {
                       <TableHead>Score</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Integration</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Published</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -233,7 +238,9 @@ export default function AeoHistory() {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {format(new Date(answer.created_at), "MMM d, yyyy")}
+                          {answer.published_at 
+                            ? format(new Date(answer.published_at), "MMM d, yyyy")
+                            : format(new Date(answer.created_at), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
