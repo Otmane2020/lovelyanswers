@@ -424,22 +424,15 @@ export default function Onboarding() {
         }
       }
       
-      // Auto-generate initial AEO content
-      try {
-        await supabase.functions.invoke('auto-generate-aeo', {
-          body: { 
-            projectId: newProject.id,
-            language: savedData.language 
-          }
-        });
-      } catch (aeoError) {
-        console.error('AEO generation error:', aeoError);
-        // Continue even if AEO generation fails
-      }
+      // Fire-and-forget: Start AEO generation in background (don't wait!)
+      supabase.functions.invoke('auto-generate-aeo', {
+        body: { 
+          projectId: newProject.id,
+          language: savedData.language 
+        }
+      }).catch(err => console.error('[ONBOARDING] AEO generation error:', err));
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Clear onboarding data and redirect to checkout
+      // Clear onboarding data and redirect to checkout IMMEDIATELY
       localStorage.removeItem('onboarding_data');
       navigate("/checkout");
     } catch (error) {
