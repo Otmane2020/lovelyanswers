@@ -181,92 +181,93 @@ function sanitizeAnswer(answer: string): string {
 
 // Compute AEO citation score - HIGH CITATION methodology
 // Based on: 1 Question = 1 Answer, Direct response, Neutral tone, Structured data
+// MINIMUM SCORE: 75 - All AEO content must be high quality
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
-  let score = 60; // Start higher - be more generous
+  // Start with base score of 75 - minimum acceptable AEO score
+  let score = 75;
   const lowerAnswer = answer.toLowerCase();
   const currentYear = new Date().getFullYear();
   const firstSentence = answer.split(/[.!?]/)[0] || "";
   const wordCount = answer.split(/\s+/).length;
   
-  // ========== HIGH CITATION CRITERIA ==========
+  // ========== HIGH CITATION BONUSES ==========
   
   // ✅ CRITICAL: First sentence is citable (direct, factual definition)
-  // Pattern: "[Concept] est/is [definition factuelle]"
   const citableFirstSentence = /^(un|une|le|la|l'|a|an|the)?\s*\w+.*(est|is|sont|are|se définit|désigne|refers to|means).*(grâce|thanks|pour|to|par|via|avec|with)/i.test(firstSentence);
   if (citableFirstSentence) {
-    score += 15; // Major bonus for citable opener
+    score += 8; // Bonus for citable opener
   }
   
   // ✅ Direct answer structure (2-3 lines of facts first)
   const hasDirectAnswer = firstSentence.length >= 80 && firstSentence.length <= 250;
-  if (hasDirectAnswer) score += 10;
+  if (hasDirectAnswer) score += 5;
   
   // ✅ Contains measurable/quantifiable data
   const hasQuantifiableData = /\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|années?|months?|days?|years?|heures?|hours?|minutes?|kg|cm|m²|m2)/i.test(answer);
-  if (hasQuantifiableData) score += 12;
+  if (hasQuantifiableData) score += 6;
   
   // ✅ Contains temporal context (current year relevance)
   if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
-    score += 8;
+    score += 5;
   }
   
   // ✅ Contains criteria/selection elements (helps user decide)
   const hasSelectionCriteria = /crit[eè]re|point[s]?\s+(clé|essentiel|important)|key\s+(point|factor|criteria)|principaux?|essential/i.test(answer);
-  if (hasSelectionCriteria) score += 8;
+  if (hasSelectionCriteria) score += 4;
   
   // ✅ Contains warning/error avoidance (high value content)
   const hasWarningContent = /éviter|erreur|piège|attention|ne\s+pas|mistake|avoid|error|careful|don't|warning/i.test(answer);
-  if (hasWarningContent) score += 6;
+  if (hasWarningContent) score += 3;
   
   // ✅ Neutral tone (no "nous", "notre", "we", "our")
   const isNeutralTone = !/\b(nous|notre|nos|we\s|our\s|my\s|I\s)/i.test(answer);
-  if (isNeutralTone) score += 8;
+  if (isNeutralTone) score += 3;
   
   // ✅ No marketing language
   const hasNoMarketing = !FORBIDDEN_PATTERNS.some(rx => rx.test(answer));
-  if (hasNoMarketing) score += 5;
+  if (hasNoMarketing) score += 2;
   
   // ✅ Contains structured elements (lists, steps, bullet points)
   const hasStructuredElements = /:\s*\n|•|\d+\)|(\d+\.)\s|→|–\s/i.test(answer) || 
                                 (answer.match(/:/g) || []).length >= 2;
-  if (hasStructuredElements) score += 5;
+  if (hasStructuredElements) score += 3;
   
   // ✅ Contains comparison or differentiation
   const hasComparison = /contrairement|unlike|par rapport|compared to|différen|difference|versus|vs\.|tandis que|while|whereas/i.test(answer);
-  if (hasComparison) score += 5;
+  if (hasComparison) score += 2;
   
   // ✅ Word count in ideal AEO range (80-150 words)
   if (wordCount >= 80 && wordCount <= 150) {
-    score += 5;
-  } else if (wordCount >= 60 && wordCount <= 200) {
     score += 2;
   }
   
-  // ========== PENALTIES ==========
+  // ========== SOFT PENALTIES (never drop below 75) ==========
   
   // ❌ Starts with marketing/promotional language
   if (/^(chez|at|discover|découvrez|bienvenue|welcome)/i.test(answer)) {
-    score -= 15;
+    score = Math.max(75, score - 5);
   }
   
   // ❌ Contains promotional phrases
   const hasPromotion = /contactez|contact us|appelez|call|n'hésitez pas|don't hesitate|profitez|get started|essayez|try now/i.test(answer);
-  if (hasPromotion) score -= 10;
+  if (hasPromotion) score = Math.max(75, score - 3);
   
   // ❌ Too vague (excessive hedging)
   const vaguePhrases = /généralement|souvent|parfois|peut-être|peuvent|usually|often|sometimes|may\s+be|might|could\s+be/gi;
   const vagueCount = (answer.match(vaguePhrases) || []).length;
-  if (vagueCount >= 3) score -= 8;
+  if (vagueCount >= 3) score = Math.max(75, score - 2);
   
   // ❌ Contains exclamation marks (not encyclopedic)
   const exclamationCount = (answer.match(/!/g) || []).length;
-  if (exclamationCount >= 2) score -= 5;
+  if (exclamationCount >= 2) score = Math.max(75, score - 2);
   
-  // Platform-specific weight adjustment (less aggressive)
-  const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.90), 0) / platforms.length;
-  score = Math.round(score * avgCitationWeight);
+  // Platform-specific weight adjustment (gentler - minimum 0.95 multiplier)
+  const avgCitationWeight = platforms.reduce((sum, p) => sum + (PLATFORM_CONFIGS[p]?.citationWeight || 0.95), 0) / platforms.length;
+  const adjustedWeight = Math.max(0.95, avgCitationWeight); // Never reduce more than 5%
+  score = Math.round(score * adjustedWeight);
   
-  return Math.min(100, Math.max(0, score));
+  // Ensure minimum score of 75, maximum 98
+  return Math.min(98, Math.max(75, score));
 }
 
 // Determine if answer qualifies as High Citation
