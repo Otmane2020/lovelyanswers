@@ -168,15 +168,39 @@ serve(async (req) => {
     let serviceAccount: ServiceAccountKey;
     try {
       serviceAccount = JSON.parse(serviceAccountKeyJson);
-    } catch {
+    } catch (parseError) {
+      console.error("[gsc-test-indexation] JSON parse error:", parseError);
+      console.error("[gsc-test-indexation] Key length:", serviceAccountKeyJson?.length);
+      console.error("[gsc-test-indexation] Key starts with:", serviceAccountKeyJson?.substring(0, 50));
+      console.error("[gsc-test-indexation] Key ends with:", serviceAccountKeyJson?.slice(-30));
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid service account key format. Please check the JSON." 
+          error: `Invalid service account key format: ${parseError instanceof Error ? parseError.message : 'JSON parse failed'}. Key length: ${serviceAccountKeyJson?.length}` 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate required fields
+    if (!serviceAccount.client_email || !serviceAccount.private_key) {
+      console.error("[gsc-test-indexation] Missing required fields:", {
+        hasClientEmail: !!serviceAccount.client_email,
+        hasPrivateKey: !!serviceAccount.private_key,
+        keys: Object.keys(serviceAccount),
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Service account key missing required fields. Has client_email: ${!!serviceAccount.client_email}, Has private_key: ${!!serviceAccount.private_key}` 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[gsc-test-indexation] Service account parsed successfully:", serviceAccount.client_email);
 
     // Get access token using service account
     const accessToken = await getServiceAccountAccessToken(serviceAccount);

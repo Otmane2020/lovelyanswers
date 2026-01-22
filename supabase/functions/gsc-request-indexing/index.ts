@@ -160,20 +160,50 @@ serve(async (req) => {
     let serviceAccount: ServiceAccountKey;
     try {
       serviceAccount = JSON.parse(serviceAccountKeyJson);
-    } catch {
+    } catch (parseError) {
+      console.error("[gsc-indexing] JSON parse error:", parseError);
+      console.error("[gsc-indexing] Key length:", serviceAccountKeyJson?.length);
+      
+      const errorMsg = `Invalid service account key format: ${parseError instanceof Error ? parseError.message : 'JSON parse failed'}`;
+      
       await supabase
         .from("articles")
         .update({
           gsc_indexed: false,
-          gsc_index_error: "Invalid service account key format",
+          gsc_index_error: errorMsg,
         })
         .eq("id", articleId);
 
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid service account key format" }),
+        JSON.stringify({ success: false, error: errorMsg }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate required fields
+    if (!serviceAccount.client_email || !serviceAccount.private_key) {
+      console.error("[gsc-indexing] Missing required fields:", {
+        hasClientEmail: !!serviceAccount.client_email,
+        hasPrivateKey: !!serviceAccount.private_key,
+      });
+      
+      const errorMsg = `Service account key missing required fields. Has client_email: ${!!serviceAccount.client_email}, Has private_key: ${!!serviceAccount.private_key}`;
+      
+      await supabase
+        .from("articles")
+        .update({
+          gsc_indexed: false,
+          gsc_index_error: errorMsg,
+        })
+        .eq("id", articleId);
+
+      return new Response(
+        JSON.stringify({ success: false, error: errorMsg }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[gsc-indexing] Service account parsed successfully:", serviceAccount.client_email);
 
     // Get access token using service account
     const accessToken = await getServiceAccountAccessToken(serviceAccount);
