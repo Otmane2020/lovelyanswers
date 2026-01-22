@@ -8,7 +8,7 @@ import { ArticleVisuals } from "./settings/ArticleVisuals";
 import { IntegrationsSettings } from "./settings/IntegrationsSettings";
 import { CompetitorSettings } from "./settings/CompetitorSettings";
 import { KeywordsSettings } from "./settings/KeywordsSettings";
-
+import { AudiencesSettings } from "./settings/AudiencesSettings";
 export default function AeoSettings() {
   return (
     <DashboardLayout>
@@ -68,6 +68,12 @@ export default function AeoSettings() {
             >
               Competitors
             </TabsTrigger>
+            <TabsTrigger 
+              value="audiences"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Audiences
+            </TabsTrigger>
           </TabsList>
 
           <div className="mt-6 max-w-2xl">
@@ -94,6 +100,9 @@ export default function AeoSettings() {
             </TabsContent>
             <TabsContent value="competitors" className="mt-0">
               <CompetitorSettings />
+            </TabsContent>
+            <TabsContent value="audiences" className="mt-0">
+              <AudiencesSettings />
             </TabsContent>
           </div>
         </Tabs>

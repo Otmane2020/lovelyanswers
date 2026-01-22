@@ -160,6 +160,31 @@ serve(async (req) => {
         .from("articles")
         .update({ status: "published" })
         .eq("id", requestData.articleId);
+
+      // Request Google Search Console indexation if URL is available
+      if (publishResult.publishedUrl) {
+        try {
+          console.log(`[cms-publish] Requesting GSC indexation for: ${publishResult.publishedUrl}`);
+          
+          const indexingResponse = await fetch(`${supabaseUrl}/functions/v1/gsc-request-indexing`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              articleId: requestData.articleId,
+              publishedUrl: publishResult.publishedUrl,
+            }),
+          });
+
+          const indexingResult = await indexingResponse.json();
+          console.log(`[cms-publish] GSC indexation result:`, indexingResult);
+        } catch (indexError) {
+          console.error("[cms-publish] GSC indexation error (non-blocking):", indexError);
+          // Don't fail the publish if indexation fails
+        }
+      }
     }
 
     console.log(`[cms-publish] Result: ${JSON.stringify(publishResult)}`);

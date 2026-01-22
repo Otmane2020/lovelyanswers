@@ -118,6 +118,9 @@ export type Database = {
           aeo_score: number | null
           content: string | null
           created_at: string | null
+          gsc_index_error: string | null
+          gsc_indexed: boolean | null
+          gsc_indexed_at: string | null
           html_content: string | null
           id: string
           keywords: string[] | null
@@ -135,6 +138,9 @@ export type Database = {
           aeo_score?: number | null
           content?: string | null
           created_at?: string | null
+          gsc_index_error?: string | null
+          gsc_indexed?: boolean | null
+          gsc_indexed_at?: string | null
           html_content?: string | null
           id?: string
           keywords?: string[] | null
@@ -152,6 +158,9 @@ export type Database = {
           aeo_score?: number | null
           content?: string | null
           created_at?: string | null
+          gsc_index_error?: string | null
+          gsc_indexed?: boolean | null
+          gsc_indexed_at?: string | null
           html_content?: string | null
           id?: string
           keywords?: string[] | null

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2, Tag, Trash2 } from "lucide-react";
+import { X, Plus, Loader2, Tag, Trash2, Sparkles, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
@@ -24,6 +24,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+interface KeywordSuggestion {
+  keyword: string;
+  intent: IntentKey;
+}
 
 interface KeywordRow {
   id: string;
@@ -70,6 +75,8 @@ export function KeywordsSettings() {
   const [isAdding, setIsAdding] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [suggestions, setSuggestions] = useState<KeywordSuggestion[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   useEffect(() => {
     if (project?.id) fetchKeywords();
@@ -166,6 +173,66 @@ export function KeywordsSettings() {
     if (e.key === "Enter" && newKeyword.trim()) handleAddKeyword();
   };
 
+  const fetchAISuggestions = async () => {
+    if (!project?.id) return;
+
+    setIsFetchingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-keywords", {
+        body: {
+          projectId: project.id,
+          existingKeywords: keywords.map((k) => k.keyword),
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.suggestions && Array.isArray(data.suggestions)) {
+        setSuggestions(data.suggestions);
+        if (data.suggestions.length === 0) {
+          toast.info("No new keyword suggestions available");
+        } else {
+          toast.success(`${data.suggestions.length} keywords suggested`);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      toast.error("Failed to get AI suggestions");
+    } finally {
+      setIsFetchingSuggestions(false);
+    }
+  };
+
+  const acceptSuggestion = async (suggestion: KeywordSuggestion) => {
+    if (!project?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("keywords")
+        .insert({
+          project_id: project.id,
+          keyword: suggestion.keyword,
+          intent: suggestion.intent,
+          is_used: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setKeywords([data as KeywordRow, ...keywords]);
+      setSuggestions(suggestions.filter((s) => s.keyword !== suggestion.keyword));
+      toast.success(`Added: ${suggestion.keyword}`);
+    } catch (error) {
+      console.error("Error accepting suggestion:", error);
+      toast.error("Failed to add keyword");
+    }
+  };
+
+  const dismissSuggestion = (keyword: string) => {
+    setSuggestions(suggestions.filter((s) => s.keyword !== keyword));
+  };
+
   const usedCount = keywords.filter((k) => k.is_used).length;
   const unusedCount = keywords.filter((k) => !k.is_used).length;
 
@@ -222,13 +289,68 @@ export function KeywordsSettings() {
             </Button>
           </div>
 
+          <Button
+            variant="outline"
+            onClick={fetchAISuggestions}
+            disabled={isFetchingSuggestions}
+            className="w-full gap-2"
+          >
+            {isFetchingSuggestions ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating suggestions...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Suggest daily keywords with AI
+              </>
+            )}
+          </Button>
+
+          {suggestions.length > 0 && (
+            <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm font-medium text-primary">
+                AI Suggestions ({suggestions.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((s) => {
+                  const intent = normalizeIntent(s.intent);
+                  return (
+                    <Badge
+                      key={s.keyword}
+                      variant="outline"
+                      className={`px-3 py-1.5 text-sm flex items-center gap-2 ${INTENT_BADGE[intent].className}`}
+                    >
+                      <span>{s.keyword}</span>
+                      <button
+                        onClick={() => acceptSuggestion(s)}
+                        className="ml-1 rounded-full p-0.5 hover:bg-primary/20 text-primary"
+                        aria-label={`Accept ${s.keyword}`}
+                      >
+                        <Check className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => dismissSuggestion(s.keyword)}
+                        className="rounded-full p-0.5 hover:bg-muted/60"
+                        aria-label={`Dismiss ${s.keyword}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : keywords.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No keywords yet. Add some manually or re-run the website analysis.
+              No keywords yet. Add some manually or use AI suggestions.
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
