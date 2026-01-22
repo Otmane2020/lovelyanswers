@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown } from "lucide-react";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,9 @@ export default function AeoIntegrations() {
   const [testIndexUrl, setTestIndexUrl] = useState("");
   const [isTestingIndex, setIsTestingIndex] = useState(false);
   const [indexTestResult, setIndexTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [gscSites, setGscSites] = useState<string[]>([]);
+  const [selectedGscSite, setSelectedGscSite] = useState<string>("");
+  const [loadingGscSites, setLoadingGscSites] = useState(false);
 
   // Handle OAuth callback for Google Search Console
   useEffect(() => {
@@ -97,6 +101,40 @@ export default function AeoIntegrations() {
 
     handleOAuthCallback();
   }, [refetchGsc]);
+
+  // Load available GSC sites when connected
+  useEffect(() => {
+    const loadGscSites = async () => {
+      if (!gscConnected) return;
+      
+      setLoadingGscSites(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("list-search-console-sites");
+        
+        if (error) throw error;
+        
+        const sites = (data?.sites || []).map((s: any) => s.siteUrl);
+        setGscSites(sites);
+        
+        // Auto-select first site or matching project domain
+        if (sites.length > 0 && !selectedGscSite) {
+          if (project?.website_url) {
+            const projectDomain = new URL(project.website_url).hostname.replace("www.", "");
+            const matchingSite = sites.find((s: string) => s.includes(projectDomain));
+            setSelectedGscSite(matchingSite || sites[0]);
+          } else {
+            setSelectedGscSite(sites[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading GSC sites:", error);
+      } finally {
+        setLoadingGscSites(false);
+      }
+    };
+    
+    loadGscSites();
+  }, [gscConnected, project?.website_url]);
 
   const connectGSC = async () => {
     setConnectingGsc(true);
@@ -354,6 +392,33 @@ export default function AeoIntegrations() {
               <p className="text-xs text-muted-foreground mb-3">
                 Submit a URL to Google for indexation. Use this to quickly index new published articles.
               </p>
+              
+              {/* GSC Property Selector */}
+              <div className="mb-3">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Search Console Property</Label>
+                {loadingGscSites ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading properties...
+                  </div>
+                ) : gscSites.length > 0 ? (
+                  <Select value={selectedGscSite} onValueChange={setSelectedGscSite}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a property" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gscSites.map((site) => (
+                        <SelectItem key={site} value={site}>
+                          {site.replace("sc-domain:", "🌐 ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-amber-600">No properties found. Make sure you have access to Search Console.</p>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -368,7 +433,7 @@ export default function AeoIntegrations() {
                 </div>
                 <Button
                   onClick={handleTestIndexation}
-                  disabled={isTestingIndex || !testIndexUrl.trim()}
+                  disabled={isTestingIndex || !testIndexUrl.trim() || !selectedGscSite}
                   className="gap-2 min-w-[140px]"
                 >
                   {isTestingIndex ? (
