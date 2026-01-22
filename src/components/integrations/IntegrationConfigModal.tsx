@@ -597,18 +597,18 @@ export function IntegrationConfigModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh] px-4 pb-6">
-          <DrawerHeader className="px-0 pt-4 pb-2 text-left">
+        <DrawerContent className="max-h-[85vh] px-4 pb-6 flex flex-col">
+          <DrawerHeader className="px-0 pt-4 pb-2 text-left shrink-0">
             <DrawerTitle asChild>
               <div><ModalHeader /></div>
             </DrawerTitle>
           </DrawerHeader>
           
-          <ScrollArea className="flex-1 -mx-4 px-4" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+          <div className="flex-1 overflow-y-auto -mx-4 px-4 min-h-0">
             <ModalContent />
-          </ScrollArea>
+          </div>
           
-          <DrawerFooter className="px-0 pt-4">
+          <DrawerFooter className="px-0 pt-4 shrink-0">
             <ModalFooter />
           </DrawerFooter>
         </DrawerContent>
