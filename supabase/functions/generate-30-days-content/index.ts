@@ -110,27 +110,37 @@ function escapeRegex(str: string): string {
 }
 
 function computeScore(answer: string, brand: string): number {
-  let score = 65;
+  // Start with base score of 75 - minimum acceptable AEO score
+  let score = 75;
   const currentYear = new Date().getFullYear();
 
+  // BONUSES - can increase score up to 98
   if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
-    score += 10;
+    score += 8; // Temporal context
   }
 
-  if (/\d+\s*(€|\$|%|euros?|mois|jours?)/i.test(answer)) score += 8;
+  if (/\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|années?)/i.test(answer)) score += 6;
   else if (/\d+/.test(answer)) score += 3;
 
-  if (/crit[eè]re|choisir|éviter|erreur|condition/i.test(answer)) score += 8;
-  if (/[:\-•]|\d\.\s/.test(answer)) score += 5;
+  if (/crit[eè]re|choisir|éviter|erreur|condition|attention|important/i.test(answer)) score += 5;
+  if (/[:\-•]|\d\.\s/.test(answer)) score += 4;
 
   const wordCount = answer.split(/\s+/).length;
-  if (wordCount >= 80 && wordCount <= 120) score += 5;
+  if (wordCount >= 80 && wordCount <= 150) score += 3;
 
-  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 4;
+  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 2;
 
-  if (/^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i.test(answer)) score -= 10;
+  // Bonus for structured content
+  if (/contrairement|par rapport|différen|versus|tandis que/i.test(answer)) score += 3;
 
-  return Math.min(98, Math.max(50, score));
+  // MINOR PENALTIES - never drop below 75
+  // Soft penalty for generic definitions (but still keep above 75)
+  if (/^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i.test(answer)) {
+    score = Math.max(75, score - 3); // Minor penalty, never below 75
+  }
+
+  // Ensure score stays in valid range: minimum 75, maximum 98
+  return Math.min(98, Math.max(75, score));
 }
 
 function ensureQuestionMark(text: string): string {
