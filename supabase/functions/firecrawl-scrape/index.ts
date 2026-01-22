@@ -210,10 +210,10 @@ Deno.serve(async (req) => {
       competitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language);
     }
     
-    // Final fallback: Google Search via Firecrawl
+    // Final fallback: Google Search via Firecrawl with AI-powered business detection
     if (competitors.length === 0 && apiKey) {
-      console.log('[COMPETITORS] SERP returned nothing, using Google Search fallback');
-      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords);
+      console.log('[COMPETITORS] SERP returned nothing, using AI-powered Google Search fallback');
+      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview);
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -291,76 +291,103 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
   }
 }
 
-// Find competitors via Google Search using Firecrawl + extracted keywords
+// AI-powered business type detection for accurate competitor search
+async function detectBusinessType(description: string, content: string, brandName: string, language: string, apiKey: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [{
+          role: 'user',
+          content: `Analyze this business and return a SHORT search query (max 6 words) to find similar competitors.
+
+Business: ${brandName}
+Description: ${description}
+Content sample: ${content.substring(0, 1500)}
+
+Rules:
+- Identify the EXACT business type (e.g., "marketplace for selling used items" NOT "furniture store")
+- Return a query that would find DIRECT competitors in the same niche
+- Language: ${language === 'fr' ? 'FRENCH' : 'ENGLISH'}
+- Include "alternatives" or "sites like" in the query
+- Be SPECIFIC about the business model (B2B, B2C, marketplace, SaaS, etc.)
+
+Return ONLY the search query, nothing else. Example: "sites vente occasion entre particuliers"`
+        }],
+        temperature: 0.1,
+        max_tokens: 50,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return '';
+
+    const data = await response.json();
+    const query = data.choices?.[0]?.message?.content?.trim() || '';
+    console.log('[COMPETITORS] AI detected business query:', query);
+    return query;
+  } catch (e) {
+    console.error('[COMPETITORS] Business type detection error:', e);
+    return '';
+  }
+}
+
+// Find competitors via Google Search using Firecrawl + AI-powered business detection
 async function findCompetitorsViaGoogleSearch(
   description: string,
   brandName: string,
   domain: string,
   language: string,
   firecrawlApiKey: string,
-  extractedKeywords: Array<{keyword: string, intent: string}> = []
+  extractedKeywords: Array<{keyword: string, intent: string}> = [],
+  contentSample: string = ''
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-    // Build search query based on EXTRACTED KEYWORDS + description
-    const descWords = description.toLowerCase();
     let searchQuery = '';
     
-    // USE EXTRACTED KEYWORDS FIRST - they're the most relevant!
-    const keywordTerms = extractedKeywords
-      .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
-      .slice(0, 3)
-      .map(k => k.keyword)
-      .join(' ');
-    
-    // All keywords for fallback
-    const allKeywordTerms = extractedKeywords
-      .slice(0, 5)
-      .map(k => k.keyword)
-      .join(' ');
-    
-    // Extract meaningful words from description as backup
-    const meaningfulWords = description
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 4)
-      .filter(w => !['about', 'their', 'these', 'those', 'which', 'would', 'could', 'should', 'being', 'there', 'where', 'every', 'other'].includes(w.toLowerCase()))
-      .slice(0, 3);
-    
-    // Detect specific business types
-    if (descWords.includes('shopify') || descWords.includes('e-commerce') || descWords.includes('ecommerce')) {
-      // For Shopify apps/tools - use keywords if available
-      if (keywordTerms) {
-        searchQuery = `shopify ${keywordTerms} app alternatives`;
-      } else if (descWords.includes('new year') || descWords.includes('countdown') || descWords.includes('timer')) {
-        searchQuery = 'shopify countdown timer sales app alternatives';
-      } else if (descWords.includes('banner') || descWords.includes('promotion')) {
-        searchQuery = 'shopify promotional banner apps';
-      } else if (descWords.includes('discount') || descWords.includes('sale')) {
-        searchQuery = 'shopify sales discount apps best';
-      } else {
-        searchQuery = `shopify app ${meaningfulWords.join(' ')} alternatives`;
+    // FIRST: Try AI-powered business type detection for accurate query
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (lovableApiKey && (description || contentSample)) {
+      const aiQuery = await detectBusinessType(description, contentSample, brandName, language, lovableApiKey);
+      if (aiQuery && aiQuery.length > 5 && aiQuery.length < 100) {
+        searchQuery = aiQuery;
       }
-    } else if (descWords.includes('location') && (descWords.includes('meuble') || descWords.includes('furniture'))) {
-      searchQuery = language === 'fr' ? 'location meubles entreprise Paris' : 'furniture rental business';
-    } else if (descWords.includes('meuble') || descWords.includes('furniture')) {
-      searchQuery = language === 'fr' ? 'acheter meubles design en ligne' : 'buy furniture online';
-    } else if (descWords.includes('seo') || descWords.includes('référencement') || descWords.includes('search engine')) {
-      searchQuery = keywordTerms ? `${keywordTerms} tools` : 'SEO optimization tools alternatives';
-    } else if (descWords.includes('ai') || descWords.includes('artificial intelligence')) {
-      searchQuery = keywordTerms ? `AI ${keywordTerms} alternatives` : `AI ${meaningfulWords.join(' ')} tools alternatives`;
-    } else if (keywordTerms || allKeywordTerms) {
-      // USE KEYWORDS for search query!
-      searchQuery = `${keywordTerms || allKeywordTerms} alternatives best`;
-    } else {
-      // Ultimate fallback - brand name + meaningful words
-      searchQuery = `${brandName} alternatives ${meaningfulWords.join(' ')}`.trim();
     }
     
-    console.log('[COMPETITORS] Using keywords:', extractedKeywords.slice(0, 3).map(k => k.keyword));
-    console.log('[COMPETITORS] Google search query:', searchQuery);
+    // FALLBACK: Use extracted keywords if AI detection failed
+    if (!searchQuery) {
+      const keywordTerms = extractedKeywords
+        .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
+        .slice(0, 3)
+        .map(k => k.keyword)
+        .join(' ');
+      
+      if (keywordTerms) {
+        searchQuery = language === 'fr' 
+          ? `${keywordTerms} sites alternatives`
+          : `${keywordTerms} alternatives`;
+      } else {
+        // Ultimate fallback
+        searchQuery = language === 'fr'
+          ? `sites comme ${brandName} alternatives`
+          : `sites like ${brandName} alternatives`;
+      }
+    }
+    
+    console.log('[COMPETITORS] Final search query:', searchQuery);
 
     const response = await fetch('https://api.firecrawl.dev/v1/search', {
       method: 'POST',
