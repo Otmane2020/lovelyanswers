@@ -173,19 +173,15 @@ export default function Auth() {
               await supabase.from('keywords').insert(keywordsToInsert);
             }
             
-            // Auto-generate initial AEO content
-            try {
-              await supabase.functions.invoke('auto-generate-aeo', {
-                body: { 
-                  projectId: newProject.id,
-                  language: onboardingData.language || "en"
-                }
-              });
-            } catch (aeoError) {
-              console.error('[AUTH] AEO generation error:', aeoError);
-            }
+            // Fire-and-forget: Start AEO generation in background (don't wait!)
+            supabase.functions.invoke('auto-generate-aeo', {
+              body: { 
+                projectId: newProject.id,
+                language: onboardingData.language || "en"
+              }
+            }).catch(err => console.error('[AUTH] AEO generation error:', err));
             
-            // Clear onboarding data and redirect to checkout
+            // Clear onboarding data and redirect to checkout IMMEDIATELY
             localStorage.removeItem('onboarding_data');
             navigate("/checkout", { replace: true });
             return;
