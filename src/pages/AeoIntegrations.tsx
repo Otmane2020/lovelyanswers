@@ -250,7 +250,30 @@ export default function AeoIntegrations() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id={`share-${integration.id}`}
+                          checked={integration.config?.active_share !== "false"}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              const newConfig = { ...integration.config, active_share: checked ? "true" : "false" };
+                              const { error } = await supabase
+                                .from("integrations")
+                                .update({ config: newConfig })
+                                .eq("id", integration.id);
+                              if (error) throw error;
+                              toast.success(checked ? "Sharing enabled" : "Sharing disabled");
+                              refetch();
+                            } catch (err) {
+                              toast.error("Failed to update setting");
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`share-${integration.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                          Share
+                        </Label>
+                      </div>
                       <TestPublishButton
                         integrationId={integration.id}
                         platformName={cms?.name || integration.platform}

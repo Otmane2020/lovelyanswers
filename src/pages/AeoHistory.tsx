@@ -300,20 +300,6 @@ export default function AeoHistory() {
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => handlePublish(answer.id)}
-                              disabled={publishingId === answer.id}
-                              title="Publish to CMS"
-                            >
-                              {publishingId === answer.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -396,14 +382,6 @@ export default function AeoHistory() {
                               title="Edit"
                             >
                               <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              title="Publish"
-                            >
-                              <Send className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
