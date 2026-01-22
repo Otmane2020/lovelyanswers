@@ -136,20 +136,30 @@ export default function AeoHistory() {
     }
   };
 
-  const getPlatformIcon = (url: string | null) => {
+  const getPlatformInfo = (url: string | null): { icon: React.ReactNode; label: string } | null => {
     if (!url) return null;
     
     const urlLower = url.toLowerCase();
+    
+    // Extract domain from URL
+    let domain = "";
+    try {
+      const urlObj = new URL(url);
+      domain = urlObj.hostname.replace("www.", "");
+    } catch {
+      domain = url;
+    }
+    
     if (urlLower.includes("wordpress") || urlLower.includes("wp-")) {
-      return <img src={platformLogos.wordpress} alt="WordPress" className="h-5 w-5" />;
+      return { icon: <img src={platformLogos.wordpress} alt="WordPress" className="h-5 w-5" />, label: domain };
     }
     if (urlLower.includes("shopify") || urlLower.includes("myshopify")) {
-      return <img src={platformLogos.shopify} alt="Shopify" className="h-5 w-5" />;
+      return { icon: <img src={platformLogos.shopify} alt="Shopify" className="h-5 w-5" />, label: domain };
     }
     if (urlLower.includes("wix")) {
-      return <img src={platformLogos.wix} alt="Wix" className="h-5 w-5" />;
+      return { icon: <img src={platformLogos.wix} alt="Wix" className="h-5 w-5" />, label: domain };
     }
-    return <Globe className="h-4 w-4 text-muted-foreground" />;
+    return { icon: <Globe className="h-4 w-4 text-muted-foreground" />, label: domain };
   };
 
   return (
@@ -224,15 +234,21 @@ export default function AeoHistory() {
                         <TableCell>{getStatusBadge(answer)}</TableCell>
                         <TableCell>
                           {answer.published_url ? (
-                            <a 
-                              href={answer.published_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 hover:text-primary"
-                            >
-                              {getPlatformIcon(answer.published_url)}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
+                            (() => {
+                              const platformInfo = getPlatformInfo(answer.published_url);
+                              return (
+                                <a 
+                                  href={answer.published_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 hover:text-primary text-sm"
+                                >
+                                  {platformInfo?.icon}
+                                  <span className="truncate max-w-[120px]">{platformInfo?.label}</span>
+                                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                </a>
+                              );
+                            })()
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
