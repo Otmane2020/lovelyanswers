@@ -66,6 +66,7 @@ serve(async (req) => {
     const scopes = [
       "https://www.googleapis.com/auth/webmasters.readonly",
       "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/indexing",
     ].join(" ");
 
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
