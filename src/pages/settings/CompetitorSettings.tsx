@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2 } from "lucide-react";
+import { X, Plus, Loader2, RefreshCw } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CompetitorSettings() {
   const { project, isLoading } = useActiveProject();
@@ -14,7 +15,7 @@ export function CompetitorSettings() {
   
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [newCompetitor, setNewCompetitor] = useState("");
-
+  const [isRegenerating, setIsRegenerating] = useState(false);
   // Load competitors from project
   useEffect(() => {
     if (project?.competitors) {
@@ -65,15 +66,59 @@ export function CompetitorSettings() {
     );
   }
 
+  const handleRegenerate = async () => {
+    if (!project?.website_url) {
+      toast.error("Website URL required to detect competitors");
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("firecrawl-scrape", {
+        body: { url: project.website_url },
+      });
+
+      if (error) throw error;
+
+      if (data?.competitors && Array.isArray(data.competitors)) {
+        setCompetitors(data.competitors);
+        toast.success(`${data.competitors.length} competitors detected`);
+      } else {
+        toast.info("No competitors detected from website analysis");
+      }
+    } catch (error) {
+      console.error("Error regenerating competitors:", error);
+      toast.error("Failed to detect competitors");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold">Competitors</h3>
-            <p className="text-sm text-muted-foreground">
-              Add competitor domains to monitor and analyze their strategies
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold">Competitors</h3>
+              <p className="text-sm text-muted-foreground">
+                Add competitor domains to monitor and analyze their strategies
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="gap-2"
+            >
+              {isRegenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Regenerate
+            </Button>
           </div>
 
           <div className="flex gap-2">

@@ -68,3 +68,15 @@ schedule = "0 */6 * * *"
 [functions.daily-planning-fill]
 verify_jwt = false
 schedule = "0 6 * * *"
+
+[functions.suggest-audiences]
+verify_jwt = false
+
+[functions.suggest-keywords]
+verify_jwt = false
+
+[functions.gsc-request-indexing]
+verify_jwt = false
+
+[functions.crawl-site-keywords]
+verify_jwt = false
