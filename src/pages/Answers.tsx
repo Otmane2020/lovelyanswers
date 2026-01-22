@@ -217,12 +217,15 @@ export default function Answers() {
     }
   };
 
-  const handleViewPublic = (slug: string) => {
-    window.open(`/answers/${slug}`, "_blank");
+  const handleViewPublic = (answer: typeof answers[0]) => {
+    // Prioritize external published_url, fallback to internal preview
+    const url = answer.published_url || `/answers/${answer.slug}`;
+    window.open(url, "_blank");
   };
 
-  const handleCopyLink = (slug: string) => {
-    const publicUrl = `${window.location.origin}/answers/${slug}`;
+  const handleCopyLink = (answer: typeof answers[0]) => {
+    // Prioritize external published_url, fallback to internal preview
+    const publicUrl = answer.published_url || `${window.location.origin}/answers/${answer.slug}`;
     navigator.clipboard.writeText(publicUrl);
     toast.success("Link copied to clipboard!");
   };
@@ -608,8 +611,8 @@ export default function Answers() {
                       )}
                       {answer.is_public && (
                         <>
-                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer.slug)}><ExternalLink className="h-4 w-4" />View Public</Button>
-                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyLink(answer.slug)}><Copy className="h-4 w-4" />Copy Link</Button>
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleViewPublic(answer)}><ExternalLink className="h-4 w-4" />View Public</Button>
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleCopyLink(answer)}><Copy className="h-4 w-4" />Copy Link</Button>
                         </>
                       )}
                     </div>
