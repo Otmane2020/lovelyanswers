@@ -246,13 +246,24 @@ export default function AeoHistory() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {answer.is_public && (
+                            {answer.published_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => window.open(answer.published_url!, "_blank")}
+                                title="View on Client Site"
+                              >
+                                <ExternalLink className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            {answer.is_public && !answer.published_url && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8"
                                 onClick={() => window.open(`/answers/${answer.slug}`, "_blank")}
-                                title="View Public"
+                                title="View Public Preview"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -343,15 +354,17 @@ export default function AeoHistory() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => navigate(`/articles/${article.id}`)}
-                              title="View"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            {article.published_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => window.open(article.published_url!, "_blank")}
+                                title="View on Client Site"
+                              >
+                                <ExternalLink className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="icon" 
