@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { GenerationProvider } from "@/contexts/GenerationContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import FloatingSupportButton from "@/components/FloatingSupportButton";
 import { VisitorTracker } from "@/components/VisitorTracker";
@@ -13,6 +14,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Answers from "./pages/Answers";
+import AutoSeo from "./pages/AutoSeo";
 import AeoArticles from "./pages/AeoArticles";
 import AeoIntegrations from "./pages/AeoIntegrations";
 import AeoAnalytics from "./pages/AeoAnalytics";
@@ -30,6 +32,7 @@ import AeoHistory from "./pages/AeoHistory";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
+import Cart from "./pages/Cart";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
@@ -43,42 +46,46 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <GenerationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-          <BrowserRouter>
-            <VisitorTracker />
-            <FloatingSupportButton />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
-              <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
-              <Route path="/articles" element={<ProtectedRoute><AeoArticles /></ProtectedRoute>} />
-              <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
-              <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
-              <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
-              <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
-              <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
-              <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
-              <Route path="/support" element={<ProtectedRoute><AeoSupport /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
-              <Route path="/superadmin" element={<SuperAdmin />} />
-              <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/about" element={<About />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          </TooltipProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <VisitorTracker />
+                <FloatingSupportButton />
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
+                  <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
+                  <Route path="/articles" element={<ProtectedRoute><AeoArticles /></ProtectedRoute>} />
+                  <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
+                  <Route path="/autoseo" element={<ProtectedRoute><AutoSeo /></ProtectedRoute>} />
+                  <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
+                  <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
+                  <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />
+                  <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
+                  <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
+                  <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
+                  <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute><AeoSupport /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
+                  <Route path="/superadmin" element={<SuperAdmin />} />
+                  <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </CartProvider>
         </GenerationProvider>
       </SubscriptionProvider>
     </AuthProvider>
