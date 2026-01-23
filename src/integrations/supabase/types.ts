@@ -191,6 +191,54 @@ export type Database = {
           },
         ]
       }
+      carts: {
+        Row: {
+          abandoned_at: string | null
+          abandoned_email_sent: boolean | null
+          billing_cycle: string | null
+          converted_at: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          items: Json
+          session_id: string | null
+          status: string | null
+          total_amount: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          abandoned_at?: string | null
+          abandoned_email_sent?: boolean | null
+          billing_cycle?: string | null
+          converted_at?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          items?: Json
+          session_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          abandoned_at?: string | null
+          abandoned_email_sent?: boolean | null
+          billing_cycle?: string | null
+          converted_at?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          items?: Json
+          session_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       credits: {
         Row: {
           created_at: string | null

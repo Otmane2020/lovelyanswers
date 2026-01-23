@@ -3,7 +3,6 @@ import {
   FileText,
   BarChart3,
   Link2,
-  Search,
   MessageSquareText,
   Settings,
   CreditCard,
@@ -11,6 +10,7 @@ import {
   CalendarDays,
   History,
   HelpCircle,
+  Newspaper,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -42,11 +42,12 @@ export function AeoSidebar() {
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
     { title: "AEO Answers", url: "/answers", icon: FileText },
+    { title: "Auto SEO", url: "/autoseo", icon: Newspaper, badge: "New" },
     { title: "Planning", url: "/planning", icon: CalendarDays },
     { title: "History", url: "/history", icon: History },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Integrations", url: "/integrations", icon: Link2 },
-    { title: "Reddit", url: "/reddit", icon: MessageSquareText, badge: "New" },
+    { title: "Reddit", url: "/reddit", icon: MessageSquareText },
   ];
 
   const otherMenuItems = [
