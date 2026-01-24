@@ -38,6 +38,9 @@ serve(async (req) => {
     // Check if this is an internal call (from other edge functions using service role key)
     const isInternalCall = authHeader?.includes(supabaseKey);
     
+    // Track userId for GSC indexation (using user's OAuth tokens)
+    let authenticatedUserId: string | null = null;
+    
     // Verify user is authenticated (skip for internal calls)
     if (authHeader && !isInternalCall) {
       const token = authHeader.replace("Bearer ", "");
@@ -52,6 +55,7 @@ serve(async (req) => {
         );
       }
       console.log(`[cms-publish] Authenticated user: ${user.email}`);
+      authenticatedUserId = user.id;
     } else if (isInternalCall) {
       console.log(`[cms-publish] Internal call from edge function`);
     }
@@ -163,26 +167,53 @@ serve(async (req) => {
 
       // Request Google Search Console indexation if URL is available
       if (publishResult.publishedUrl) {
-        try {
-          console.log(`[cms-publish] Requesting GSC indexation for: ${publishResult.publishedUrl}`);
+        // Get userId for GSC indexation - try authenticated user first, then fallback to project owner
+        let userIdForIndexation = authenticatedUserId;
+        
+        if (!userIdForIndexation && requestData.integrationId) {
+          // Get project owner from integration -> project -> user_id
+          const { data: integration } = await supabase
+            .from("integrations")
+            .select("project_id")
+            .eq("id", requestData.integrationId)
+            .single();
           
-          const indexingResponse = await fetch(`${supabaseUrl}/functions/v1/gsc-request-indexing`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${supabaseKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              articleId: requestData.articleId,
-              publishedUrl: publishResult.publishedUrl,
-            }),
-          });
+          if (integration?.project_id) {
+            const { data: project } = await supabase
+              .from("projects")
+              .select("user_id")
+              .eq("id", integration.project_id)
+              .single();
+            
+            userIdForIndexation = project?.user_id || null;
+          }
+        }
+        
+        if (userIdForIndexation) {
+          try {
+            console.log(`[cms-publish] Requesting GSC indexation for: ${publishResult.publishedUrl} (userId: ${userIdForIndexation})`);
+            
+            const indexingResponse = await fetch(`${supabaseUrl}/functions/v1/gsc-request-indexing`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${supabaseKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                articleId: requestData.articleId,
+                publishedUrl: publishResult.publishedUrl,
+                userId: userIdForIndexation,
+              }),
+            });
 
-          const indexingResult = await indexingResponse.json();
-          console.log(`[cms-publish] GSC indexation result:`, indexingResult);
-        } catch (indexError) {
-          console.error("[cms-publish] GSC indexation error (non-blocking):", indexError);
-          // Don't fail the publish if indexation fails
+            const indexingResult = await indexingResponse.json();
+            console.log(`[cms-publish] GSC indexation result:`, indexingResult);
+          } catch (indexError) {
+            console.error("[cms-publish] GSC indexation error (non-blocking):", indexError);
+            // Don't fail the publish if indexation fails
+          }
+        } else {
+          console.log("[cms-publish] No userId available for GSC indexation, skipping");
         }
       }
     }
