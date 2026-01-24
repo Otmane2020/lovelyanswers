@@ -273,11 +273,11 @@ export default function AeoReddit() {
       if (error) throw error;
 
       if (data?.opportunities && Array.isArray(data.opportunities)) {
-        // 🔒 PATCH 5: Match backend minimum relevance (40, not 15)
-        const MIN_RELEVANCE = 40;
+        // 🔥 FIXED: Match backend minimum relevance (25, not 40)
+        const MIN_RELEVANCE = 25;
         const transformedPosts: RedditPost[] = data.opportunities
           .filter((opp: any) => {
-            const hasValidUrl = opp.url && opp.url.includes("reddit.com/r/");
+            const hasValidUrl = opp.url && opp.url.includes("reddit.com");
             const hasRelevance = (opp.relevanceScore ?? 100) >= MIN_RELEVANCE;
             return hasValidUrl && hasRelevance;
           })
