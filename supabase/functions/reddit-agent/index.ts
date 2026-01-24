@@ -511,10 +511,10 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
       fr: ["startups_fr", "developpeurs", "vosfinances", "AskFrance", "france"],
       en: ["startups", "SideProject", "webdev", "Entrepreneur", "SaaS", "indiehackers"]
     },
-    // Furniture/Home/Decor - ENHANCED for Movala-style projects
-    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur|appartement|studio|location": {
-      fr: ["france", "AskFrance", "vosfinances", "conseilachat", "ParisPasCheres", "Lyon", "Toulouse"],
-      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom", "homedecorating", "AmateurRoomPorn", "CozyPlaces"]
+    // Furniture/Home/Decor + BUY/SELL - ENHANCED for marketplace-style projects
+    "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur|appartement|studio|location|occasion|vendre|acheter|seconde main|leboncoin|ikea": {
+      fr: ["france", "AskFrance", "vosfinances", "conseilachat", "Frugal_France", "ParisPasCheres", "Lyon", "Toulouse", "Bordeaux", "Nantes", "Lille"],
+      en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom", "homedecorating", "Flipping", "ThriftStoreHauls", "BuyItForLife", "Frugal", "secondhand"]
     },
     // E-commerce/Retail
     "ecommerce|boutique|shopify|vente|store|retail|commerce|magasin": {
@@ -531,10 +531,10 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
       fr: ["freelance_france", "vosfinances", "france", "AskFrance"],
       en: ["freelance", "webdev", "Entrepreneur", "DigitalNomad"]
     },
-    // Finance/Investment
-    "finance|investissement|argent|épargne|bourse|crypto|trading|achat|budget|prix|cher|pas cher": {
-      fr: ["vosfinances", "france", "cryptoFR", "conseilachat", "AskFrance"],
-      en: ["personalfinance", "investing", "stocks", "CryptoCurrency", "Frugal"]
+    // Finance/Investment + Buy/Sell
+    "finance|investissement|argent|épargne|bourse|crypto|trading|achat|budget|prix|cher|pas cher|vendre|acheter|occasion": {
+      fr: ["vosfinances", "france", "cryptoFR", "conseilachat", "AskFrance", "Frugal_France"],
+      en: ["personalfinance", "investing", "stocks", "CryptoCurrency", "Frugal", "Flipping"]
     }
   };
 
@@ -698,31 +698,110 @@ async function searchRedditByKeywords(keywords: string[], language: string): Pro
       for (const child of data.data.children) {
         const post = child.data;
         if (post && !post.stickied && !post.over_18) {
-          // Filter by language based on subreddit
-          const frenchSubs = ["france", "askfrance", "vosfinances", "conseilachat", "quebec", "lyon", "toulouse", "marseille", "paris"];
-          const subLower = post.subreddit?.toLowerCase() || "";
-          const isFrenchSub = frenchSubs.some(fs => subLower.includes(fs));
-          
-          // Only include posts matching the target language
-          if ((language === "fr" && isFrenchSub) || (language === "en" && !isFrenchSub)) {
+          // 🔥 IMPROVED: Don't filter by language here - let relevance scoring handle it
+          // This allows finding posts in ANY subreddit that discuss the topic
+          posts.push({
+            id: post.id,
+            title: post.title,
+            body: post.selftext || "",
+            subreddit: post.subreddit,
+            url: `https://www.reddit.com${post.permalink}`,
+            score: post.score || 0,
+            comments: post.num_comments || 0,
+            createdUtc: post.created_utc || 0
+          });
+        }
+      }
+    }
+    
+    console.log(`[reddit-agent] Found ${posts.length} posts via Reddit keyword search`);
+  } catch (err) {
+    console.error(`[reddit-agent] Search error:`, err);
+  }
+  
+  return posts;
+}
+
+/* =======================
+   🔥 NEW: GOOGLE SEARCH FOR REDDIT POSTS VIA FIRECRAWL
+   Searches Google with "site:reddit.com" to find ALL relevant posts
+======================= */
+async function searchRedditViaGoogle(
+  keywords: string[], 
+  language: string,
+  firecrawlApiKey: string
+): Promise<RealRedditPost[]> {
+  const posts: RealRedditPost[] = [];
+  
+  if (!firecrawlApiKey) {
+    console.log(`[reddit-agent] No Firecrawl API key, skipping Google search`);
+    return posts;
+  }
+  
+  // Build Google search query: site:reddit.com + keywords
+  // Use language-specific terms for better results
+  const langFilter = language === "fr" 
+    ? "vendre OR acheter OR occasion OR conseil OR avis" 
+    : "buy OR sell OR advice OR recommend OR help";
+  
+  const searchQuery = `site:reddit.com ${keywords.slice(0, 3).join(" ")} ${langFilter}`;
+  
+  console.log(`[reddit-agent] 🔥 Searching Google for Reddit posts: "${searchQuery}"`);
+  
+  try {
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${firecrawlApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        limit: 20,
+        lang: language === "fr" ? "fr" : "en",
+        tbs: "qdr:m", // Last month for recency
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error(`[reddit-agent] Firecrawl search failed: ${response.status}`);
+      return posts;
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      for (const result of data.data) {
+        // Extract Reddit post info from Google result
+        const url = result.url || "";
+        
+        // Only process actual Reddit post URLs (not subreddit pages)
+        if (url.includes("reddit.com") && url.includes("/comments/")) {
+          // Extract post ID from URL
+          const idMatch = url.match(/\/comments\/([a-z0-9]+)/i);
+          if (idMatch) {
+            // Extract subreddit from URL
+            const subMatch = url.match(/\/r\/([^\/]+)/);
+            const subreddit = subMatch ? subMatch[1] : "unknown";
+            
             posts.push({
-              id: post.id,
-              title: post.title,
-              body: post.selftext || "",
-              subreddit: post.subreddit,
-              url: `https://www.reddit.com${post.permalink}`,
-              score: post.score || 0,
-              comments: post.num_comments || 0,
-              createdUtc: post.created_utc || 0
+              id: idMatch[1],
+              title: result.title || "Untitled",
+              body: result.description || "",
+              subreddit,
+              url: url.split("?")[0], // Clean URL
+              score: 0,
+              comments: 0,
+              createdUtc: Math.floor(Date.now() / 1000) - 86400 * 7 // Assume ~1 week old
             });
           }
         }
       }
     }
     
-    console.log(`[reddit-agent] Found ${posts.length} posts via keyword search`);
+    console.log(`[reddit-agent] 🔥 Found ${posts.length} Reddit posts via Google search`);
   } catch (err) {
-    console.error(`[reddit-agent] Search error:`, err);
+    console.error(`[reddit-agent] Google search error:`, err);
   }
   
   return posts;
@@ -1013,7 +1092,8 @@ serve(async (req) => {
           projectContext, 
           effectiveKeywords, 
           subreddits, 
-          lovableApiKey
+          lovableApiKey,
+          firecrawlApiKey || ""
         );
         
         // 🔥 ENHANCED: Store opportunities with TREND SCORE + INTENT
@@ -1109,7 +1189,8 @@ async function findOpportunities(
   context: ProjectContext,
   keywords: string[],
   subreddits: string[],
-  apiKey: string
+  apiKey: string,
+  firecrawlApiKey: string = ""
 ): Promise<{ opportunities: any[] }> {
   
   // 🔒 FIXED: Use keywords to generate language-specific subreddits
@@ -1139,6 +1220,20 @@ async function findOpportunities(
         existingIds.add(post.id);
       }
     }
+  }
+
+  // 3. 🔥 NEW: Search Google for Reddit posts via Firecrawl (more comprehensive)
+  if (keywords.length > 0 && firecrawlApiKey) {
+    console.log(`[reddit-agent] 🔥 Using Google search for Reddit posts...`);
+    const googlePosts = await searchRedditViaGoogle(keywords, context.language, firecrawlApiKey);
+    const existingIds = new Set(allPosts.map(p => p.id));
+    for (const post of googlePosts) {
+      if (!existingIds.has(post.id)) {
+        allPosts.push(post);
+        existingIds.add(post.id);
+      }
+    }
+    console.log(`[reddit-agent] After Google search: ${allPosts.length} total posts`);
   }
 
   console.log(`[reddit-agent] Fetched ${allPosts.length} total Reddit posts`);
