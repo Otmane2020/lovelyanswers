@@ -97,36 +97,59 @@ function isPostRelevantToVertical(post: RealRedditPost, vertical: Vertical): boo
 // 🔥 NEW: KEYWORD-FIRST FILTER — Use project keywords as primary filter
 // This is MUCH more accurate than vertical-based filtering
 const STOP_WORDS = new Set([
-  // French
+  // French (common words that don't add meaning)
   "pour", "avec", "dans", "comment", "quel", "quelle", "quels", "quelles",
-  "meilleur", "meilleure", "meilleurs", "meilleures", "acheter", "trouver",
   "faire", "avoir", "être", "etre", "cette", "votre", "notre", "leur",
   "très", "tres", "plus", "moins", "bien", "sont", "suis", "êtes", "etes",
+  "france", "près", "chez", "vous",
   // English
   "what", "which", "where", "when", "best", "good", "find", "have", "make",
   "your", "their", "this", "that", "with", "from", "about", "more", "less",
   "very", "some", "most", "than", "been", "being", "would", "should", "could"
 ]);
 
+// 🔥 MARKETPLACE-SPECIFIC PATTERNS (buy/sell/used furniture context)
+const MARKETPLACE_PATTERNS = {
+  fr: /vend(?:re|s|u|eur)?|achet(?:er|é|eur)?|occasion|seconde main|d'occasion|leboncoin|marketplace|annonce|prix|€|euros?|cherche|donne|cède|troc|échange|revend|rachet|ikea|conforama|but |maison du monde|meuble|canapé|sofa|table|chaise|lit |armoire|buffet|étagère|bureau|commode|matelas|salon/i,
+  en: /sell(?:ing)?|buy(?:ing)?|used|second hand|marketplace|craigslist|offer up|facebook marketplace|price|\$|dollars?|looking for|giving away|trade|swap|ikea|wayfair|furniture|couch|sofa|table|chair|bed |wardrobe|dresser|shelf|desk|mattress|living room/i
+};
+
 function isPostRelevantToProject(
   post: RealRedditPost,
-  projectKeywords: string[]
+  projectKeywords: string[],
+  language: string = "fr"
 ): boolean {
   const combinedText = `${post.title} ${post.body || ""}`.toLowerCase();
   
-  // Extract significant terms from project keywords (>3 chars, not stop words)
+  // 1. Check marketplace patterns FIRST (buy/sell/furniture context)
+  const marketplacePattern = language === "fr" ? MARKETPLACE_PATTERNS.fr : MARKETPLACE_PATTERNS.en;
+  if (marketplacePattern.test(combinedText)) {
+    console.log(`[reddit-agent] ✓ Marketplace pattern match: "${post.title.substring(0, 40)}..."`);
+    return true;
+  }
+  
+  // 2. Extract significant terms from project keywords
   const keywordTerms = new Set<string>();
   projectKeywords.forEach(kw => {
-    kw.toLowerCase().split(/\s+/).forEach(term => {
+    // Keep whole keyword phrases for better matching
+    const kwLower = kw.toLowerCase();
+    // Extract individual terms (>3 chars, not stop words)
+    kwLower.split(/\s+/).forEach(term => {
+      // Normalize: remove accents for better matching
+      const normalized = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (term.length > 3 && !STOP_WORDS.has(term)) {
         keywordTerms.add(term);
+        keywordTerms.add(normalized); // Also add unaccented version
       }
     });
   });
   
-  // Post must contain at least ONE significant keyword term
+  // 3. Check if post contains any keyword term (case-insensitive)
+  const combinedNormalized = combinedText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
   for (const term of keywordTerms) {
-    if (combinedText.includes(term)) {
+    if (combinedText.includes(term) || combinedNormalized.includes(term)) {
+      console.log(`[reddit-agent] ✓ Keyword match "${term}" in: "${post.title.substring(0, 40)}..."`);
       return true;
     }
   }
@@ -500,11 +523,28 @@ async function loadProjectContext(supabase: any, projectId: string): Promise<Pro
 
 /* =======================
    KEYWORD-BASED SUBREDDIT MAPPING (LANGUAGE-AWARE)
+   🔥 ENHANCED: Added marketplace-specific subreddits for buy/sell
 ======================= */
 function getSubredditsFromKeywords(keywords: string[], language: string): string[] {
   const subreddits = new Set<string>();
   
-  // Category mappings with language-specific subreddits - ENHANCED with active communities
+  // 🔥 Detect if this is a marketplace/buy-sell project
+  const keywordStr = keywords.join(" ").toLowerCase();
+  const isMarketplace = /vend|achet|occasion|seconde main|used|sell|buy|marketplace|occasion/i.test(keywordStr);
+  const isFurniture = /meuble|furniture|canapé|sofa|table|chaise|lit|armoire|mobilier|décor|home|maison/i.test(keywordStr);
+  
+  // 🔥 MARKETPLACE-SPECIFIC SUBREDDITS (prioritized for buy/sell projects)
+  if (isMarketplace || isFurniture) {
+    if (language === "fr") {
+      // French marketplace & furniture communities
+      ["conseilachat", "Frugal_France", "AskFrance", "france", "lemauvaiscoin", "vosfinances"].forEach(s => subreddits.add(s));
+    } else {
+      // English marketplace & furniture communities  
+      ["Flipping", "ThriftStoreHauls", "BuyItForLife", "Frugal", "secondhand", "furniture", "malelivingspace", "femalelivingspace", "HomeImprovement", "DesignMyRoom"].forEach(s => subreddits.add(s));
+    }
+  }
+  
+  // Category mappings with language-specific subreddits
   const categoryMap: Record<string, { fr: string[]; en: string[] }> = {
     // Tech/SaaS/Startup
     "tech|saas|startup|mvp|dev|application|logiciel|software|ai|ia|machine learning": {
@@ -513,7 +553,7 @@ function getSubredditsFromKeywords(keywords: string[], language: string): string
     },
     // Furniture/Home/Decor + BUY/SELL - ENHANCED for marketplace-style projects
     "meuble|furniture|décor|canapé|sofa|interior|design|maison|home|mobilier|fauteuil|table|lit|marbre|bois|rangement|étagère|armoire|miroir|chaise|bureau|salon|chambre|cuisine|salle de bain|déco|décoration|aménagement|intérieur|appartement|studio|location|occasion|vendre|acheter|seconde main|leboncoin|ikea": {
-      fr: ["france", "AskFrance", "vosfinances", "conseilachat", "Frugal_France", "ParisPasCheres", "Lyon", "Toulouse", "Bordeaux", "Nantes", "Lille"],
+      fr: ["france", "AskFrance", "vosfinances", "conseilachat", "Frugal_France", "lemauvaiscoin"],
       en: ["InteriorDesign", "furniture", "homedesign", "HomeImprovement", "malelivingspace", "femalelivingspace", "DesignMyRoom", "homedecorating", "Flipping", "ThriftStoreHauls", "BuyItForLife", "Frugal", "secondhand"]
     },
     // E-commerce/Retail
@@ -738,13 +778,24 @@ async function searchRedditViaGoogle(
     return posts;
   }
   
-  // Build Google search query: site:reddit.com + keywords
-  // Use language-specific terms for better results
-  const langFilter = language === "fr" 
-    ? "vendre OR acheter OR occasion OR conseil OR avis" 
-    : "buy OR sell OR advice OR recommend OR help";
+  // 🔥 ENHANCED: Detect if this is a marketplace/buy-sell query
+  const keywordStr = keywords.join(" ").toLowerCase();
+  const isMarketplace = /vend|achet|occasion|meuble|furniture|sell|buy|used|second/i.test(keywordStr);
   
-  const searchQuery = `site:reddit.com ${keywords.slice(0, 3).join(" ")} ${langFilter}`;
+  // Build Google search query: site:reddit.com + keywords
+  // Use marketplace-specific terms for buy/sell projects
+  let langFilter: string;
+  if (isMarketplace) {
+    langFilter = language === "fr" 
+      ? "vendre OR acheter OR occasion OR ikea OR leboncoin OR meuble" 
+      : "sell OR buy OR used OR furniture OR marketplace OR ikea";
+  } else {
+    langFilter = language === "fr" 
+      ? "conseil OR avis OR recommandation" 
+      : "advice OR recommend OR help";
+  }
+  
+  const searchQuery = `site:reddit.com ${keywords.slice(0, 4).join(" ")} ${langFilter}`;
   
   console.log(`[reddit-agent] 🔥 Searching Google for Reddit posts: "${searchQuery}"`);
   
@@ -757,9 +808,9 @@ async function searchRedditViaGoogle(
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 20,
+        limit: 25, // Increased for better coverage
         lang: language === "fr" ? "fr" : "en",
-        tbs: "qdr:m", // Last month for recency
+        tbs: "qdr:y", // Last year for more results
       }),
     });
     
@@ -1222,10 +1273,17 @@ async function findOpportunities(
     }
   }
 
-  // 3. 🔥 NEW: Search Google for Reddit posts via Firecrawl (more comprehensive)
+  // 3. 🔥 ENHANCED: Search Google for Reddit posts with marketplace-specific queries
   if (keywords.length > 0 && firecrawlApiKey) {
-    console.log(`[reddit-agent] 🔥 Using Google search for Reddit posts...`);
-    const googlePosts = await searchRedditViaGoogle(keywords, context.language, firecrawlApiKey);
+    console.log(`[reddit-agent] 🔥 Using Google search for Reddit posts (marketplace-enhanced)...`);
+    
+    // Use specific marketplace-related keywords for furniture/buy-sell
+    const marketplaceKeywords = keywords.filter(k => 
+      /meuble|occasion|vend|achet|canapé|table|furniture|sell|buy|used/i.test(k)
+    );
+    const searchKeywords = marketplaceKeywords.length > 0 ? marketplaceKeywords : keywords;
+    
+    const googlePosts = await searchRedditViaGoogle(searchKeywords, context.language, firecrawlApiKey);
     const existingIds = new Set(allPosts.map(p => p.id));
     for (const post of googlePosts) {
       if (!existingIds.has(post.id)) {
@@ -1248,7 +1306,7 @@ async function findOpportunities(
   
   if (keywords.length > 0) {
     console.log(`[reddit-agent] 🔥 PRIMARY FILTER: Using ${keywords.length} project keywords...`);
-    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords));
+    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords, context.language));
     console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match project keywords`);
   } else {
     // FALLBACK: Use vertical detection only if NO keywords available
