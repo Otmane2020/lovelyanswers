@@ -108,43 +108,73 @@ const STOP_WORDS = new Set([
   "very", "some", "most", "than", "been", "being", "would", "should", "could"
 ]);
 
-// 🔥 MARKETPLACE-SPECIFIC PATTERNS (buy/sell/used furniture context)
-const MARKETPLACE_PATTERNS = {
-  fr: /vend(?:re|s|u|eur)?|achet(?:er|é|eur)?|occasion|seconde main|d'occasion|leboncoin|marketplace|annonce|prix|€|euros?|cherche|donne|cède|troc|échange|revend|rachet|ikea|conforama|but |maison du monde|meuble|canapé|sofa|table|chaise|lit |armoire|buffet|étagère|bureau|commode|matelas|salon/i,
-  en: /sell(?:ing)?|buy(?:ing)?|used|second hand|marketplace|craigslist|offer up|facebook marketplace|price|\$|dollars?|looking for|giving away|trade|swap|ikea|wayfair|furniture|couch|sofa|table|chair|bed |wardrobe|dresser|shelf|desk|mattress|living room/i
+/* =======================
+   🔥 PATCH: STRICT FURNITURE FILTERING (OBJECT + CONTEXT)
+   Posts MUST contain a furniture object to be relevant
+======================= */
+const FURNITURE_OBJECTS = {
+  fr: /\b(meuble|canapé|sofa|table|chaise|fauteuil|lit\b|matelas|armoire|buffet|étagère|bureau|commode|bibliothèque|miroir|tapis|luminaire|dressing|rangement|penderie|placard|tiroir|tabouret|banquette|console|vitrine|secrétaire|vaisselier|bahut|desserte|guéridon|pouf|méridienne|ottomane|coffre|patère|porte-manteau|sommier|cadre de lit|table basse|table de chevet|chevet|tv meuble|meuble tv)\b/i,
+  en: /\b(furniture|couch|sofa|table|chair|armchair|bed\b|mattress|wardrobe|dresser|shelf|desk|cabinet|bookshelf|mirror|rug|lamp|closet|drawer|stool|bench|console|nightstand|sideboard|ottoman|recliner|loveseat|futon|credenza|vanity|hutch|tv stand|coffee table|end table|dining table)\b/i
 };
+
+const MARKETPLACE_CONTEXT = {
+  fr: /vend(?:re|s|u|eur)?|achet(?:er|é|eur)?|occasion|seconde main|d'occasion|leboncoin|marketplace|annonce|don(?:ne|s)?|troc|récupèr|débarrass|cherche\s+(un|une|des)|où\s+(trouver|acheter)|prix|budget|pas cher|gratuit|récup|brocante|vide.?grenier|emmaus|ikea|conforama|maisons? du monde/i,
+  en: /sell(?:ing)?|buy(?:ing)?|used|secondhand|second hand|marketplace|thrift|flip(?:ping)?|giv(?:e|ing)\s+away|looking for|where to\s+(find|buy|get)|price|budget|cheap|free|deal|garage sale|estate sale|craigslist|facebook marketplace|offerup|ikea|wayfair/i
+};
+
+// 🔥 FURNITURE VERTICAL: Check if post is about FURNITURE specifically
+function isPostRelevantForFurniture(
+  post: RealRedditPost,
+  language: string = "fr"
+): { relevant: boolean; hasFurnitureObject: boolean; hasMarketplaceContext: boolean } {
+  const text = `${post.title} ${post.body || ""}`.toLowerCase();
+  const objectPattern = language === "fr" ? FURNITURE_OBJECTS.fr : FURNITURE_OBJECTS.en;
+  const contextPattern = language === "fr" ? MARKETPLACE_CONTEXT.fr : MARKETPLACE_CONTEXT.en;
+  
+  const hasFurnitureObject = objectPattern.test(text);
+  const hasMarketplaceContext = contextPattern.test(text);
+  
+  // MUST contain a furniture object to be relevant for furniture vertical
+  return { 
+    relevant: hasFurnitureObject, 
+    hasFurnitureObject,
+    hasMarketplaceContext 
+  };
+}
 
 function isPostRelevantToProject(
   post: RealRedditPost,
   projectKeywords: string[],
-  language: string = "fr"
+  language: string = "fr",
+  vertical: Vertical = "general"
 ): boolean {
   const combinedText = `${post.title} ${post.body || ""}`.toLowerCase();
   
-  // 1. Check marketplace patterns FIRST (buy/sell/furniture context)
-  const marketplacePattern = language === "fr" ? MARKETPLACE_PATTERNS.fr : MARKETPLACE_PATTERNS.en;
-  if (marketplacePattern.test(combinedText)) {
-    console.log(`[reddit-agent] ✓ Marketplace pattern match: "${post.title.substring(0, 40)}..."`);
+  // 🔥 FURNITURE VERTICAL: STRICT CHECK - MUST contain furniture object
+  if (vertical === "furniture") {
+    const furnitureCheck = isPostRelevantForFurniture(post, language);
+    if (!furnitureCheck.hasFurnitureObject) {
+      console.log(`[reddit-agent] ✗ Rejected (no furniture object): "${post.title.substring(0, 50)}..."`);
+      return false;
+    }
+    console.log(`[reddit-agent] ✓ Furniture object found (context: ${furnitureCheck.hasMarketplaceContext}): "${post.title.substring(0, 40)}..."`);
     return true;
   }
   
-  // 2. Extract significant terms from project keywords
+  // 2. For other verticals: Extract significant terms from project keywords
   const keywordTerms = new Set<string>();
   projectKeywords.forEach(kw => {
-    // Keep whole keyword phrases for better matching
     const kwLower = kw.toLowerCase();
-    // Extract individual terms (>3 chars, not stop words)
     kwLower.split(/\s+/).forEach(term => {
-      // Normalize: remove accents for better matching
       const normalized = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (term.length > 3 && !STOP_WORDS.has(term)) {
         keywordTerms.add(term);
-        keywordTerms.add(normalized); // Also add unaccented version
+        keywordTerms.add(normalized);
       }
     });
   });
   
-  // 3. Check if post contains any keyword term (case-insensitive)
+  // 3. Check if post contains any keyword term
   const combinedNormalized = combinedText.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
   for (const term of keywordTerms) {
@@ -609,7 +639,8 @@ function computeRelevanceScore(
   post: RealRedditPost, 
   keywords: string[], 
   businessDescription: string,
-  language: string
+  language: string,
+  vertical: Vertical = "general"
 ): { score: number; reason: string } {
   let score = 0;
   const reasons: string[] = [];
@@ -617,11 +648,23 @@ function computeRelevanceScore(
   const bodyLower = (post.body || "").toLowerCase();
   const combinedText = `${titleLower} ${bodyLower}`;
   
-  // 🔥 NEW: 0. EXACT KEYWORD MATCH BONUS (+30)
-  // If the post contains a COMPLETE project keyword phrase, big bonus
+  // 🔥 FURNITURE VERTICAL: Bonus for furniture object + marketplace context
+  if (vertical === "furniture") {
+    const furnitureCheck = isPostRelevantForFurniture(post, language);
+    if (furnitureCheck.hasFurnitureObject) {
+      score += 25;
+      reasons.push("Furniture object");
+      
+      if (furnitureCheck.hasMarketplaceContext) {
+        score += 20;
+        reasons.push("Marketplace context");
+      }
+    }
+  }
+  
+  // 🔥 EXACT KEYWORD MATCH BONUS (+30)
   const exactKeywordMatch = keywords.some(kw => {
     const kwLower = kw.toLowerCase();
-    // Only count if keyword is 2+ words (phrases are more specific)
     return kwLower.split(/\s+/).length >= 2 && combinedText.includes(kwLower);
   });
   if (exactKeywordMatch) {
@@ -1300,17 +1343,24 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
+  // 🔥 DETECT VERTICAL EARLY for filtering
+  const vertical = detectVertical(context);
+  console.log(`[reddit-agent] Detected vertical: ${vertical}`);
+  
   // 🔥 KEYWORD-FIRST FILTER — Use project keywords as PRIMARY filter
-  // This is MUCH more accurate than generic vertical-based filtering
+  // For FURNITURE vertical: STRICT filtering requires furniture object
   let filteredPosts = allPosts;
   
-  if (keywords.length > 0) {
-    console.log(`[reddit-agent] 🔥 PRIMARY FILTER: Using ${keywords.length} project keywords...`);
-    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords, context.language));
+  if (vertical === "furniture") {
+    console.log(`[reddit-agent] 🔥 STRICT FURNITURE FILTER: Posts MUST contain furniture objects...`);
+    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords, context.language, "furniture"));
+    console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts contain furniture objects`);
+  } else if (keywords.length > 0) {
+    console.log(`[reddit-agent] 🔥 KEYWORD FILTER: Using ${keywords.length} project keywords...`);
+    filteredPosts = filteredPosts.filter(p => isPostRelevantToProject(p, keywords, context.language, vertical));
     console.log(`[reddit-agent] ${filteredPosts.length}/${allPosts.length} posts match project keywords`);
   } else {
     // FALLBACK: Use vertical detection only if NO keywords available
-    const vertical = detectVertical(context);
     console.log(`[reddit-agent] ⚠️ FALLBACK: No keywords, using ${vertical} vertical filter`);
     
     if (vertical !== "general") {
@@ -1320,7 +1370,6 @@ async function findOpportunities(
   }
 
   // 🔒 PATCH 2 — REMOVE FORBIDDEN SUBREDDITS
-  const vertical = detectVertical(context);
   const forbiddenSubs = FORBIDDEN_SUBS_BY_VERTICAL[vertical] || [];
 
   if (forbiddenSubs.length > 0) {
@@ -1337,7 +1386,7 @@ async function findOpportunities(
   if (filteredPosts.length === 0 && keywords.length > 0) {
     console.log(`[reddit-agent] ⚠️ No matching posts. Trying Reddit keyword search...`);
     const searchPosts = await searchRedditByKeywords(keywords.slice(0, 5), context.language);
-    filteredPosts = searchPosts.filter(p => isPostRelevantToProject(p, keywords));
+    filteredPosts = searchPosts.filter(p => isPostRelevantToProject(p, keywords, context.language, vertical));
     console.log(`[reddit-agent] Reddit search found ${filteredPosts.length} relevant posts`);
   }
   
@@ -1346,13 +1395,14 @@ async function findOpportunities(
     return { opportunities: [] };
   }
 
-  // 3. 🔥 Compute relevance score for filtered posts
+  // 3. 🔥 Compute relevance score for filtered posts (pass vertical for furniture bonus)
   const scoredPosts = filteredPosts.map(post => {
     const { score, reason } = computeRelevanceScore(
       post, 
       keywords, 
       context.businessDescription,
-      context.language
+      context.language,
+      vertical
     );
     return {
       ...post,
@@ -1361,11 +1411,12 @@ async function findOpportunities(
     };
   });
 
-  // 🔒 PATCH 5 — LOWER MINIMUM RELEVANCE (25) - Vertical match provides +25 base
-  const MIN_RELEVANCE = 25;
+  // 🔥 FURNITURE VERTICAL: Higher threshold (40) to filter noise
+  // Other verticals: Standard threshold (25)
+  const MIN_RELEVANCE = vertical === "furniture" ? 40 : 25;
   const relevantPosts = scoredPosts.filter(p => p.relevanceScore >= MIN_RELEVANCE);
   
-  console.log(`[reddit-agent] ${relevantPosts.length}/${scoredPosts.length} posts passed relevance filter (>=${MIN_RELEVANCE})`);
+  console.log(`[reddit-agent] ${relevantPosts.length}/${scoredPosts.length} posts passed relevance filter (>=${MIN_RELEVANCE}, vertical=${vertical})`)
   
   // 🔒 PATCH 4 — NO FALLBACK: If no relevant posts, return empty
   if (relevantPosts.length === 0) {
