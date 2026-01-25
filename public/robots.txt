@@ -1,5 +1,5 @@
 # Robots.txt for LovelyAnswers
-# https://lovelyanswers.lovable.app
+# https://lovelyanswers.com
 
 # Allow all major search engines
 User-agent: Googlebot
@@ -64,4 +64,4 @@ Disallow: /keywords
 Disallow: /checkout
 
 # Sitemap location
-Sitemap: https://lovelyanswers.lovable.app/sitemap.xml
+Sitemap: https://lovelyanswers.com/sitemap.xml

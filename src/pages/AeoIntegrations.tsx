@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check } from "lucide-react";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -418,10 +418,42 @@ export default function AeoIntegrations() {
               </div>
             </div>
             {gscConnected ? (
-              <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Connected
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Connected
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Use hook's reset function
+                    refetchGsc();
+                    supabase.auth.getUser().then(({ data: { user } }) => {
+                      if (user) {
+                        supabase
+                          .from("profiles")
+                          .update({
+                            google_oauth_token: null,
+                            google_refresh_token: null,
+                            google_token_expires_at: null,
+                            google_console_email: null,
+                          })
+                          .eq("id", user.id)
+                          .then(() => {
+                            sessionStorage.removeItem("gsc_oauth_redirect_uri");
+                            toast.success("Google connection reset");
+                            refetchGsc();
+                          });
+                      }
+                    });
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Reset
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={connectGSC}
