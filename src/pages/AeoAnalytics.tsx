@@ -241,7 +241,7 @@ export default function AeoAnalytics() {
     try {
       const redirectUri = `${window.location.origin}/analytics`;
       const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-        body: { code, state: redirectUri },
+        body: { code, redirectUri },
       });
 
       if (error) throw error;
