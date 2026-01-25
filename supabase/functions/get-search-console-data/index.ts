@@ -60,42 +60,93 @@ serve(async (req) => {
     }
 
     let accessToken = profile.google_oauth_token;
+    let tokenRefreshed = false;
+
+    // Admin client for updating tokens
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     // Check if token is expired and refresh if needed
-    if (profile.google_token_expires_at) {
-      const expiresAt = new Date(profile.google_token_expires_at);
-      if (expiresAt < new Date() && profile.google_refresh_token) {
-        // Refresh the token
-        const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
-            client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
-            refresh_token: profile.google_refresh_token,
-            grant_type: "refresh_token",
-          }),
+    const expiresAt = profile.google_token_expires_at
+      ? new Date(profile.google_token_expires_at)
+      : null;
+
+    if (!expiresAt || expiresAt < new Date()) {
+      if (!profile.google_refresh_token) {
+        // No refresh token - user needs to reconnect
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google session expired", 
+          needsReconnect: true,
+          message: "Votre session Google a expiré. Veuillez reconnecter votre compte Google."
+        }), { 
+          status: 401, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
         });
-
-        if (refreshResponse.ok) {
-          const tokenData = await refreshResponse.json();
-          accessToken = tokenData.access_token;
-
-          // Update the token in the database
-          const adminClient = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-          );
-
-          await adminClient
-            .from("profiles")
-            .update({
-              google_oauth_token: tokenData.access_token,
-              google_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-            })
-            .eq("id", userId);
-        }
       }
+
+      // Refresh the token
+      console.log("Refreshing expired Google token...");
+      const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
+          client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
+          refresh_token: profile.google_refresh_token,
+          grant_type: "refresh_token",
+        }),
+      });
+
+      if (!refreshResponse.ok) {
+        const refreshError = await refreshResponse.text();
+        console.error("Token refresh failed:", refreshError);
+
+        // Clear invalid tokens - user needs to reconnect
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google token refresh failed", 
+          needsReconnect: true,
+          message: "La connexion Google n'est plus valide. Veuillez reconnecter votre compte Google.",
+          details: refreshError
+        }), { 
+          status: 401, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
+
+      const tokenData = await refreshResponse.json();
+      accessToken = tokenData.access_token;
+      tokenRefreshed = true;
+
+      // Update the token in the database
+      await adminClient
+        .from("profiles")
+        .update({
+          google_oauth_token: tokenData.access_token,
+          google_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        })
+        .eq("id", userId);
+
+      console.log("Token refreshed successfully");
     }
 
     // Calculate date range
@@ -132,6 +183,30 @@ serve(async (req) => {
     if (!performanceResponse.ok) {
       const errorText = await performanceResponse.text();
       console.error("GSC API error:", errorText);
+
+      // Check if it's an auth error - token might be invalid despite not being expired
+      if (performanceResponse.status === 401 || performanceResponse.status === 403) {
+        // Clear tokens and ask user to reconnect
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google authentication failed", 
+          needsReconnect: true,
+          message: "Les identifiants Google ne sont plus valides. Veuillez reconnecter votre compte Google.",
+          details: errorText
+        }), { 
+          status: 401, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
+
       return new Response(JSON.stringify({ error: "Failed to fetch GSC data", details: errorText }), { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -205,7 +280,7 @@ serve(async (req) => {
       position: row.position,
     }));
 
-    return new Response(JSON.stringify({ data, topQueries, topPages }), {
+    return new Response(JSON.stringify({ data, topQueries, topPages, tokenRefreshed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
