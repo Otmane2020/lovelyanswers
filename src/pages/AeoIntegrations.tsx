@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown } from "lucide-react";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,10 +63,16 @@ export default function AeoIntegrations() {
   const [deletingIntegration, setDeletingIntegration] = useState<string | null>(null);
   const [testIndexUrl, setTestIndexUrl] = useState("");
   const [isTestingIndex, setIsTestingIndex] = useState(false);
-  const [indexTestResult, setIndexTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [indexTestResult, setIndexTestResult] = useState<{ success: boolean; message: string; errorDetails?: any; hint?: string } | null>(null);
   const [gscSites, setGscSites] = useState<string[]>([]);
   const [selectedGscSite, setSelectedGscSite] = useState<string>("");
   const [loadingGscSites, setLoadingGscSites] = useState(false);
+  
+  // Diagnostic states
+  const [isRunningDiagnostic, setIsRunningDiagnostic] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Handle OAuth callback for Google Search Console
   useEffect(() => {
@@ -180,10 +187,14 @@ export default function AeoIntegrations() {
           message: `✅ URL submitted for indexation: ${data.notifyTime || "Request sent"}`,
         });
         toast.success("URL submitted to Google for indexation!");
+        setShowDiagnostic(false);
+        setDiagnosticResult(null);
       } else {
         setIndexTestResult({
           success: false,
           message: data?.error || "Indexation request failed",
+          errorDetails: data?.errorDetails,
+          hint: data?.hint,
         });
         toast.error(data?.error || "Failed to request indexation");
       }
@@ -197,6 +208,47 @@ export default function AeoIntegrations() {
     } finally {
       setIsTestingIndex(false);
     }
+  };
+
+  // Run advanced diagnostic
+  const handleRunDiagnostic = async () => {
+    if (!testIndexUrl.trim()) {
+      toast.error("Entrez une URL pour lancer le diagnostic");
+      return;
+    }
+
+    setIsRunningDiagnostic(true);
+    setDiagnosticResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("gsc-indexing-diagnostics", {
+        body: { testUrl: testIndexUrl.trim() },
+      });
+
+      if (error) throw error;
+
+      setDiagnosticResult(data?.diagnostic || null);
+      setShowDiagnostic(true);
+
+      if (data?.success) {
+        toast.success("Diagnostic terminé - tout fonctionne!");
+      } else {
+        toast.info("Diagnostic terminé - voir les recommandations");
+      }
+    } catch (error: any) {
+      console.error("Diagnostic error:", error);
+      toast.error("Erreur diagnostic: " + (error.message || "Unknown error"));
+    } finally {
+      setIsRunningDiagnostic(false);
+    }
+  };
+
+  // Copy to clipboard helper
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(label);
+    toast.success(`${label} copié!`);
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
   const getConnectedIntegration = (platformId: string) => {
@@ -453,18 +505,215 @@ export default function AeoIntegrations() {
               {/* Test Result */}
               {indexTestResult && (
                 <div
-                  className={`mt-3 p-3 rounded-lg text-sm flex items-start gap-2 ${
+                  className={`mt-3 p-3 rounded-lg text-sm ${
                     indexTestResult.success
                       ? "bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20"
                       : "bg-destructive/10 text-destructive border border-destructive/20"
                   }`}
                 >
-                  {indexTestResult.success ? (
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-2">
+                    {indexTestResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <span>{indexTestResult.message}</span>
+                      
+                      {/* Show hint to use diagnostic */}
+                      {indexTestResult.hint && (
+                        <p className="text-xs opacity-80 italic">{indexTestResult.hint}</p>
+                      )}
+                      
+                      {/* Show error details if available */}
+                      {indexTestResult.errorDetails && (
+                        <Collapsible>
+                          <CollapsibleTrigger className="flex items-center gap-1 text-xs underline opacity-70 hover:opacity-100">
+                            <ChevronRight className="h-3 w-3" />
+                            Détails techniques
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-2 p-2 bg-background/50 rounded text-xs font-mono space-y-1">
+                            {indexTestResult.errorDetails.consumerProject && (
+                              <div className="flex items-center justify-between">
+                                <span>Projet: {indexTestResult.errorDetails.consumerProject}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleCopy(indexTestResult.errorDetails.consumerProject, "Projet ID")}
+                                >
+                                  {copiedText === "Projet ID" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                </Button>
+                              </div>
+                            )}
+                            {indexTestResult.errorDetails.reason && (
+                              <div>Raison: {indexTestResult.errorDetails.reason}</div>
+                            )}
+                            {indexTestResult.errorDetails.code && (
+                              <div>Code: {indexTestResult.errorDetails.code}</div>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Advanced Diagnostic Button */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRunDiagnostic}
+                  disabled={isRunningDiagnostic || !testIndexUrl.trim()}
+                  className="gap-2"
+                >
+                  {isRunningDiagnostic ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyse en cours...
+                    </>
                   ) : (
-                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <>
+                      <Stethoscope className="h-4 w-4" />
+                      Diagnostic avancé
+                    </>
                   )}
-                  <span>{indexTestResult.message}</span>
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vérifie le token OAuth, les scopes, et l'état de l'API Google.
+                </p>
+              </div>
+
+              {/* Diagnostic Results Panel */}
+              {showDiagnostic && diagnosticResult && (
+                <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium text-sm flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4 text-primary" />
+                      Rapport de diagnostic
+                    </h5>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDiagnostic(false)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+
+                  {/* Token Info */}
+                  <div className="space-y-2">
+                    <h6 className="text-xs font-medium text-muted-foreground uppercase">Token OAuth</h6>
+                    <div className="p-2 rounded bg-background border text-xs space-y-1">
+                      <div className="flex items-center gap-2">
+                        {diagnosticResult.tokenInfo?.valid ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-3 w-3 text-destructive" />
+                        )}
+                        <span>{diagnosticResult.tokenInfo?.valid ? "Valide" : "Invalide"}</span>
+                      </div>
+                      {diagnosticResult.tokenInfo?.clientId && (
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>Client ID: {diagnosticResult.tokenInfo.clientId.substring(0, 30)}...</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => handleCopy(diagnosticResult.tokenInfo.clientId, "Client ID")}
+                          >
+                            {copiedText === "Client ID" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      )}
+                      {diagnosticResult.tokenInfo?.scopes && (
+                        <div className="text-muted-foreground">
+                          Scopes: {diagnosticResult.tokenInfo.scopes.length} 
+                          {diagnosticResult.tokenInfo.scopes.some((s: string) => s.includes("indexing")) && (
+                            <Badge variant="outline" className="ml-2 text-green-600 border-green-600/30">indexing ✓</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* API Test Result */}
+                  <div className="space-y-2">
+                    <h6 className="text-xs font-medium text-muted-foreground uppercase">Test API Indexing</h6>
+                    <div className={`p-2 rounded border text-xs space-y-1 ${
+                      diagnosticResult.indexingApiTest?.success 
+                        ? "bg-green-500/10 border-green-500/30" 
+                        : "bg-destructive/10 border-destructive/30"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {diagnosticResult.indexingApiTest?.success ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-3 w-3 text-destructive" />
+                        )}
+                        <span>
+                          {diagnosticResult.indexingApiTest?.success 
+                            ? `Succès (${diagnosticResult.indexingApiTest.notifyTime || "OK"})` 
+                            : `Échec: ${diagnosticResult.indexingApiTest?.error || "Unknown"}`}
+                        </span>
+                      </div>
+                      {diagnosticResult.indexingApiTest?.errorDetails && (
+                        <div className="mt-2 p-2 bg-background/50 rounded font-mono text-xs">
+                          {diagnosticResult.indexingApiTest.errorDetails.consumerProject && (
+                            <div className="flex items-center justify-between">
+                              <span>Consumer: {diagnosticResult.indexingApiTest.errorDetails.consumerProject}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => handleCopy(
+                                  diagnosticResult.indexingApiTest.errorDetails.consumerProject.replace("projects/", ""), 
+                                  "Project Number"
+                                )}
+                              >
+                                {copiedText === "Project Number" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                              </Button>
+                            </div>
+                          )}
+                          {diagnosticResult.indexingApiTest.errorDetails.reason && (
+                            <div>Reason: {diagnosticResult.indexingApiTest.errorDetails.reason}</div>
+                          )}
+                          {diagnosticResult.indexingApiTest.errorDetails.service && (
+                            <div>Service: {diagnosticResult.indexingApiTest.errorDetails.service}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recommendations */}
+                  {diagnosticResult.recommendations && diagnosticResult.recommendations.length > 0 && (
+                    <div className="space-y-2">
+                      <h6 className="text-xs font-medium text-muted-foreground uppercase">Recommandations</h6>
+                      <div className="space-y-2">
+                        {diagnosticResult.recommendations.map((rec: string, idx: number) => (
+                          <div key={idx} className="p-2 rounded bg-background border text-sm">
+                            {rec.startsWith("➡️") && rec.includes("http") ? (
+                              <a 
+                                href={rec.replace("➡️ Activez l'API ici: ", "")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                              >
+                                {rec}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              rec
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
