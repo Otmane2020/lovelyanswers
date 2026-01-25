@@ -140,37 +140,103 @@ serve(async (req) => {
 
     console.log("[gsc-test-indexation] Using user OAuth token for indexation");
 
-    // Request indexation via Google Indexing API
-    const indexingResponse = await fetch(
-      "https://indexing.googleapis.com/v3/urlNotifications:publish",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: url,
-          type: "URL_UPDATED",
-        }),
-      }
-    );
+    // Helper function to call Indexing API with retry
+    async function callIndexingApiWithRetry(
+      token: string, 
+      targetUrl: string, 
+      maxRetries = 3
+    ): Promise<{ response: Response; result: any }> {
+      const delays = [2000, 5000, 10000]; // exponential backoff: 2s, 5s, 10s
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const response = await fetch(
+          "https://indexing.googleapis.com/v3/urlNotifications:publish",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: targetUrl,
+              type: "URL_UPDATED",
+            }),
+          }
+        );
 
-    const indexingResult = await indexingResponse.json();
+        const result = await response.json();
+
+        // If success or not a transient error, return immediately
+        if (response.ok) {
+          return { response, result };
+        }
+
+        // Check if it's a SERVICE_DISABLED error (might be propagation delay)
+        const isServiceDisabled = result.error?.details?.some(
+          (d: any) => d.reason === "SERVICE_DISABLED"
+        );
+
+        if (isServiceDisabled && attempt < maxRetries - 1) {
+          console.log(`[gsc-test-indexation] SERVICE_DISABLED, retrying in ${delays[attempt]}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+          continue;
+        }
+
+        // For other errors or final attempt, return the result
+        return { response, result };
+      }
+
+      // Should never reach here, but TypeScript needs it
+      throw new Error("Max retries exceeded");
+    }
+
+    // Request indexation via Google Indexing API with retry
+    const { response: indexingResponse, result: indexingResult } = await callIndexingApiWithRetry(accessToken, url);
 
     if (!indexingResponse.ok) {
       console.error("[gsc-test-indexation] API error:", indexingResult);
       let errorMessage = indexingResult.error?.message || "Indexing API error";
       
+      // Extract detailed error info for better diagnostics
+      const errorDetails: any = {
+        code: indexingResult.error?.code,
+        status: indexingResult.error?.status,
+      };
+
+      // Parse error details from Google's response
+      if (indexingResult.error?.details) {
+        for (const detail of indexingResult.error.details) {
+          if (detail.reason) {
+            errorDetails.reason = detail.reason;
+          }
+          if (detail.metadata?.consumer) {
+            errorDetails.consumerProject = detail.metadata.consumer;
+          }
+          if (detail.metadata?.service) {
+            errorDetails.service = detail.metadata.service;
+          }
+        }
+      }
+      
       // Provide more helpful error messages
-      if (errorMessage.includes("Permission denied") || errorMessage.includes("URL ownership")) {
+      if (errorDetails.reason === "SERVICE_DISABLED") {
+        const projectId = errorDetails.consumerProject?.replace("projects/", "") || "unknown";
+        errorMessage = `L'API Indexing est désactivée pour le projet ${projectId}. Activez-la dans Google Cloud Console puis réessayez dans 5 minutes.`;
+      } else if (errorMessage.includes("Permission denied") || errorMessage.includes("URL ownership")) {
         errorMessage = "Permission denied. Make sure you are the verified owner of this property in Google Search Console.";
       } else if (errorMessage.includes("quota")) {
         errorMessage = "Daily quota exceeded. Google limits indexation requests to 200/day per property.";
       }
 
       return new Response(
-        JSON.stringify({ success: false, error: errorMessage }),
+        JSON.stringify({ 
+          success: false, 
+          error: errorMessage,
+          errorDetails,
+          hint: errorDetails.reason === "SERVICE_DISABLED" 
+            ? "Utilisez le bouton 'Diagnostic avancé' pour plus de détails." 
+            : undefined
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
