@@ -37,6 +37,12 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
+    // Admin client for updating tokens
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // Get user's Google OAuth tokens from profile
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -54,38 +60,81 @@ serve(async (req) => {
     let accessToken = profile.google_oauth_token;
 
     // Check if token is expired and refresh if needed
-    if (profile.google_token_expires_at) {
-      const expiresAt = new Date(profile.google_token_expires_at);
-      if (expiresAt < new Date() && profile.google_refresh_token) {
-        const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
-            client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
-            refresh_token: profile.google_refresh_token,
-            grant_type: "refresh_token",
-          }),
+    const expiresAt = profile.google_token_expires_at
+      ? new Date(profile.google_token_expires_at)
+      : null;
+
+    if (!expiresAt || expiresAt < new Date()) {
+      if (!profile.google_refresh_token) {
+        // No refresh token - clear tokens and return
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google session expired", 
+          needsReconnect: true,
+          sites: [] 
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
         });
-
-        if (refreshResponse.ok) {
-          const tokenData = await refreshResponse.json();
-          accessToken = tokenData.access_token;
-
-          const adminClient = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-          );
-
-          await adminClient
-            .from("profiles")
-            .update({
-              google_oauth_token: tokenData.access_token,
-              google_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-            })
-            .eq("id", userId);
-        }
       }
+
+      console.log("Refreshing expired Google token...");
+      const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
+          client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
+          refresh_token: profile.google_refresh_token,
+          grant_type: "refresh_token",
+        }),
+      });
+
+      if (!refreshResponse.ok) {
+        const refreshError = await refreshResponse.text();
+        console.error("Token refresh failed:", refreshError);
+
+        // Clear invalid tokens
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google token refresh failed", 
+          needsReconnect: true,
+          sites: [],
+          details: refreshError
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
+
+      const tokenData = await refreshResponse.json();
+      accessToken = tokenData.access_token;
+
+      await adminClient
+        .from("profiles")
+        .update({
+          google_oauth_token: tokenData.access_token,
+          google_token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        })
+        .eq("id", userId);
+
+      console.log("Token refreshed successfully");
     }
 
     // Fetch sites from GSC API
@@ -101,6 +150,30 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("GSC API error:", errorText);
+
+      // Check if it's an auth error
+      if (response.status === 401 || response.status === 403) {
+        // Clear tokens
+        await adminClient
+          .from("profiles")
+          .update({
+            google_oauth_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+          })
+          .eq("id", userId);
+
+        return new Response(JSON.stringify({ 
+          error: "Google authentication failed", 
+          needsReconnect: true,
+          sites: [],
+          details: errorText
+        }), { 
+          status: 200, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
+
       return new Response(JSON.stringify({ error: "Failed to fetch sites", sites: [] }), { 
         status: 200, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
