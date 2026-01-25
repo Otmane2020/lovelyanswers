@@ -10,7 +10,6 @@ import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
-import { trackLinkedInSignUp } from "@/hooks/useLinkedInTracking";
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -260,9 +259,6 @@ export default function Auth() {
       toast({ title: "Sign up failed", description: message, variant: "destructive" });
       return;
     }
-
-    // Track LinkedIn Sign Up conversion
-    trackLinkedInSignUp();
 
     // Account created - the useEffect will handle redirect based on onboarding_data
     toast({ title: "Account created!", description: "Setting up your project..." });
