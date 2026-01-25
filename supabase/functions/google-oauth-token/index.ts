@@ -38,8 +38,8 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     const body = await req.json();
     const code = body.code;
-    // Accept both 'state' and 'redirectUri' for compatibility
-    const redirectUri = body.state || body.redirectUri;
+    const redirectUri = body.redirectUri;
+    // state is currently not validated server-side; it's passed for forward-compat/debug.
 
     if (!code || !redirectUri) {
       return new Response(
@@ -113,16 +113,23 @@ serve(async (req) => {
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
     const now = new Date().toISOString();
 
+    // Build update payload.
+    // Important: Google may omit refresh_token on subsequent authorizations.
+    // In that case we MUST NOT overwrite a previously stored refresh token.
+    const updatePayload: Record<string, unknown> = {
+      google_oauth_token: tokenData.access_token,
+      google_token_expires_at: expiresAt,
+      google_console_email: googleEmail,
+      updated_at: now,
+    };
+    if (tokenData.refresh_token) {
+      updatePayload.google_refresh_token = tokenData.refresh_token;
+    }
+
     // First try to update existing profile
     const { data: updatedRows, error: updateError } = await adminClient
       .from("profiles")
-      .update({
-        google_oauth_token: tokenData.access_token,
-        google_refresh_token: tokenData.refresh_token || null,
-        google_token_expires_at: expiresAt,
-        google_console_email: googleEmail,
-        updated_at: now,
-      })
+      .update(updatePayload)
       .eq("id", userId)
       .select("id");
 
