@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function isValidRedirectUri(uri: string) {
+  try {
+    const u = new URL(uri);
+    return ["https:", "http:"].includes(u.protocol);
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,8 +47,10 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     const body = await req.json();
     const code = body.code;
-    const redirectUri = body.redirectUri;
-    // state is currently not validated server-side; it's passed for forward-compat/debug.
+    // Backward compatibility:
+    // older clients sent redirectUri in `state` (incorrectly). New clients send `redirectUri`.
+    const redirectUri =
+      body.redirectUri || (typeof body.state === "string" && isValidRedirectUri(body.state) ? body.state : null);
 
     if (!code || !redirectUri) {
       return new Response(

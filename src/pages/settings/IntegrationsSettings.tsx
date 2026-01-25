@@ -71,7 +71,7 @@ export function IntegrationsSettings() {
     try {
       const redirectUri = `${window.location.origin}/settings`;
       const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-        body: { code, state: redirectUri },
+        body: { code, redirectUri },
       });
 
       if (error) throw error;
