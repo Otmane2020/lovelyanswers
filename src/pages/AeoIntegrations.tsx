@@ -84,8 +84,13 @@ export default function AeoIntegrations() {
       if (code && state) {
         setConnectingGsc(true);
         try {
+          // We must pass the same redirectUri used to start the OAuth flow.
+          // Store it before redirecting to Google, then read it back here.
+          const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
+            `${window.location.origin}/integrations`;
+
           const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-            body: { code, state },
+            body: { code, state, redirectUri },
           });
 
           if (error) throw error;
@@ -96,6 +101,7 @@ export default function AeoIntegrations() {
 
           toast.success("Google Search Console connecté avec succès!");
           refetchGsc();
+          sessionStorage.removeItem("gsc_oauth_redirect_uri");
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (error: any) {
           console.error("OAuth callback error:", error);
@@ -147,6 +153,9 @@ export default function AeoIntegrations() {
     setConnectingGsc(true);
     try {
       const redirectUri = `${window.location.origin}/integrations`;
+
+      // Persist redirectUri to correctly complete the OAuth code exchange.
+      sessionStorage.setItem("gsc_oauth_redirect_uri", redirectUri);
 
       const { data, error } = await supabase.functions.invoke("google-oauth-url", {
         body: { redirectUri },
