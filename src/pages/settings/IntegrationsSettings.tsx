@@ -69,7 +69,10 @@ export function IntegrationsSettings() {
   const handleGscOAuthCallback = async (code: string) => {
     setConnectingGsc(true);
     try {
-      const redirectUri = `${window.location.origin}/settings`;
+      // Use stored redirectUri or fallback
+      const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") || 
+        `${window.location.origin}/settings`;
+      
       const { data, error } = await supabase.functions.invoke("google-oauth-token", {
         body: { code, redirectUri },
       });
@@ -81,6 +84,7 @@ export function IntegrationsSettings() {
       }
 
       toast.success("Google Search Console connected!");
+      sessionStorage.removeItem("gsc_oauth_redirect_uri");
       refetchGsc();
     } catch (error: any) {
       console.error("GSC OAuth error:", error);
@@ -94,6 +98,10 @@ export function IntegrationsSettings() {
     setConnectingGsc(true);
     try {
       const redirectUri = `${window.location.origin}/settings`;
+      
+      // Persist redirectUri for OAuth callback
+      sessionStorage.setItem("gsc_oauth_redirect_uri", redirectUri);
+      
       const { data, error } = await supabase.functions.invoke("google-oauth-url", {
         body: { redirectUri },
       });

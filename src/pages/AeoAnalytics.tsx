@@ -239,7 +239,10 @@ export default function AeoAnalytics() {
   const handleOAuthCallback = async (code: string) => {
     setIsLoading(true);
     try {
-      const redirectUri = `${window.location.origin}/analytics`;
+      // Use stored redirectUri or fallback
+      const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") || 
+        `${window.location.origin}/analytics`;
+      
       const { data, error } = await supabase.functions.invoke("google-oauth-token", {
         body: { code, redirectUri },
       });
@@ -253,6 +256,7 @@ export default function AeoAnalytics() {
       toast.success("Google Search Console connected!");
       setIsConnected(true);
       setGoogleEmail(data.email || null);
+      sessionStorage.removeItem("gsc_oauth_redirect_uri");
       await loadAvailableSites();
     } catch (error: any) {
       toast.error(error.message || "Error connecting to GSC");
@@ -356,6 +360,10 @@ export default function AeoAnalytics() {
     setIsLoading(true);
     try {
       const redirectUri = `${window.location.origin}/analytics`;
+      
+      // Persist redirectUri for OAuth callback
+      sessionStorage.setItem("gsc_oauth_redirect_uri", redirectUri);
+      
       const { data, error } = await supabase.functions.invoke("google-oauth-url", {
         body: { redirectUri },
       });
