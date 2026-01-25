@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { trackLinkedInPurchase } from "@/hooks/useLinkedInTracking";
 
 interface SubscriptionContextType {
   isSubscribed: boolean;
@@ -20,7 +19,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isTrial, setIsTrial] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
-  const hasTrackedPurchase = useRef(false);
 
   const checkSubscription = useCallback(async () => {
     // Don't check if auth is still loading
@@ -86,19 +84,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [checkSubscription, authLoading]);
 
-  // Handle success redirect - immediately recheck subscription and track purchase
+  // Handle success redirect - immediately recheck subscription
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("subscription") === "success") {
       window.history.replaceState({}, "", window.location.pathname);
-      
-      // Track LinkedIn Purchase conversion (only once per session)
-      if (!hasTrackedPurchase.current) {
-        trackLinkedInPurchase();
-        hasTrackedPurchase.current = true;
-        console.log("[SubscriptionContext] LinkedIn Purchase conversion tracked");
-      }
-      
       // Immediate recheck for subscription status
       checkSubscription();
     }
