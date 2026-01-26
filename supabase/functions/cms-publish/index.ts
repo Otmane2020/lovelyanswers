@@ -702,6 +702,7 @@ async function publishToBigCommerce(
       success: false,
       message: error instanceof Error ? error.message : "BigCommerce publish failed",
     };
+  }
 }
 
 async function publishToLovable(
@@ -740,5 +741,4 @@ async function publishToLovable(
       message: error instanceof Error ? error.message : "Lovable publish failed",
     };
   }
-}
 }
