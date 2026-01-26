@@ -78,6 +78,7 @@ const App = () => (
                   <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
                   <Route path="/superadmin" element={<SuperAdmin />} />
                   <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
+                  <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
