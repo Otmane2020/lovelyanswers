@@ -1,52 +1,64 @@
 
-# Add Lovable Prompt Instructions to Integration Guide
 
-## Objective
-Update the Lovable.dev integration guide to include a specific prompt that users can copy-paste into their other Lovable projects to get the Edge Function URL and API Key credentials.
+# Plan de correction - Google Search Console Login
 
----
+## Diagnostic
 
-## Current State
-The existing guide (lines 155-164) is generic:
+Le login Google Search Console a cessé de fonctionner car les fonctions edge OAuth ne sont pas correctement configurées dans `supabase/config.toml`. 
+
+**Fonctions manquantes dans la configuration :**
+- `google-oauth-url` - Génère l'URL de connexion Google
+- `google-oauth-token` - Échange le code OAuth contre des tokens
+- `list-search-console-sites` - Liste les propriétés GSC de l'utilisateur
+- `gsc-test-indexation` - Test d'indexation
+- `gsc-indexing-diagnostics` - Diagnostic avancé
+- `get-search-console-data` - Récupère les données GSC
+- `analyze-gsc-anomalies` - Analyse des anomalies
+
+Sans déclaration explicite, ces fonctions utilisent `verify_jwt = true` par défaut, ce qui entre en conflit avec leur gestion interne de l'authentification.
+
+## Solution
+
+### Etape 1 : Mettre à jour `supabase/config.toml`
+
+Ajouter toutes les fonctions Google/GSC manquantes avec `verify_jwt = false` :
+
+```toml
+[functions.google-oauth-url]
+verify_jwt = false
+
+[functions.google-oauth-token]
+verify_jwt = false
+
+[functions.list-search-console-sites]
+verify_jwt = false
+
+[functions.get-search-console-data]
+verify_jwt = false
+
+[functions.gsc-test-indexation]
+verify_jwt = false
+
+[functions.gsc-indexing-diagnostics]
+verify_jwt = false
+
+[functions.analyze-gsc-anomalies]
+verify_jwt = false
 ```
-"Lovable.dev is an AI-powered web app builder"
-"Use the Webhook or API integration to connect"
-"Set up an Edge Function to receive published content"
-```
 
-## Proposed Solution
-Add a clear, copy-pasteable prompt that users can send to Lovable in their other projects.
+### Etape 2 : Redéployer les fonctions edge
 
----
+Après la mise à jour du config, les fonctions seront automatiquement redéployées avec la bonne configuration.
 
-## Implementation Details
+## Résultat attendu
 
-### File: `src/components/integrations/IntegrationConfigModal.tsx`
+- Le bouton "Connect Google Search Console" fonctionnera à nouveau
+- Le flux OAuth complet (génération URL → callback → échange de token) sera opérationnel
+- Les fonctionnalités d'indexation et de diagnostic seront restaurées
 
-**Update the `PLATFORM_GUIDES.lovable` section (lines 155-164):**
+## Fichiers à modifier
 
-```typescript
-lovable: {
-  title: "How to Connect Another Lovable Project",
-  steps: [
-    "Open your other Lovable project",
-    "Copy and paste this prompt to Lovable:",
-    "💬 \"I want to receive published articles from another app via API. Create an Edge Function called 'receive-article' that accepts POST requests with { title, body, type, sourceId } and saves them to a 'published_articles' table. Give me the Edge Function URL and the Supabase Anon Key.\"",
-    "Lovable will create the Edge Function and database table",
-    "Copy the Edge Function URL (format: https://xxx.supabase.co/functions/v1/receive-article)",
-    "Copy the Anon Key from the response",
-    "Paste both values in the fields below",
-  ],
-},
-```
+| Fichier | Action |
+|---------|--------|
+| `supabase/config.toml` | Ajouter 7 déclarations de fonctions manquantes |
 
----
-
-## Technical Summary
-
-| Component | Change |
-|-----------|--------|
-| `IntegrationConfigModal.tsx` | Update `PLATFORM_GUIDES.lovable.steps` with detailed prompt instructions |
-
-## Expected Result
-Users will see a step-by-step guide with a copy-pasteable prompt to send to their other Lovable projects, making it easy to get the required Edge Function URL and API Key.
