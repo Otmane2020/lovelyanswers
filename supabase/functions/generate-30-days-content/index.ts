@@ -572,7 +572,9 @@ serve(async (req) => {
     const body = await req.json();
     // CHANGED: overwrite = false by default to prevent deleting existing content
     // questionsPerDay = 1 means 1 question generates 1 answer + 1 article = 2 items per day
-    const { projectId, language = "fr", days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
+    // Language is now fetched from project/generation_settings, not body - default is "en"
+    const { projectId, days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
+    let language = body.language || null; // Will be overridden by project settings if not provided
 
     console.log(`[generate-30-days] Request params: projectId=${projectId}, userId=${userData.user.id}, days=${days}`);
 
@@ -624,6 +626,22 @@ serve(async (req) => {
 
     const brandName = project.brand_name || project.name;
     const description = project.business_description || "";
+    
+    // CRITICAL: Get language from project settings - DO NOT default to French
+    // Priority: 1. body.language (explicit override) -> 2. project.language -> 3. "en" (default)
+    if (!language) {
+      // Try to get language from generation_settings first (more reliable)
+      const { data: genSettings } = await supabase
+        .from("generation_settings")
+        .select("language")
+        .eq("project_id", projectId)
+        .maybeSingle();
+      
+      language = genSettings?.language || project.language || "en";
+    }
+    
+    console.log(`[generate-30-days] Using language: ${language} (project.language=${project.language})`);
+
 
     console.log(`[generate-30-days] Starting for project: ${project.name}, ${days} days (offset: ${startOffset}), overwrite=${overwrite}, questionsPerDay=${questionsPerDay}`);
 
