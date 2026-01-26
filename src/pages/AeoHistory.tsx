@@ -136,8 +136,28 @@ export default function AeoHistory() {
     }
   };
 
+  // Extract domain from project URL (from onboarding)
+  const getProjectDomain = (): string => {
+    if (!project?.website_url) return "";
+    try {
+      const urlObj = new URL(project.website_url);
+      return urlObj.hostname.replace("www.", "");
+    } catch {
+      return project.website_url;
+    }
+  };
+
   const getPlatformInfo = (url: string | null): { icon: React.ReactNode; label: string } | null => {
-    if (!url) return null;
+    // Use project domain as fallback if no published_url
+    const projectDomain = getProjectDomain();
+    
+    if (!url) {
+      // Return project domain with globe icon when no published_url
+      if (projectDomain) {
+        return { icon: <Globe className="h-4 w-4 text-muted-foreground" />, label: projectDomain };
+      }
+      return null;
+    }
     
     const urlLower = url.toLowerCase();
     
@@ -233,25 +253,28 @@ export default function AeoHistory() {
                         </TableCell>
                         <TableCell>{getStatusBadge(answer)}</TableCell>
                         <TableCell>
-                          {answer.published_url ? (
-                            (() => {
-                              const platformInfo = getPlatformInfo(answer.published_url);
-                              return (
-                                <a 
-                                  href={answer.published_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 hover:text-primary text-sm"
-                                >
-                                  {platformInfo?.icon}
-                                  <span className="truncate max-w-[120px]">{platformInfo?.label}</span>
-                                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                </a>
-                              );
-                            })()
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          {(() => {
+                            const platformInfo = getPlatformInfo(answer.published_url || null);
+                            if (!platformInfo) return <span className="text-muted-foreground">—</span>;
+                            
+                            return answer.published_url ? (
+                              <a 
+                                href={answer.published_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 hover:text-primary text-sm"
+                              >
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {answer.published_at 
