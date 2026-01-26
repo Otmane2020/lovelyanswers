@@ -583,21 +583,32 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { projectId, language = "fr", generate30 = false } = body ?? {};
+    const { projectId, generate30 = false } = body ?? {};
 
     if (!projectId) throw new Error("Missing projectId");
 
     const { data: project } = await supabase
       .from("projects")
-      .select("id, name, brand_name, business_description")
+      .select("id, name, brand_name, business_description, language")
       .eq("id", projectId)
       .eq("user_id", userData.user.id)
       .single();
 
     if (!project) throw new Error("Project not found");
 
-    const brandName = project.brand_name || project.name;
-    const description = project.business_description || "";
+    // CRITICAL: Get language from generation_settings first, then project, then default
+    const { data: genSettings } = await supabase
+      .from("generation_settings")
+      .select("language, brand_name, business_description")
+      .eq("project_id", projectId)
+      .single();
+
+    // Language priority: generation_settings > project > 'en' (default English)
+    const language = genSettings?.language || project.language || "en";
+    console.log(`[auto-generate-aeo] Using language: ${language} for project ${projectId}`);
+
+    const brandName = genSettings?.brand_name || project.brand_name || project.name;
+    const description = genSettings?.business_description || project.business_description || "";
 
     const { data: keywordRows } = await supabase
       .from("keywords")
