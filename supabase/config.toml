@@ -83,3 +83,21 @@ verify_jwt = false
 
 [functions.crawl-site-keywords]
 verify_jwt = false
+
+[functions.google-oauth-url]
+verify_jwt = false
+
+[functions.google-oauth-token]
+verify_jwt = false
+
+[functions.list-search-console-sites]
+verify_jwt = false
+
+[functions.get-search-console-data]
+verify_jwt = false
+
+[functions.gsc-indexing-diagnostics]
+verify_jwt = false
+
+[functions.analyze-gsc-anomalies]
+verify_jwt = false
