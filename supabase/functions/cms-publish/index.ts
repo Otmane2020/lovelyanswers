@@ -155,6 +155,9 @@ serve(async (req) => {
       case "snapps":
         publishResult = await publishToWebhook(content, config);
         break;
+      case "lovable":
+        publishResult = await publishToLovable(content, config, requestData.content?.sourceId);
+        break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -699,5 +702,43 @@ async function publishToBigCommerce(
       success: false,
       message: error instanceof Error ? error.message : "BigCommerce publish failed",
     };
+}
+
+async function publishToLovable(
+  content: { title: string; body: string },
+  config: Record<string, string>,
+  sourceId?: string
+): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
+  // For Lovable-hosted sites, we don't need to push to an external API
+  // The content is already in the database and will be served by the app
+  // We just return the public URL based on the slug
+  
+  try {
+    const siteUrl = config.endpoint?.replace(/\/+$/, '') || 'https://lovelyanswers.com';
+    const slug = sourceId || content.title.toLowerCase()
+      .replace(/[àáâãäå]/g, 'a')
+      .replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i')
+      .replace(/[òóôõö]/g, 'o')
+      .replace(/[ùúûü]/g, 'u')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    const publishedUrl = `${siteUrl}/answer/${slug}`;
+    
+    console.log(`[Lovable] Content available at: ${publishedUrl}`);
+    
+    return {
+      success: true,
+      publishedUrl,
+      publishedId: sourceId || slug,
+      message: "Content published to Lovable-hosted site",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Lovable publish failed",
+    };
   }
+}
 }
