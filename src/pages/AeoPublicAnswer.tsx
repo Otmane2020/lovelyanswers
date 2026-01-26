@@ -122,7 +122,9 @@ export default function AeoPublicAnswer() {
 
   const bullets = answer.supporting_content?.bullets || [];
   const faq = answer.supporting_content?.faq || [];
-  const brand = answer.supporting_content?.brand || "AeoRocket";
+  const brand = "LovelyAnswers";
+  const brandUrl = "https://lovelyanswers.com";
+  const slogan = "AI-Optimized Answers for Maximum Visibility";
 
   // JSON-LD structured data for AEO - Enhanced for AI citation
   const structuredData = {
@@ -139,7 +141,7 @@ export default function AeoPublicAnswer() {
           "author": {
             "@type": "Organization",
             "name": brand,
-            "url": window.location.origin
+            "url": brandUrl
           }
         }
       },
@@ -155,10 +157,10 @@ export default function AeoPublicAnswer() {
     "publisher": {
       "@type": "Organization",
       "name": brand,
-      "url": window.location.origin,
+      "url": brandUrl,
       "logo": {
         "@type": "ImageObject",
-        "url": `${window.location.origin}/favicon.ico`
+        "url": `${brandUrl}/favicon.ico`
       }
     },
     "datePublished": answer.created_at,
@@ -184,12 +186,12 @@ export default function AeoPublicAnswer() {
         {/* Header */}
         <header className="border-b bg-background/80 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
+            <a href={brandUrl} className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 via-violet-500 to-blue-500 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">L</span>
               </div>
-              <span className="font-semibold">AEO</span>
-            </Link>
+              <span className="font-semibold">{brand}</span>
+            </a>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={shareAnswer}>
                 <Share2 className="w-4 h-4" />
@@ -274,9 +276,20 @@ export default function AeoPublicAnswer() {
           {/* Source Attribution - Important for E-E-A-T */}
           <div className="border-t pt-8">
             <p className="text-sm text-muted-foreground">
-              Source: <strong>{brand}</strong>
+              Source:{" "}
+              <a 
+                href={brandUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline"
+              >
+                {brand}
+              </a>
             </p>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-xs text-muted-foreground mt-1 italic">
+              {slogan}
+            </p>
+            <p className="text-muted-foreground text-sm mt-2">
               Published on {new Date(answer.created_at).toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
@@ -290,14 +303,14 @@ export default function AeoPublicAnswer() {
         <footer className="border-t bg-background/80 py-8">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="text-muted-foreground mb-4">
-              Optimize your visibility on AI assistants
+              {slogan}
             </p>
-            <Link to="/auth?mode=signup">
-              <Button className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600">
+            <a href={`${brandUrl}/auth?mode=signup`}>
+              <Button className="bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 hover:opacity-90">
                 Create your AEO answers
                 <ExternalLink className="w-4 h-4 ml-2" />
               </Button>
-            </Link>
+            </a>
           </div>
         </footer>
       </div>
