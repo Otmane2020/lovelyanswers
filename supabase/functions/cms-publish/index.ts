@@ -804,13 +804,15 @@ async function publishToBigCommerce(
 async function publishToLovable(
   content: { title: string; body: string },
   config: Record<string, string>,
-  sourceId?: string
+  sourceId?: string,
+  slug?: string
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  // For Lovable-hosted sites, serve content via the cms-publish edge function GET handler
-  // This ensures the content is always served dynamically from the database
+  // For Lovable-hosted sites, use the published site URL with /blog/:slug route
   
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
     
     // If user has configured a custom endpoint (external Lovable project), use webhook
     if (config.endpoint && !config.endpoint.includes(supabaseUrl)) {
@@ -859,19 +861,38 @@ async function publishToLovable(
       }
     }
     
-    // Internal Lovable project - serve via cms-publish GET endpoint
-    // The sourceId is the answer/article UUID, use it directly
-    const publishedUrl = `${supabaseUrl}/functions/v1/cms-publish/answer/${sourceId}`;
+    // Internal Lovable site - use the published site URL with /blog/:slug route
+    // Get the answer slug from database
+    let answerSlug = slug;
+    if (!answerSlug && sourceId) {
+      const { data: answer } = await supabase
+        .from("answers")
+        .select("slug")
+        .eq("id", sourceId)
+        .single();
+      answerSlug = answer?.slug;
+    }
     
-    console.log(`[Lovable] Content available at: ${publishedUrl}`);
+    if (!answerSlug) {
+      console.error("[Lovable] No slug found for answer");
+      return { success: false, message: "No slug found for answer" };
+    }
+    
+    // Use the published site URL (configured in integration or default to lovelyanswers.com)
+    // Priority: config.siteUrl -> lovelyanswers.com (hardcoded for this project)
+    const siteUrl = config.siteUrl?.replace(/\/+$/, '') || "https://lovelyanswers.com";
+    const publishedUrl = `${siteUrl}/blog/${answerSlug}`;
+    
+    console.log(`[Lovable] Content published at: ${publishedUrl}`);
     
     return {
       success: true,
       publishedUrl,
       publishedId: sourceId,
-      message: "Content published to Lovable-hosted site",
+      message: "Content published to Lovable site",
     };
   } catch (error) {
+    console.error("[Lovable] Publish error:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Lovable publish failed",
