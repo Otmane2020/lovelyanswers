@@ -27,11 +27,92 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // ============ GET REQUEST: Serve published content as HTML ============
+  if (req.method === "GET") {
+    try {
+      const url = new URL(req.url);
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      
+      // Expected path: /cms-publish/answer/{id} or /cms-publish/article/{id}
+      // pathParts after functions/v1: ["cms-publish", "answer", "{id}"]
+      const cmsIndex = pathParts.findIndex(p => p === "cms-publish");
+      const contentType = pathParts[cmsIndex + 1]; // "answer" or "article"
+      const contentId = pathParts[cmsIndex + 2]; // UUID
+      
+      console.log(`[cms-publish] GET request: type=${contentType}, id=${contentId}`);
+      
+      if (!contentId || !contentType) {
+        return new Response(
+          generateErrorHTML("Content Not Found", "Invalid URL format. Expected: /cms-publish/answer/{id} or /cms-publish/article/{id}"),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+        );
+      }
+
+      if (contentType === "answer") {
+        // Fetch the answer from database
+        const { data: answer, error } = await supabase
+          .from("answers")
+          .select("*, projects(brand_name, website_url, language)")
+          .eq("id", contentId)
+          .single();
+
+        if (error || !answer) {
+          console.error("[cms-publish] Answer not found:", error);
+          return new Response(
+            generateErrorHTML("Answer Not Found", "This answer does not exist or has been removed."),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+          );
+        }
+
+        // Generate and return HTML page
+        const html = generatePublicAnswerHTML(answer);
+        return new Response(html, {
+          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
+        });
+
+      } else if (contentType === "article") {
+        // Fetch the article from database
+        const { data: article, error } = await supabase
+          .from("articles")
+          .select("*, projects(brand_name, website_url, language)")
+          .eq("id", contentId)
+          .single();
+
+        if (error || !article) {
+          console.error("[cms-publish] Article not found:", error);
+          return new Response(
+            generateErrorHTML("Article Not Found", "This article does not exist or has been removed."),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+          );
+        }
+
+        // Generate and return HTML page
+        const html = generatePublicArticleHTML(article);
+        return new Response(html, {
+          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" }
+        });
+      } else {
+        return new Response(
+          generateErrorHTML("Invalid Content Type", "Supported types: answer, article"),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+        );
+      }
+    } catch (error) {
+      console.error("[cms-publish] GET error:", error);
+      return new Response(
+        generateErrorHTML("Server Error", error instanceof Error ? error.message : "Unknown error"),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } }
+      );
+    }
+  }
+
+  // ============ POST REQUEST: Publish content to CMS ============
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
     // Get auth token from header
     const authHeader = req.headers.get("Authorization");
     
@@ -60,15 +141,13 @@ serve(async (req) => {
       console.log(`[cms-publish] Internal call from edge function`);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Parse request body with error handling for empty/invalid JSON
     let requestData: PublishRequest;
     try {
       const bodyText = await req.text();
       if (!bodyText || bodyText.trim() === "") {
         return new Response(
-          JSON.stringify({ error: "Request body is required" }),
+          JSON.stringify({ error: "Request body is required for POST requests" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -727,29 +806,69 @@ async function publishToLovable(
   config: Record<string, string>,
   sourceId?: string
 ): Promise<{ success: boolean; publishedUrl?: string; publishedId?: string; message?: string }> {
-  // For Lovable-hosted sites, we don't need to push to an external API
-  // The content is already in the database and will be served by the app
-  // We just return the public URL based on the slug
+  // For Lovable-hosted sites, serve content via the cms-publish edge function GET handler
+  // This ensures the content is always served dynamically from the database
   
   try {
-    const siteUrl = config.endpoint?.replace(/\/+$/, '') || 'https://lovelyanswers.com';
-    const slug = sourceId || content.title.toLowerCase()
-      .replace(/[àáâãäå]/g, 'a')
-      .replace(/[èéêë]/g, 'e')
-      .replace(/[ìíîï]/g, 'i')
-      .replace(/[òóôõö]/g, 'o')
-      .replace(/[ùúûü]/g, 'u')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     
-    const publishedUrl = `${siteUrl}/answer/${slug}`;
+    // If user has configured a custom endpoint (external Lovable project), use webhook
+    if (config.endpoint && !config.endpoint.includes(supabaseUrl)) {
+      // External Lovable project - send via webhook
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (config.token) {
+          headers["Authorization"] = `Bearer ${config.token}`;
+        }
+        
+        const response = await fetch(config.endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            title: content.title,
+            body: content.body,
+            sourceId: sourceId,
+            publishedAt: new Date().toISOString(),
+            source: "LovelyAnswers",
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[Lovable] External endpoint error: ${errorText}`);
+          return { success: false, message: `External Lovable endpoint error: ${errorText.substring(0, 100)}` };
+        }
+        
+        const data = await response.json().catch(() => ({}));
+        console.log(`[Lovable] Published to external Lovable project`);
+        
+        return {
+          success: true,
+          publishedUrl: data.url || config.endpoint,
+          publishedId: sourceId,
+          message: "Content published to external Lovable project",
+        };
+      } catch (error) {
+        console.error("[Lovable] External publish error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to publish to external Lovable project",
+        };
+      }
+    }
+    
+    // Internal Lovable project - serve via cms-publish GET endpoint
+    // The sourceId is the answer/article UUID, use it directly
+    const publishedUrl = `${supabaseUrl}/functions/v1/cms-publish/answer/${sourceId}`;
     
     console.log(`[Lovable] Content available at: ${publishedUrl}`);
     
     return {
       success: true,
       publishedUrl,
-      publishedId: sourceId || slug,
+      publishedId: sourceId,
       message: "Content published to Lovable-hosted site",
     };
   } catch (error) {
@@ -758,4 +877,237 @@ async function publishToLovable(
       message: error instanceof Error ? error.message : "Lovable publish failed",
     };
   }
+}
+
+// ============ HTML Generation Functions for GET requests ============
+
+function generateErrorHTML(title: string, message: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} | LovelyAnswers</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 2rem; }
+    .container { max-width: 500px; background: white; border-radius: 16px; padding: 3rem; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+    h1 { color: #1e293b; font-size: 1.5rem; margin-bottom: 1rem; }
+    p { color: #64748b; line-height: 1.6; margin-bottom: 2rem; }
+    a { display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 500; }
+    a:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>${title}</h1>
+    <p>${message}</p>
+    <a href="https://lovelyanswers.com">← Back to LovelyAnswers</a>
+  </div>
+</body>
+</html>`;
+}
+
+function generatePublicAnswerHTML(answer: any): string {
+  const question = answer.question || "Question";
+  const answerText = answer.answer || "";
+  const brandName = answer.projects?.brand_name || "LovelyAnswers";
+  const language = answer.projects?.language || "en";
+  const createdAt = new Date(answer.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+  
+  // Extract supporting content
+  const bullets = (answer.supporting_content as any)?.bullets || [];
+  const faq = (answer.supporting_content as any)?.faq || [];
+  
+  // JSON-LD structured data
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "QAPage",
+    "mainEntity": {
+      "@type": "Question",
+      "name": question,
+      "dateCreated": answer.created_at,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": answerText,
+        "dateCreated": answer.created_at,
+        "author": { "@type": "Organization", "name": brandName }
+      }
+    }
+  };
+
+  const faqJsonLd = faq.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faq.map((f: any) => ({
+      "@type": "Question",
+      "name": f.q || f.question,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a || f.answer }
+    }))
+  } : null;
+
+  const keyPointsTitle = language === "fr" ? "Points Clés" : "Key Points";
+  const faqTitle = language === "fr" ? "Questions Fréquentes" : "Frequently Asked Questions";
+  const publishedLabel = language === "fr" ? "Publié le" : "Published on";
+  const sourceLabel = language === "fr" ? "Source" : "Source";
+
+  return `<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${question} | ${brandName}</title>
+  <meta name="description" content="${answerText.slice(0, 160)}">
+  <meta property="og:title" content="${question}">
+  <meta property="og:description" content="${answerText.slice(0, 160)}">
+  <meta property="og:type" content="article">
+  <meta name="robots" content="index, follow">
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+  ${faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : ""}
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #fafafa 0%, #f0f0ff 100%); min-height: 100vh; color: #1a1a2e; }
+    header { background: white; border-bottom: 1px solid #e5e5e5; padding: 1rem 2rem; }
+    .header-content { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; }
+    .logo { width: 32px; height: 32px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
+    .brand-name { font-weight: 600; color: #1a1a2e; }
+    main { max-width: 800px; margin: 0 auto; padding: 3rem 1.5rem; }
+    h1 { font-size: 2rem; line-height: 1.3; margin-bottom: 2rem; color: #1a1a2e; }
+    .answer-box { background: white; border-left: 4px solid #8b5cf6; padding: 2rem; border-radius: 0 12px 12px 0; margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .answer-box p { font-size: 1.125rem; line-height: 1.8; color: #374151; white-space: pre-wrap; }
+    .key-points { background: #fefce8; border: 1px solid #fef08a; padding: 1.5rem; border-radius: 12px; margin: 2rem 0; }
+    .key-points h2 { font-size: 1.125rem; color: #854d0e; margin-bottom: 1rem; }
+    .key-points ul { padding-left: 1.25rem; }
+    .key-points li { color: #713f12; margin-bottom: 0.5rem; line-height: 1.6; }
+    .faq-section { margin: 2rem 0; }
+    .faq-section h2 { font-size: 1.25rem; margin-bottom: 1rem; color: #1a1a2e; }
+    .faq-item { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; background: white; }
+    .faq-item summary { padding: 1rem; cursor: pointer; font-weight: 500; list-style: none; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary:hover { background: #f9fafb; }
+    .faq-item[open] summary { border-bottom: 1px solid #e5e7eb; }
+    .faq-item p { padding: 1rem; color: #6b7280; line-height: 1.6; }
+    .meta { border-top: 1px solid #e5e7eb; padding-top: 2rem; margin-top: 2rem; color: #6b7280; font-size: 0.875rem; }
+    .meta strong { color: #374151; }
+    footer { border-top: 1px solid #e5e7eb; background: white; padding: 2rem; text-align: center; }
+    footer p { color: #6b7280; margin-bottom: 1rem; }
+    footer a { display: inline-block; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 500; }
+    footer a:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">L</div>
+      <span class="brand-name">LovelyAnswers</span>
+    </div>
+  </header>
+  <main>
+    <article>
+      <h1>${question}</h1>
+      <div class="answer-box">
+        <p>${answerText}</p>
+      </div>
+      ${bullets.length > 0 ? `
+      <section class="key-points">
+        <h2>${keyPointsTitle}</h2>
+        <ul>${bullets.map((b: string) => `<li>${b}</li>`).join("")}</ul>
+      </section>` : ""}
+      ${faq.length > 0 ? `
+      <section class="faq-section">
+        <h2>${faqTitle}</h2>
+        ${faq.map((f: any) => `
+        <details class="faq-item">
+          <summary>${f.q || f.question}</summary>
+          <p>${f.a || f.answer}</p>
+        </details>`).join("")}
+      </section>` : ""}
+      <div class="meta">
+        <p><strong>${sourceLabel}:</strong> ${brandName}</p>
+        <p>${publishedLabel} ${createdAt}</p>
+      </div>
+    </article>
+  </main>
+  <footer>
+    <p>Optimize your AI visibility with LovelyAnswers</p>
+    <a href="https://lovelyanswers.com">Create Your AEO Answers</a>
+  </footer>
+</body>
+</html>`;
+}
+
+function generatePublicArticleHTML(article: any): string {
+  const title = article.title || "Article";
+  const content = article.html_content || article.content || "";
+  const brandName = article.projects?.brand_name || "LovelyAnswers";
+  const language = article.projects?.language || "en";
+  const metaDescription = article.meta_description || content.replace(/<[^>]*>/g, "").slice(0, 160);
+  const createdAt = new Date(article.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+
+  const publishedLabel = language === "fr" ? "Publié le" : "Published on";
+  const sourceLabel = language === "fr" ? "Source" : "Source";
+
+  return `<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} | ${brandName}</title>
+  <meta name="description" content="${metaDescription}">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${metaDescription}">
+  <meta property="og:type" content="article">
+  <meta name="robots" content="index, follow">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #fafafa; min-height: 100vh; color: #1a1a2e; }
+    header { background: white; border-bottom: 1px solid #e5e5e5; padding: 1rem 2rem; }
+    .header-content { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; }
+    .logo { width: 32px; height: 32px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
+    .brand-name { font-weight: 600; color: #1a1a2e; }
+    main { max-width: 800px; margin: 0 auto; padding: 3rem 1.5rem; }
+    article { background: white; border-radius: 12px; padding: 2.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    h1 { font-size: 2rem; line-height: 1.3; margin-bottom: 2rem; color: #1a1a2e; }
+    .content { line-height: 1.8; color: #374151; }
+    .content h2 { font-size: 1.5rem; margin: 2rem 0 1rem; color: #1a1a2e; }
+    .content h3 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; color: #1a1a2e; }
+    .content p { margin-bottom: 1rem; }
+    .content ul, .content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+    .content li { margin-bottom: 0.5rem; }
+    .content a { color: #8b5cf6; }
+    .meta { border-top: 1px solid #e5e7eb; padding-top: 2rem; margin-top: 2rem; color: #6b7280; font-size: 0.875rem; }
+    .meta strong { color: #374151; }
+    footer { border-top: 1px solid #e5e7eb; background: white; padding: 2rem; text-align: center; margin-top: 2rem; }
+    footer p { color: #6b7280; margin-bottom: 1rem; }
+    footer a { display: inline-block; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 500; }
+    footer a:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">L</div>
+      <span class="brand-name">LovelyAnswers</span>
+    </div>
+  </header>
+  <main>
+    <article>
+      <h1>${title}</h1>
+      <div class="content">${content}</div>
+      <div class="meta">
+        <p><strong>${sourceLabel}:</strong> ${brandName}</p>
+        <p>${publishedLabel} ${createdAt}</p>
+      </div>
+    </article>
+  </main>
+  <footer>
+    <p>Optimize your AI visibility with LovelyAnswers</p>
+    <a href="https://lovelyanswers.com">Create Your AEO Articles</a>
+  </footer>
+</body>
+</html>`;
 }
