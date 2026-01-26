@@ -364,6 +364,7 @@ ${JSON.stringify(faqSchema, null, 2)}
     
     <footer>
       <p>© ${new Date().getFullYear()} <a href="${websiteUrl}" target="_blank" rel="noopener">${brandName}</a></p>
+      <p style="margin-top: 0.75rem;"><a href="${websiteUrl}/blog" target="_blank" rel="noopener">${language === 'fr' ? '📚 Voir tous nos articles' : '📚 View all our articles'}</a></p>
     </footer>
   </article>
 </body>
