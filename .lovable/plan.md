@@ -1,51 +1,52 @@
 
-# Add Lovable Platform Support to test-integration Edge Function
+# Add Lovable Prompt Instructions to Integration Guide
 
-## Problem Identified
-The "Test Connection" button calls the `test-integration` Edge Function, which does not recognize the "lovable" platform. The switch statement at line 25-54 has no case for "lovable", causing it to fall through to the default error response.
-
-## Solution
-Add a `case "lovable"` to the switch statement and create a simple `testLovable()` function that always returns success, since Lovable-hosted sites don't require external API validation.
+## Objective
+Update the Lovable.dev integration guide to include a specific prompt that users can copy-paste into their other Lovable projects to get the Edge Function URL and API Key credentials.
 
 ---
 
-## Implementation Steps
-
-### Step 1: Update test-integration Edge Function
-**File:** `supabase/functions/test-integration/index.ts`
-
-Add a new case in the switch statement (around line 49):
-```typescript
-case "lovable":
-  result = await testLovable(config);
-  break;
+## Current State
+The existing guide (lines 155-164) is generic:
+```
+"Lovable.dev is an AI-powered web app builder"
+"Use the Webhook or API integration to connect"
+"Set up an Edge Function to receive published content"
 ```
 
-Add a new test function:
-```typescript
-async function testLovable(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
-  // Lovable-hosted sites don't need external API validation
-  // Just verify the basic config is present
-  const siteName = config.name || "Lovable site";
-  
-  return { 
-    success: true, 
-    message: `Connected to ${siteName}! Content will be published to your Lovable-hosted site.` 
-  };
-}
-```
-
-### Step 2: Deploy the Edge Function
-Deploy `test-integration` to production to apply the changes.
+## Proposed Solution
+Add a clear, copy-pasteable prompt that users can send to Lovable in their other projects.
 
 ---
 
-## Technical Details
+## Implementation Details
+
+### File: `src/components/integrations/IntegrationConfigModal.tsx`
+
+**Update the `PLATFORM_GUIDES.lovable` section (lines 155-164):**
+
+```typescript
+lovable: {
+  title: "How to Connect Another Lovable Project",
+  steps: [
+    "Open your other Lovable project",
+    "Copy and paste this prompt to Lovable:",
+    "💬 \"I want to receive published articles from another app via API. Create an Edge Function called 'receive-article' that accepts POST requests with { title, body, type, sourceId } and saves them to a 'published_articles' table. Give me the Edge Function URL and the Supabase Anon Key.\"",
+    "Lovable will create the Edge Function and database table",
+    "Copy the Edge Function URL (format: https://xxx.supabase.co/functions/v1/receive-article)",
+    "Copy the Anon Key from the response",
+    "Paste both values in the fields below",
+  ],
+},
+```
+
+---
+
+## Technical Summary
 
 | Component | Change |
 |-----------|--------|
-| `test-integration/index.ts` | Add `case "lovable"` + `testLovable()` function |
-| Deployment | Automatic on save |
+| `IntegrationConfigModal.tsx` | Update `PLATFORM_GUIDES.lovable.steps` with detailed prompt instructions |
 
 ## Expected Result
-After implementation, clicking "Test Connection" for the Lovable.dev integration will return a success message instead of "Unsupported platform: lovable".
+Users will see a step-by-step guide with a copy-pasteable prompt to send to their other Lovable projects, making it easy to get the required Edge Function URL and API Key.
