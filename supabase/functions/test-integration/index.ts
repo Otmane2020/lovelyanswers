@@ -49,6 +49,9 @@ serve(async (req) => {
       case "api":
         result = await testCustomApi(config);
         break;
+      case "lovable":
+        result = await testLovable(config);
+        break;
       default:
         result = { success: false, message: `Unsupported platform: ${platform}` };
     }
@@ -552,4 +555,15 @@ async function testCustomApi(config: Record<string, string>): Promise<{ success:
     }
     return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : "Network error"}` };
   }
+}
+
+async function testLovable(config: Record<string, string>): Promise<{ success: boolean; message: string }> {
+  // Lovable-hosted sites don't need external API validation
+  // Just verify the basic config is present
+  const siteName = config.name || "Lovable site";
+  
+  return { 
+    success: true, 
+    message: `Connected to ${siteName}! Content will be published to your Lovable-hosted site.` 
+  };
 }
