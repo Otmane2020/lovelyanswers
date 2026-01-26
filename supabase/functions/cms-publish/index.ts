@@ -62,7 +62,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const requestData: PublishRequest = await req.json();
+    // Parse request body with error handling for empty/invalid JSON
+    let requestData: PublishRequest;
+    try {
+      const bodyText = await req.text();
+      if (!bodyText || bodyText.trim() === "") {
+        return new Response(
+          JSON.stringify({ error: "Request body is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error("[cms-publish] JSON parse error:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     let platform: string;
     let config: Record<string, string>;
