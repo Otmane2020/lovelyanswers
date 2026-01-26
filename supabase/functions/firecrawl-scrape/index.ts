@@ -140,7 +140,9 @@ Deno.serve(async (req) => {
     let description = metadata.description || metadata.ogDescription || '';
     
     // Detect language from content (more reliable than metadata)
-    const metaLang = metadata.language?.substring(0, 2) || 'en';
+    // Handle metadata.language being either a string or an array
+    const rawLang = metadata.language;
+    const metaLang = (Array.isArray(rawLang) ? rawLang[0] : rawLang)?.substring?.(0, 2) || 'en';
     const language = detectLanguageFromContent(markdown, metaLang);
     console.log('[SCRAPE] Language: meta=' + metaLang + ', detected=' + language);
 
