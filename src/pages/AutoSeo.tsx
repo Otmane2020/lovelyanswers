@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
 interface Article {
@@ -62,10 +61,10 @@ export default function AutoSeo() {
       generating: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     };
     const labels: Record<string, string> = {
-      draft: "Brouillon",
-      scheduled: "Planifié",
-      published: "Publié",
-      generating: "En cours",
+      draft: "Draft",
+      scheduled: "Scheduled",
+      published: "Published",
+      generating: "Generating",
     };
     return (
       <Badge className={styles[status] || styles.draft}>
@@ -97,7 +96,7 @@ export default function AutoSeo() {
           <div>
             <h1 className="text-2xl font-bold">Auto SEO</h1>
             <p className="text-muted-foreground">
-              Articles SEO générés automatiquement depuis vos réponses AEO
+              SEO articles auto-generated from your AEO answers
             </p>
           </div>
           <div className="flex gap-2">
@@ -107,7 +106,7 @@ export default function AutoSeo() {
             </Button>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Nouvel article
+              New Article
             </Button>
           </div>
         </div>
@@ -116,19 +115,19 @@ export default function AutoSeo() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-sm text-muted-foreground">Articles totaux</div>
+            <div className="text-sm text-muted-foreground">Total Articles</div>
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-primary">{stats.published}</div>
-            <div className="text-sm text-muted-foreground">Publiés</div>
+            <div className="text-sm text-muted-foreground">Published</div>
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-primary/70">{stats.scheduled}</div>
-            <div className="text-sm text-muted-foreground">Planifiés</div>
+            <div className="text-sm text-muted-foreground">Scheduled</div>
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-primary">{stats.avgScore}%</div>
-            <div className="text-sm text-muted-foreground">Score moyen</div>
+            <div className="text-sm text-muted-foreground">Avg Score</div>
           </Card>
         </div>
 
@@ -137,7 +136,7 @@ export default function AutoSeo() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher un article..."
+              placeholder="Search articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -145,10 +144,10 @@ export default function AutoSeo() {
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="all">Tous</TabsTrigger>
-              <TabsTrigger value="draft">Brouillons</TabsTrigger>
-              <TabsTrigger value="scheduled">Planifiés</TabsTrigger>
-              <TabsTrigger value="published">Publiés</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="draft">Drafts</TabsTrigger>
+              <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+              <TabsTrigger value="published">Published</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -161,14 +160,14 @@ export default function AutoSeo() {
         ) : filteredArticles.length === 0 ? (
           <Card className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Aucun article</h3>
+            <h3 className="font-semibold text-lg mb-2">No articles</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery 
-                ? "Aucun article ne correspond à votre recherche"
-                : "Commencez par générer des réponses AEO, puis transformez-les en articles SEO"}
+                ? "No articles match your search"
+                : "Start by generating AEO answers, then transform them into SEO articles"}
             </p>
             <Button onClick={() => navigate("/answers")}>
-              Voir les réponses AEO
+              View AEO Answers
             </Button>
           </Card>
         ) : (
@@ -187,14 +186,14 @@ export default function AutoSeo() {
                     </div>
                     <h3 className="font-medium truncate">{article.title}</h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      <span>{article.word_count || 0} mots</span>
+                      <span>{article.word_count || 0} words</span>
                       <span>
-                        {format(new Date(article.created_at), "d MMM yyyy", { locale: fr })}
+                        {format(new Date(article.created_at), "MMM d, yyyy")}
                       </span>
                       {article.scheduled_date && (
                         <span className="flex items-center gap-1 text-primary">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(article.scheduled_date), "d MMM", { locale: fr })}
+                          {format(new Date(article.scheduled_date), "MMM d")}
                         </span>
                       )}
                     </div>
