@@ -155,13 +155,14 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
   lovable: {
     title: "How to Connect Another Lovable Project",
     steps: [
-      "Open your other Lovable project",
-      "Copy and paste this prompt to Lovable:",
-      "💬 \"I want to receive published articles from another app via API. Create an Edge Function called 'receive-article' that accepts POST requests with { title, body, type, sourceId } and saves them to a 'published_articles' table. Give me the Edge Function URL and the Supabase Anon Key.\"",
-      "Lovable will create the Edge Function and database table",
-      "Copy the Edge Function URL (format: https://xxx.supabase.co/functions/v1/receive-article)",
-      "Copy the Anon Key from the response",
-      "Paste both values in the fields below",
+      "📋 Open your OTHER Lovable project where you want to receive articles",
+      "💬 Copy and paste this prompt to Lovable:",
+      "\"I want to receive published articles from an external app. Create an Edge Function called 'receive-article' that:\n1. Accepts POST requests with { title, body, type, sourceId }\n2. Saves them to a 'published_articles' table with RLS\n3. Returns the article URL\nGive me the Edge Function URL and the Supabase Anon Key.\"",
+      "✅ Lovable will create the Edge Function and database table",
+      "🔗 Copy the Edge Function URL (format: https://xxx.supabase.co/functions/v1/receive-article)",
+      "🔑 Copy the Anon Key from your project settings",
+      "📝 Paste both values in the fields below",
+      "💡 Leave fields empty to use the built-in Lovable hosting (articles served at /functions/v1/cms-publish/answer/{id})",
     ],
   },
 };
