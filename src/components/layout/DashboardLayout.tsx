@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
 import { TranslationProvider } from "@/lib/language";
@@ -12,6 +12,11 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isGenerating, generationProgress, generationMessage } = useGeneration();
+
+  // Force light theme on dashboard
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
 
   return (
     <TranslationProvider>
