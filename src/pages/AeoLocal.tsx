@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Calendar, MapPin, TrendingUp } from "lucide-react";
@@ -10,8 +10,7 @@ import { LocalPlanningTab } from "@/components/local/LocalPlanningTab";
 import { LocalHeatmap } from "@/components/local/LocalHeatmap";
 
 export default function AeoLocal() {
-  const { business, isLoading, selectBusiness, clearBusiness } = useLocalBusiness();
-  const [localAnswers, setLocalAnswers] = useState<any[]>([]);
+  const { business, isLoading, isInitialLoading, selectBusiness, clearBusiness } = useLocalBusiness();
 
   return (
     <DashboardLayout>
@@ -64,7 +63,7 @@ export default function AeoLocal() {
 
               {/* Planning Tab */}
               <TabsContent value="planning">
-                <LocalPlanningTab businessName={business.name} answers={localAnswers} />
+                <LocalPlanningTab businessName={business.name} businessId={business.id} />
               </TabsContent>
 
               {/* Heatmap Tab */}

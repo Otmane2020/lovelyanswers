@@ -599,6 +599,118 @@ export type Database = {
           },
         ]
       }
+      local_answers: {
+        Row: {
+          answer: string
+          business_id: string
+          business_name: string
+          created_at: string
+          id: string
+          is_public: boolean | null
+          language: string | null
+          project_id: string
+          published_at: string | null
+          published_url: string | null
+          question: string
+          scheduled_date: string | null
+          score: number | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          business_id: string
+          business_name: string
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          language?: string | null
+          project_id: string
+          published_at?: string | null
+          published_url?: string | null
+          question: string
+          scheduled_date?: string | null
+          score?: number | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          business_id?: string
+          business_name?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          language?: string | null
+          project_id?: string
+          published_at?: string | null
+          published_url?: string | null
+          question?: string
+          scheduled_date?: string | null
+          score?: number | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_answers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_businesses: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          place_id: string
+          project_id: string
+          rating: number | null
+          review_count: number | null
+          types: string[] | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          place_id: string
+          project_id: string
+          rating?: number | null
+          review_count?: number | null
+          types?: string[] | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          place_id?: string
+          project_id?: string
+          rating?: number | null
+          review_count?: number | null
+          types?: string[] | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_businesses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_views: {
         Row: {
           created_at: string
