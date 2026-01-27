@@ -101,3 +101,18 @@ verify_jwt = false
 
 [functions.analyze-gsc-anomalies]
 verify_jwt = false
+
+[functions.gmb-oauth-url]
+verify_jwt = false
+
+[functions.gmb-fetch-business]
+verify_jwt = false
+
+[functions.gmb-publish-post]
+verify_jwt = false
+
+[functions.gmb-local-visibility]
+verify_jwt = false
+
+[functions.generate-local-answer]
+verify_jwt = false
