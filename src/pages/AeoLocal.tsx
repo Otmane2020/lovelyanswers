@@ -5,64 +5,46 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   MapPin, 
-  Building2, 
+  Search,
   TrendingUp, 
   MessageSquare, 
-  Calendar,
-  Image,
-  Send,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
   Star,
   Phone,
-  Globe
+  Globe,
+  Clock,
+  X,
+  Loader2
 } from "lucide-react";
 import { useActiveProject } from "@/hooks/useProjects";
-import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
+import { useLocalBusiness } from "@/hooks/useLocalBusiness";
 import { LocalHeatmap } from "@/components/local/LocalHeatmap";
 import { LocalAnswers } from "@/components/local/LocalAnswers";
-import { toast } from "sonner";
 
 export default function AeoLocal() {
   const { project } = useActiveProject();
   const { 
     business, 
+    searchResults,
     isLoading, 
-    isConnected, 
-    connectGMB, 
-    publishPost,
-    fetchInsights 
-  } = useGoogleBusiness();
+    isSearching,
+    searchBusinesses,
+    selectBusiness,
+    clearBusiness
+  } = useLocalBusiness();
   
-  const [postContent, setPostContent] = useState("");
-  const [postType, setPostType] = useState<"UPDATE" | "OFFER" | "EVENT">("UPDATE");
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handlePublishPost = async () => {
-    if (!postContent.trim()) {
-      toast.error("Please enter post content");
-      return;
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      searchBusinesses(searchQuery);
     }
-    
-    setIsPublishing(true);
-    try {
-      await publishPost({
-        content: postContent,
-        type: postType,
-      });
-      toast.success("Post published to Google My Business!");
-      setPostContent("");
-    } catch (error) {
-      toast.error("Failed to publish post");
-    } finally {
-      setIsPublishing(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
     }
   };
 
@@ -79,239 +61,186 @@ export default function AeoLocal() {
               <div>
                 <h1 className="text-3xl font-bold">Local AEO</h1>
                 <p className="text-muted-foreground">
-                  Optimize your local AI visibility & manage Google Business Profile
+                  Optimize your local AI visibility with Google Places data
                 </p>
               </div>
             </div>
           </div>
-          
-          {!isConnected ? (
-            <Button 
-              onClick={connectGMB}
-              className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-            >
-              <Building2 className="h-4 w-4" />
-              Connect Google Business
-            </Button>
-          ) : (
-            <Badge variant="outline" className="gap-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 px-4 py-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Business Connected
-            </Badge>
-          )}
         </div>
 
-        {/* Business Overview Card */}
-        {isConnected && business && (
-          <Card className="border-orange-200/50 bg-gradient-to-br from-orange-50/50 to-red-50/50">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{business.name}</h3>
-                  <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                    <MapPin className="h-4 w-4" />
-                    {business.address}
-                  </p>
-                  <div className="flex flex-wrap gap-4 mt-4">
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">{business.rating}</span>
-                      <span className="text-muted-foreground">({business.reviewCount} reviews)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{business.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span>{business.website}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-white/60 rounded-xl">
-                    <p className="text-2xl font-bold text-orange-600">{business.insights?.views || 0}</p>
-                    <p className="text-xs text-muted-foreground">Profile Views</p>
-                  </div>
-                  <div className="text-center p-4 bg-white/60 rounded-xl">
-                    <p className="text-2xl font-bold text-red-600">{business.insights?.clicks || 0}</p>
-                    <p className="text-xs text-muted-foreground">Website Clicks</p>
-                  </div>
-                  <div className="text-center p-4 bg-white/60 rounded-xl">
-                    <p className="text-2xl font-bold text-emerald-600">{business.insights?.calls || 0}</p>
-                    <p className="text-xs text-muted-foreground">Phone Calls</p>
-                  </div>
-                </div>
+        {/* Business Search / Selection */}
+        {!business ? (
+          <Card className="border-orange-200/50 dark:border-orange-800/30 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5 text-orange-500" />
+                Find Your Business
+              </CardTitle>
+              <CardDescription>
+                Search for your business on Google to get started with Local AEO
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="e.g., Café de Paris, 75001"
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleSearch}
+                  disabled={isSearching || !searchQuery.trim()}
+                  className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  Search
+                </Button>
               </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Select your business:</p>
+                  <div className="grid gap-2">
+                    {searchResults.map((result) => (
+                      <button
+                        key={result.id}
+                        onClick={() => selectBusiness(result.id)}
+                        disabled={isLoading}
+                        className="w-full p-4 border rounded-lg text-left hover:border-orange-500 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-colors disabled:opacity-50"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{result.name}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {result.address}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm shrink-0">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            <span>{result.rating}</span>
+                            <span className="text-muted-foreground">({result.reviewCount})</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
-
-        {/* Main Tabs */}
-        <Tabs defaultValue="heatmap" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="heatmap" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Visibility Heatmap</span>
-              <span className="sm:hidden">Heatmap</span>
-            </TabsTrigger>
-            <TabsTrigger value="answers" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Local Q&A</span>
-              <span className="sm:hidden">Q&A</span>
-            </TabsTrigger>
-            <TabsTrigger value="posts" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">GMB Posts</span>
-              <span className="sm:hidden">Posts</span>
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="gap-2">
-              <Eye className="h-4 w-4" />
-              <span className="hidden sm:inline">Insights</span>
-              <span className="sm:hidden">Stats</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Heatmap Tab */}
-          <TabsContent value="heatmap" className="space-y-6">
-            <LocalHeatmap businessName={business?.name || project?.name || ""} />
-          </TabsContent>
-
-          {/* Local Q&A Tab */}
-          <TabsContent value="answers" className="space-y-6">
-            <LocalAnswers />
-          </TabsContent>
-
-          {/* GMB Posts Tab */}
-          <TabsContent value="posts" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Create Post */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-orange-500" />
-                    Create GMB Post
-                  </CardTitle>
-                  <CardDescription>
-                    Publish updates, offers, or events to your Google Business Profile
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Post Type</Label>
-                    <Select value={postType} onValueChange={(v) => setPostType(v as typeof postType)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UPDATE">Update</SelectItem>
-                        <SelectItem value="OFFER">Offer / Promotion</SelectItem>
-                        <SelectItem value="EVENT">Event</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Content</Label>
-                    <Textarea
-                      value={postContent}
-                      onChange={(e) => setPostContent(e.target.value)}
-                      placeholder="Write your post content..."
-                      rows={4}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {postContent.length}/1500 characters
+        ) : (
+          <>
+            {/* Business Overview Card */}
+            <Card className="border-orange-200/50 dark:border-orange-800/30 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-xl font-semibold">{business.name}</h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearBusiness}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                      <MapPin className="h-4 w-4" />
+                      {business.address}
                     </p>
-                  </div>
-
-                  <Button 
-                    onClick={handlePublishPost}
-                    disabled={isPublishing || !isConnected}
-                    className="w-full gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                  >
-                    {isPublishing ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Publishing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Publish to GMB
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Recent Posts */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-orange-500" />
-                    Recent Posts
-                  </CardTitle>
-                  <CardDescription>
-                    Your latest Google Business Profile posts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!isConnected ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Connect your Google Business Profile to see posts</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Placeholder for recent posts */}
-                      <div className="p-4 border rounded-lg bg-muted/30">
-                        <p className="text-sm text-muted-foreground">No posts yet</p>
+                    <div className="flex flex-wrap gap-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span className="font-medium">{business.rating}</span>
+                        <span className="text-muted-foreground">({business.reviewCount} reviews)</span>
                       </div>
+                      {business.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{business.phone}</span>
+                        </div>
+                      )}
+                      {business.website && (
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <a 
+                            href={business.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline truncate max-w-[200px]"
+                          >
+                            {business.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                    {business.openingHours && business.openingHours.length > 0 && (
+                      <div className="mt-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <Clock className="h-4 w-4" />
+                          Opening Hours
+                        </div>
+                        <div className="text-sm space-y-0.5">
+                          {business.openingHours.slice(0, 3).map((hours, i) => (
+                            <p key={i}>{hours}</p>
+                          ))}
+                          {business.openingHours.length > 3 && (
+                            <p className="text-muted-foreground">+{business.openingHours.length - 3} more...</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-1 md:w-48">
+                    <div className="text-center p-4 bg-white/60 dark:bg-white/5 rounded-xl">
+                      <p className="text-2xl font-bold text-orange-600">{business.rating}</p>
+                      <p className="text-xs text-muted-foreground">Average Rating</p>
+                    </div>
+                    <div className="text-center p-4 bg-white/60 dark:bg-white/5 rounded-xl">
+                      <p className="text-2xl font-bold text-red-600">{business.reviewCount}</p>
+                      <p className="text-xs text-muted-foreground">Total Reviews</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Insights Tab */}
-          <TabsContent value="insights" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Eye className="h-8 w-8 mx-auto text-orange-500 mb-2" />
-                  <p className="text-3xl font-bold">{business?.insights?.views || 0}</p>
-                  <p className="text-sm text-muted-foreground">Profile Views</p>
-                  <Badge variant="secondary" className="mt-2">Last 30 days</Badge>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Globe className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-                  <p className="text-3xl font-bold">{business?.insights?.clicks || 0}</p>
-                  <p className="text-sm text-muted-foreground">Website Clicks</p>
-                  <Badge variant="secondary" className="mt-2">Last 30 days</Badge>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Phone className="h-8 w-8 mx-auto text-emerald-500 mb-2" />
-                  <p className="text-3xl font-bold">{business?.insights?.calls || 0}</p>
-                  <p className="text-sm text-muted-foreground">Phone Calls</p>
-                  <Badge variant="secondary" className="mt-2">Last 30 days</Badge>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <MapPin className="h-8 w-8 mx-auto text-red-500 mb-2" />
-                  <p className="text-3xl font-bold">{business?.insights?.directions || 0}</p>
-                  <p className="text-sm text-muted-foreground">Direction Requests</p>
-                  <Badge variant="secondary" className="mt-2">Last 30 days</Badge>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+            {/* Main Tabs */}
+            <Tabs defaultValue="answers" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
+                <TabsTrigger value="answers" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Local Q&A</span>
+                  <span className="sm:hidden">Q&A</span>
+                </TabsTrigger>
+                <TabsTrigger value="heatmap" className="gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="hidden sm:inline">Visibility Heatmap</span>
+                  <span className="sm:hidden">Heatmap</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Local Q&A Tab */}
+              <TabsContent value="answers" className="space-y-6">
+                <LocalAnswers business={business} />
+              </TabsContent>
+
+              {/* Heatmap Tab */}
+              <TabsContent value="heatmap" className="space-y-6">
+                <LocalHeatmap businessName={business.name} location={business.address} />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

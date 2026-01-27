@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const { projectId, question, businessName, location } = await req.json();
+    const { projectId, question, businessName, location, businessContext } = await req.json();
 
     if (!question) {
       return new Response(
@@ -46,35 +46,71 @@ serve(async (req) => {
       );
     }
 
-    // Get project details for context
-    const { data: project } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .single();
+    // Get project details for additional context
+    let projectContext = "";
+    let language = "en";
+    
+    if (projectId) {
+      const { data: project } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .single();
 
-    const { data: settings } = await supabase
-      .from("generation_settings")
-      .select("*")
-      .eq("project_id", projectId)
-      .single();
+      const { data: settings } = await supabase
+        .from("generation_settings")
+        .select("*")
+        .eq("project_id", projectId)
+        .single();
 
-    const prompt = `You are an expert at creating locally-optimized answers for businesses.
+      projectContext = settings?.business_description || project?.business_description || "";
+      language = settings?.language || project?.language || "en";
+    }
 
-Business: ${businessName || project?.name || "Local Business"}
-Location: ${location || project?.domain || "Local area"}
-Business Description: ${settings?.business_description || project?.business_description || ""}
+    // Build rich context from Places API data
+    const contextParts = [];
+    
+    if (businessContext?.rating) {
+      contextParts.push(`Rating: ${businessContext.rating}/5 (${businessContext.reviewCount} reviews)`);
+    }
+    if (businessContext?.types?.length > 0) {
+      contextParts.push(`Business Type: ${businessContext.types.slice(0, 3).join(", ")}`);
+    }
+    if (businessContext?.phone) {
+      contextParts.push(`Phone: ${businessContext.phone}`);
+    }
+    if (businessContext?.website) {
+      contextParts.push(`Website: ${businessContext.website}`);
+    }
+    if (businessContext?.openingHours?.length > 0) {
+      contextParts.push(`Hours: ${businessContext.openingHours.join("; ")}`);
+    }
+    if (businessContext?.reviews?.length > 0) {
+      const reviewTexts = businessContext.reviews
+        .slice(0, 3)
+        .map((r: any) => `"${r.text.substring(0, 100)}..."`)
+        .join(" | ");
+      contextParts.push(`Customer Feedback: ${reviewTexts}`);
+    }
+
+    const prompt = `You are an expert at creating locally-optimized answers for businesses that rank well in AI search results.
+
+Business Name: ${businessName || "Local Business"}
+Location: ${location || "Local area"}
+${contextParts.length > 0 ? `\nBusiness Details:\n${contextParts.join("\n")}` : ""}
+${projectContext ? `\nAdditional Context: ${projectContext}` : ""}
 
 Question: "${question}"
 
-Create a concise, locally-optimized answer that:
-1. Directly answers the question
-2. Includes local context when relevant
-3. Is optimized for AI assistants (ChatGPT, Gemini, Claude)
-4. Uses natural, helpful language
-5. Is under 200 words
+Create a concise, locally-optimized answer in ${language === "fr" ? "French" : "English"} that:
+1. Directly answers the question with specific, factual information
+2. Includes the business name and location naturally
+3. Uses concrete details (hours, contact info, ratings) when relevant to the question
+4. Is optimized for AI assistants (ChatGPT, Gemini, Claude, Perplexity)
+5. Sounds natural and helpful, not robotic or promotional
+6. Is between 80-150 words for optimal citation
 
-Return ONLY the answer text, no additional formatting or labels.`;
+Return ONLY the answer text, no additional formatting, labels, or quotes.`;
 
     const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -100,7 +136,8 @@ Return ONLY the answer text, no additional formatting or labels.`;
       JSON.stringify({
         answer: answer.trim(),
         question,
-        location: location || project?.domain,
+        businessName,
+        location,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

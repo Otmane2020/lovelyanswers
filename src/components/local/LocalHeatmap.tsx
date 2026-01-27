@@ -18,12 +18,13 @@ interface HeatmapCell {
 
 interface LocalHeatmapProps {
   businessName: string;
+  location?: string;
 }
 
-export function LocalHeatmap({ businessName }: LocalHeatmapProps) {
+export function LocalHeatmap({ businessName, location: initialLocation }: LocalHeatmapProps) {
   const { project } = useActiveProject();
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState(initialLocation || "");
   const [isScanning, setIsScanning] = useState(false);
   const [heatmapData, setHeatmapData] = useState<HeatmapCell[]>([]);
   const [averagePosition, setAveragePosition] = useState<number | null>(null);
