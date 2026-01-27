@@ -23,7 +23,10 @@ export function AppTopbar() {
   const { subscribed, isLoading: subLoading, startCheckout } = useSubscription();
   const setActiveProject = useSetActiveProject();
   const [currentLanguage, setCurrentLanguage] = useState(languages[0]);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    // Check if dark class is on html element
+    return document.documentElement.classList.contains('dark');
+  });
 
   const toggleTheme = () => {
     setIsDark(!isDark);
