@@ -186,6 +186,15 @@ export default function Index() {
   const [showFloatingCTA, setShowFloatingCTA] = useState(false);
   const navigate = useNavigate();
 
+  // Force dark theme on landing page
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => {
+      // Cleanup: restore light theme when leaving
+      document.documentElement.classList.remove("dark");
+    };
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       // Show floating CTA after scrolling past 500px (roughly past hero section)
