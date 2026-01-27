@@ -109,7 +109,7 @@ export default function AeoWizard() {
         business_description: data.businessDescription,
       });
 
-      toast.success("Project created! Welcome to AeoRocket 🚀");
+      toast.success("Project created! Welcome to LovelyAnswers 💜");
       navigate("/dashboard");
     } catch (error) {
       console.error("Error creating project:", error);
@@ -128,7 +128,7 @@ export default function AeoWizard() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-            AeoRocket
+            LovelyAnswers
           </h1>
         </div>
 
