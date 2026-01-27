@@ -24,6 +24,7 @@ import AeoBilling from "./pages/AeoBilling";
 import AeoSupport from "./pages/AeoSupport";
 import AeoPublicAnswer from "./pages/AeoPublicAnswer";
 import AeoSeoAudit from "./pages/AeoSeoAudit";
+import AeoLocal from "./pages/AeoLocal";
 import AeoKeywords from "./pages/AeoKeywords";
 import AeoReddit from "./pages/AeoReddit";
 import AeoPlanning from "./pages/AeoPlanning";
@@ -69,6 +70,7 @@ const App = () => (
                   <Route path="/autoseo" element={<ProtectedRoute><AutoSeo /></ProtectedRoute>} />
                   <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
                   <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
+                  <Route path="/local" element={<ProtectedRoute><AeoLocal /></ProtectedRoute>} />
                   <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />
                   <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
                   <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
