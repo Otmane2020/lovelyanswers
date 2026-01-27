@@ -1,30 +1,35 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { GlassCard } from "@/components/ui/glass-card";
 import { ScoreRing } from "@/components/ui/score-ring";
+import { Progress } from "@/components/ui/progress";
 import {
   MessageSquare,
   Sparkles,
   Copy,
   Check,
-  RefreshCw,
-  Lightbulb,
   Plus,
   Eye,
   Send,
   Search,
   Loader2,
-  ExternalLink,
   Zap,
+  Lightbulb,
+  Calendar,
+  Globe,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
+import { useLocalAnswers, useCreateLocalAnswer, useGenerate30LocalAnswers, LocalAnswer } from "@/hooks/useLocalAnswers";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import chatGptLogo from "@/assets/chatgpt-logo.png";
+import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 interface Business {
   id: string;
@@ -39,39 +44,41 @@ interface Business {
   reviews?: { text: string; rating: number }[];
 }
 
-interface LocalAnswer {
-  id: string;
-  question: string;
-  answer: string;
-  score: number;
-  createdAt: string;
-  isPublished: boolean;
-}
-
 interface LocalAnswersTabProps {
   business: Business;
 }
 
-const SUGGESTED_QUESTIONS = [
+const SUGGESTED_QUESTIONS_EN = [
   "What are your opening hours?",
   "What services do you offer?",
   "How can I contact you?",
   "Where are you located?",
-  "What makes you different from competitors?",
-  "Do you offer any special deals?",
+];
+
+const SUGGESTED_QUESTIONS_FR = [
+  "Quels sont vos horaires d'ouverture ?",
+  "Quels services proposez-vous ?",
+  "Comment vous contacter ?",
+  "Où êtes-vous situés ?",
 ];
 
 export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
   const { project } = useActiveProject();
+  const { data: answers = [], isLoading, refetch } = useLocalAnswers(business.id);
+  const createAnswer = useCreateLocalAnswer();
+  const generate30 = useGenerate30LocalAnswers();
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [answers, setAnswers] = useState<LocalAnswer[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewingAnswer, setViewingAnswer] = useState<LocalAnswer | null>(null);
-  const [generating30, setGenerating30] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+
+  const language = project?.language || "en";
+  const suggestedQuestions = language === "fr" ? SUGGESTED_QUESTIONS_FR : SUGGESTED_QUESTIONS_EN;
 
   // Generate a single answer
   const generateAnswer = async (question: string) => {
@@ -103,18 +110,15 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       if (error) throw error;
 
       if (data?.answer) {
-        const newAnswer: LocalAnswer = {
-          id: crypto.randomUUID(),
+        await createAnswer.mutateAsync({
           question,
           answer: data.answer,
-          score: data.score || 85,
-          createdAt: new Date().toISOString(),
-          isPublished: false,
-        };
-        setAnswers((prev) => [newAnswer, ...prev]);
+          businessId: business.id,
+          businessName: business.name,
+          score: 85,
+        });
         setNewQuestion("");
         setShowNewModal(false);
-        toast.success("Answer generated!");
       }
     } catch (error) {
       console.error("Error generating answer:", error);
@@ -128,60 +132,86 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
   const generate30LocalAnswers = async () => {
     if (!project) return;
 
-    setGenerating30(true);
+    setGenerationProgress(0);
+    const progressInterval = setInterval(() => {
+      setGenerationProgress((prev) => Math.min(prev + 3, 90));
+    }, 1000);
+
     try {
-      toast.info("Generating 30 local Q&A answers...");
+      await generate30.mutateAsync({
+        businessId: business.id,
+        businessName: business.name,
+        businessAddress: business.address,
+        businessContext: {
+          rating: business.rating,
+          reviewCount: business.reviewCount,
+          types: business.types,
+          phone: business.phone,
+          website: business.website,
+          openingHours: business.openingHours,
+          reviews: business.reviews,
+        },
+      });
+      setGenerationProgress(100);
+      refetch();
+    } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => setGenerationProgress(0), 1500);
+    }
+  };
 
-      // Generate answers for multiple suggested questions + AI-generated ones
-      const questions = [
-        ...SUGGESTED_QUESTIONS,
-        `What are the best products/services at ${business.name}?`,
-        `Why should I choose ${business.name}?`,
-        `What do customers say about ${business.name}?`,
-        `Is ${business.name} good value for money?`,
-        `What's the atmosphere like at ${business.name}?`,
-      ];
+  const handlePublish = async (answer: LocalAnswer) => {
+    if (!project) return;
+    
+    setPublishingId(answer.id);
+    try {
+      // Get integration
+      const { data: integrations } = await supabase
+        .from("integrations")
+        .select("*")
+        .eq("project_id", project.id)
+        .eq("is_connected", true)
+        .limit(1);
 
-      const generatedAnswers: LocalAnswer[] = [];
-
-      for (const question of questions.slice(0, 10)) {
-        const { data, error } = await supabase.functions.invoke("generate-local-answer", {
-          body: {
-            projectId: project.id,
-            question,
-            businessName: business.name,
-            location: business.address,
-            businessContext: {
-              rating: business.rating,
-              reviewCount: business.reviewCount,
-              types: business.types,
-              phone: business.phone,
-              website: business.website,
-              openingHours: business.openingHours,
-              reviews: business.reviews,
-            },
-          },
-        });
-
-        if (!error && data?.answer) {
-          generatedAnswers.push({
-            id: crypto.randomUUID(),
-            question,
-            answer: data.answer,
-            score: data.score || 85,
-            createdAt: new Date().toISOString(),
-            isPublished: false,
-          });
-        }
+      if (!integrations || integrations.length === 0) {
+        toast.error("No CMS connected. Go to Integrations to connect.");
+        return;
       }
 
-      setAnswers((prev) => [...generatedAnswers, ...prev]);
-      toast.success(`${generatedAnswers.length} local Q&A generated!`);
+      const integration = integrations[0];
+
+      // Publish via cms-publish
+      const { data, error } = await supabase.functions.invoke("cms-publish", {
+        body: {
+          integrationId: integration.id,
+          content: {
+            title: answer.question,
+            body: `<article><h1>${answer.question}</h1><p>${answer.answer}</p></article>`,
+            type: "local-answer",
+            sourceId: answer.id,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Update local answer
+      await supabase
+        .from("local_answers")
+        .update({
+          is_public: true,
+          published_at: new Date().toISOString(),
+          published_url: data?.url || null,
+        })
+        .eq("id", answer.id);
+
+      toast.success("Published to CMS!");
+      refetch();
     } catch (error) {
-      console.error("Error generating local answers:", error);
-      toast.error("Failed to generate local answers");
+      console.error("Error publishing:", error);
+      toast.error("Failed to publish");
     } finally {
-      setGenerating30(false);
+      setPublishingId(null);
     }
   };
 
@@ -198,58 +228,109 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       a.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const scheduledCount = answers.filter((a) => a.scheduled_date && !a.is_public).length;
+  const publishedCount = answers.filter((a) => a.is_public).length;
+
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Local Q&A</h2>
-          <p className="text-muted-foreground">
-            AI-optimized answers about {business.name}
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            onClick={() => setShowNewModal(true)}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Answer
-          </Button>
-          <Button
-            onClick={generate30LocalAnswers}
-            disabled={generating30}
-            className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-          >
-            {generating30 ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4" />
-                Generate 30 Q/A
-              </>
-            )}
-          </Button>
+      {/* ChatGPT Logo + Badge - Same as Answers.tsx */}
+      <div className="flex items-center gap-3">
+        <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
+        <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 font-bold text-sm px-3 py-1">
+          Local Rank First!
+        </Badge>
+      </div>
+
+      {/* Hero Header - Same style as Answers.tsx */}
+      <div className="rounded-xl bg-gradient-to-r from-orange-500/10 via-red-500/10 to-amber-500/10 p-6 border border-border/50">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
+              <h1 className="text-3xl font-bold tracking-tight">Local Q&A</h1>
+            </div>
+            <p className="text-muted-foreground">
+              AI-optimized answers for {business.name}
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewModal(true)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Answer
+            </Button>
+            <Button
+              onClick={generate30LocalAnswers}
+              disabled={generate30.isPending}
+              className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+            >
+              {generate30.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  30 Q/A (30 days)
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search answers..."
-          className="pl-10"
-        />
-      </div>
+      {/* Progress Bar */}
+      {generationProgress > 0 && (
+        <div className="rounded-lg bg-background/80 backdrop-blur-sm border px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+            <div className="flex-1">
+              <Progress value={generationProgress} className="h-2" />
+            </div>
+            <span className="text-sm font-medium">{generationProgress}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Bar */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search local answers..."
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10">
+              <Calendar className="h-4 w-4 text-orange-600" />
+              <span className="font-medium text-orange-700 dark:text-orange-400">
+                {scheduledCount} Scheduled
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10">
+              <Globe className="h-4 w-4 text-emerald-600" />
+              <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                {publishedCount} Published
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Answers Grid */}
-      {filteredAnswers.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredAnswers.length === 0 ? (
         <Card className="p-12 text-center">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-medium mb-2">No local answers yet</h3>
@@ -264,7 +345,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredAnswers.map((answer) => (
-            <GlassCard key={answer.id} className="p-4">
+            <GlassCard key={answer.id} hover className="p-4">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h4 className="font-medium line-clamp-2 flex-1">{answer.question}</h4>
                 <ScoreRing score={answer.score} size="sm" />
@@ -273,9 +354,14 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                 {answer.answer}
               </p>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="text-xs">
-                  Local AEO
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="secondary" 
+                    className={answer.is_public ? "bg-emerald-500/20 text-emerald-600" : "bg-orange-500/20 text-orange-600"}
+                  >
+                    {answer.is_public ? "Published" : answer.scheduled_date ? `${format(new Date(answer.scheduled_date), "MMM d")}` : "Draft"}
+                  </Badge>
+                </div>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
@@ -317,7 +403,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="Enter a question about your business..."
+              placeholder={language === "fr" ? "Entrez une question sur votre entreprise..." : "Enter a question about your business..."}
               rows={3}
             />
             <div>
@@ -326,7 +412,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                 Quick suggestions:
               </p>
               <div className="flex flex-wrap gap-2">
-                {SUGGESTED_QUESTIONS.slice(0, 4).map((q, i) => (
+                {suggestedQuestions.map((q, i) => (
                   <Badge
                     key={i}
                     variant="secondary"
@@ -379,6 +465,12 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                     <p className="text-sm font-medium">AEO Score</p>
                     <p className="text-xs text-muted-foreground">Local optimization</p>
                   </div>
+                  {viewingAnswer.scheduled_date && (
+                    <Badge variant="outline" className="ml-auto">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {format(new Date(viewingAnswer.scheduled_date), "MMM d, yyyy")}
+                    </Badge>
+                  )}
                 </div>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <p>{viewingAnswer.answer}</p>
@@ -389,12 +481,25 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
                 </Button>
-                <Button
-                  className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                >
-                  <Send className="h-4 w-4" />
-                  Publish to CMS
-                </Button>
+                {!viewingAnswer.is_public && (
+                  <Button
+                    onClick={() => handlePublish(viewingAnswer)}
+                    disabled={publishingId === viewingAnswer.id}
+                    className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                  >
+                    {publishingId === viewingAnswer.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Publish to CMS
+                      </>
+                    )}
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}

@@ -16,31 +16,31 @@ import {
   List,
 } from "lucide-react";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-interface LocalAnswer {
-  id: string;
-  question: string;
-  answer: string;
-  score: number;
-  createdAt: string;
-  scheduledDate?: string;
-  isPublished: boolean;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useLocalAnswers, LocalAnswer } from "@/hooks/useLocalAnswers";
+import { useActiveProject } from "@/hooks/useProjects";
+import { ScoreRing } from "@/components/ui/score-ring";
 
 interface LocalPlanningTabProps {
   businessName: string;
-  answers: LocalAnswer[];
+  businessId: string;
 }
 
-export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProps) {
+export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabProps) {
+  const { project } = useActiveProject();
+  const { data: answers = [], refetch } = useLocalAnswers(businessId);
+  
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+
+  const language = project?.language || "en";
+  const locale = language === "fr" ? fr : enUS;
 
   // Calculate visible range (28 days = 4 weeks)
   const visibleStart = useMemo(() => {
@@ -57,9 +57,11 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
   );
 
   // Get answers scheduled for a specific date
-  const getItemsForDate = (date: Date) => {
+  const getItemsForDate = (date: Date): LocalAnswer[] => {
     const key = format(date, "yyyy-MM-dd");
-    return answers.filter((a) => a.scheduledDate && format(new Date(a.scheduledDate), "yyyy-MM-dd") === key);
+    return answers.filter(
+      (a) => a.scheduled_date && format(new Date(a.scheduled_date), "yyyy-MM-dd") === key
+    );
   };
 
   const handleDayClick = (date: Date) => {
@@ -71,18 +73,72 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
   };
 
   const handlePublish = async (answer: LocalAnswer) => {
+    if (!project) return;
+    
     setPublishingId(answer.id);
     try {
-      // Simulate publish
-      await new Promise((r) => setTimeout(r, 1000));
+      // Get integration
+      const { data: integrations } = await supabase
+        .from("integrations")
+        .select("*")
+        .eq("project_id", project.id)
+        .eq("is_connected", true)
+        .limit(1);
+
+      if (!integrations || integrations.length === 0) {
+        // Just mark as public without CMS
+        await supabase
+          .from("local_answers")
+          .update({
+            is_public: true,
+            published_at: new Date().toISOString(),
+          })
+          .eq("id", answer.id);
+        
+        toast.success("Marked as published!");
+        refetch();
+        return;
+      }
+
+      const integration = integrations[0];
+
+      // Publish via cms-publish
+      const { data, error } = await supabase.functions.invoke("cms-publish", {
+        body: {
+          integrationId: integration.id,
+          content: {
+            title: answer.question,
+            body: `<article><h1>${answer.question}</h1><p>${answer.answer}</p></article>`,
+            type: "local-answer",
+            sourceId: answer.id,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Update local answer
+      await supabase
+        .from("local_answers")
+        .update({
+          is_public: true,
+          published_at: new Date().toISOString(),
+          published_url: data?.url || null,
+        })
+        .eq("id", answer.id);
+
       toast.success("Published to CMS!");
+      refetch();
+    } catch (error) {
+      console.error("Error publishing:", error);
+      toast.error("Failed to publish");
     } finally {
       setPublishingId(null);
     }
   };
 
-  const totalScheduled = answers.filter((a) => a.scheduledDate).length;
-  const totalPublished = answers.filter((a) => a.isPublished).length;
+  const scheduledCount = answers.filter((a) => a.scheduled_date && !a.is_public).length;
+  const publishedCount = answers.filter((a) => a.is_public).length;
 
   return (
     <div className="space-y-6">
@@ -91,7 +147,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
         <div>
           <h2 className="text-2xl font-bold">Local Content Planning</h2>
           <p className="text-muted-foreground">
-            Rolling window (today + 30 days) for {businessName}
+            {language === "fr" ? "Calendrier de publication pour" : "Publishing calendar for"} {businessName}
           </p>
         </div>
       </div>
@@ -110,14 +166,16 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
           </div>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10">
-              <MessageSquare className="h-4 w-4 text-orange-600" />
+              <Clock className="h-4 w-4 text-orange-600" />
               <span className="font-medium text-orange-700 dark:text-orange-400">
-                {totalScheduled} Scheduled
+                {scheduledCount} Scheduled
               </span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span className="font-medium text-primary">{totalPublished} Published</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                {publishedCount} Published
+              </span>
             </div>
           </div>
         </div>
@@ -129,8 +187,8 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
           <div>
             <h3 className="text-xl font-semibold">Local Content Calendar</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {format(visibleStart, "d MMM yyyy", { locale: enUS })} –{" "}
-              {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
+              {format(visibleStart, "d MMM yyyy", { locale })} –{" "}
+              {format(visibleEnd, "d MMM yyyy", { locale })}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -148,7 +206,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
               onClick={() => setWeekOffset(0)}
               disabled={weekOffset === 0}
             >
-              Today
+              {language === "fr" ? "Aujourd'hui" : "Today"}
             </Button>
             <Button
               variant="outline"
@@ -183,7 +241,10 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
           <>
             {/* Day headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+              {(language === "fr" 
+                ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+                : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+              ).map((day) => (
                 <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
                   {day}
                 </div>
@@ -195,7 +256,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
               {visibleDays.map((day, idx) => {
                 const dayItems = getItemsForDate(day);
                 const hasContent = dayItems.length > 0;
-                const allPublished = hasContent && dayItems.every((i) => i.isPublished);
+                const allPublished = hasContent && dayItems.every((i) => i.is_public);
 
                 return (
                   <button
@@ -205,16 +266,20 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
                     className={cn(
                       "min-h-[80px] p-2 rounded-lg border transition-all text-left",
                       "disabled:cursor-default disabled:opacity-60",
-                      isToday(day) && "ring-2 ring-primary",
+                      isToday(day) && "ring-2 ring-orange-500",
                       hasContent && "hover:border-orange-500 cursor-pointer",
-                      allPublished ? "bg-primary/5" : hasContent ? "bg-orange-50 dark:bg-orange-950/20" : ""
+                      allPublished
+                        ? "bg-emerald-500/5"
+                        : hasContent
+                        ? "bg-orange-50 dark:bg-orange-950/20"
+                        : ""
                     )}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          isToday(day) && "text-primary font-bold"
+                          isToday(day) && "text-orange-500 font-bold"
                         )}
                       >
                         {format(day, "d")}
@@ -225,7 +290,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
                           className={cn(
                             "text-[10px] px-1.5 py-0",
                             allPublished
-                              ? "bg-primary/20 text-primary"
+                              ? "bg-emerald-500/20 text-emerald-600"
                               : "bg-orange-500/20 text-orange-600"
                           )}
                         >
@@ -240,8 +305,8 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
                             key={i}
                             className={cn(
                               "text-[10px] px-1.5 py-0.5 rounded truncate",
-                              item.isPublished
-                                ? "bg-primary/20 text-primary"
+                              item.is_public
+                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                 : "bg-orange-500/20 text-orange-700 dark:text-orange-400"
                             )}
                           >
@@ -265,35 +330,34 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
           <div className="space-y-2">
             {answers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                No scheduled local content yet
+                {language === "fr" ? "Aucun contenu local planifié" : "No scheduled local content yet"}
               </div>
             ) : (
-              answers.map((answer) => (
-                <div
-                  key={answer.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        answer.isPublished ? "bg-primary" : "bg-orange-500"
-                      )}
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{answer.question}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {answer.scheduledDate
-                          ? format(new Date(answer.scheduledDate), "d MMM yyyy")
-                          : "Not scheduled"}
-                      </p>
+              answers
+                .filter((a) => a.scheduled_date)
+                .sort((a, b) => 
+                  new Date(a.scheduled_date!).getTime() - new Date(b.scheduled_date!).getTime()
+                )
+                .map((answer) => (
+                  <div
+                    key={answer.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ScoreRing score={answer.score} size="sm" />
+                      <div>
+                        <p className="font-medium text-sm line-clamp-1">{answer.question}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {answer.scheduled_date &&
+                            format(new Date(answer.scheduled_date), "d MMM yyyy", { locale })}
+                        </p>
+                      </div>
                     </div>
+                    <Badge variant={answer.is_public ? "default" : "secondary"}>
+                      {answer.is_public ? "Published" : "Scheduled"}
+                    </Badge>
                   </div>
-                  <Badge variant={answer.isPublished ? "default" : "secondary"}>
-                    {answer.isPublished ? "Published" : "Scheduled"}
-                  </Badge>
-                </div>
-              ))
+                ))
             )}
           </div>
         )}
@@ -305,7 +369,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-orange-500" />
-              {selectedDate && format(selectedDate, "EEEE, d MMMM yyyy", { locale: enUS })}
+              {selectedDate && format(selectedDate, "EEEE, d MMMM yyyy", { locale })}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4 max-h-[400px] overflow-y-auto">
@@ -314,7 +378,7 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
                 <div key={item.id} className="p-4 border rounded-lg space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
-                      <MessageSquare className="h-4 w-4 text-orange-500 mt-0.5" />
+                      <ScoreRing score={item.score} size="sm" />
                       <div>
                         <p className="font-medium text-sm">{item.question}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
@@ -322,11 +386,11 @@ export function LocalPlanningTab({ businessName, answers }: LocalPlanningTabProp
                         </p>
                       </div>
                     </div>
-                    <Badge variant={item.isPublished ? "default" : "secondary"}>
-                      {item.isPublished ? "Published" : "Scheduled"}
+                    <Badge variant={item.is_public ? "default" : "secondary"}>
+                      {item.is_public ? "Published" : "Scheduled"}
                     </Badge>
                   </div>
-                  {!item.isPublished && (
+                  {!item.is_public && (
                     <Button
                       size="sm"
                       onClick={() => handlePublish(item)}

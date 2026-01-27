@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.places-search]
 verify_jwt = false
+
+[functions.generate-30-local-answers]
+verify_jwt = false
