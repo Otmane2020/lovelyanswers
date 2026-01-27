@@ -206,9 +206,9 @@ export default function Index() {
       <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">
         <span className="inline-flex flex-wrap items-center justify-center gap-1 md:gap-2">
           <span className="hidden md:inline">👉</span>
-          <span><span className="line-through opacity-75">$35</span> → <span className="font-bold">$29</span></span>
+          <span><span className="line-through opacity-75">$99</span> → <span className="font-bold">$29</span></span>
           <span className="hidden sm:inline">•</span>
-          <span><span className="font-bold">20% OFF</span> Code</span>
+          <span><span className="font-bold">70% OFF</span> Code</span>
           <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded font-bold">FLASHSALE</span>
         </span>
       </div>
@@ -613,7 +613,7 @@ export default function Index() {
                 <p className="text-muted-foreground mb-6">Best for serious growth</p>
                 
                 <div className="flex items-baseline justify-center gap-2 mb-8">
-                  <span className="text-2xl text-muted-foreground line-through">$35</span>
+                  <span className="text-2xl text-muted-foreground line-through">$99</span>
                   <span className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">$29</span>
                   <span className="text-muted-foreground">/week</span>
                 </div>
