@@ -133,7 +133,7 @@ export default function Pricing() {
                   We limit monthly admissions to maintain backlink quality and network balance.
                 </p>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-2xl text-muted-foreground line-through">$35</span>
+                  <span className="text-2xl text-muted-foreground line-through">$99</span>
                   <span className="text-6xl font-bold">$29</span>
                   <span className="text-muted-foreground">/week</span>
                 </div>
