@@ -22,13 +22,16 @@ import {
   ExternalLink,
   Eye,
   Pencil,
-  Send,
   Globe,
   Loader2,
-  Copy
+  Copy,
+  MapPin,
+  Sparkles,
+  Search
 } from "lucide-react";
 import { useAnswers } from "@/hooks/useAnswers";
 import { useArticles } from "@/hooks/useArticles";
+import { useLocalAnswers } from "@/hooks/useLocalAnswers";
 import { useActiveProject } from "@/hooks/useProjects";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { useNavigate } from "react-router-dom";
@@ -44,17 +47,71 @@ const platformLogos: Record<string, string> = {
   wix: wixLogo,
 };
 
+type SourceType = "aeo" | "local" | "seo";
+
+interface UnifiedHistoryItem {
+  id: string;
+  title: string;
+  source: SourceType;
+  score: number | null;
+  is_public: boolean;
+  published_at: string | null;
+  published_url: string | null;
+  created_at: string;
+  slug?: string;
+  word_count?: number;
+  status?: string;
+}
+
+const getSourceBadge = (source: SourceType) => {
+  switch (source) {
+    case "aeo":
+      return (
+        <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30 gap-1">
+          <Sparkles className="h-3 w-3" />
+          AEO
+        </Badge>
+      );
+    case "local":
+      return (
+        <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 gap-1">
+          <MapPin className="h-3 w-3" />
+          Local AEO
+        </Badge>
+      );
+    case "seo":
+      return (
+        <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 gap-1">
+          <Search className="h-3 w-3" />
+          SEO
+        </Badge>
+      );
+  }
+};
+
 export default function AeoHistory() {
   const navigate = useNavigate();
   const { project } = useActiveProject();
   const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
   const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
+  const { data: rawLocalAnswers = [], isLoading: localLoading } = useLocalAnswers();
   
+  const publishAnswer = usePublishAnswer();
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+
   // Filter only published answers (is_public=true) and sort by published_at desc
   const answers = [...rawAnswers]
     .filter((a) => a.is_public)
     .sort((a, b) => {
-      // Sort by published_at desc if available, otherwise by created_at desc
+      const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
+      const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
+  
+  // Filter only published local answers
+  const localAnswers = [...rawLocalAnswers]
+    .filter((a) => a.is_public)
+    .sort((a, b) => {
       const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
       const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
       return dateB - dateA;
@@ -66,8 +123,48 @@ export default function AeoHistory() {
     .sort((a, b) => {
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  const publishAnswer = usePublishAnswer();
-  const [publishingId, setPublishingId] = useState<string | null>(null);
+
+  // Create unified history combining all sources
+  const unifiedHistory: UnifiedHistoryItem[] = [
+    ...answers.map((a) => ({
+      id: a.id,
+      title: a.question,
+      source: "aeo" as SourceType,
+      score: a.score,
+      is_public: a.is_public,
+      published_at: a.published_at,
+      published_url: a.published_url,
+      created_at: a.created_at,
+      slug: a.slug,
+    })),
+    ...localAnswers.map((a) => ({
+      id: a.id,
+      title: a.question,
+      source: "local" as SourceType,
+      score: a.score,
+      is_public: a.is_public,
+      published_at: a.published_at,
+      published_url: a.published_url,
+      created_at: a.created_at,
+      slug: a.slug,
+    })),
+    ...articles.map((a) => ({
+      id: a.id,
+      title: a.title,
+      source: "seo" as SourceType,
+      score: a.aeo_score,
+      is_public: true,
+      published_at: a.created_at,
+      published_url: a.published_url || null,
+      created_at: a.created_at || new Date().toISOString(),
+      word_count: a.word_count,
+      status: a.status,
+    })),
+  ].sort((a, b) => {
+    const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime();
+    const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime();
+    return dateB - dateA;
+  });
 
   const handlePublish = async (answerId: string) => {
     if (!project) return;
@@ -110,33 +207,7 @@ export default function AeoHistory() {
     );
   };
 
-  const getArticleStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "published":
-        return (
-          <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 gap-1">
-            <CheckCircle className="h-3 w-3" />
-            Published
-          </Badge>
-        );
-      case "scheduled":
-        return (
-          <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 gap-1">
-            <Clock className="h-3 w-3" />
-            Scheduled
-          </Badge>
-        );
-      default:
-        return (
-          <Badge className="bg-muted text-muted-foreground border-muted-foreground/30 gap-1">
-            <AlertCircle className="h-3 w-3" />
-            Draft
-          </Badge>
-        );
-    }
-  };
-
-  // Extract domain from project URL (from onboarding)
+  // Extract domain from project URL
   const getProjectDomain = (): string => {
     if (!project?.website_url) return "";
     try {
@@ -148,11 +219,9 @@ export default function AeoHistory() {
   };
 
   const getPlatformInfo = (url: string | null): { icon: React.ReactNode; label: string } | null => {
-    // Use project domain as fallback if no published_url
     const projectDomain = getProjectDomain();
     
     if (!url) {
-      // Return project domain with globe icon when no published_url
       if (projectDomain) {
         return { icon: <Globe className="h-4 w-4 text-muted-foreground" />, label: projectDomain };
       }
@@ -161,7 +230,6 @@ export default function AeoHistory() {
     
     const urlLower = url.toLowerCase();
     
-    // Extract domain from URL
     let domain = "";
     try {
       const urlObj = new URL(url);
@@ -182,6 +250,8 @@ export default function AeoHistory() {
     return { icon: <Globe className="h-4 w-4 text-muted-foreground" />, label: domain };
   };
 
+  const isLoading = answersLoading || articlesLoading || localLoading;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -192,24 +262,144 @@ export default function AeoHistory() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">History</h1>
-            <p className="text-muted-foreground">Track all your AEO answers and blog articles</p>
+            <p className="text-muted-foreground">Track all your published content: AEO, Local AEO & SEO</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="aeo" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="all" className="gap-2">
+              <History className="h-4 w-4" />
+              All
+              <Badge variant="secondary" className="ml-1">{unifiedHistory.length}</Badge>
+            </TabsTrigger>
             <TabsTrigger value="aeo" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              AEO Answers
+              <Sparkles className="h-4 w-4" />
+              AEO
               <Badge variant="secondary" className="ml-1">{answers.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="blog" className="gap-2">
+            <TabsTrigger value="local" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Local
+              <Badge variant="secondary" className="ml-1">{localAnswers.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="seo" className="gap-2">
               <FileText className="h-4 w-4" />
-              Blog Articles
+              SEO
               <Badge variant="secondary" className="ml-1">{articles.length}</Badge>
             </TabsTrigger>
           </TabsList>
+
+          {/* All History Tab */}
+          <TabsContent value="all" className="mt-6">
+            <Card>
+              {isLoading ? (
+                <div className="flex items-center justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : unifiedHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <History className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg">No published content yet</h3>
+                  <p className="text-muted-foreground mb-4">Generate and publish content to see it here</p>
+                  <Button onClick={() => navigate("/answers")}>Go to Answers</Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[30%]">Title</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Integration</TableHead>
+                      <TableHead>Published</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unifiedHistory.map((item) => (
+                      <TableRow key={`${item.source}-${item.id}`}>
+                        <TableCell className="font-medium">
+                          <div className="line-clamp-2">{item.title}</div>
+                        </TableCell>
+                        <TableCell>{getSourceBadge(item.source)}</TableCell>
+                        <TableCell>
+                          {item.score !== null ? (
+                            <Badge 
+                              variant="outline" 
+                              className={item.score >= 80 ? "border-emerald-500 text-emerald-600" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}
+                            >
+                              {item.score}%
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(item)}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            const platformInfo = getPlatformInfo(item.published_url);
+                            if (!platformInfo) return <span className="text-muted-foreground">—</span>;
+                            
+                            return item.published_url ? (
+                              <a 
+                                href={item.published_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 hover:text-primary text-sm"
+                              >
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[100px]">{platformInfo.label}</span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[100px]">{platformInfo.label}</span>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {item.published_at 
+                            ? format(new Date(item.published_at), "MMM d, yyyy")
+                            : format(new Date(item.created_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {item.published_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => window.open(item.published_url!, "_blank")}
+                                title="View on Site"
+                              >
+                                <ExternalLink className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            {item.slug && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleCopyLink(item.slug!)}
+                                title="Copy Link"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
 
           {/* AEO Answers Tab */}
           <TabsContent value="aeo" className="mt-6">
@@ -283,15 +473,6 @@ export default function AeoHistory() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => navigate(`/answers/${answer.id}/edit`)}
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
                             {answer.published_url && (
                               <Button 
                                 variant="ghost" 
@@ -333,8 +514,110 @@ export default function AeoHistory() {
             </Card>
           </TabsContent>
 
-          {/* Blog Articles Tab */}
-          <TabsContent value="blog" className="mt-6">
+          {/* Local AEO Tab */}
+          <TabsContent value="local" className="mt-6">
+            <Card>
+              {localLoading ? (
+                <div className="flex items-center justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : localAnswers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg">No Local AEO answers yet</h3>
+                  <p className="text-muted-foreground mb-4">Generate local Q&A content to see it here</p>
+                  <Button onClick={() => navigate("/local")}>Go to Local AEO</Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40%]">Question</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Integration</TableHead>
+                      <TableHead>Published</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {localAnswers.map((answer) => (
+                      <TableRow key={answer.id}>
+                        <TableCell className="font-medium">
+                          <div className="line-clamp-2">{answer.question}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={answer.score >= 80 ? "border-emerald-500 text-emerald-600" : answer.score >= 60 ? "border-amber-500 text-amber-600" : ""}
+                          >
+                            {answer.score}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(answer)}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            const platformInfo = getPlatformInfo(answer.published_url || null);
+                            if (!platformInfo) return <span className="text-muted-foreground">—</span>;
+                            
+                            return answer.published_url ? (
+                              <a 
+                                href={answer.published_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 hover:text-primary text-sm"
+                              >
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {answer.published_at 
+                            ? format(new Date(answer.published_at), "MMM d, yyyy")
+                            : format(new Date(answer.created_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {answer.published_url && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => window.open(answer.published_url!, "_blank")}
+                                title="View on Site"
+                              >
+                                <ExternalLink className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleCopyLink(answer.slug)}
+                              title="Copy Link"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* SEO Articles Tab */}
+          <TabsContent value="seo" className="mt-6">
             <Card>
               {articlesLoading ? (
                 <div className="flex items-center justify-center p-12">
@@ -343,7 +626,7 @@ export default function AeoHistory() {
               ) : articles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center">
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg">No blog articles yet</h3>
+                  <h3 className="font-semibold text-lg">No SEO articles yet</h3>
                   <p className="text-muted-foreground mb-4">Generate articles from your AEO answers</p>
                   <Button onClick={() => navigate("/articles")}>Go to Articles</Button>
                 </div>
@@ -353,8 +636,8 @@ export default function AeoHistory() {
                     <TableRow>
                       <TableHead className="w-[40%]">Title</TableHead>
                       <TableHead>AEO Score</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead>Words</TableHead>
+                      <TableHead>Integration</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -377,9 +660,32 @@ export default function AeoHistory() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell>{getArticleStatusBadge(article.status)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {article.word_count || "—"}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const platformInfo = getPlatformInfo(article.published_url || null);
+                            if (!platformInfo) return <span className="text-muted-foreground">—</span>;
+                            
+                            return article.published_url ? (
+                              <a 
+                                href={article.published_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 hover:text-primary text-sm"
+                              >
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {platformInfo.icon}
+                                <span className="truncate max-w-[120px]">{platformInfo.label}</span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {format(new Date(article.created_at || new Date()), "MMM d, yyyy")}
@@ -392,7 +698,7 @@ export default function AeoHistory() {
                                 size="icon" 
                                 className="h-8 w-8"
                                 onClick={() => window.open(article.published_url!, "_blank")}
-                                title="View on Client Site"
+                                title="View on Site"
                               >
                                 <ExternalLink className="h-4 w-4 text-emerald-600" />
                               </Button>
@@ -401,10 +707,10 @@ export default function AeoHistory() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8"
-                              onClick={() => navigate(`/articles/${article.id}/edit`)}
-                              title="Edit"
+                              onClick={() => navigate(`/articles`)}
+                              title="View Articles"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
