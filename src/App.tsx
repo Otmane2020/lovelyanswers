@@ -38,6 +38,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import SuperAdmin from "./pages/SuperAdmin";
+import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
                   <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
                   <Route path="/superadmin" element={<SuperAdmin />} />
                   <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
+                  <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />

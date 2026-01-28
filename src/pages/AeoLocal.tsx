@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Calendar, MapPin, TrendingUp } from "lucide-react";
 import { useLocalBusiness } from "@/hooks/useLocalBusiness";
+import { useActiveProject } from "@/hooks/useProjects";
 import { BusinessSearch } from "@/components/local/BusinessSearch";
 import { LocalBusinessCard } from "@/components/local/LocalBusinessCard";
 import { LocalAnswersTab } from "@/components/local/LocalAnswersTab";
@@ -11,6 +12,7 @@ import { LocalHeatmap } from "@/components/local/LocalHeatmap";
 
 export default function AeoLocal() {
   const { business, isLoading, isInitialLoading, selectBusiness, clearBusiness } = useLocalBusiness();
+  const { project } = useActiveProject();
 
   return (
     <DashboardLayout>
@@ -33,8 +35,12 @@ export default function AeoLocal() {
           <BusinessSearch onSelectBusiness={selectBusiness} isLoading={isLoading} />
         ) : (
           <>
-            {/* Business Card */}
-            <LocalBusinessCard business={business} onClear={clearBusiness} />
+            {/* Business Card with Project Description */}
+            <LocalBusinessCard 
+              business={business} 
+              businessDescription={project?.business_description}
+              onClear={clearBusiness} 
+            />
 
             {/* Main Tabs */}
             <Tabs defaultValue="answers" className="space-y-6">
