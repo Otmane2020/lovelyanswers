@@ -29,15 +29,42 @@ export default function Blog() {
   useEffect(() => {
     const fetchPublicAnswers = async () => {
       try {
+        // Fetch answers with their project info to filter by domain
         const { data, error } = await supabase
           .from("answers")
-          .select("id, question, answer, slug, published_at, score")
+          .select(`
+            id, question, answer, slug, published_at, score, published_url,
+            projects!inner(website_url, domain)
+          `)
           .eq("is_public", true)
           .not("published_at", "is", null)
           .order("published_at", { ascending: false });
 
         if (error) throw error;
-        setAnswers(data || []);
+        
+        // Filter to only show answers from lovelyanswers.com domain
+        // or answers that have no external published_url
+        const lovelyanswersAnswers = (data || []).filter((answer: any) => {
+          const projectUrl = answer.projects?.website_url || '';
+          const projectDomain = answer.projects?.domain || '';
+          const publishedUrl = answer.published_url || '';
+          
+          // Check if this is a lovelyanswers.com project
+          const isLovelyAnswersProject = 
+            projectUrl.includes('lovelyanswers.com') || 
+            projectDomain.includes('lovelyanswers.com');
+          
+          // Check if published_url points to lovelyanswers.com or is internal
+          const isInternalPublish = 
+            !publishedUrl || 
+            publishedUrl.includes('lovelyanswers.com') ||
+            publishedUrl.includes('lovable.app');
+          
+          // Only show if it's a lovelyanswers project OR published internally
+          return isLovelyAnswersProject || isInternalPublish;
+        });
+        
+        setAnswers(lovelyanswersAnswers);
       } catch (error) {
         console.error("Error fetching public answers:", error);
       } finally {
