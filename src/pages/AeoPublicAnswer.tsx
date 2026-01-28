@@ -45,14 +45,39 @@ export default function AeoPublicAnswer() {
 
   const fetchAnswer = async () => {
     try {
+      // Fetch answer with project info to verify it's from lovelyanswers.com
       const { data, error } = await supabase
         .from('answers')
-        .select('*')
+        .select(`
+          *,
+          projects!inner(website_url, domain)
+        `)
         .eq('slug', slug)
         .eq('is_public', true)
         .single();
 
       if (error) throw error;
+      
+      // Check if this answer belongs to lovelyanswers.com or has no external published_url
+      const projectUrl = (data as any).projects?.website_url || '';
+      const projectDomain = (data as any).projects?.domain || '';
+      const publishedUrl = data.published_url || '';
+      
+      const isLovelyAnswersProject = 
+        projectUrl.includes('lovelyanswers.com') || 
+        projectDomain.includes('lovelyanswers.com');
+      
+      const isInternalPublish = 
+        !publishedUrl || 
+        publishedUrl.includes('lovelyanswers.com') ||
+        publishedUrl.includes('lovable.app');
+      
+      // Only show if it's internal to lovelyanswers.com
+      if (!isLovelyAnswersProject && !isInternalPublish) {
+        console.log('Answer belongs to external client, not showing on lovelyanswers.com');
+        setAnswer(null);
+        return;
+      }
       
       // Parse supporting_content safely
       const supportingContent = data.supporting_content as SupportingContent | null;
