@@ -175,6 +175,7 @@ export default function Checkout() {
           <span className="hidden sm:inline">•</span>
           <span><span className="font-bold">70% OFF</span> Code</span>
           <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded font-bold">FLASHSALE</span>
+          <span className="hidden sm:inline text-white/90">only first month</span>
         </span>
       </div>
       
