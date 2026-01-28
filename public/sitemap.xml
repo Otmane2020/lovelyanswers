@@ -3,9 +3,17 @@
   <!-- Homepage -->
   <url>
     <loc>https://lovelyanswers.com/</loc>
-    <lastmod>2026-01-25</lastmod>
+    <lastmod>2026-01-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  
+  <!-- Blog -->
+  <url>
+    <loc>https://lovelyanswers.com/blog</loc>
+    <lastmod>2026-01-28</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   
   <!-- Pricing -->
