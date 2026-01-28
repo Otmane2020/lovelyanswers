@@ -1393,6 +1393,10 @@ export type Database = {
           total_days: number
         }[]
       }
+      project_has_public_answers: {
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
