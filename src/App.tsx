@@ -39,6 +39,7 @@ import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import SuperAdmin from "./pages/SuperAdmin";
 import Blog from "./pages/Blog";
+import LocalAeoArticle from "./pages/LocalAeoArticle";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
+                  <Route path="/localAEO" element={<LocalAeoArticle />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
