@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Star, Phone, Globe, Clock, X, ExternalLink } from "lucide-react";
+import { MapPin, Star, Phone, Globe, Clock, X, ExternalLink, FileText } from "lucide-react";
 
 interface Business {
   id: string;
@@ -17,10 +17,11 @@ interface Business {
 
 interface LocalBusinessCardProps {
   business: Business;
+  businessDescription?: string | null;
   onClear: () => void;
 }
 
-export function LocalBusinessCard({ business, onClear }: LocalBusinessCardProps) {
+export function LocalBusinessCard({ business, businessDescription, onClear }: LocalBusinessCardProps) {
   return (
     <Card className="border-orange-200/50 dark:border-orange-800/30 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20">
       <CardContent className="p-6">
@@ -36,6 +37,16 @@ export function LocalBusinessCard({ business, onClear }: LocalBusinessCardProps)
               <MapPin className="h-4 w-4" />
               {business.address}
             </p>
+            {businessDescription && (
+              <div className="mt-3 p-3 bg-white/60 dark:bg-white/5 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {businessDescription}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-4 mt-4">
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
