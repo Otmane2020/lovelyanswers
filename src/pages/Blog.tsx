@@ -33,7 +33,7 @@ export default function Blog() {
         const { data, error } = await supabase
           .from("answers")
           .select(`
-            id, question, answer, slug, published_at, score, published_url,
+            id, question, answer, slug, published_at, score,
             projects!inner(website_url, domain)
           `)
           .eq("is_public", true)
@@ -42,26 +42,14 @@ export default function Blog() {
 
         if (error) throw error;
         
-        // Filter to only show answers from lovelyanswers.com domain
-        // or answers that have no external published_url
+        // ONLY show answers from lovelyanswers.com projects
         const lovelyanswersAnswers = (data || []).filter((answer: any) => {
-          const projectUrl = answer.projects?.website_url || '';
-          const projectDomain = answer.projects?.domain || '';
-          const publishedUrl = answer.published_url || '';
+          const projectUrl = (answer.projects?.website_url || '').toLowerCase();
+          const projectDomain = (answer.projects?.domain || '').toLowerCase();
           
-          // Check if this is a lovelyanswers.com project
-          const isLovelyAnswersProject = 
-            projectUrl.includes('lovelyanswers.com') || 
-            projectDomain.includes('lovelyanswers.com');
-          
-          // Check if published_url points to lovelyanswers.com or is internal
-          const isInternalPublish = 
-            !publishedUrl || 
-            publishedUrl.includes('lovelyanswers.com') ||
-            publishedUrl.includes('lovable.app');
-          
-          // Only show if it's a lovelyanswers project OR published internally
-          return isLovelyAnswersProject || isInternalPublish;
+          // Strict filter: ONLY lovelyanswers.com projects
+          return projectUrl.includes('lovelyanswers.com') || 
+                 projectDomain === 'lovelyanswers.com';
         });
         
         setAnswers(lovelyanswersAnswers);

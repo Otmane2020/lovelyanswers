@@ -58,22 +58,16 @@ export default function AeoPublicAnswer() {
 
       if (error) throw error;
       
-      // Check if this answer belongs to lovelyanswers.com or has no external published_url
-      const projectUrl = (data as any).projects?.website_url || '';
-      const projectDomain = (data as any).projects?.domain || '';
-      const publishedUrl = data.published_url || '';
+      // Strict filter: ONLY show if it's a lovelyanswers.com project
+      const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
+      const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
       
       const isLovelyAnswersProject = 
         projectUrl.includes('lovelyanswers.com') || 
-        projectDomain.includes('lovelyanswers.com');
+        projectDomain === 'lovelyanswers.com';
       
-      const isInternalPublish = 
-        !publishedUrl || 
-        publishedUrl.includes('lovelyanswers.com') ||
-        publishedUrl.includes('lovable.app');
-      
-      // Only show if it's internal to lovelyanswers.com
-      if (!isLovelyAnswersProject && !isInternalPublish) {
+      // Block access for non-lovelyanswers.com projects
+      if (!isLovelyAnswersProject) {
         console.log('Answer belongs to external client, not showing on lovelyanswers.com');
         setAnswer(null);
         return;
