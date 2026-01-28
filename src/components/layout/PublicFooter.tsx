@@ -31,7 +31,7 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link to="/local" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/localAEO" className="text-muted-foreground hover:text-foreground transition-colors">
                   Local AEO
                 </Link>
               </li>
