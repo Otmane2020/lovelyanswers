@@ -437,7 +437,8 @@ export default function AeoReddit() {
     
     for (const post of posts) {
       if (!post.suggestedComment) {
-        await generateReplyForPost(post, { mentionBrand: true, includeLink: false });
+        // 🔥 ALWAYS include brand + link intelligently via backend logic
+        await generateReplyForPost(post, { mentionBrand: true, includeLink: true });
         await new Promise(r => setTimeout(r, 1000));
       }
     }
@@ -445,7 +446,7 @@ export default function AeoReddit() {
     setLoading(false);
     toast({
       title: "All replies generated!",
-      description: `Generated with brand mentions for ${activeProject?.brand_name || "your brand"}`,
+      description: `Generated with brand + URL for ${activeProject?.brand_name || "your brand"}`,
     });
   };
 
