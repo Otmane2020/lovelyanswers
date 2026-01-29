@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { TrustedByMarquee } from "@/components/TrustedByMarquee";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 
@@ -330,6 +331,9 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* Trusted By Marquee */}
+      <TrustedByMarquee />
 
       {/* AI Comparison Section - WITHOUT vs WITH */}
       <section className="py-12 md:py-20 bg-muted/30">
