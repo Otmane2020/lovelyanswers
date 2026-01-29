@@ -122,3 +122,10 @@ verify_jwt = false
 
 [functions.generate-30-local-answers]
 verify_jwt = false
+
+[functions.index-published-articles]
+verify_jwt = false
+schedule = "30 * * * *"
+
+[functions.gsc-test-indexation]
+verify_jwt = false
