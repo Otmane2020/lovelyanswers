@@ -1,100 +1,76 @@
 
+# Plan de Correction : Isolation des Intégrations entre Utilisateurs
 
-# Correction : Validation réelle du succès d'indexation Google
+## Diagnostic
 
-## Problème identifié
+**Problème critique identifié** : L'Edge Function `cms-publish` utilise le Service Role Key pour accéder aux intégrations, ce qui bypass complètement les politiques RLS. Un utilisateur malveillant peut publier sur l'intégration d'un autre utilisateur en devinant ou obtenant un UUID d'intégration.
 
-Le code actuel considère l'indexation comme réussie si Google retourne HTTP 200, mais **Google peut retourner 200 sans réellement accepter la demande**.
+## Changements Requis
 
-### Réponse Google valide (vraie indexation) :
-```json
-{
-  "urlNotificationMetadata": {
-    "url": "https://lovelyanswers.com/blog/...",
-    "latestUpdate": {
-      "notifyTime": "2023-05-27T01:02:35.537421311Z",
-      "type": "URL_UPDATED"
-    }
+### 1. Edge Function `cms-publish` - Ajouter Vérification d'Appartenance
+
+Modifier la logique pour vérifier que l'intégration appartient bien à un projet de l'utilisateur authentifié :
+
+```text
+supabase/functions/cms-publish/index.ts
+```
+
+**Avant** (vulnérable) :
+```typescript
+const { data: integration, error: intError } = await supabase
+  .from("integrations")
+  .select("*")
+  .eq("id", requestData.integrationId)
+  .single();
+```
+
+**Après** (sécurisé) :
+```typescript
+// Récupérer l'intégration avec son projet
+const { data: integration, error: intError } = await supabase
+  .from("integrations")
+  .select("*, projects!inner(user_id)")
+  .eq("id", requestData.integrationId)
+  .single();
+
+if (intError || !integration) {
+  throw new Error("Integration not found");
+}
+
+// CRITIQUE: Vérifier que l'utilisateur est propriétaire OU que c'est un appel interne
+if (!isInternalCall && authenticatedUserId) {
+  if (integration.projects.user_id !== authenticatedUserId) {
+    console.error(`[cms-publish] SECURITY: User ${authenticatedUserId} tried to access integration owned by ${integration.projects.user_id}`);
+    return new Response(
+      JSON.stringify({ error: "Access denied - integration belongs to another user" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 }
 ```
 
-### Réponse actuelle (indexation non acceptée) :
-```json
-{
-  "urlNotificationMetadata": {
-    "url": "https://lovelyanswers.com/blog/..."
-  }
-}
-```
+### 2. Vérification Similaire pour `test-integration`
 
-L'absence de `latestUpdate.notifyTime` signifie que Google n'a pas réellement traité la demande.
+Inspecter et corriger la fonction `test-integration` avec la même logique.
 
-## Solution
+### 3. Vérification pour `gmb-publish-post`
 
-Modifier la validation dans `gsc-test-indexation/index.ts` pour vérifier que `latestUpdate.notifyTime` est présent.
+Appliquer le même pattern de sécurité.
 
-## Changements techniques
+### 4. Audit des Autres Edge Functions
 
-### 1. Edge Function `gsc-test-indexation/index.ts`
+Vérifier toutes les Edge Functions qui accèdent à des ressources utilisateur :
+- `publish-scheduled-answers` (cron - OK car utilise project_id)
+- Autres fonctions utilisant `integrationId`
 
-**Avant (ligne 244-251)** :
-```javascript
-console.log("[gsc-test-indexation] Success:", indexingResult);
+## Impact
 
-return new Response(
-  JSON.stringify({
-    success: true,
-    notifyTime: indexingResult.urlNotificationMetadata?.latestUpdate?.notifyTime,
-  }),
-  ...
-);
-```
+- **Sécurité** : Empêche la publication croisée entre utilisateurs
+- **Logging** : Trace les tentatives d'accès non autorisées
+- **Compatibilité** : Les appels internes (cron jobs) continuent de fonctionner
 
-**Après** :
-```javascript
-console.log("[gsc-test-indexation] Response:", indexingResult);
+## Tests à Effectuer
 
-// Validate that Google actually accepted the indexation request
-const notifyTime = indexingResult.urlNotificationMetadata?.latestUpdate?.notifyTime;
-
-if (!notifyTime) {
-  console.error("[gsc-test-indexation] No notifyTime - indexation not accepted");
-  return new Response(
-    JSON.stringify({
-      success: false,
-      error: "Google a reçu la requête mais n'a pas accepté l'indexation. Vérifiez que vous êtes bien propriétaire vérifié de ce domaine dans Google Search Console.",
-      errorDetails: {
-        reason: "NO_NOTIFY_TIME",
-        receivedData: indexingResult.urlNotificationMetadata
-      }
-    }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
-
-console.log("[gsc-test-indexation] Success - notifyTime:", notifyTime);
-
-return new Response(
-  JSON.stringify({
-    success: true,
-    notifyTime,
-  }),
-  ...
-);
-```
-
-## Résultat attendu
-
-| Cas | Avant | Après |
-|-----|-------|-------|
-| Google accepte réellement | ✅ Succès | ✅ Succès avec date |
-| Google retourne 200 sans traiter | ✅ Faux succès | ❌ Erreur explicative |
-| Erreur Google API | ❌ Erreur | ❌ Erreur |
-
-## Fichiers modifiés
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/gsc-test-indexation/index.ts` | Ajouter validation `notifyTime` |
-
+1. Créer une intégration avec User A
+2. Essayer de publier avec User B en utilisant l'UUID de l'intégration de User A
+3. Vérifier que le système retourne une erreur 403
