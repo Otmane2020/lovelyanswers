@@ -241,12 +241,32 @@ serve(async (req) => {
       );
     }
 
-    console.log("[gsc-test-indexation] Success:", indexingResult);
+    console.log("[gsc-test-indexation] Response:", indexingResult);
+
+    // Validate that Google actually accepted the indexation request
+    const notifyTime = indexingResult.urlNotificationMetadata?.latestUpdate?.notifyTime;
+
+    if (!notifyTime) {
+      console.error("[gsc-test-indexation] No notifyTime - indexation not accepted");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Google a reçu la requête mais n'a pas accepté l'indexation. Vérifiez que vous êtes bien propriétaire vérifié de ce domaine dans Google Search Console.",
+          errorDetails: {
+            reason: "NO_NOTIFY_TIME",
+            receivedData: indexingResult.urlNotificationMetadata
+          }
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[gsc-test-indexation] Success - notifyTime:", notifyTime);
 
     return new Response(
       JSON.stringify({
         success: true,
-        notifyTime: indexingResult.urlNotificationMetadata?.latestUpdate?.notifyTime,
+        notifyTime,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
