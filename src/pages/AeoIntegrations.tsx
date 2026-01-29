@@ -345,7 +345,24 @@ export default function AeoIntegrations() {
                           {integration.config?.name || cms?.name || integration.platform}
                         </p>
                         <p className="text-sm text-muted-foreground truncate max-w-md">
-                          {integration.config?.endpoint || "Connected"}
+                          {/* Show siteUrl for Lovable/Bolt, otherwise endpoint domain */}
+                          {integration.config?.siteUrl 
+                            ? (() => {
+                                try {
+                                  return new URL(integration.config.siteUrl).hostname;
+                                } catch {
+                                  return integration.config.siteUrl;
+                                }
+                              })()
+                            : integration.config?.endpoint 
+                              ? (() => {
+                                  try {
+                                    return new URL(integration.config.endpoint).hostname;
+                                  } catch {
+                                    return integration.config.endpoint;
+                                  }
+                                })()
+                              : "Connected"}
                         </p>
                       </div>
                     </div>
