@@ -168,14 +168,30 @@ serve(async (req) => {
     if (requestData.integrationId) {
       console.log(`[cms-publish] Using integration ${requestData.integrationId}`);
       
+      // SECURITY: Fetch integration WITH project user_id for ownership verification
       const { data: integration, error: intError } = await supabase
         .from("integrations")
-        .select("*")
+        .select("*, projects!inner(user_id)")
         .eq("id", requestData.integrationId)
         .single();
 
       if (intError || !integration) {
+        console.error(`[cms-publish] Integration not found: ${requestData.integrationId}`);
         throw new Error("Integration not found");
+      }
+
+      // CRITICAL SECURITY CHECK: Verify user owns this integration
+      // Skip for internal calls (cron jobs, etc.)
+      if (!isInternalCall && authenticatedUserId) {
+        const integrationOwnerId = (integration.projects as { user_id: string }).user_id;
+        if (integrationOwnerId !== authenticatedUserId) {
+          console.error(`[cms-publish] SECURITY VIOLATION: User ${authenticatedUserId} attempted to access integration owned by ${integrationOwnerId}`);
+          return new Response(
+            JSON.stringify({ error: "Access denied - integration belongs to another user" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log(`[cms-publish] Ownership verified for user ${authenticatedUserId}`);
       }
 
       platform = integration.platform;

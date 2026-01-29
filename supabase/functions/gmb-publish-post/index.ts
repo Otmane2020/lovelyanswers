@@ -44,10 +44,10 @@ serve(async (req) => {
       );
     }
 
-    // Get GMB integration
+    // Get GMB integration WITH project ownership verification
     const { data: integration, error: intError } = await supabase
       .from("integrations")
-      .select("*")
+      .select("*, projects!inner(user_id)")
       .eq("project_id", projectId)
       .eq("platform", "google_business")
       .single();
@@ -56,6 +56,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "GMB not connected" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // CRITICAL SECURITY CHECK: Verify user owns this integration
+    const integrationOwnerId = (integration.projects as { user_id: string }).user_id;
+    if (integrationOwnerId !== user.id) {
+      console.error(`[gmb-publish-post] SECURITY VIOLATION: User ${user.id} attempted to access integration owned by ${integrationOwnerId}`);
+      return new Response(
+        JSON.stringify({ error: "Access denied - integration belongs to another user" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
