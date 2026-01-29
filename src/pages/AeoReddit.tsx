@@ -18,12 +18,17 @@ import {
   Search,
   Shield,
   User,
-  EyeOff
+  EyeOff,
+  MapPin,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
+import { useAnswers } from "@/hooks/useAnswers";
+import { useArticles } from "@/hooks/useArticles";
+import { useLocalAnswers } from "@/hooks/useLocalAnswers";
 import {
   Select,
   SelectContent,
@@ -130,6 +135,16 @@ export default function AeoReddit() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { project: activeProject } = useActiveProject();
+  
+  // Fetch content counts for stats
+  const { data: rawAnswers = [] } = useAnswers();
+  const { data: rawArticles = [] } = useArticles();
+  const { data: rawLocalAnswers = [] } = useLocalAnswers();
+  
+  // Calculate published counts
+  const aeoCount = rawAnswers.filter((a) => a.is_public).length;
+  const localCount = rawLocalAnswers.filter((a) => a.is_public).length;
+  const seoCount = rawArticles.filter((a) => a.status === "published").length;
   
   const [posts, setPosts] = useState<RedditPost[]>([]);
   const [loading, setLoading] = useState(false);
@@ -622,8 +637,45 @@ export default function AeoReddit() {
           )}
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Content Stats - AEO, Local AEO, SEO */}
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* AEO */}
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{aeoCount}</p>
+                <p className="text-xs text-muted-foreground">AEO</p>
+              </div>
+            </div>
+          </Card>
+          {/* Local AEO */}
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{localCount}</p>
+                <p className="text-xs text-muted-foreground">Local</p>
+              </div>
+            </div>
+          </Card>
+          {/* SEO */}
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{seoCount}</p>
+                <p className="text-xs text-muted-foreground">SEO</p>
+              </div>
+            </div>
+          </Card>
+          {/* Reddit Opportunities */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
@@ -635,38 +687,27 @@ export default function AeoReddit() {
               </div>
             </div>
           </Card>
+          {/* Replies Ready */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{posts.filter(p => p.suggestedComment).length}</p>
-                <p className="text-xs text-muted-foreground">Replies Ready</p>
+                <p className="text-xs text-muted-foreground">Replies</p>
               </div>
             </div>
           </Card>
+          {/* Trending */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{posts.filter(p => p.trending).length}</p>
                 <p className="text-xs text-muted-foreground">Trending</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {posts.filter(p => (p.estimatedScore || 0) >= 70).length}
-                </p>
-                <p className="text-xs text-muted-foreground">Safe to Post</p>
               </div>
             </div>
           </Card>
