@@ -1,58 +1,40 @@
 
 
-# Plan de correction : Récursion infinie RLS sur /blog
+# Correction de la connexion Google Search Console
 
-## Problème
+## Problème identifié
 
-La page `/blog` renvoie une erreur 500 car les politiques RLS sur les tables `projects` et `answers` se référencent mutuellement, créant une boucle infinie.
+L'application envoie des URIs de redirection différentes de celles configurées dans Google Cloud Console.
 
-**Erreur exacte** : `infinite recursion detected in policy for relation "projects"`
+| L'application envoie | Google Cloud Console a |
+|---------------------|------------------------|
+| `https://lovelyanswers.com/analytics` | `https://lovelyanswers.com/analytics/v1/callback` |
+| `https://lovelyanswers.com/integrations` | `https://lovelyanswers.com/settings/v1/callback` |
+
+Google OAuth exige une correspondance **exacte** - même un caractère différent provoque l'erreur `redirect_uri_mismatch`.
 
 ## Solution
 
-Utiliser une **fonction SECURITY DEFINER** pour briser la récursion. Cette fonction s'exécute avec les privilèges de son créateur, évitant ainsi la vérification RLS en cascade.
+### Ajouter ces 4 URIs dans Google Cloud Console
 
-## Étapes de correction
+Dans la console Google Cloud (Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs) :
 
-### 1. Supprimer la politique problématique
-Supprimer la politique `"Anyone can view projects with public answers"` sur `projects` qui cause la récursion.
-
-### 2. Créer une fonction SECURITY DEFINER
-Créer une fonction qui vérifie si un projet a des réponses publiques, sans déclencher les politiques RLS :
-
-```sql
-CREATE OR REPLACE FUNCTION public.project_has_public_answers(p_project_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.answers
-    WHERE project_id = p_project_id
-    AND is_public = true
-  )
-$$;
+```text
+https://lovelyanswers.com/analytics
+https://lovelyanswers.com/integrations
+https://lovelyanswers.lovable.app/analytics
+https://lovelyanswers.lovable.app/integrations
 ```
 
-### 3. Recréer la politique avec la fonction
-```sql
-CREATE POLICY "Anyone can view projects with public answers" 
-ON public.projects 
-FOR SELECT 
-USING (public.project_has_public_answers(id));
-```
+### URIs existantes à conserver
 
-## Changements techniques
+Les URIs `/v1/callback` sont utilisées pour l'authentification Supabase (connexion utilisateur), ne les supprimez pas.
 
-| Fichier | Action |
-|---------|--------|
-| Migration SQL | Supprimer ancienne politique, créer fonction, recréer politique |
+### Temps de propagation
 
-## Résultat attendu
+Google indique que les changements peuvent prendre de 5 minutes à quelques heures pour prendre effet. Dans la pratique, c'est généralement immédiat (moins de 1 minute).
 
-- La page `/blog` affichera les articles publics de lovelyanswers.com
-- Plus d'erreur de récursion infinie
-- Les visiteurs anonymes pourront voir les articles publics
+## Pas de modification de code nécessaire
+
+Le code est correct. Il envoie les bonnes URIs (`/analytics` et `/integrations`). Le problème est uniquement dans la configuration Google Cloud Console.
 
