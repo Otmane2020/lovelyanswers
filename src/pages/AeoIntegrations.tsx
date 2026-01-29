@@ -618,31 +618,6 @@ export default function AeoIntegrations() {
                 </div>
               )}
 
-              {/* Advanced Diagnostic Button */}
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRunDiagnostic}
-                  disabled={isRunningDiagnostic || !testIndexUrl.trim()}
-                  className="gap-2"
-                >
-                  {isRunningDiagnostic ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Analyse en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Stethoscope className="h-4 w-4" />
-                      Diagnostic avancé
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Vérifie le token OAuth, les scopes, et l'état de l'API Google.
-                </p>
-              </div>
 
               {/* Diagnostic Results Panel */}
               {showDiagnostic && diagnosticResult && (
