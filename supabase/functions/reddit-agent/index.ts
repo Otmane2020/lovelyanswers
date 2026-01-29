@@ -1782,9 +1782,10 @@ async function generateRedditReply(
     ? "Écris en français naturel et conversationnel. Utilise le tutoiement si approprié sur Reddit."
     : "Write in natural, conversational English.";
 
-  // 🔒 PATCH 2 — Brand mention = probabilistic (30% chance if enabled)
-  const shouldMentionBrand = mentionBrand && brandName && Math.random() < 0.3;
-  const shouldIncludeLink = includeLink && brandUrl && shouldMentionBrand && Math.random() < 0.5;
+  // 🔥 ENHANCED: ALWAYS include brand + link intelligently when requested
+  // Brand mention is guaranteed if mentionBrand=true, link is added intelligently
+  const shouldMentionBrand = mentionBrand && !!brandName;
+  const shouldIncludeLink = includeLink && !!brandUrl && shouldMentionBrand;
   const actualBrandName = brandName || (language === "fr" ? "un outil que j'ai testé" : "a tool I tried");
 
   // Business context for more relevant replies
@@ -1804,6 +1805,24 @@ Never mention AI, machine learning, or automation.
 ${languageInstructions}
 Tone: ${toneInstructions[tone] || toneInstructions.expert_human}${businessContext}`;
 
+  // 🔥 Build brand/link instruction based on context
+  let brandInstruction = "";
+  if (shouldMentionBrand) {
+    if (shouldIncludeLink) {
+      // Include BOTH brand + link intelligently
+      brandInstruction = language === "fr"
+        ? `- Tu DOIS mentionner "${actualBrandName}" naturellement comme quelque chose que tu as testé/utilisé (1 phrase max). Glisse aussi le lien ${brandUrl} de façon naturelle, par exemple "j'ai testé ${actualBrandName} (${brandUrl})" ou "perso j'utilise ${actualBrandName}, leur site: ${brandUrl}"`
+        : `- You MUST naturally mention "${actualBrandName}" as something you tried/used (1 phrase max). Also casually include the link ${brandUrl}, like "I've been using ${actualBrandName} (${brandUrl})" or "personally I use ${actualBrandName}, their site: ${brandUrl}"`;
+    } else {
+      // Include brand only, no link
+      brandInstruction = language === "fr"
+        ? `- Tu DOIS mentionner "${actualBrandName}" naturellement comme quelque chose que tu as testé (1 phrase max, ultra casual)`
+        : `- You MUST naturally mention "${actualBrandName}" as something you personally tried (1 phrase max, ultra casual)`;
+    }
+  } else {
+    brandInstruction = "- Do NOT mention any product, tool, or service by name";
+  }
+
   const userPrompt = `Reddit post to respond to:
 Title: ${title}
 ${body ? `Body: ${body}` : "(No body text)"}
@@ -1814,7 +1833,7 @@ Write a Reddit comment ${language === "fr" ? "EN FRANÇAIS" : "in English"} that
 - Maximum 100 words (shorter is better)
 - Ends with a casual question or "curious what others think"
 - Sounds like a real person, not a consultant
-${shouldMentionBrand ? `- You can briefly mention "${actualBrandName}" as something you personally tried (1 phrase max, ultra casual)${shouldIncludeLink ? ` and casually drop the link: ${brandUrl}` : ""}` : "- Do NOT mention any product, tool, or service by name"}
+${brandInstruction}
 
 Write the Reddit comment now:`;
 
