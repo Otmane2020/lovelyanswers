@@ -33,8 +33,7 @@ export default function Blog() {
         const { data, error } = await supabase
           .from("answers")
           .select(`
-            id, question, answer, slug, published_at, score,
-            projects!inner(website_url, domain)
+            id, question, answer, slug, published_at, score
           `)
           .eq("is_public", true)
           .not("published_at", "is", null)
@@ -42,17 +41,7 @@ export default function Blog() {
 
         if (error) throw error;
         
-        // ONLY show answers from lovelyanswers.com projects
-        const lovelyanswersAnswers = (data || []).filter((answer: any) => {
-          const projectUrl = (answer.projects?.website_url || '').toLowerCase();
-          const projectDomain = (answer.projects?.domain || '').toLowerCase();
-          
-          // Strict filter: ONLY lovelyanswers.com projects
-          return projectUrl.includes('lovelyanswers.com') || 
-                 projectDomain === 'lovelyanswers.com';
-        });
-        
-        setAnswers(lovelyanswersAnswers);
+        setAnswers(data || []);
       } catch (error) {
         console.error("Error fetching public answers:", error);
       } finally {
