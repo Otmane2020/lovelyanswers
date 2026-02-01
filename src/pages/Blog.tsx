@@ -29,8 +29,8 @@ export default function Blog() {
   useEffect(() => {
     const fetchPublicAnswers = async () => {
       try {
-        // Fetch answers with their project info to filter by domain
-        const { data, error } = await supabase
+        // Fetch AEO answers with their project info
+        const { data: aeoData, error: aeoError } = await supabase
           .from("answers")
           .select(`
             id, question, answer, slug, published_at, score,
@@ -40,10 +40,26 @@ export default function Blog() {
           .not("published_at", "is", null)
           .order("published_at", { ascending: false });
 
-        if (error) throw error;
+        if (aeoError) throw aeoError;
+
+        // Fetch Local AEO answers with their project info
+        const { data: localData, error: localError } = await supabase
+          .from("local_answers")
+          .select(`
+            id, question, answer, slug, published_at, score,
+            projects!inner(website_url, domain)
+          `)
+          .eq("is_public", true)
+          .not("published_at", "is", null)
+          .order("published_at", { ascending: false });
+
+        if (localError) throw localError;
+        
+        // Combine both sources
+        const allAnswers = [...(aeoData || []), ...(localData || [])];
         
         // Only show answers from lovelyanswers.com projects
-        const lovelyanswersAnswers = (data || []).filter((answer: any) => {
+        const lovelyanswersAnswers = allAnswers.filter((answer: any) => {
           const projectDomain = (answer.projects?.domain || '').toLowerCase();
           const projectUrl = (answer.projects?.website_url || '').toLowerCase();
           
@@ -51,6 +67,11 @@ export default function Blog() {
                  projectDomain.includes('lovelyanswers') ||
                  projectUrl.includes('lovelyanswers.com');
         });
+        
+        // Sort by published_at descending
+        lovelyanswersAnswers.sort((a: any, b: any) => 
+          new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+        );
         
         setAnswers(lovelyanswersAnswers);
       } catch (error) {
