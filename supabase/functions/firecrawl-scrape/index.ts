@@ -395,6 +395,14 @@ Deno.serve(async (req) => {
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
     console.log('[SCRAPE] Found', audiences.length, 'audiences,', competitors.length, 'competitors,', keywords.length, 'keywords');
 
+    // ============= STEP 5: Generate Q&A + SEO Titles from Competitors =============
+    const qaSeo = lovableApiKey && competitors.length >= 2 && keywords.length >= 5
+      ? await generateQaAndSeoTitlesFromCompetitors(competitors, keywords, language, lovableApiKey)
+      : [];
+    
+    console.log('[SCRAPE] Generated', qaSeo.length, 'Q&A items');
+    console.log('[SCRAPE] Final time:', Date.now() - startTime, 'ms');
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -405,7 +413,8 @@ Deno.serve(async (req) => {
           audiences: audiences.length >= 2 ? audiences : ['business owners', 'professionals', 'decision makers'],
           competitors,
           keywords: keywords.length >= 5 ? keywords : [],
-          cms, // Include detected CMS
+          cms,
+          qaSeo,
         },
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -1161,6 +1170,110 @@ async function fetchCompetitorsFromSERP(
 
   } catch (e) {
     console.error('[COMPETITORS] SERP API error:', e);
+    return [];
+  }
+}
+
+// ============= AEO Q&A + SEO TITLES GENERATION =============
+// Generate Q&A and SEO titles based on competitor consensus
+async function generateQaAndSeoTitlesFromCompetitors(
+  competitors: string[],
+  keywords: Array<{ keyword: string; intent: string }>,
+  language: string,
+  apiKey: string
+): Promise<Array<{
+  question: string;
+  shortAnswer: string;
+  answer: string;
+  seoTitle: string;
+  intent: string;
+}>> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    const langInstruction =
+      language === 'fr'
+        ? 'Réponds en FRANÇAIS.'
+        : 'Respond in ENGLISH.';
+
+    const response = await fetch(
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'user',
+              content: `You are an AEO & SEO content expert.
+
+Goal:
+Generate Q&A and SEO titles based on competitor consensus.
+
+Competitors:
+${competitors.map((c) => `- ${c}`).join('\n')}
+
+Target keywords:
+${keywords.map((k) => `- ${k.keyword} (${k.intent})`).join('\n')}
+
+Rules:
+- Identify questions answered by multiple competitors
+- Rewrite them as CLEAR, neutral questions
+- Provide:
+  - Short direct answer (1–2 sentences)
+  - Expanded answer (4–6 lines)
+  - SEO title (≤ 60 characters)
+- No marketing fluff
+- High citability for AI answers (ChatGPT / Gemini)
+
+${langInstruction}
+
+Return ONLY JSON array:
+[
+  {
+    "question": "...",
+    "shortAnswer": "...",
+    "answer": "...",
+    "seoTitle": "...",
+    "intent": "informational | commercial"
+  }
+]`,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 1200,
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.error('[AEO-QA] API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*?\]/);
+
+    if (!match) {
+      console.log('[AEO-QA] No JSON array found in response');
+      return [];
+    }
+
+    const parsed = JSON.parse(match[0]);
+    const results = Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+    console.log('[AEO-QA] Generated', results.length, 'Q&A items');
+    return results;
+  } catch (e) {
+    console.error('[AEO-QA] Error:', e);
     return [];
   }
 }
