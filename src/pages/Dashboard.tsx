@@ -210,6 +210,13 @@ export default function Dashboard() {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
+        // Don't proceed if no valid session
+        if (!session?.access_token) {
+          console.log("[Dashboard] No valid session, skipping auto-generation");
+          hasTriggeredGeneration.current = false;
+          return;
+        }
 
         toast.info("🔄 Incomplete planning — auto-generation in progress...", {
           duration: 5000,
