@@ -1,116 +1,146 @@
 
 # Correction de la Détection des Concurrents pour vends-le.fr
 
-## Problèmes Identifiés
+## Diagnostic des Problèmes
 
-### 1. Leboncoin est dans la liste des domaines bloqués
-**Fichier** : `supabase/functions/firecrawl-scrape/index.ts`  
-**Ligne** : 787  
-**Code actuel** :
-```typescript
-// French marketplaces
-'cdiscount.com', 'leboncoin.fr', 'fnac.com', 'darty.com',
+### 1. DataForSEO API non fonctionnelle
+Les logs montrent clairement :
 ```
-**Problème** : Leboncoin est un concurrent DIRECT pour un site de vente d'occasion comme vends-le.fr, mais il est bloqué comme "marketplace généraliste".
+[COMPETITORS] No results from DataForSEO domain API: You are not authorized...
+[COMPETITORS] SERP API error: You are not authorized...
+[RELATED-KW] No results: You are not authorized...
+```
+Les identifiants DataForSEO sont incorrects ou expirés, ce qui force le système à utiliser uniquement le fallback Firecrawl.
 
-### 2. La liste de blocage est trop agressive
-Les marketplaces françaises comme Leboncoin, Vinted sont bloquées car elles ont été catégorisées comme "génériques" alors qu'elles sont des concurrents directs pour certains verticaux.
+### 2. Firecrawl Google Search retourne des médias/blogs
+La recherche "alternatives meubles occasion France" retourne :
+- `linfodurable.fr` (média écologie) 
+- `madmoizelle.com` (magazine lifestyle)
+- `debongout-paris.com` (blog déco)
 
-### 3. Le scoring AI ne corrige pas ce problème
-Le scoring se fait APRÈS le filtrage, donc les bons concurrents sont déjà éliminés avant d'être évalués.
+Ces sites ne sont PAS des plateformes de vente d'occasion.
+
+### 3. Le filtre de domaine est insuffisant
+Le code actuel (ligne 639) filtre par mot-clé dans le domaine :
+```typescript
+if (['blog', 'news', 'review', 'compare', 'best', 'top', 'list'].some(w => domainWords.includes(w))) continue;
+```
+Mais `linfodurable` ne contient aucun de ces mots.
+
+### 4. Le scoring AI ne rejette pas les médias
+Bien que `scoreCompetitorSimilarity` devrait scorer "linfodurable" bas (c'est un média, pas une marketplace), il semble qu'il passe quand même avec un score >= 40.
 
 ---
 
-## Solution Proposée
+## Solutions
 
-### Étape 1 : Créer une liste de blocage contextuelle
-Au lieu d'une liste statique, adapter le blocage selon le type de business détecté.
+### Étape 1 : Ajouter une liste de blocage pour les médias/blogs français connus
 
-**Logique** :
-```
-Si business_type contient "occasion", "seconde main", "vente entre particuliers" :
-  → NE PAS bloquer : leboncoin.fr, vinted.fr, videdressing.com, selency.com
-  
-Sinon (business SaaS, e-commerce classique) :
-  → Bloquer les marketplaces génériques
-```
+Créer une nouvelle liste `BLOCKED_MEDIA_DOMAINS` avec les médias/magazines qui apparaissent dans les SERP mais ne sont pas des concurrents :
 
-### Étape 2 : Modifier la fonction `isBlockedDomain()`
-**Avant** (statique) :
 ```typescript
-function isBlockedDomain(domain: string): boolean {
-  const lower = domain.toLowerCase();
-  if (BLOCKED_DOMAINS.has(lower)) return true;
-  // ...
-}
+const BLOCKED_MEDIA_DOMAINS = new Set([
+  // Médias français écologie/lifestyle
+  'linfodurable.fr', 'madmoizelle.com', 'lepoint.fr', 'lefigaro.fr',
+  'lemonde.fr', 'liberation.fr', 'lexpress.fr', '20minutes.fr',
+  'huffingtonpost.fr', 'bfmtv.com', 'tf1info.fr', 'francetvinfo.fr',
+  // Blogs déco/lifestyle
+  'deco.fr', 'cotemaison.fr', 'elle.fr', 'marieclaire.fr',
+  'femmeactuelle.fr', 'aufeminin.com', 'journaldesfemmes.fr',
+  // Magazine/guide généralistes
+  'consoglobe.com', 'radins.com', 'frenchweb.fr', 'maddyness.com',
+]);
 ```
 
-**Après** (contextuel) :
+### Étape 2 : Améliorer `isBlockedDomain()` pour inclure les médias
+
+Modifier la fonction pour bloquer automatiquement les médias, peu importe le contexte business :
+
 ```typescript
-function isBlockedDomain(domain: string, businessContext: string): boolean {
+function isBlockedDomain(domain: string, businessContext: string = ''): boolean {
   const lower = domain.toLowerCase();
   
-  // Marketplaces seconde main - débloquées si business = occasion
-  const secondHandMarketplaces = [
-    'leboncoin.fr', 'vinted.fr', 'selency.com', 'videdressing.com',
-    'vestiaire-collective.com', 'backmarket.fr'
-  ];
-  
-  // Si le business est "occasion/seconde main", autoriser ces domaines
-  const isSecondHandBusiness = /occasion|seconde main|vente entre particuliers|marketplace C2C|vendre.*meubles/i.test(businessContext);
-  
-  if (isSecondHandBusiness && secondHandMarketplaces.some(m => lower.includes(m))) {
-    return false; // Pas bloqué = concurrent valide
+  // ALWAYS block media/news sites regardless of business context
+  if (BLOCKED_MEDIA_DOMAINS.has(lower)) {
+    console.log('[FILTER] Blocking media/blog site:', lower);
+    return true;
   }
   
-  // Sinon, logique standard
-  if (BLOCKED_DOMAINS.has(lower)) return true;
-  // ...
+  // ... reste de la logique
 }
 ```
 
-### Étape 3 : Passer le contexte business au filtrage
-Modifier les appels à `isBlockedDomain()` pour inclure `businessType` détecté par l'IA.
+### Étape 3 : Renforcer le prompt de scoring AI
 
-**Fichiers à modifier** :
-- Ligne 329 : `fetchCompetitorsFast()` → ajouter paramètre `businessContext`
-- Ligne 336 : `fetchCompetitorsFromSERP()` → ajouter paramètre `businessContext`
-- Ligne 360 : `findCompetitorsViaGoogleSearch()` → déjà a accès à `description`
+Modifier `scoreCompetitorSimilarity` pour être plus explicite sur le rejet des médias :
 
-### Étape 4 : Limiter à 4 concurrents maximum
-**Ligne 389** (actuelle) :
 ```typescript
-.slice(0, 5)
+Scoring rules:
+- 90-100: Same business model AND same niche (direct competitor)
+- 70-89: Same business model OR same niche
+- 50-69: Related industry but different model
+- 30-49: Tangentially related
+- 0-29: NOT a competitor (news sites, blogs, magazines, directories, media)
+
+CRITICAL: News sites, magazines, and content portals are NEVER competitors for e-commerce/marketplace businesses. Score them 0-20.
 ```
 
-**Nouvelle valeur** :
+### Étape 4 : Baisser le seuil de score minimum à 50
+
+Changer la ligne 384 :
 ```typescript
-.slice(0, 4) // Maximum 4 concurrents pertinents
+// Avant
+.filter(c => c.score >= 40)
+
+// Après  
+.filter(c => c.score >= 50) // Plus strict pour éliminer les médias
 ```
+
+### Étape 5 : Vérifier les identifiants DataForSEO
+
+Le problème principal est que DataForSEO ne fonctionne pas. Il faut :
+1. Vérifier les secrets `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD`
+2. Tester l'API directement pour confirmer que les identifiants sont valides
 
 ---
 
-## Résumé des Modifications
+## Résumé des Fichiers à Modifier
 
 | Fichier | Changement |
 |---------|------------|
-| `supabase/functions/firecrawl-scrape/index.ts` | Ajouter liste `SECOND_HAND_MARKETPLACES` |
-| `supabase/functions/firecrawl-scrape/index.ts` | Modifier `isBlockedDomain()` pour accepter `businessContext` |
-| `supabase/functions/firecrawl-scrape/index.ts` | Passer `businessTypeQuery` à toutes les fonctions de filtrage |
-| `supabase/functions/firecrawl-scrape/index.ts` | Changer `.slice(0, 5)` → `.slice(0, 4)` |
+| `supabase/functions/firecrawl-scrape/index.ts` | Ajouter `BLOCKED_MEDIA_DOMAINS` |
+| `supabase/functions/firecrawl-scrape/index.ts` | Modifier `isBlockedDomain()` pour bloquer les médias |
+| `supabase/functions/firecrawl-scrape/index.ts` | Améliorer le prompt de scoring (ligne 837-855) |
+| `supabase/functions/firecrawl-scrape/index.ts` | Changer seuil 40 → 50 (ligne 384) |
 
 ---
 
-## Résultat Attendu pour vends-le.fr
+## Résultat Attendu
 
 **Avant** :
 ```json
-"competitors": ["lekaba.fr", "label-emmaus.co", "linfodurable.fr", "debongout-paris.com"]
+"competitors": ["linfodurable.fr", "lekaba.fr", "leboncoin.fr", "debongout-paris.com"]
 ```
 
 **Après** :
 ```json
-"competitors": ["leboncoin.fr", "vinted.fr", "selency.com", "lekaba.fr"]
+"competitors": ["leboncoin.fr", "lekaba.fr", "selency.com", "label-emmaus.co"]
 ```
 
-Concurrents pertinents = plateformes de vente d'occasion C2C/B2C en France.
+Les médias sont exclus, seules les vraies plateformes C2C restent.
+
+---
+
+## Section Technique
+
+### Nouvelle constante BLOCKED_MEDIA_DOMAINS
+Position : Après `SECOND_HAND_MARKETPLACES` (ligne 774)
+
+### Modification de isBlockedDomain()
+Position : Ligne 783-803
+
+### Modification du prompt scoreCompetitorSimilarity
+Position : Ligne 837-855
+
+### Modification du seuil de score
+Position : Ligne 384
