@@ -572,14 +572,19 @@ export default function Onboarding() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary flex items-center gap-1.5">
-                      <img 
-                        src={`https://flagcdn.com/w20/${languages.find(l => l.code === data.language)?.flagCode || 'us'}.png`}
-                        alt=""
-                        className="w-4 h-3 object-cover rounded-sm"
-                      />
-                      {languages.find(l => l.code === data.language)?.name}
-                    </span>
+                    {(() => {
+                      const lang = languages.find(l => l.code === data.language) || languages[0];
+                      return (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary flex items-center gap-1.5">
+                          <img 
+                            src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
+                            alt={lang.name}
+                            className="w-4 h-3 object-cover rounded-sm"
+                          />
+                          {lang.name}
+                        </span>
+                      );
+                    })()}
                     {data.cms && (
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                         {data.cms}
