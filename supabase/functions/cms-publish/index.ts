@@ -841,12 +841,37 @@ async function publishToLovable(
           headers["Authorization"] = `Bearer ${config.token}`;
         }
         
+        // Generate slug from title or use provided slug
+        let articleSlug = slug;
+        if (!articleSlug && sourceId) {
+          // Try to get slug from answer
+          const { data: answer } = await supabase
+            .from("answers")
+            .select("slug")
+            .eq("id", sourceId)
+            .single();
+          articleSlug = answer?.slug;
+        }
+        // Fallback: generate slug from title
+        if (!articleSlug) {
+          articleSlug = content.title
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // Remove accents
+            .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
+            .replace(/\s+/g, "-") // Replace spaces with hyphens
+            .replace(/-+/g, "-") // Replace multiple hyphens
+            .replace(/^-|-$/g, "") // Trim hyphens
+            .substring(0, 80); // Limit length
+        }
+        
         const response = await fetch(config.endpoint, {
           method: "POST",
           headers,
           body: JSON.stringify({
             title: content.title,
             body: content.body,
+            slug: articleSlug,
             sourceId: sourceId,
             publishedAt: new Date().toISOString(),
             source: "LovelyAnswers",
@@ -860,11 +885,11 @@ async function publishToLovable(
         }
         
         const data = await response.json().catch(() => ({}));
-        console.log(`[Lovable] Published to external Lovable project`);
+        console.log(`[Lovable] Published to external Lovable project with slug: ${articleSlug}`);
         
         return {
           success: true,
-          publishedUrl: data.url || config.endpoint,
+          publishedUrl: data.url || `${config.endpoint.replace(/\/receive-article.*/, '')}/blog/${articleSlug}`,
           publishedId: sourceId,
           message: "Content published to external Lovable project",
         };
