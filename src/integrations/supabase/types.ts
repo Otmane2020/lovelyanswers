@@ -711,6 +711,84 @@ export type Database = {
           },
         ]
       }
+      onboarding_sessions: {
+        Row: {
+          brand_name: string | null
+          business_description: string | null
+          checkout_started_at: string | null
+          cms: string | null
+          competitors: string[] | null
+          completed_at: string | null
+          converted_at: string | null
+          created_at: string
+          current_step: number | null
+          device_type: string | null
+          email: string | null
+          id: string
+          keywords: Json | null
+          language: string | null
+          referrer: string | null
+          session_id: string
+          traffic_potential: number | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          brand_name?: string | null
+          business_description?: string | null
+          checkout_started_at?: string | null
+          cms?: string | null
+          competitors?: string[] | null
+          completed_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          current_step?: number | null
+          device_type?: string | null
+          email?: string | null
+          id?: string
+          keywords?: Json | null
+          language?: string | null
+          referrer?: string | null
+          session_id: string
+          traffic_potential?: number | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          brand_name?: string | null
+          business_description?: string | null
+          checkout_started_at?: string | null
+          cms?: string | null
+          competitors?: string[] | null
+          completed_at?: string | null
+          converted_at?: string | null
+          created_at?: string
+          current_step?: number | null
+          device_type?: string | null
+          email?: string | null
+          id?: string
+          keywords?: Json | null
+          language?: string | null
+          referrer?: string | null
+          session_id?: string
+          traffic_potential?: number | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
