@@ -30,10 +30,14 @@ export default function Blog() {
     const fetchPublicAnswers = async () => {
       try {
         // Fetch answers with their project info to filter by domain
+        // Get current domain
+        const currentHost = window.location.hostname.toLowerCase().replace('www.', '');
+        
         const { data, error } = await supabase
           .from("answers")
           .select(`
-            id, question, answer, slug, published_at, score
+            id, question, answer, slug, published_at, score,
+            projects!inner(website_url, domain)
           `)
           .eq("is_public", true)
           .not("published_at", "is", null)
@@ -41,7 +45,18 @@ export default function Blog() {
 
         if (error) throw error;
         
-        setAnswers(data || []);
+        // Filter to only show answers from projects matching current domain
+        const filteredAnswers = (data || []).filter((answer: any) => {
+          const projectDomain = (answer.projects?.domain || '').toLowerCase().replace('www.', '');
+          const projectUrl = (answer.projects?.website_url || '').toLowerCase();
+          
+          // Match if domain matches or website_url contains the current host
+          return projectDomain === currentHost || 
+                 projectUrl.includes(currentHost) ||
+                 currentHost.includes(projectDomain);
+        });
+        
+        setAnswers(filteredAnswers);
       } catch (error) {
         console.error("Error fetching public answers:", error);
       } finally {
