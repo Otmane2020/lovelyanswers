@@ -318,9 +318,9 @@ Deno.serve(async (req) => {
     // ============= STEP 4: Competitors detection with multi-source + scoring =============
     let rawCompetitors: string[] = [];
     
-    // Get business type EARLY for contextual filtering
+    // Get business type EARLY for contextual filtering (pass keywords for better niche detection)
     const businessTypeQuery = lovableApiKey 
-      ? await detectBusinessType(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
+      ? await detectBusinessType(enrichedDescription, contentPreview, brandName, language, lovableApiKey, keywords)
       : enrichedDescription;
     
     console.log('[COMPETITORS] Business context for filtering:', businessTypeQuery.substring(0, 100));
@@ -478,10 +478,24 @@ Return ONLY a JSON array: ["audience1", "audience2", "audience3", "audience4"]`
 }
 
 // AI-powered business type detection for accurate competitor search
-async function detectBusinessType(description: string, content: string, brandName: string, language: string, apiKey: string): Promise<string> {
+async function detectBusinessType(
+  description: string, 
+  content: string, 
+  brandName: string, 
+  language: string, 
+  apiKey: string,
+  keywords: Array<{keyword: string, intent: string}> = []
+): Promise<string> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
+
+    // Extract top keywords to help AI understand the niche better
+    const topKeywords = keywords
+      .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
+      .slice(0, 5)
+      .map(k => k.keyword)
+      .join(', ');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -497,16 +511,19 @@ async function detectBusinessType(description: string, content: string, brandNam
 
 Business: ${brandName}
 Description: ${description}
-Content sample: ${content.substring(0, 1500)}
+${topKeywords ? `Top keywords: ${topKeywords}` : ''}
+Content sample: ${content.substring(0, 1200)}
 
 Rules:
-- Identify the EXACT business type (e.g., "marketplace for selling used items" NOT "furniture store")
-- Return a query that would find DIRECT competitors in the same niche
+- USE THE KEYWORDS to understand the exact niche (e.g., "meubles occasion" = used furniture marketplace)
+- Identify the EXACT business type (e.g., "marketplace vente meubles occasion" NOT "furniture store")
+- Return a query that would find DIRECT TRANSACTIONAL competitors (sites where users can BUY/SELL)
 - Language: ${language === 'fr' ? 'FRENCH' : 'ENGLISH'}
-- Include "alternatives" or "sites like" in the query
-- Be SPECIFIC about the business model (B2B, B2C, marketplace, SaaS, etc.)
+- Include "sites" or "plateformes" in the query
+- Be SPECIFIC about the business model (marketplace C2C, e-commerce, etc.)
+- NEVER include news/media/blog terms
 
-Return ONLY the search query, nothing else. Example: "sites vente occasion entre particuliers"`
+Return ONLY the search query, nothing else. Example: "plateformes vente meubles occasion France"`
         }],
         temperature: 0.1,
         max_tokens: 50,
