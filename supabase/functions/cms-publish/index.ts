@@ -887,9 +887,20 @@ async function publishToLovable(
         const data = await response.json().catch(() => ({}));
         console.log(`[Lovable] Published to external Lovable project with slug: ${articleSlug}`);
         
+        // Build the public URL using siteUrl if available, otherwise try to extract from data or fallback
+        let publicUrl = data.url;
+        if (!publicUrl && config.siteUrl) {
+          // Use the configured site URL
+          const baseUrl = config.siteUrl.replace(/\/+$/, ''); // Remove trailing slashes
+          publicUrl = `${baseUrl}/blog/${articleSlug}`;
+        } else if (!publicUrl) {
+          // Fallback: just use the slug
+          publicUrl = `/blog/${articleSlug}`;
+        }
+        
         return {
           success: true,
-          publishedUrl: data.url || `${config.endpoint.replace(/\/receive-article.*/, '')}/blog/${articleSlug}`,
+          publishedUrl: publicUrl,
           publishedId: sourceId,
           message: "Content published to external Lovable project",
         };
