@@ -94,6 +94,8 @@ export default function Onboarding() {
   const [emailError, setEmailError] = useState("");
   const [urlError, setUrlError] = useState("");
   const analysisStartedRef = useRef<string | null>(null);
+  const languageTouchedRef = useRef(false);
+  const languageAutoDetectRef = useRef<string | null>(null);
   const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
@@ -156,6 +158,38 @@ export default function Onboarding() {
       setData(prev => ({ ...prev, websiteUrl: decodedUrl }));
     }
   }, [searchParams]);
+
+  // Best-effort language pre-detection so Step 2 is pre-selected correctly.
+  // We only apply it if the user hasn't manually chosen a language yet.
+  useEffect(() => {
+    const url = data.websiteUrl?.trim();
+    if (!url || !isValidUrl(url)) return;
+    if (languageTouchedRef.current) return;
+    if (languageAutoDetectRef.current === url) return;
+
+    languageAutoDetectRef.current = url;
+
+    (async () => {
+      try {
+        const { data: res, error } = await supabase.functions.invoke('firecrawl-scrape-fast', {
+          body: { url },
+        });
+
+        if (error) return;
+        if (!res?.success) return;
+
+        const detected = res.data?.language;
+        if (!detected || typeof detected !== 'string') return;
+
+        // Only update if still not user-touched.
+        if (!languageTouchedRef.current) {
+          setData(prev => ({ ...prev, language: detected }));
+        }
+      } catch {
+        // Silent: language detection is best-effort.
+      }
+    })();
+  }, [data.websiteUrl]);
 
   const isValidUrl = (url: string): boolean => {
     if (!url || url.length < 3) return false;
@@ -433,7 +467,10 @@ export default function Onboarding() {
                   {filteredLanguages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => setData(prev => ({ ...prev, language: lang.code }))}
+                      onClick={() => {
+                        languageTouchedRef.current = true;
+                        setData(prev => ({ ...prev, language: lang.code }));
+                      }}
                       className={cn(
                         "flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all",
                         data.language === lang.code
