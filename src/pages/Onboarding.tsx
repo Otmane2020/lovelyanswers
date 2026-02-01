@@ -206,11 +206,17 @@ export default function Onboarding() {
         description = fastData.description || description;
       }
 
-      // Process enriched result
+      // Process enriched result - OVERRIDE language if detected
       if (enrichResult.status === 'fulfilled' && enrichResult.value.data?.success) {
         const enrichData = enrichResult.value.data.data;
         description = enrichData.description || description;
         cms = enrichData.cms || "";
+        
+        // Use enriched language if available (more reliable than fast scrape)
+        if (enrichData.language) {
+          detectedLanguage = enrichData.language;
+          console.log('[ONBOARDING] Using enriched language:', detectedLanguage);
+        }
         
         if (enrichData.competitors?.length > 0) {
           competitors = enrichData.competitors.slice(0, 4).map((comp: string) => ({
