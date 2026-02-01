@@ -635,6 +635,32 @@ async function findCompetitorsViaGoogleSearch(
     const competitors: string[] = [];
     const seenDomains = new Set<string>();
 
+    // === SEO METADATA ANALYSIS ===
+    // Analyze title + description to identify e-commerce/marketplace vs media/blog
+    const ECOMMERCE_SIGNALS = [
+      // French
+      'achat', 'acheter', 'vente', 'vendre', 'occasion', 'annonces', 'petites annonces',
+      'dépôt-vente', 'depot-vente', 'seconde main', 'second hand', 'prix', 'gratuit',
+      'livraison', 'boutique', 'magasin', 'marketplace', 'vendeur', 'particulier',
+      // English
+      'buy', 'sell', 'sale', 'shop', 'store', 'marketplace', 'listing', 'classified',
+      'deals', 'discount', 'price', 'shipping', 'delivery', 'seller', 'buyer',
+      // Platform indicators
+      'annonce', 'offre', 'promo', 'soldes', 'destockage', 'occasion certifié',
+    ];
+    
+    const MEDIA_SIGNALS = [
+      // French
+      'article', 'blog', 'actualité', 'actualites', 'news', 'magazine', 'journal',
+      'rédaction', 'redaction', 'info', 'infos', 'presse', 'média', 'medias',
+      'reportage', 'édito', 'edito', 'chronique', 'interview', 'enquête',
+      'bons plans', 'bon plan', 'guide', 'conseils', 'astuces', 'top ', 'meilleurs',
+      'notre sélection', 'on vous dit', 'découvrez', 'voici', 'nos coups de coeur',
+      // English
+      'article', 'blog', 'news', 'magazine', 'editorial', 'report', 'review',
+      'best of', 'top picks', 'guide to', 'tips', 'tricks', 'how to',
+    ];
+    
     for (const result of allResults) {
       try {
         const url = result.url || result.sourceURL || '';
@@ -659,10 +685,31 @@ async function findCompetitorsViaGoogleSearch(
         const domainWords = resultDomain.split('.')[0].toLowerCase();
         if (['blog', 'news', 'review', 'compare', 'best', 'top', 'list'].some(w => domainWords.includes(w))) continue;
         
+        // === NEW: Analyze SEO title and description ===
+        const title = (result.title || '').toLowerCase();
+        const description = (result.description || '').toLowerCase();
+        const seoText = `${title} ${description}`;
+        
+        // Count e-commerce vs media signals
+        const ecommerceScore = ECOMMERCE_SIGNALS.filter(signal => seoText.includes(signal)).length;
+        const mediaScore = MEDIA_SIGNALS.filter(signal => seoText.includes(signal)).length;
+        
+        // Skip if more media signals than e-commerce signals
+        if (mediaScore > ecommerceScore && mediaScore >= 2) {
+          console.log(`[COMPETITORS] Skipping media site via SEO analysis: ${resultDomain} (media=${mediaScore}, ecom=${ecommerceScore})`);
+          console.log(`[COMPETITORS]   Title: "${title.substring(0, 80)}..."`);
+          continue;
+        }
+        
+        // Bonus: Prioritize sites with strong e-commerce signals
+        if (ecommerceScore >= 2) {
+          console.log(`[COMPETITORS] Strong e-commerce signals for: ${resultDomain} (ecom=${ecommerceScore})`);
+        }
+        
         seenDomains.add(resultDomain);
         competitors.push(resultDomain);
         
-        if (competitors.length >= 8) break; // Get more candidates for scoring
+        if (competitors.length >= 10) break; // Get more candidates for scoring
       } catch {
         // Invalid URL, skip
       }
