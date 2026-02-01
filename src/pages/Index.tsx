@@ -197,6 +197,11 @@ export default function Index() {
     };
   }, []);
 
+  // Force light theme for landing page
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       // Show floating CTA after scrolling past 500px (roughly past hero section)

@@ -657,6 +657,14 @@ export default function Onboarding() {
                   </div>
                 </div>
 
+                {/* Marketing message */}
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                  <p className="text-sm">
+                    <span className="font-semibold text-emerald-600">LovelyAnswers did this in 35 seconds.</span>{' '}
+                    <span className="text-muted-foreground">Imagine LovelyAnswers full-time for your team...</span>
+                  </p>
+                </div>
+
                 {/* Competitors */}
                 {data.competitors.length > 0 && (
                   <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
