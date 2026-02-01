@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ExternalLink, BookOpen, CheckCircle2, AlertCircle, ChevronRight } from "lucide-react";
+import { Loader2, ExternalLink, BookOpen, CheckCircle2, AlertCircle, ChevronRight, Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,20 +155,8 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
     ],
   },
   lovable: {
-    title: "How to Connect Lovable Site",
-    steps: [
-      "✅ For THIS Lovable project:",
-      "   • Just enter your published site URL (e.g., https://your-site.com)",
-      "   • Content will be published at your-site.com/blog/{slug}",
-      "   • Make sure to publish your Lovable app first",
-      "---",
-      "🔗 For ANOTHER Lovable project:",
-      "   • Open your other Lovable project",
-      "   • Use this prompt:",
-      "\"Create a Supabase Edge Function 'receive-article' that accepts POST requests with { title, body, slug, sourceId } and saves to a 'published_articles' table with RLS. Also create a /blog/:slug page to display articles.\"",
-      "   • Copy the Edge Function URL and paste it below",
-      "   • Add an API key for security (optional)",
-    ],
+    title: "Connect Lovable Site",
+    steps: [],
   },
 };
 
@@ -326,13 +314,12 @@ const CMS_CONFIG: Record<string, {
     icon: lovableLogo,
     isImage: true,
     color: "from-rose-500 to-pink-600",
-    description: "Publish to your Lovable.dev site at /blog/{slug}.",
-    helpText: "Enter your published site URL to use the built-in /blog route.",
+    description: "Publish articles to your Lovable.dev project.",
+    helpText: "",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Lovable Site" },
-      { key: "siteUrl", label: "Published Site URL", placeholder: "https://your-site.com", helpText: "Your published Lovable site URL (e.g., https://lovelyanswers.com)" },
-      { key: "endpoint", label: "Edge Function URL (optional)", placeholder: "https://xxx.supabase.co/functions/v1/...", helpText: "Only for external Lovable projects", optional: true },
-      { key: "token", label: "API Key (optional)", placeholder: "For external projects only", type: "password", optional: true },
+      { key: "siteUrl", label: "Published Site URL", placeholder: "https://your-site.lovable.app", helpText: "URL where articles will be visible" },
+      { key: "token", label: "API Key (optional)", placeholder: "For security", type: "password", optional: true },
     ],
   },
 };
@@ -362,7 +349,17 @@ export function IntegrationConfigModal({
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
   const [testMessage, setTestMessage] = useState<string>("");
   const [showGuide, setShowGuide] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
+
+  const LOVABLE_PROMPT = `Crée une Edge Function Supabase "receive-article" qui accepte les requêtes POST avec { title, body, slug } et enregistre dans une table "published_articles". Crée aussi une page /blog/:slug pour afficher les articles.`;
+  const SUPABASE_FUNCTION_URL = "https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/receive-article";
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Reset form when modal opens with new data
   useEffect(() => {
@@ -501,8 +498,51 @@ export function IntegrationConfigModal({
 
   const ModalContent = () => (
     <div className="space-y-4 py-2">
-      {/* Guide Button */}
-      {guide && (
+      {/* Lovable-specific: Copyable Prompt & Function URL */}
+      {platform === "lovable" && (
+        <div className="space-y-3">
+          {/* Copyable Prompt */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm text-primary">📋 Prompt pour projet externe</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(LOVABLE_PROMPT)}
+                className="h-8 px-2 gap-1.5 text-xs"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copié!" : "Copier"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground bg-background/60 rounded-lg p-3 font-mono leading-relaxed">
+              {LOVABLE_PROMPT}
+            </p>
+          </div>
+
+          {/* Function URL */}
+          <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm">🔗 URL de la fonction</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(SUPABASE_FUNCTION_URL)}
+                className="h-8 px-2 gap-1.5 text-xs"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copier
+              </Button>
+            </div>
+            <code className="text-[11px] text-muted-foreground bg-background/60 rounded-lg p-2 block break-all">
+              {SUPABASE_FUNCTION_URL}
+            </code>
+          </div>
+        </div>
+      )}
+
+      {/* Guide Button - Only for non-lovable platforms */}
+      {guide && guide.steps.length > 0 && platform !== "lovable" && (
         <Button
           variant="outline"
           onClick={() => setShowGuide(!showGuide)}
@@ -517,7 +557,7 @@ export function IntegrationConfigModal({
       )}
 
       {/* Guide Content */}
-      {showGuide && guide && (
+      {showGuide && guide && guide.steps.length > 0 && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
           <h4 className="font-semibold text-primary text-sm">{guide.title}</h4>
           <div className="max-h-[150px] overflow-y-auto">
@@ -535,7 +575,7 @@ export function IntegrationConfigModal({
         </div>
       )}
 
-      {config.helpText && !showGuide && (
+      {config.helpText && !showGuide && platform !== "lovable" && (
         <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-xl">
           💡 {config.helpText}
         </p>
@@ -562,21 +602,23 @@ export function IntegrationConfigModal({
           </div>
         ))}
 
-        <Button
-          variant="outline"
-          onClick={handleTestConnection}
-          disabled={isTesting || !formData.endpoint}
-          className="gap-2 w-full h-11 text-sm"
-        >
-          {isTesting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : testResult === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : testResult === "error" ? (
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          ) : null}
-          {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
-        </Button>
+        {platform !== "lovable" && (
+          <Button
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={isTesting || !formData.endpoint}
+            className="gap-2 w-full h-11 text-sm"
+          >
+            {isTesting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : testResult === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : testResult === "error" ? (
+              <AlertCircle className="h-4 w-4 text-destructive" />
+            ) : null}
+            {testResult === "success" ? "Connected" : testResult === "error" ? "Failed" : "Test Connection"}
+          </Button>
+        )}
         {testMessage && (
           <p className={`text-xs ${testResult === "error" ? "text-destructive" : "text-muted-foreground"}`}>
             {testMessage}
