@@ -129,3 +129,6 @@ schedule = "30 * * * *"
 
 [functions.gsc-test-indexation]
 verify_jwt = false
+
+[functions.serp-first]
+verify_jwt = false
