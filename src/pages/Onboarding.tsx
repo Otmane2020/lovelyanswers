@@ -634,7 +634,7 @@ export default function Onboarding() {
                     {(() => {
                       const lang = languages.find(l => l.code === data.language) || languages[0];
                       return (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary flex items-center gap-1.5">
+                        <span className="px-3 py-1.5 rounded-full text-sm font-medium border border-border bg-background flex items-center gap-1.5">
                           <img 
                             src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
                             alt={lang.name}
@@ -644,11 +644,16 @@ export default function Onboarding() {
                         </span>
                       );
                     })()}
-                    {data.cms && (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                        {data.cms}
-                      </span>
-                    )}
+                    {(() => {
+                      const knownCMS = ['WordPress', 'WooCommerce', 'Shopify', 'Wix', 'Webflow', 'Framer', 'Squarespace', 'Duda', 'BigCommerce', 'PrestaShop', 'Magento', 'Ghost'];
+                      const isKnownCMS = data.cms && knownCMS.includes(data.cms);
+                      return (
+                        <span className="px-3 py-1.5 rounded-full text-sm font-medium border border-border bg-background flex items-center gap-1.5">
+                          <Globe className="w-4 h-4" />
+                          {isKnownCMS ? data.cms : 'Website'}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
