@@ -318,6 +318,7 @@ const CMS_CONFIG: Record<string, {
     helpText: "",
     fields: [
       { key: "name", label: "Integration Name", placeholder: "My Lovable Site" },
+      { key: "siteUrl", label: "Published Site URL", placeholder: "https://mysite.lovable.app", helpText: "Your published Lovable site URL (e.g., https://starlinko.app)" },
       { key: "endpoint", label: "Supabase Function URL", placeholder: "https://xxx.supabase.co/functions/v1/receive-article", helpText: "The receive-article function URL from your project" },
     ],
   },
