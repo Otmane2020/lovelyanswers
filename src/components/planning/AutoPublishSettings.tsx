@@ -15,7 +15,7 @@ interface AutoPublishSettingsProps {
 }
 
 export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPublishSettingsProps) {
-  const [autoPublishEnabled, setAutoPublishEnabled] = useState(false);
+  const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
@@ -47,7 +47,7 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
           .single();
         
         if (data) {
-          setAutoPublishEnabled(data.auto_publish_enabled || false);
+          setAutoPublishEnabled(data.auto_publish_enabled !== false);
           // Convert 24h to 12h format
           const hour24 = parseInt(data.publish_hour || "08");
           const period = hour24 >= 12 ? "PM" : "AM";
