@@ -232,12 +232,14 @@ export default function AeoPlanning() {
         const a = answerById.get(row.answer_id);
         const art = articleById.get(row.article_id);
 
+        // IMPORTANT: Always use the planning_days scheduled_date (dayDate), NOT the answer/article scheduled_date
+        // This keeps the calendar fixed even if the answer's scheduled_date was modified
         if (a) {
           items.push({
             id: a.id,
             title: a.question,
             type: "answer",
-            date: a.scheduled_date ? new Date(a.scheduled_date) : dayDate,
+            date: dayDate, // Use planning_days date, not answer.scheduled_date
             status: a.published_url ? "published" : a.is_public ? "published" : "scheduled",
             publishedUrl: a.published_url || undefined,
             answer: a.answer,
@@ -252,7 +254,7 @@ export default function AeoPlanning() {
             id: art.id,
             title: art.title,
             type: "article",
-            date: art.scheduled_date ? new Date(art.scheduled_date) : dayDate,
+            date: dayDate, // Use planning_days date, not article.scheduled_date
             status: art.status === "published" ? "published" : "scheduled",
             aeoScore: art.aeo_score,
             wordCount: art.word_count,
