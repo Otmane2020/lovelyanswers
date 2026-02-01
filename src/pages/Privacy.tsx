@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { PublicFooter } from "@/components/layout/PublicFooter";
@@ -6,6 +7,13 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export default function Privacy() {
   return (
+    <>
+      <Helmet>
+        <title>Privacy Policy - LovelyAnswers</title>
+        <meta name="description" content="Learn how LovelyAnswers protects your data. Our privacy policy covers data collection, security, GDPR compliance, and your rights." />
+        <link rel="canonical" href="https://lovelyanswers.com/privacy" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -126,5 +134,6 @@ export default function Privacy() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }

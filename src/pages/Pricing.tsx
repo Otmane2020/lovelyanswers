@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -24,6 +25,61 @@ import {
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
+
+const pricingStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "LovelyAnswers AEO Platform",
+  "description": "All-in-one AI SEO solution with 30 articles/month, backlinks, and AI optimization",
+  "brand": {
+    "@type": "Brand",
+    "name": "LovelyAnswers"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "29",
+    "priceCurrency": "USD",
+    "priceValidUntil": "2027-12-31",
+    "availability": "https://schema.org/InStock",
+    "url": "https://lovelyanswers.com/pricing"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "reviewCount": "527"
+  }
+};
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "I am not an SEO expert?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Don't worry! LovelyAnswers is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization."
+      }
+    },
+    {
+      "@type": "Question", 
+      "name": "Will Google penalize AI written content?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, Google penalizes low quality content, regardless of whether it's AI or human written. Their official take confirms that quality AI content is welcome."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can AI content even rank on Google?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, absolutely. If executed correctly. We've proven multiple times that quality AI content can rank well on Google."
+      }
+    }
+  ]
+};
 
 const features = [
   { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
@@ -79,6 +135,19 @@ export default function Pricing() {
   }, []);
 
   return (
+    <>
+      <Helmet>
+        <title>Pricing - LovelyAnswers AEO Platform | $29/week AI SEO</title>
+        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/week. 3-day free trial. Cancel anytime." />
+        <link rel="canonical" href="https://lovelyanswers.com/pricing" />
+        <meta property="og:title" content="Pricing - LovelyAnswers AEO Platform" />
+        <meta property="og:description" content="All-in-one AI SEO solution for $29/week. 30 articles, backlinks, and AI optimization included." />
+        <meta property="og:url" content="https://lovelyanswers.com/pricing" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqStructuredData)}</script>
+      </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -223,5 +292,6 @@ export default function Pricing() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }
