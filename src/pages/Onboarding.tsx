@@ -35,36 +35,36 @@ interface OnboardingData {
 }
 
 const languages = [
-  { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "en-uk", name: "English (UK)", flag: "🇬🇧" },
-  { code: "fr", name: "French", flag: "🇫🇷" },
-  { code: "de", name: "German", flag: "🇩🇪" },
-  { code: "es", name: "Spanish", flag: "🇪🇸" },
-  { code: "zh", name: "Chinese", flag: "🇨🇳" },
-  { code: "pt", name: "Portuguese", flag: "🇵🇹" },
-  { code: "pt-br", name: "Brazilian", flag: "🇧🇷" },
-  { code: "ja", name: "Japanese", flag: "🇯🇵" },
-  { code: "ko", name: "Korean", flag: "🇰🇷" },
-  { code: "ar", name: "Arabic", flag: "🇸🇦" },
-  { code: "it", name: "Italian", flag: "🇮🇹" },
-  { code: "nl", name: "Dutch", flag: "🇳🇱" },
-  { code: "pl", name: "Polish", flag: "🇵🇱" },
-  { code: "tr", name: "Turkish", flag: "🇹🇷" },
-  { code: "sv", name: "Swedish", flag: "🇸🇪" },
-  { code: "da", name: "Danish", flag: "🇩🇰" },
-  { code: "no", name: "Norwegian", flag: "🇳🇴" },
-  { code: "fi", name: "Finnish", flag: "🇫🇮" },
-  { code: "el", name: "Greek", flag: "🇬🇷" },
-  { code: "cs", name: "Czech", flag: "🇨🇿" },
-  { code: "ro", name: "Romanian", flag: "🇷🇴" },
-  { code: "hu", name: "Hungarian", flag: "🇭🇺" },
-  { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
-  { code: "he", name: "Hebrew", flag: "🇮🇱" },
-  { code: "hi", name: "Hindi", flag: "🇮🇳" },
-  { code: "th", name: "Thai", flag: "🇹🇭" },
-  { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
-  { code: "id", name: "Indonesian", flag: "🇮🇩" },
-  { code: "ms", name: "Malay", flag: "🇲🇾" },
+  { code: "en", name: "English", flagCode: "us" },
+  { code: "en-uk", name: "English (UK)", flagCode: "gb" },
+  { code: "fr", name: "French", flagCode: "fr" },
+  { code: "de", name: "German", flagCode: "de" },
+  { code: "es", name: "Spanish", flagCode: "es" },
+  { code: "zh", name: "Chinese", flagCode: "cn" },
+  { code: "pt", name: "Portuguese", flagCode: "pt" },
+  { code: "pt-br", name: "Brazilian", flagCode: "br" },
+  { code: "ja", name: "Japanese", flagCode: "jp" },
+  { code: "ko", name: "Korean", flagCode: "kr" },
+  { code: "ar", name: "Arabic", flagCode: "sa" },
+  { code: "it", name: "Italian", flagCode: "it" },
+  { code: "nl", name: "Dutch", flagCode: "nl" },
+  { code: "pl", name: "Polish", flagCode: "pl" },
+  { code: "tr", name: "Turkish", flagCode: "tr" },
+  { code: "sv", name: "Swedish", flagCode: "se" },
+  { code: "da", name: "Danish", flagCode: "dk" },
+  { code: "no", name: "Norwegian", flagCode: "no" },
+  { code: "fi", name: "Finnish", flagCode: "fi" },
+  { code: "el", name: "Greek", flagCode: "gr" },
+  { code: "cs", name: "Czech", flagCode: "cz" },
+  { code: "ro", name: "Romanian", flagCode: "ro" },
+  { code: "hu", name: "Hungarian", flagCode: "hu" },
+  { code: "uk", name: "Ukrainian", flagCode: "ua" },
+  { code: "he", name: "Hebrew", flagCode: "il" },
+  { code: "hi", name: "Hindi", flagCode: "in" },
+  { code: "th", name: "Thai", flagCode: "th" },
+  { code: "vi", name: "Vietnamese", flagCode: "vn" },
+  { code: "id", name: "Indonesian", flagCode: "id" },
+  { code: "ms", name: "Malay", flagCode: "my" },
 ];
 
 const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20";
@@ -107,11 +107,11 @@ export default function Onboarding() {
     trafficPotential: 0,
   });
 
-  // Force dark theme
+  // Force light theme for onboarding
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("dark");
     return () => {
-      document.documentElement.classList.remove("dark");
+      // No cleanup needed
     };
   }, []);
 
@@ -433,7 +433,12 @@ export default function Onboarding() {
                           : "border-border bg-card hover:border-primary/50"
                       )}
                     >
-                      <span className="text-2xl">{lang.flag}</span>
+                      <img 
+                        src={`https://flagcdn.com/w40/${lang.flagCode}.png`}
+                        alt={lang.name}
+                        className="w-8 h-5 object-cover rounded-sm"
+                        loading="lazy"
+                      />
                       <span className="text-xs font-medium truncate w-full text-center">{lang.name}</span>
                     </button>
                   ))}
@@ -559,8 +564,13 @@ export default function Onboarding() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {languages.find(l => l.code === data.language)?.flag} {languages.find(l => l.code === data.language)?.name}
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary flex items-center gap-1.5">
+                      <img 
+                        src={`https://flagcdn.com/w20/${languages.find(l => l.code === data.language)?.flagCode || 'us'}.png`}
+                        alt=""
+                        className="w-4 h-3 object-cover rounded-sm"
+                      />
+                      {languages.find(l => l.code === data.language)?.name}
                     </span>
                     {data.cms && (
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
