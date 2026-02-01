@@ -23,34 +23,53 @@ serve(async (req) => {
   try {
     console.log("[CREATE-CHECKOUT] Starting checkout session creation");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-
-    console.log("[CREATE-CHECKOUT] User authenticated:", user.email);
-
-    // Get plan from request body
+    // Get request body
     let plan = "monthly";
+    let guestEmail: string | null = null;
+    let isGuest = false;
+
     try {
       const body = await req.json();
       plan = body.plan || "monthly";
+      guestEmail = body.email || null;
+      isGuest = body.guest === true;
     } catch {
       // Default to monthly if no body
     }
 
     const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_MONTHLY;
-    console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId);
+    console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId, "Guest:", isGuest);
+
+    let userEmail: string | null = null;
+
+    // Try to get authenticated user first
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data } = await supabaseClient.auth.getUser(token);
+      if (data.user?.email) {
+        userEmail = data.user.email;
+        console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
+      }
+    }
+
+    // If no authenticated user but guest email provided, use that
+    if (!userEmail && guestEmail && isGuest) {
+      userEmail = guestEmail;
+      console.log("[CREATE-CHECKOUT] Guest checkout with email:", userEmail);
+    }
+
+    // If still no email, error
+    if (!userEmail) {
+      throw new Error("Email is required for checkout");
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
     // Check if customer already exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
@@ -59,10 +78,15 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
 
+    // Determine success URL based on guest vs authenticated
+    const successUrl = isGuest 
+      ? `${origin}/auth?mode=signup&checkout=success`
+      : `${origin}/dashboard?subscription=success`;
+
     // Create checkout session with 3-day trial and promo codes enabled
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: priceId,
@@ -74,8 +98,8 @@ serve(async (req) => {
         trial_period_days: 3,
       },
       allow_promotion_codes: true,
-      success_url: `${origin}/dashboard?subscription=success`,
-      cancel_url: `${origin}/checkout?subscription=canceled`,
+      success_url: successUrl,
+      cancel_url: `${origin}/onboarding`,
     });
 
     console.log("[CREATE-CHECKOUT] Session created:", session.id);

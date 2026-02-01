@@ -21,15 +21,19 @@ export default function Auth() {
   const { user, signIn, signUp, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   
-  // Check URL params for signup mode
+  // Check URL params for signup mode and checkout success
   const searchParams = new URLSearchParams(location.search);
   const modeFromUrl = searchParams.get('mode');
+  const checkoutSuccess = searchParams.get('checkout') === 'success';
   const [isLogin, setIsLogin] = useState(modeFromUrl !== 'signup');
+  
+  // Pre-fill email from onboarding if available
+  const savedEmail = localStorage.getItem('onboarding_email') || "";
+  const [email, setEmail] = useState(savedEmail);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -129,7 +133,7 @@ export default function Auth() {
 
       console.log("[AUTH] User found, checking for projects...", user.id);
 
-      // Check if there's saved onboarding data
+      // Check if there's saved onboarding data (from guest checkout flow)
       const savedOnboardingData = localStorage.getItem('onboarding_data');
       
       if (savedOnboardingData) {
@@ -156,10 +160,10 @@ export default function Auth() {
               language: onboardingData.language || "en",
               business_description: onboardingData.businessDescription,
               business_type: "service",
-              audience: onboardingData.targetAudiences?.join(", ") || "",
+              audience: Array.isArray(onboardingData.targetAudiences) ? onboardingData.targetAudiences.join(", ") : "",
               brand_name: brandName,
               example_url: onboardingData.exampleUrl || null,
-              competitors: onboardingData.competitors || [],
+              competitors: Array.isArray(onboardingData.competitors) ? onboardingData.competitors : [],
             })
             .select()
             .single();
@@ -173,7 +177,7 @@ export default function Auth() {
             if (onboardingData.keywords && onboardingData.keywords.length > 0) {
               const keywordsToInsert = onboardingData.keywords.map((k: any) => ({
                 project_id: newProject.id,
-                keyword: k.keyword,
+                keyword: typeof k === 'string' ? k : k.keyword,
                 intent: k.intent || 'informational',
                 source_url: onboardingData.websiteUrl,
                 is_used: false,
@@ -190,14 +194,24 @@ export default function Auth() {
               }
             }).catch(err => console.error('[AUTH] AEO generation error:', err));
             
-            // Clear onboarding data and redirect to checkout IMMEDIATELY
+            // Clear onboarding data and email
             localStorage.removeItem('onboarding_data');
-            navigate("/checkout", { replace: true });
+            localStorage.removeItem('onboarding_email');
+            
+            // If coming from checkout success, go to dashboard directly
+            if (checkoutSuccess) {
+              console.log("[AUTH] Checkout success, redirecting to dashboard...");
+              navigate("/dashboard?subscription=success", { replace: true });
+            } else {
+              // Otherwise go to checkout
+              navigate("/checkout", { replace: true });
+            }
             return;
           }
         } catch (parseError) {
           console.error("[AUTH] Error parsing onboarding data:", parseError);
           localStorage.removeItem('onboarding_data');
+          localStorage.removeItem('onboarding_email');
         }
       }
 
@@ -227,7 +241,7 @@ export default function Auth() {
     };
 
     checkUserAndRedirect();
-  }, [user, navigate, isResetPassword]);
+  }, [user, navigate, isResetPassword, checkoutSuccess]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};

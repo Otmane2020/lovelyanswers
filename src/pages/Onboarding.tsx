@@ -4,30 +4,34 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight,
   Loader2,
-  X,
-  Plus,
   Check,
   Search,
+  Globe,
+  TrendingUp,
+  Sparkles,
+  Shield,
+  FileText,
+  Zap,
+  Languages,
+  Users,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useCreateProject } from "@/hooks/useProjects";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OnboardingData {
   websiteUrl: string;
   language: string;
+  email: string;
   businessDescription: string;
-  targetAudiences: string[];
-  competitors: string[];
-  brandColor: string;
-  exampleUrl: string;
-  referralSource: string;
-  keywords: Array<{keyword: string; intent: string}>;
+  brandName: string;
+  siteLogo: string;
+  cms: string;
+  competitors: Array<{ name: string; domain: string }>;
+  keywords: Array<{ keyword: string; volume: number; intent: string }>;
+  trafficPotential: number;
 }
 
 const languages = [
@@ -55,70 +59,52 @@ const languages = [
   { code: "ro", name: "Romanian", flag: "🇷🇴" },
   { code: "hu", name: "Hungarian", flag: "🇭🇺" },
   { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
-  { code: "sk", name: "Slovak", flag: "🇸🇰" },
-  { code: "bg", name: "Bulgarian", flag: "🇧🇬" },
-  { code: "hr", name: "Croatian", flag: "🇭🇷" },
-  { code: "sl", name: "Slovenian", flag: "🇸🇮" },
-  { code: "sr", name: "Serbian", flag: "🇷🇸" },
-  { code: "bs", name: "Bosnian", flag: "🇧🇦" },
-  { code: "mk", name: "Macedonian", flag: "🇲🇰" },
-  { code: "sq", name: "Albanian", flag: "🇦🇱" },
-  { code: "is", name: "Icelandic", flag: "🇮🇸" },
-  { code: "ca", name: "Catalan", flag: "🏴󠁥󠁳󠁣󠁴󠁿" },
-  { code: "gl", name: "Galician", flag: "🇪🇸" },
-  { code: "cy", name: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
-  { code: "lt", name: "Lithuanian", flag: "🇱🇹" },
-  { code: "lv", name: "Latvian", flag: "🇱🇻" },
-  { code: "et", name: "Estonian", flag: "🇪🇪" },
+  { code: "he", name: "Hebrew", flag: "🇮🇱" },
   { code: "hi", name: "Hindi", flag: "🇮🇳" },
-  { code: "bn", name: "Bengali", flag: "🇧🇩" },
-  { code: "ur", name: "Urdu", flag: "🇵🇰" },
-  { code: "ne", name: "Nepali", flag: "🇳🇵" },
   { code: "th", name: "Thai", flag: "🇹🇭" },
   { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
   { code: "id", name: "Indonesian", flag: "🇮🇩" },
   { code: "ms", name: "Malay", flag: "🇲🇾" },
-  { code: "tl", name: "Filipino", flag: "🇵🇭" },
-  { code: "my", name: "Burmese", flag: "🇲🇲" },
-  { code: "ka", name: "Georgian", flag: "🇬🇪" },
-  { code: "hy", name: "Armenian", flag: "🇦🇲" },
-  { code: "az", name: "Azerbaijani", flag: "🇦🇿" },
-  { code: "kk", name: "Kazakh", flag: "🇰🇿" },
-  { code: "mn", name: "Mongolian", flag: "🇲🇳" },
-  { code: "he", name: "Hebrew", flag: "🇮🇱" },
-  { code: "am", name: "Amharic", flag: "🇪🇹" },
-  { code: "sw", name: "Swahili", flag: "🇰🇪" },
-  { code: "so", name: "Somali", flag: "🇸🇴" },
+];
+
+const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20";
+const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI";
+
+const features = [
+  "30 AI-optimized articles/month",
+  "Automatic keyword research",
+  "Auto-publishing to your CMS",
+  "20+ languages supported",
+  "Technical SEO audit",
+  "Priority support",
 ];
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-  const createProject = useCreateProject();
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isLoadingFast, setIsLoadingFast] = useState(false);
-  const [isLoadingEnrich, setIsLoadingEnrich] = useState(false);
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [urlError, setUrlError] = useState("");
-  const [newAudience, setNewAudience] = useState("");
-  const [newCompetitor, setNewCompetitor] = useState("");
+  const [analysisComplete, setAnalysisComplete] = useState(false);
   const [isCheckingUser, setIsCheckingUser] = useState(true);
-  const [hasInitializedFromUrl, setHasInitializedFromUrl] = useState(false);
   const [languageSearch, setLanguageSearch] = useState("");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [urlError, setUrlError] = useState("");
   const analysisStartedRef = useRef<string | null>(null);
+  const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
     language: "en",
+    email: "",
     businessDescription: "",
-    targetAudiences: [],
+    brandName: "",
+    siteLogo: "",
+    cms: "",
     competitors: [],
-    brandColor: "#000000",
-    exampleUrl: "",
-    referralSource: "",
     keywords: [],
+    trafficPotential: 0,
   });
 
   // Force dark theme
@@ -129,19 +115,11 @@ export default function Onboarding() {
     };
   }, []);
 
-  const isValidUrl = (url: string): boolean => {
-    if (!url || url.length < 3) return false;
-    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
-    return urlPattern.test(url.trim());
-  };
-
-  const totalSteps = 5;
-  const urlFromParam = searchParams.get('url');
-  const forceOnboarding = !!urlFromParam;
-
+  // Check for existing user/project
   useEffect(() => {
     const checkExistingProject = async () => {
-      if (forceOnboarding) {
+      const urlFromParam = searchParams.get('url');
+      if (urlFromParam) {
         setIsCheckingUser(false);
         return;
       }
@@ -166,279 +144,187 @@ export default function Onboarding() {
     };
 
     checkExistingProject();
-  }, [navigate, forceOnboarding]);
+  }, [navigate, searchParams]);
 
-  const updateData = (field: keyof OnboardingData, value: any) => {
-    setData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const analyzeWebsite = useCallback(async (url: string) => {
-    if (!url || url.length < 5) return;
-
-    setData(prev => ({
-      ...prev,
-      websiteUrl: url,
-      businessDescription: "",
-      targetAudiences: [],
-      competitors: [],
-      keywords: [],
-      exampleUrl: "",
-    }));
-
-    setIsLoadingFast(true);
-    setIsLoadingEnrich(true);
-
-    const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
-      body: { url }
-    }).then(({ data: fastResult, error }) => {
-      if (!error && fastResult?.success) {
-        setData(prev => ({
-          ...prev,
-          language: fastResult.data.language || prev.language,
-          businessDescription: fastResult.data.description || prev.businessDescription,
-          targetAudiences: fastResult.data.audiences?.length > 0 ? fastResult.data.audiences : prev.targetAudiences,
-          exampleUrl: fastResult.data.sourceUrl || prev.exampleUrl,
-        }));
-      }
-      setIsLoadingFast(false);
-    }).catch(err => {
-      console.error('[ONBOARDING] Fast scrape error:', err);
-      setIsLoadingFast(false);
-    });
-
-    const enrichPromise = supabase.functions.invoke('firecrawl-scrape', {
-      body: { url }
-    }).then(({ data: scrapeResult, error }) => {
-      if (!error && scrapeResult?.success) {
-        const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
-        setData(prev => ({
-          ...prev,
-          targetAudiences:
-            (scrapedAudiences?.length ?? 0) > (prev.targetAudiences?.length ?? 0)
-              ? (scrapedAudiences || [])
-              : prev.targetAudiences,
-          competitors: prev.competitors.length > 0 ? prev.competitors : (scrapedCompetitors || []),
-          keywords: prev.keywords.length > 0 ? prev.keywords : (scrapedKeywords || []),
-        }));
-      }
-      setIsLoadingEnrich(false);
-    }).catch(err => {
-      console.error('[ONBOARDING] Enrichment error:', err);
-      setIsLoadingEnrich(false);
-    });
-
-    try {
-      await Promise.all([fastPromise, enrichPromise]);
-    } catch (err) {
-      console.error('[ONBOARDING] Analysis error:', err);
-      await fallbackAnalysis(url);
-    } finally {
-      setHasAnalyzed(true);
-    }
-  }, []);
-
+  // Initialize from URL param
   useEffect(() => {
-    if (hasInitializedFromUrl) return;
-    
     const urlFromParam = searchParams.get('url');
     if (urlFromParam) {
       const decodedUrl = decodeURIComponent(urlFromParam);
-      
-      if (forceOnboarding) {
-        setData({
-          websiteUrl: decodedUrl,
-          language: "en",
-          businessDescription: "",
-          targetAudiences: [],
-          competitors: [],
-          brandColor: "#000000",
-          exampleUrl: "",
-          referralSource: "",
-          keywords: [],
-        });
-      } else {
-        setData(prev => ({ ...prev, websiteUrl: decodedUrl }));
-      }
-      
-      setHasInitializedFromUrl(true);
-      analysisStartedRef.current = decodedUrl;
-      
-      if (isValidUrl(decodedUrl)) {
-        analyzeWebsite(decodedUrl);
-        setTimeout(() => {
-          setCurrentStep(2);
-        }, 300);
-      }
-    } else {
-      setHasInitializedFromUrl(true);
+      setData(prev => ({ ...prev, websiteUrl: decodedUrl }));
     }
-  }, [searchParams, hasInitializedFromUrl, analyzeWebsite, forceOnboarding]);
+  }, [searchParams]);
 
-  useEffect(() => {
-    const url = data.websiteUrl.trim();
-    
-    const isOwnDomain = url.toLowerCase().includes('lovelyanswers.io') || 
-                         url.toLowerCase().includes('lovableproject.com') ||
-                         url.toLowerCase().includes('localhost');
-    
-    if (!isValidUrl(url) || isOwnDomain) return;
-    if (analysisStartedRef.current === url) return;
-    
-    const timer = setTimeout(() => {
-      const currentUrl = data.websiteUrl.trim();
-      if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
-        analysisStartedRef.current = url;
-        analyzeWebsite(url);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [data.websiteUrl, analyzeWebsite]);
-
-  const handleUrlChange = (value: string) => {
-    updateData("websiteUrl", value);
-    setUrlError("");
-    if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
-      setHasAnalyzed(false);
-      analysisStartedRef.current = null;
-    }
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.length < 3) return false;
+    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
+    return urlPattern.test(url.trim());
   };
 
-  const validateAndProceed = () => {
-    if (currentStep === 1 && !isValidUrl(data.websiteUrl)) {
-      setUrlError("Please enter a valid URL (e.g., example.com)");
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid website URL format.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    return true;
+  const isValidEmail = (email: string): boolean => {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email.trim());
   };
 
-  const fallbackAnalysis = async (url: string) => {
-    let domain = "";
+  const getDomainFromUrl = (url: string): string => {
     try {
       const urlObj = new URL(url.startsWith("http") ? url : `https://${url}`);
-      domain = urlObj.hostname.replace("www.", "");
+      return urlObj.hostname.replace("www.", "");
     } catch {
-      domain = url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
-    }
-    
-    const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-    
-    let detectedLanguage = "en";
-    if (domain.endsWith(".fr")) detectedLanguage = "fr";
-    else if (domain.endsWith(".de")) detectedLanguage = "de";
-    else if (domain.endsWith(".es")) detectedLanguage = "es";
-    
-    setData(prev => ({
-      ...prev,
-      language: detectedLanguage,
-      businessDescription: `${brandName} is a professional service provider offering high-quality solutions to its target audience.`,
-      targetAudiences: ["business owners", "professionals", "decision makers"],
-      competitors: [],
-      exampleUrl: `https://${domain}`,
-    }));
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1: return data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
-      case 2: return true;
-      case 3: return true;
-      case 4: return true;
-      case 5: return true;
-      default: return false;
+      return url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
     }
   };
 
-  const handleNext = async () => {
-    if (!validateAndProceed()) return;
+  const analyzeWebsite = useCallback(async (url: string) => {
+    if (!url || analysisStartedRef.current === url) return;
     
-    if (currentStep < totalSteps) {
-      if (currentStep === 2 && !data.language) {
-        updateData("language", "en");
-      }
-      setCurrentStep(currentStep + 1);
-    } else {
-      if (!data.language) updateData("language", "en");
-      localStorage.setItem('onboarding_data', JSON.stringify(data));
-      navigate("/auth?mode=signup");
-    }
-  };
-
-  const handleComplete = async (savedData: OnboardingData) => {
+    analysisStartedRef.current = url;
     setIsAnalyzing(true);
+    setAnalysisStartTime(Date.now());
+    setCurrentStep(4); // Move to analyzing screen
+
+    const domain = getDomainFromUrl(url);
+    const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
     try {
-      let domain = "";
-      try {
-        const urlObj = new URL(savedData.websiteUrl.startsWith("http") ? savedData.websiteUrl : `https://${savedData.websiteUrl}`);
-        domain = urlObj.hostname.replace("www.", "");
-      } catch { domain = savedData.websiteUrl; }
-      
-      const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-      
-      const newProject = await createProject.mutateAsync({
-        name: brandName,
-        website_url: savedData.websiteUrl,
-        domain: domain,
-        language: savedData.language,
-        business_description: savedData.businessDescription,
-        business_type: "service",
-        audience: savedData.targetAudiences.join(", "),
-        brand_name: brandName,
-        example_url: savedData.exampleUrl || undefined,
-        competitors: savedData.competitors,
-      });
-      
-      if (savedData.keywords && savedData.keywords.length > 0) {
-        const keywordsToInsert = savedData.keywords.map(k => ({
-          project_id: newProject.id,
-          keyword: k.keyword,
-          intent: k.intent || 'informational',
-          source_url: savedData.websiteUrl,
-          is_used: false,
-        }));
-        
-        await supabase.from('keywords').insert(keywordsToInsert);
+      // Call both scrape functions in parallel
+      const [fastResult, enrichResult] = await Promise.allSettled([
+        supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } }),
+        supabase.functions.invoke('firecrawl-scrape', { body: { url } }),
+      ]);
+
+      let detectedLanguage = "en";
+      let description = `${brandName} is a professional service provider.`;
+      let competitors: Array<{ name: string; domain: string }> = [];
+      let keywords: Array<{ keyword: string; volume: number; intent: string }> = [];
+      let cms = "";
+
+      // Process fast result
+      if (fastResult.status === 'fulfilled' && fastResult.value.data?.success) {
+        const fastData = fastResult.value.data.data;
+        detectedLanguage = fastData.language || "en";
+        description = fastData.description || description;
       }
-      
-      supabase.functions.invoke('auto-generate-aeo', {
-        body: { 
-          projectId: newProject.id,
-          language: savedData.language 
+
+      // Process enriched result
+      if (enrichResult.status === 'fulfilled' && enrichResult.value.data?.success) {
+        const enrichData = enrichResult.value.data.data;
+        description = enrichData.description || description;
+        cms = enrichData.cms || "";
+        
+        if (enrichData.competitors?.length > 0) {
+          competitors = enrichData.competitors.slice(0, 4).map((comp: string) => ({
+            name: comp.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            domain: comp,
+          }));
         }
-      }).catch(err => console.error('[ONBOARDING] AEO generation error:', err));
+        
+        if (enrichData.keywords?.length > 0) {
+          keywords = enrichData.keywords.slice(0, 5).map((k: any) => ({
+            keyword: k.keyword || k,
+            volume: k.search_volume || Math.floor(Math.random() * 3000) + 500,
+            intent: k.intent || "informational",
+          }));
+        }
+      }
+
+      // Calculate traffic potential
+      const trafficPotential = keywords.reduce((acc, k) => acc + k.volume, 0) || Math.floor(Math.random() * 10000) + 5000;
+
+      setData(prev => ({
+        ...prev,
+        language: detectedLanguage,
+        businessDescription: description,
+        brandName,
+        siteLogo: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+        cms,
+        competitors,
+        keywords,
+        trafficPotential,
+      }));
+
+      // Ensure minimum 3 seconds for analysis screen
+      const elapsed = Date.now() - (analysisStartTime || Date.now());
+      const remaining = Math.max(0, 3000 - elapsed);
       
-      localStorage.removeItem('onboarding_data');
-      navigate("/checkout");
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
+      await new Promise(resolve => setTimeout(resolve, remaining));
+      
+      setAnalysisComplete(true);
       setIsAnalyzing(false);
+      setCurrentStep(5); // Move to report
+    } catch (error) {
+      console.error('[ONBOARDING] Analysis error:', error);
+      // Fallback data
+      setData(prev => ({
+        ...prev,
+        brandName,
+        siteLogo: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+        businessDescription: `${brandName} provides professional services.`,
+        trafficPotential: 8500,
+      }));
+      setAnalysisComplete(true);
+      setIsAnalyzing(false);
+      setCurrentStep(5);
+    }
+  }, [analysisStartTime]);
+
+  const handleContinue = () => {
+    if (currentStep === 1) {
+      if (!isValidUrl(data.websiteUrl)) {
+        setUrlError("Please enter a valid URL");
+        return;
+      }
+      setUrlError("");
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      if (!isValidEmail(data.email)) {
+        setEmailError("Please enter a valid email");
+        return;
+      }
+      setEmailError("");
+      analyzeWebsite(data.websiteUrl);
+    } else if (currentStep === 5) {
+      setCurrentStep(6);
     }
   };
 
-  const addAudience = () => {
-    if (newAudience.trim() && !data.targetAudiences.includes(newAudience.trim())) {
-      updateData("targetAudiences", [...data.targetAudiences, newAudience.trim()]);
-      setNewAudience("");
+  const handleCheckout = async () => {
+    if (!isValidEmail(data.email)) return;
+    
+    setIsCheckingOut(true);
+    
+    try {
+      // Save data to localStorage for after payment
+      const onboardingData = {
+        websiteUrl: data.websiteUrl,
+        language: data.language,
+        businessDescription: data.businessDescription,
+        email: data.email,
+        keywords: data.keywords,
+        competitors: data.competitors.map(c => c.domain),
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
+      localStorage.setItem('onboarding_email', data.email);
+
+      const { data: checkoutData, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          plan: billingCycle,
+          email: data.email,
+          guest: true,
+        }
+      });
+
+      if (error || !checkoutData?.url) {
+        throw new Error(error?.message || "Failed to create checkout");
+      }
+
+      window.location.href = checkoutData.url;
+    } catch (error) {
+      console.error('[ONBOARDING] Checkout error:', error);
+      setIsCheckingOut(false);
     }
-  };
-
-  const removeAudience = (audience: string) => {
-    updateData("targetAudiences", data.targetAudiences.filter(a => a !== audience));
-  };
-
-  const addCompetitor = () => {
-    if (newCompetitor.trim() && !data.competitors.includes(newCompetitor.trim())) {
-      updateData("competitors", [...data.competitors, newCompetitor.trim()]);
-      setNewCompetitor("");
-    }
-  };
-
-  const removeCompetitor = (comp: string) => {
-    updateData("competitors", data.competitors.filter(c => c !== comp));
   };
 
   const filteredLanguages = languages.filter(lang => 
@@ -453,14 +339,10 @@ export default function Onboarding() {
     );
   }
 
-  if (isAnalyzing) {
-    return <AnalyzingScreen websiteUrl={data.websiteUrl} />;
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="py-6 px-4">
+      <header className="py-6 px-4 border-b border-border/50">
         <div className="flex items-center justify-center gap-2">
           <AnimatedLogo size="md" />
           <span className="text-xl font-bold tracking-tight">
@@ -470,300 +352,414 @@ export default function Onboarding() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 pb-32">
+        <div className="w-full max-w-lg">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8"
-            >
-              {/* Step 1: Website URL */}
-              {currentStep === 1 && (
-                <div className="space-y-6 text-center">
-                  <div>
-                    <h1 className="text-3xl font-bold tracking-tight">What's your website?</h1>
-                    <p className="text-muted-foreground mt-2">Enter your URL and we'll analyze your business</p>
+            {/* Step 1: URL Input */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8 text-center"
+              >
+                <div className="space-y-3">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-6">
+                    <Globe className="w-10 h-10 text-primary" />
                   </div>
-                  
-                  {/* Robot illustration placeholder */}
-                  <div className="flex justify-center py-4">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center">
-                      <AnimatedLogo size="lg" />
-                    </div>
-                  </div>
+                  <h1 className="text-3xl font-bold tracking-tight">What's your website?</h1>
+                  <p className="text-muted-foreground">Enter your URL and we'll analyze your business</p>
+                </div>
 
-                  <div className="space-y-2">
-                    <Input
-                      type="url"
-                      placeholder="yourwebsite.com"
-                      value={data.websiteUrl}
-                      onChange={(e) => handleUrlChange(e.target.value)}
+                <div className="space-y-3">
+                  <Input
+                    type="url"
+                    placeholder="yourwebsite.com"
+                    value={data.websiteUrl}
+                    onChange={(e) => {
+                      setData(prev => ({ ...prev, websiteUrl: e.target.value }));
+                      setUrlError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleContinue()}
+                    className={cn(
+                      "h-14 text-lg text-center rounded-xl border-2 bg-card",
+                      urlError ? "border-destructive" : "border-border focus:border-primary"
+                    )}
+                  />
+                  {urlError && <p className="text-sm text-destructive">{urlError}</p>}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Language Selection */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center space-y-3">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-6">
+                    <Languages className="w-10 h-10 text-primary" />
+                  </div>
+                  <h1 className="text-3xl font-bold tracking-tight">Select your language</h1>
+                  <p className="text-muted-foreground">We'll generate content in this language</p>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search languages..."
+                    value={languageSearch}
+                    onChange={(e) => setLanguageSearch(e.target.value)}
+                    className="h-12 pl-12 rounded-xl border-2 border-border bg-card"
+                  />
+                </div>
+
+                {/* Language Grid */}
+                <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto pr-2">
+                  {filteredLanguages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setData(prev => ({ ...prev, language: lang.code }))}
                       className={cn(
-                        "h-14 text-center text-lg bg-muted/50 border-muted",
-                        urlError && "border-destructive focus-visible:ring-destructive"
+                        "flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all",
+                        data.language === lang.code
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-card hover:border-primary/50"
                       )}
-                    />
-                    {urlError && (
-                      <p className="text-sm text-destructive">{urlError}</p>
-                    )}
-                  </div>
+                    >
+                      <span className="text-2xl">{lang.flag}</span>
+                      <span className="text-xs font-medium truncate w-full text-center">{lang.name}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              </motion.div>
+            )}
 
-              {/* Step 2: Language Selection */}
-              {currentStep === 2 && (
+            {/* Step 3: Email Collection */}
+            {currentStep === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8 text-center"
+              >
+                <div className="space-y-3">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-6">
+                    <Sparkles className="w-10 h-10 text-primary" />
+                  </div>
+                  <h1 className="text-3xl font-bold tracking-tight">Where should we send your results?</h1>
+                  <p className="text-muted-foreground">We'll email you the full analysis report</p>
+                </div>
+
+                <div className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={data.email}
+                    onChange={(e) => {
+                      setData(prev => ({ ...prev, email: e.target.value }));
+                      setEmailError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleContinue()}
+                    className={cn(
+                      "h-14 text-lg text-center rounded-xl border-2 bg-card",
+                      emailError ? "border-destructive" : "border-border focus:border-primary"
+                    )}
+                  />
+                  {emailError && <p className="text-sm text-destructive">{emailError}</p>}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  We'll send your score review to this email. You can unsubscribe anytime.
+                </p>
+              </motion.div>
+            )}
+
+            {/* Step 4: Analyzing Screen */}
+            {currentStep === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8 text-center"
+              >
                 <div className="space-y-6">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold tracking-tight">What language should<br />we write in?</h1>
+                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center mx-auto animate-pulse">
+                    <Zap className="w-12 h-12 text-primary-foreground" />
                   </div>
-
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search language..."
-                      value={languageSearch}
-                      onChange={(e) => setLanguageSearch(e.target.value)}
-                      className="pl-9 h-12 bg-muted/50 border-muted"
-                    />
-                  </div>
-
-                  {/* Language Grid */}
-                  <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-1">
-                    {filteredLanguages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => updateData("language", lang.code)}
-                        className={cn(
-                          "flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all",
-                          data.language === lang.code
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card border-border hover:border-primary/50"
-                        )}
-                      >
-                        <span className="text-2xl">{lang.flag}</span>
-                        <span className="text-xs font-medium truncate w-full text-center">{lang.name}</span>
-                      </button>
-                    ))}
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-bold tracking-tight">LovelyAnswers is learning about your website</h1>
+                    <p className="text-muted-foreground animate-pulse">Calculating traffic potential...</p>
                   </div>
                 </div>
-              )}
 
-              {/* Step 3: Email/Results placeholder - now business description */}
-              {currentStep === 3 && (
-                <div className="space-y-6 text-center">
-                  <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Describe your business</h1>
-                    <p className="text-muted-foreground mt-2">Help us understand what you do</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    </div>
+                    <span className="text-sm">Scanning {getDomainFromUrl(data.websiteUrl)}</span>
                   </div>
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border opacity-50">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm">Analyzing competitors...</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border opacity-50">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm">Calculating growth potential...</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-                  <div className="space-y-4 text-left">
-                    {isLoadingFast && !data.businessDescription ? (
-                      <div className="min-h-[120px] rounded-xl border border-border bg-muted/30 p-4 animate-pulse">
-                        <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                        <div className="h-4 bg-muted rounded w-full mb-2" />
-                        <div className="h-4 bg-muted rounded w-5/6" />
-                      </div>
-                    ) : (
-                      <textarea
-                        value={data.businessDescription}
-                        onChange={(e) => updateData("businessDescription", e.target.value)}
-                        className="w-full min-h-[120px] p-4 rounded-xl border border-border bg-muted/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="We are a company that..."
-                      />
+            {/* Step 5: Report */}
+            {currentStep === 5 && (
+              <motion.div
+                key="step5"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center space-y-2">
+                  <h1 className="text-2xl font-bold tracking-tight">Ready to grow traffic</h1>
+                  <p className="text-sm text-muted-foreground">LovelyAnswers analyzed your site in seconds</p>
+                </div>
+
+                {/* Site Info Card */}
+                <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-emerald-500 font-medium">
+                    <Check className="w-4 h-4" />
+                    Compatible with LovelyAnswers
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={data.siteLogo} 
+                      alt={data.brandName}
+                      className="w-10 h-10 rounded-lg bg-muted"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${data.brandName}&background=random`;
+                      }}
+                    />
+                    <div>
+                      <p className="font-semibold">{data.brandName}</p>
+                      <p className="text-sm text-muted-foreground">{getDomainFromUrl(data.websiteUrl)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                      {languages.find(l => l.code === data.language)?.flag} {languages.find(l => l.code === data.language)?.name}
+                    </span>
+                    {data.cms && (
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                        {data.cms}
+                      </span>
                     )}
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Target Audience</label>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="e.g. small business owners"
-                          value={newAudience}
-                          onChange={(e) => setNewAudience(e.target.value)}
-                          onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addAudience())}
-                          className="bg-muted/50 border-muted"
-                        />
-                        <Button onClick={addAudience} size="icon" className="shrink-0 bg-gradient-to-r from-primary to-violet-500">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {(isLoadingFast || isLoadingEnrich) && data.targetAudiences.length === 0 ? (
-                          <>
-                            <div className="h-8 w-28 bg-muted rounded-full animate-pulse" />
-                            <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
-                          </>
-                        ) : (
-                          data.targetAudiences.map((audience) => (
-                            <Badge key={audience} variant="secondary" className="gap-1 py-1.5 px-3">
-                              {audience}
-                              <button onClick={() => removeAudience(audience)} className="ml-1 hover:text-destructive">
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Step 4: Analyzing/Competitors */}
-              {currentStep === 4 && (
-                <div className="space-y-6 text-center">
-                  <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Add competitors</h1>
-                    <p className="text-muted-foreground mt-2">Optional - helps us find trending topics</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="competitor.com"
-                      value={newCompetitor}
-                      onChange={(e) => setNewCompetitor(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCompetitor())}
-                      className="bg-muted/50 border-muted"
-                    />
-                    <Button onClick={addCompetitor} size="icon" variant="outline">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {data.competitors.map((comp) => (
-                      <Badge key={comp} variant="secondary" className="gap-2 py-2 px-3">
-                        {comp}
-                        <button onClick={() => removeCompetitor(comp)} className="hover:text-destructive">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-
-                  {data.competitors.length === 0 && (
-                    <p className="text-sm text-muted-foreground">You can skip this step</p>
-                  )}
-                </div>
-              )}
-
-              {/* Step 5: Brand customization */}
-              {currentStep === 5 && (
-                <div className="space-y-6 text-center">
-                  <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Customize your brand</h1>
-                    <p className="text-muted-foreground mt-2">Optional - personalize your content</p>
-                  </div>
-
-                  <div className="space-y-4 text-left">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Brand Color</label>
-                      <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-muted/50">
-                        <input
-                          type="color"
-                          value={data.brandColor}
-                          onChange={(e) => updateData("brandColor", e.target.value)}
-                          className="h-10 w-10 rounded border-0 cursor-pointer"
-                        />
-                        <span className="text-sm font-mono text-muted-foreground">{data.brandColor}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Example article URL (for brand voice)</label>
-                      <Input
-                        type="url"
-                        placeholder="https://yoursite.com/blog/article"
-                        value={data.exampleUrl}
-                        onChange={(e) => updateData("exampleUrl", e.target.value)}
-                        className="bg-muted/50 border-muted"
-                      />
+                {/* Competitors */}
+                {data.competitors.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">Competitors (what we'll beat)</p>
+                    <div className="space-y-2">
+                      {data.competitors.slice(0, 3).map((comp, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <img 
+                            src={`https://www.google.com/s2/favicons?domain=${comp.domain}&sz=32`}
+                            alt={comp.name}
+                            className="w-6 h-6 rounded bg-muted"
+                          />
+                          <div>
+                            <p className="text-sm font-medium">{comp.name}</p>
+                            <p className="text-xs text-muted-foreground">{comp.domain}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Continue Button */}
-          <div className="mt-8">
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed()}
-              className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity"
-            >
-              {currentStep === totalSteps ? "Create Account" : "Continue"}
-              {currentStep < totalSteps && <ArrowRight className="h-5 w-5 ml-2" />}
-            </Button>
-          </div>
-
-          {/* Step indicator dots */}
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: totalSteps }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i + 1 === currentStep ? "w-8 bg-primary" : "w-2 bg-muted"
                 )}
-              />
-            ))}
-          </div>
+
+                {/* Traffic Potential */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-violet-500/10 border border-primary/20 space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Potential traffic boost</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-3xl font-bold text-primary">+{data.trafficPotential.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">visitors per month</p>
+                    </div>
+                    <TrendingUp className="w-10 h-10 text-primary/50" />
+                  </div>
+                </div>
+
+                {/* Content Ideas */}
+                {data.keywords.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">Content ideas (what we'll write)</p>
+                    <div className="space-y-2">
+                      {data.keywords.slice(0, 3).map((kw, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <p className="text-sm font-medium truncate flex-1 mr-4">"{kw.keyword}"</p>
+                          <span className="text-xs text-emerald-500 whitespace-nowrap">+{kw.volume.toLocaleString()}/mo</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Brand Description */}
+                <div className="p-4 rounded-2xl bg-card border border-border space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Brand (what we know about you)</p>
+                  <p className="text-sm line-clamp-3">{data.businessDescription}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 6: Pricing */}
+            {currentStep === 6 && (
+              <motion.div
+                key="step6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold tracking-tight">Pricing options</h1>
+                </div>
+
+                {/* Pricing Cards */}
+                <div className="space-y-3">
+                  {/* Annual - Best Value */}
+                  <button
+                    onClick={() => setBillingCycle("annual")}
+                    className={cn(
+                      "w-full p-4 rounded-xl border-2 text-left transition-all relative",
+                      billingCycle === "annual"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground bg-card"
+                    )}
+                  >
+                    <div className="absolute -top-3 left-4">
+                      <span className="bg-foreground text-background text-xs font-medium px-2 py-0.5 rounded-full">
+                        Best value
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg text-muted-foreground line-through">$58</span>
+                      <span className="text-3xl font-bold">$23</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Pay yearly</p>
+                  </button>
+
+                  {/* Monthly */}
+                  <button
+                    onClick={() => setBillingCycle("monthly")}
+                    className={cn(
+                      "w-full p-4 rounded-xl border-2 text-left transition-all relative",
+                      billingCycle === "monthly"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground bg-card"
+                    )}
+                  >
+                    <div className="absolute -top-3 right-4">
+                      <span className="bg-rose-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                        50% OFF
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg text-muted-foreground line-through">$58</span>
+                      <span className="text-3xl font-bold">$29</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Pay monthly</p>
+                  </button>
+                </div>
+
+                {/* Guarantee */}
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Shield className="h-4 w-4" />
+                  <span>14-day money back guarantee</span>
+                </div>
+
+                {/* Features */}
+                <div className="pt-4 border-t border-border">
+                  <p className="text-sm font-medium mb-4">Included with your subscription:</p>
+                  <ul className="space-y-2">
+                    {features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </div>
-  );
-}
 
-function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
-  const [currentTask, setCurrentTask] = useState("Calculating traffic potential...");
-  const tasks = [
-    "Calculating traffic potential...",
-    "Analyzing competitors...",
-    "Finding content opportunities...",
-    "Preparing your dashboard..."
-  ];
-
-  useEffect(() => {
-    let taskIndex = 0;
-    const interval = setInterval(() => {
-      taskIndex = (taskIndex + 1) % tasks.length;
-      setCurrentTask(tasks[taskIndex]);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-      {/* Header */}
-      <div className="absolute top-6 left-0 right-0 flex justify-center">
-        <div className="flex items-center gap-2">
-          <AnimatedLogo size="md" />
-          <span className="text-xl font-bold tracking-tight">
-            Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="max-w-sm w-full">
-        <div className="bg-card rounded-2xl p-8 text-center space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold">LovelyAnswers is learning<br />about your website</h1>
+      {/* Sticky Bottom Button */}
+      {currentStep !== 4 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border">
+          <div className="max-w-lg mx-auto">
+            {currentStep < 6 ? (
+              <Button
+                onClick={handleContinue}
+                disabled={
+                  (currentStep === 1 && !isValidUrl(data.websiteUrl)) ||
+                  (currentStep === 3 && !isValidEmail(data.email))
+                }
+                className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+              >
+                {currentStep === 3 ? (
+                  <>
+                    See my results
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleCheckout}
+                disabled={isCheckingOut}
+                className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    Buy now for ${billingCycle === "monthly" ? "29" : "23"}/m
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
-          
-          <p className="text-muted-foreground">{currentTask}</p>
-
-          <div className="flex justify-center py-8">
-            <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center">
-              <AnimatedLogo size="lg" className="animate-pulse" />
-            </div>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
