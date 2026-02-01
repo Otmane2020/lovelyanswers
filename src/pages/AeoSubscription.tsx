@@ -48,11 +48,14 @@ export default function AeoSubscription() {
               <Crown className="w-8 h-8 text-white" />
             </div>
             <div className="flex items-center justify-center gap-2 mt-4">
-              <span className="text-2xl text-muted-foreground line-through">$247</span>
-              <span className="text-5xl font-bold">$99</span>
+              <span className="text-2xl text-muted-foreground line-through">$58</span>
+              <span className="text-5xl font-bold">$29</span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-sm text-emerald-600 font-medium mt-2">
+              Or $23/month billed annually
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
               3-day free trial • Cancel anytime
             </p>
           </div>

@@ -137,8 +137,8 @@ export default function Pricing() {
   return (
     <>
       <Helmet>
-        <title>Pricing - LovelyAnswers AEO Platform | $29/week AI SEO</title>
-        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/week. 3-day free trial. Cancel anytime." />
+        <title>Pricing - LovelyAnswers AEO Platform | $29/month AI SEO</title>
+        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
         <link rel="canonical" href="https://lovelyanswers.com/pricing" />
         <meta property="og:title" content="Pricing - LovelyAnswers AEO Platform" />
         <meta property="og:description" content="All-in-one AI SEO solution for $29/week. 30 articles, backlinks, and AI optimization included." />
@@ -201,7 +201,7 @@ export default function Pricing() {
             <GlassCard gradient className="p-8 relative overflow-hidden">
               <div className="absolute top-4 right-4">
                 <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-500 text-white border-0">
-                  Only 34 spots left in January
+                  Only 34 spots left in February
                 </Badge>
               </div>
               
@@ -211,10 +211,13 @@ export default function Pricing() {
                   We limit monthly admissions to maintain backlink quality and network balance.
                 </p>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-2xl text-muted-foreground line-through">$99</span>
+                  <span className="text-2xl text-muted-foreground line-through">$58</span>
                   <span className="text-6xl font-bold">$29</span>
-                  <span className="text-muted-foreground">/week</span>
+                  <span className="text-muted-foreground">/month</span>
                 </div>
+                <p className="text-sm text-emerald-500 font-medium mt-2">
+                  Or $23/month billed annually
+                </p>
               </div>
 
               <Button className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:opacity-90 mb-8" size="lg" asChild>
