@@ -2,30 +2,21 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Globe, 
   ArrowRight,
   Loader2,
   X,
   Plus,
   Check,
-  ChevronDown
+  Search,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface OnboardingData {
   websiteUrl: string;
@@ -40,15 +31,65 @@ interface OnboardingData {
 }
 
 const languages = [
-  { code: "en", name: "English (US)", flag: "🇺🇸", audience: "332 million" },
-  { code: "fr", name: "Français", flag: "🇫🇷", audience: "77 million" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪", audience: "83 million" },
-  { code: "es", name: "Español", flag: "🇪🇸", audience: "460 million" },
-  { code: "it", name: "Italiano", flag: "🇮🇹", audience: "60 million" },
-  { code: "pt", name: "Português", flag: "🇧🇷", audience: "260 million" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "en-uk", name: "English (UK)", flag: "🇬🇧" },
+  { code: "fr", name: "French", flag: "🇫🇷" },
+  { code: "de", name: "German", flag: "🇩🇪" },
+  { code: "es", name: "Spanish", flag: "🇪🇸" },
+  { code: "zh", name: "Chinese", flag: "🇨🇳" },
+  { code: "pt", name: "Portuguese", flag: "🇵🇹" },
+  { code: "pt-br", name: "Brazilian", flag: "🇧🇷" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "ko", name: "Korean", flag: "🇰🇷" },
+  { code: "ar", name: "Arabic", flag: "🇸🇦" },
+  { code: "it", name: "Italian", flag: "🇮🇹" },
+  { code: "nl", name: "Dutch", flag: "🇳🇱" },
+  { code: "pl", name: "Polish", flag: "🇵🇱" },
+  { code: "tr", name: "Turkish", flag: "🇹🇷" },
+  { code: "sv", name: "Swedish", flag: "🇸🇪" },
+  { code: "da", name: "Danish", flag: "🇩🇰" },
+  { code: "no", name: "Norwegian", flag: "🇳🇴" },
+  { code: "fi", name: "Finnish", flag: "🇫🇮" },
+  { code: "el", name: "Greek", flag: "🇬🇷" },
+  { code: "cs", name: "Czech", flag: "🇨🇿" },
+  { code: "ro", name: "Romanian", flag: "🇷🇴" },
+  { code: "hu", name: "Hungarian", flag: "🇭🇺" },
+  { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
+  { code: "sk", name: "Slovak", flag: "🇸🇰" },
+  { code: "bg", name: "Bulgarian", flag: "🇧🇬" },
+  { code: "hr", name: "Croatian", flag: "🇭🇷" },
+  { code: "sl", name: "Slovenian", flag: "🇸🇮" },
+  { code: "sr", name: "Serbian", flag: "🇷🇸" },
+  { code: "bs", name: "Bosnian", flag: "🇧🇦" },
+  { code: "mk", name: "Macedonian", flag: "🇲🇰" },
+  { code: "sq", name: "Albanian", flag: "🇦🇱" },
+  { code: "is", name: "Icelandic", flag: "🇮🇸" },
+  { code: "ca", name: "Catalan", flag: "🏴󠁥󠁳󠁣󠁴󠁿" },
+  { code: "gl", name: "Galician", flag: "🇪🇸" },
+  { code: "cy", name: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+  { code: "lt", name: "Lithuanian", flag: "🇱🇹" },
+  { code: "lv", name: "Latvian", flag: "🇱🇻" },
+  { code: "et", name: "Estonian", flag: "🇪🇪" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "bn", name: "Bengali", flag: "🇧🇩" },
+  { code: "ur", name: "Urdu", flag: "🇵🇰" },
+  { code: "ne", name: "Nepali", flag: "🇳🇵" },
+  { code: "th", name: "Thai", flag: "🇹🇭" },
+  { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
+  { code: "id", name: "Indonesian", flag: "🇮🇩" },
+  { code: "ms", name: "Malay", flag: "🇲🇾" },
+  { code: "tl", name: "Filipino", flag: "🇵🇭" },
+  { code: "my", name: "Burmese", flag: "🇲🇲" },
+  { code: "ka", name: "Georgian", flag: "🇬🇪" },
+  { code: "hy", name: "Armenian", flag: "🇦🇲" },
+  { code: "az", name: "Azerbaijani", flag: "🇦🇿" },
+  { code: "kk", name: "Kazakh", flag: "🇰🇿" },
+  { code: "mn", name: "Mongolian", flag: "🇲🇳" },
+  { code: "he", name: "Hebrew", flag: "🇮🇱" },
+  { code: "am", name: "Amharic", flag: "🇪🇹" },
+  { code: "sw", name: "Swahili", flag: "🇰🇪" },
+  { code: "so", name: "Somali", flag: "🇸🇴" },
 ];
-
-// Removed referral sources - no longer needed
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -57,7 +98,6 @@ export default function Onboarding() {
   const createProject = useCreateProject();
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isLoadingFast, setIsLoadingFast] = useState(false);
   const [isLoadingEnrich, setIsLoadingEnrich] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
@@ -66,11 +106,12 @@ export default function Onboarding() {
   const [newCompetitor, setNewCompetitor] = useState("");
   const [isCheckingUser, setIsCheckingUser] = useState(true);
   const [hasInitializedFromUrl, setHasInitializedFromUrl] = useState(false);
+  const [languageSearch, setLanguageSearch] = useState("");
   const analysisStartedRef = useRef<string | null>(null);
   
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
-    language: "en", // Default to English before detection
+    language: "en",
     businessDescription: "",
     targetAudiences: [],
     competitors: [],
@@ -80,24 +121,26 @@ export default function Onboarding() {
     keywords: [],
   });
 
-  // Validate URL format
+  // Force dark theme
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
+  }, []);
+
   const isValidUrl = (url: string): boolean => {
     if (!url || url.length < 3) return false;
-    // Allow domain formats like example.com or full URLs
     const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/.*)?$/i;
     return urlPattern.test(url.trim());
   };
 
-  const totalSteps = 5; // URL, language, description, audience, competitors - then auth & checkout
-
-  // Check if we're coming from URL change (force onboarding)
+  const totalSteps = 5;
   const urlFromParam = searchParams.get('url');
   const forceOnboarding = !!urlFromParam;
 
-  // Redirect existing users with projects to dashboard (unless forced)
   useEffect(() => {
     const checkExistingProject = async () => {
-      // If we have a URL param, we're coming from URL change - skip redirect
       if (forceOnboarding) {
         setIsCheckingUser(false);
         return;
@@ -116,7 +159,6 @@ export default function Onboarding() {
         .limit(1);
 
       if (projects && projects.length > 0) {
-        // User has a project, redirect to dashboard
         navigate("/dashboard", { replace: true });
       } else {
         setIsCheckingUser(false);
@@ -130,13 +172,9 @@ export default function Onboarding() {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  // isValidUrl is defined earlier in the component
-
-  // Two-phase website analysis for fast UX
   const analyzeWebsite = useCallback(async (url: string) => {
     if (!url || url.length < 5) return;
 
-    // RESET all fields before analysis to ensure clean state
     setData(prev => ({
       ...prev,
       websiteUrl: url,
@@ -150,12 +188,10 @@ export default function Onboarding() {
     setIsLoadingFast(true);
     setIsLoadingEnrich(true);
 
-    // PHASE 1: Fast scrape (3-4s) - gets language + description + audiences
     const fastPromise = supabase.functions.invoke('firecrawl-scrape-fast', {
       body: { url }
     }).then(({ data: fastResult, error }) => {
       if (!error && fastResult?.success) {
-        console.log('[ONBOARDING] Fast data received:', fastResult.data);
         setData(prev => ({
           ...prev,
           language: fastResult.data.language || prev.language,
@@ -170,23 +206,13 @@ export default function Onboarding() {
       setIsLoadingFast(false);
     });
 
-    // PHASE 2: Full enrichment (8-15s) - gets audiences, competitors, keywords
     const enrichPromise = supabase.functions.invoke('firecrawl-scrape', {
       body: { url }
     }).then(({ data: scrapeResult, error }) => {
       if (!error && scrapeResult?.success) {
         const { audiences: scrapedAudiences, competitors: scrapedCompetitors, keywords: scrapedKeywords } = scrapeResult.data;
-
-        console.log('[ONBOARDING] Enrichment data received:', {
-          audiences: scrapedAudiences?.length,
-          competitors: scrapedCompetitors?.length,
-          keywords: scrapedKeywords?.length
-        });
-
-        // Phase 2: Enrichment can improve/expand Phase 1 audiences
         setData(prev => ({
           ...prev,
-          // Prefer the richer list (usually enrichment returns more/better audiences)
           targetAudiences:
             (scrapedAudiences?.length ?? 0) > (prev.targetAudiences?.length ?? 0)
               ? (scrapedAudiences || [])
@@ -201,7 +227,6 @@ export default function Onboarding() {
       setIsLoadingEnrich(false);
     });
 
-    // Run both in parallel - Phase 1 will complete much faster
     try {
       await Promise.all([fastPromise, enrichPromise]);
     } catch (err) {
@@ -212,19 +237,14 @@ export default function Onboarding() {
     }
   }, []);
 
-  // Initialize from URL param (from homepage OR from URL change in settings) and trigger analysis
   useEffect(() => {
     if (hasInitializedFromUrl) return;
     
     const urlFromParam = searchParams.get('url');
     if (urlFromParam) {
-      // Decode the URL in case it was encoded
       const decodedUrl = decodeURIComponent(urlFromParam);
-      console.log('[ONBOARDING] URL received:', decodedUrl, 'forceOnboarding:', forceOnboarding);
       
-      // CRITICAL: Reset ALL data when coming from URL change
       if (forceOnboarding) {
-        console.log('[ONBOARDING] Forcing complete data reset for URL change');
         setData({
           websiteUrl: decodedUrl,
           language: "en",
@@ -243,11 +263,8 @@ export default function Onboarding() {
       setHasInitializedFromUrl(true);
       analysisStartedRef.current = decodedUrl;
       
-      // Trigger analysis immediately with the decoded URL
       if (isValidUrl(decodedUrl)) {
         analyzeWebsite(decodedUrl);
-        
-        // Advance to step 2 with animation
         setTimeout(() => {
           setCurrentStep(2);
         }, 300);
@@ -257,25 +274,19 @@ export default function Onboarding() {
     }
   }, [searchParams, hasInitializedFromUrl, analyzeWebsite, forceOnboarding]);
 
-  // Trigger analysis when URL becomes valid (manual input only - homepage URLs handled separately)
   useEffect(() => {
     const url = data.websiteUrl.trim();
     
-    // Don't analyze our own domain
     const isOwnDomain = url.toLowerCase().includes('lovelyanswers.io') || 
                          url.toLowerCase().includes('lovableproject.com') ||
                          url.toLowerCase().includes('localhost');
     
     if (!isValidUrl(url) || isOwnDomain) return;
-    
-    // Skip if already analyzed (e.g., from homepage URL param)
     if (analysisStartedRef.current === url) return;
     
-    // Debounce for manual input
     const timer = setTimeout(() => {
       const currentUrl = data.websiteUrl.trim();
       if (isValidUrl(currentUrl) && currentUrl === url && analysisStartedRef.current !== url) {
-        console.log('[ONBOARDING] Auto-triggering analysis for manual input:', url);
         analysisStartedRef.current = url;
         analyzeWebsite(url);
       }
@@ -286,7 +297,6 @@ export default function Onboarding() {
   const handleUrlChange = (value: string) => {
     updateData("websiteUrl", value);
     setUrlError("");
-    // Reset analysis flag if URL changes significantly
     if (analysisStartedRef.current && !value.includes(analysisStartedRef.current.replace(/^https?:\/\//, '').split('/')[0])) {
       setHasAnalyzed(false);
       analysisStartedRef.current = null;
@@ -295,7 +305,7 @@ export default function Onboarding() {
 
   const validateAndProceed = () => {
     if (currentStep === 1 && !isValidUrl(data.websiteUrl)) {
-      setUrlError("Please enter a valid URL (e.g., example.com or https://example.com)");
+      setUrlError("Please enter a valid URL (e.g., example.com)");
       toast({
         title: "Invalid URL",
         description: "Please enter a valid website URL format.",
@@ -327,23 +337,10 @@ export default function Onboarding() {
       language: detectedLanguage,
       businessDescription: `${brandName} is a professional service provider offering high-quality solutions to its target audience.`,
       targetAudiences: ["business owners", "professionals", "decision makers"],
-      competitors: [], // Empty - user adds manually
+      competitors: [],
       exampleUrl: `https://${domain}`,
     }));
-    
-    toast({
-      title: "Basic analysis complete",
-      description: "Please review and refine the auto-filled information.",
-    });
   };
-
-  // No more hardcoded competitors - let user add manually if API fails
-  const generateCompetitors = (_url: string): string[] => {
-    // Return empty - user can add competitors manually
-    return [];
-  };
-
-  // Analysis now auto-triggers on valid URL input (see useEffect above)
 
   const canProceed = () => {
     switch (currentStep) {
@@ -360,24 +357,17 @@ export default function Onboarding() {
     if (!validateAndProceed()) return;
     
     if (currentStep < totalSteps) {
-      // If advancing from step 2 without language, default to English
       if (currentStep === 2 && !data.language) {
         updateData("language", "en");
       }
       setCurrentStep(currentStep + 1);
     } else {
-      // Last step - save to localStorage and redirect to auth
       if (!data.language) updateData("language", "en");
-      
-      // Store onboarding data in localStorage for after auth
       localStorage.setItem('onboarding_data', JSON.stringify(data));
-      
-      // Redirect to auth signup
       navigate("/auth?mode=signup");
     }
   };
 
-  // Called after user signs up and redirects back
   const handleComplete = async (savedData: OnboardingData) => {
     setIsAnalyzing(true);
     try {
@@ -402,9 +392,7 @@ export default function Onboarding() {
         competitors: savedData.competitors,
       });
       
-      // Save extracted keywords to database
       if (savedData.keywords && savedData.keywords.length > 0) {
-        console.log('[ONBOARDING] Saving', savedData.keywords.length, 'keywords to database');
         const keywordsToInsert = savedData.keywords.map(k => ({
           project_id: newProject.id,
           keyword: k.keyword,
@@ -413,18 +401,9 @@ export default function Onboarding() {
           is_used: false,
         }));
         
-        const { error: keywordsError } = await supabase
-          .from('keywords')
-          .insert(keywordsToInsert);
-        
-        if (keywordsError) {
-          console.error('Keywords save error:', keywordsError);
-        } else {
-          console.log('[ONBOARDING] Keywords saved successfully');
-        }
+        await supabase.from('keywords').insert(keywordsToInsert);
       }
       
-      // Fire-and-forget: Start AEO generation in background (don't wait!)
       supabase.functions.invoke('auto-generate-aeo', {
         body: { 
           projectId: newProject.id,
@@ -432,7 +411,6 @@ export default function Onboarding() {
         }
       }).catch(err => console.error('[ONBOARDING] AEO generation error:', err));
       
-      // Clear onboarding data and redirect to checkout IMMEDIATELY
       localStorage.removeItem('onboarding_data');
       navigate("/checkout");
     } catch (error) {
@@ -463,19 +441,9 @@ export default function Onboarding() {
     updateData("competitors", data.competitors.filter(c => c !== comp));
   };
 
-  const getDescriptionLabel = () => {
-    const lang = languages.find(l => l.code === data.language);
-    if (!lang) return "Description";
-    
-    switch (data.language) {
-      case "fr": return "Description (en français)";
-      case "de": return "Beschreibung (auf Deutsch)";
-      case "es": return "Descripción (en español)";
-      case "it": return "Descrizione (in italiano)";
-      case "pt": return "Descrição (em português)";
-      default: return "Description";
-    }
-  };
+  const filteredLanguages = languages.filter(lang => 
+    lang.name.toLowerCase().includes(languageSearch.toLowerCase())
+  );
 
   if (isCheckingUser) {
     return (
@@ -492,154 +460,142 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container flex h-16 items-center justify-center">
-          <div className="flex items-center gap-2">
-            <AnimatedLogo size="md" />
-            <span className="text-xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
-            </span>
-          </div>
+      <header className="py-6 px-4">
+        <div className="flex items-center justify-center gap-2">
+          <AnimatedLogo size="md" />
+          <span className="text-xl font-bold tracking-tight">
+            Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
+          </span>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Left Panel - Form */}
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12">
-          <div className="w-full max-w-xl">
-            {/* Step Indicator */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <div className="h-4 w-1 bg-primary rounded-full" />
-                <span className="font-semibold">
-                  {currentStep === 1 && "Website URL"}
-                  {currentStep === 2 && "Language"}
-                  {currentStep === 3 && "Business Info"}
-                  {currentStep === 4 && "Competitors (Optional)"}
-                  {currentStep === 5 && "Brand (Optional)"}
-                </span>
-              </div>
-              <span className="text-muted-foreground text-sm">Step {currentStep} of {totalSteps}</span>
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {currentStep === 1 && (
-                  <div className="space-y-6">
-                    <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Insert Your Website URL</h1>
-                      <p className="text-muted-foreground mt-2">Enter the website URL you want to optimize for AI visibility.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <Input
-                          type="url"
-                          placeholder="example.com"
-                          value={data.websiteUrl}
-                          onChange={(e) => handleUrlChange(e.target.value)}
-                          className={cn("h-14 text-lg pr-12", urlError && "border-destructive focus-visible:ring-destructive")}
-                        />
-                        {isAutoFilling && (
-                          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-primary" />
-                        )}
-                      </div>
-                      {urlError && (
-                        <p className="text-sm text-destructive">{urlError}</p>
-                      )}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
+        <div className="w-full max-w-md">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+            >
+              {/* Step 1: Website URL */}
+              {currentStep === 1 && (
+                <div className="space-y-6 text-center">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">What's your website?</h1>
+                    <p className="text-muted-foreground mt-2">Enter your URL and we'll analyze your business</p>
+                  </div>
+                  
+                  {/* Robot illustration placeholder */}
+                  <div className="flex justify-center py-4">
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center">
+                      <AnimatedLogo size="lg" />
                     </div>
                   </div>
-                )}
 
-                {currentStep === 2 && (
-                  <div className="space-y-6">
-                    <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Choose Your Language</h1>
-                      <p className="text-muted-foreground mt-2">Select the language for your AI-optimized content.</p>
-                    </div>
-                    <div className="relative">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full h-14 justify-between text-left font-normal">
-                            {data.language ? (
-                              <div className="flex items-center gap-2">
-                                <span>{languages.find(l => l.code === data.language)?.flag}</span>
-                                <span>{languages.find(l => l.code === data.language)?.name}</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">Select a language</span>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <ChevronDown className="h-4 w-4" />
-                            </div>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-full min-w-[400px]">
-                          {languages.map((lang) => (
-                            <DropdownMenuItem key={lang.code} onClick={() => updateData("language", lang.code)} className="py-3">
-                              <span className="mr-2">{lang.flag}</span>
-                              <span>{lang.name}</span>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    {data.language && (
-                      <div className="flex items-center gap-2 text-primary">
-                        <Check className="h-4 w-4" />
-                        <span className="text-sm">Speakers: {languages.find(l => l.code === data.language)?.audience}</span>
-                      </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="url"
+                      placeholder="yourwebsite.com"
+                      value={data.websiteUrl}
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      className={cn(
+                        "h-14 text-center text-lg bg-muted/50 border-muted",
+                        urlError && "border-destructive focus-visible:ring-destructive"
+                      )}
+                    />
+                    {urlError && (
+                      <p className="text-sm text-destructive">{urlError}</p>
                     )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {currentStep === 3 && (
-                  <div className="space-y-6">
+              {/* Step 2: Language Selection */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold tracking-tight">What language should<br />we write in?</h1>
+                  </div>
+
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search language..."
+                      value={languageSearch}
+                      onChange={(e) => setLanguageSearch(e.target.value)}
+                      className="pl-9 h-12 bg-muted/50 border-muted"
+                    />
+                  </div>
+
+                  {/* Language Grid */}
+                  <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-1">
+                    {filteredLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => updateData("language", lang.code)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all",
+                          data.language === lang.code
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card border-border hover:border-primary/50"
+                        )}
+                      >
+                        <span className="text-2xl">{lang.flag}</span>
+                        <span className="text-xs font-medium truncate w-full text-center">{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Email/Results placeholder - now business description */}
+              {currentStep === 3 && (
+                <div className="space-y-6 text-center">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Describe your business</h1>
+                    <p className="text-muted-foreground mt-2">Help us understand what you do</p>
+                  </div>
+
+                  <div className="space-y-4 text-left">
+                    {isLoadingFast && !data.businessDescription ? (
+                      <div className="min-h-[120px] rounded-xl border border-border bg-muted/30 p-4 animate-pulse">
+                        <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                        <div className="h-4 bg-muted rounded w-full mb-2" />
+                        <div className="h-4 bg-muted rounded w-5/6" />
+                      </div>
+                    ) : (
+                      <textarea
+                        value={data.businessDescription}
+                        onChange={(e) => updateData("businessDescription", e.target.value)}
+                        className="w-full min-h-[120px] p-4 rounded-xl border border-border bg-muted/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="We are a company that..."
+                      />
+                    )}
+
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Describe Your Business</h1>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{getDescriptionLabel()}</Label>
-                      {isLoadingFast && !data.businessDescription ? (
-                        <div className="min-h-[150px] rounded-md border border-border bg-muted/30 p-3 animate-pulse">
-                          <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                          <div className="h-4 bg-muted rounded w-full mb-2" />
-                          <div className="h-4 bg-muted rounded w-5/6" />
-                        </div>
-                      ) : (
-                        <Textarea
-                          value={data.businessDescription}
-                          onChange={(e) => updateData("businessDescription", e.target.value)}
-                          className="min-h-[150px] resize-none"
-                          placeholder={data.language === "fr" ? "Décrivez votre entreprise..." : "Describe your business..."}
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Target Audience</Label>
+                      <label className="text-sm font-medium mb-2 block">Target Audience</label>
                       <div className="flex gap-2">
                         <Input
-                          placeholder="e.g. business owners in Florida"
+                          placeholder="e.g. small business owners"
                           value={newAudience}
                           onChange={(e) => setNewAudience(e.target.value)}
                           onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addAudience())}
+                          className="bg-muted/50 border-muted"
                         />
-                        <Button onClick={addAudience} size="icon" className="shrink-0 gradient-bg text-primary-foreground">
+                        <Button onClick={addAudience} size="icon" className="shrink-0 bg-gradient-to-r from-primary to-violet-500">
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
                         {(isLoadingFast || isLoadingEnrich) && data.targetAudiences.length === 0 ? (
                           <>
-                            <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
                             <div className="h-8 w-28 bg-muted rounded-full animate-pulse" />
-                            <div className="h-8 w-36 bg-muted rounded-full animate-pulse" />
+                            <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
                           </>
                         ) : (
                           data.targetAudiences.map((audience) => (
@@ -654,156 +610,109 @@ export default function Onboarding() {
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {currentStep === 4 && (
-                  <div className="space-y-6">
-                    <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Select Your Competitors</h1>
-                      <p className="text-muted-foreground mt-2">This step is optional. You can always add competitors later in settings.</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-2">
-                      <p className="text-sm text-muted-foreground">If you add competitors, we can better:</p>
-                      <ul className="text-sm space-y-1">
-                        <li>• <strong>Find trending topics</strong> and content gaps to stay ahead of the competition.</li>
-                        <li>• <strong>Identify industry keywords</strong> to understand the language of your domain.</li>
-                      </ul>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type competitor domain (e.g. competitor.com)"
-                        value={newCompetitor}
-                        onChange={(e) => setNewCompetitor(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCompetitor())}
-                      />
-                      <Button onClick={addCompetitor} size="icon" variant="outline">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {data.competitors.map((comp) => (
-                        <Badge key={comp} variant="secondary" className="gap-2 py-1.5 px-3">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">G</span>
-                          {comp}
-                          <button onClick={() => removeCompetitor(comp)} className="ml-1 hover:text-destructive">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
+              {/* Step 4: Analyzing/Competitors */}
+              {currentStep === 4 && (
+                <div className="space-y-6 text-center">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Add competitors</h1>
+                    <p className="text-muted-foreground mt-2">Optional - helps us find trending topics</p>
                   </div>
-                )}
 
-                {currentStep === 5 && (
-                  <div className="space-y-6">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="competitor.com"
+                      value={newCompetitor}
+                      onChange={(e) => setNewCompetitor(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCompetitor())}
+                      className="bg-muted/50 border-muted"
+                    />
+                    <Button onClick={addCompetitor} size="icon" variant="outline">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {data.competitors.map((comp) => (
+                      <Badge key={comp} variant="secondary" className="gap-2 py-2 px-3">
+                        {comp}
+                        <button onClick={() => removeCompetitor(comp)} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {data.competitors.length === 0 && (
+                    <p className="text-sm text-muted-foreground">You can skip this step</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 5: Brand customization */}
+              {currentStep === 5 && (
+                <div className="space-y-6 text-center">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Customize your brand</h1>
+                    <p className="text-muted-foreground mt-2">Optional - personalize your content</p>
+                  </div>
+
+                  <div className="space-y-4 text-left">
                     <div>
-                      <h1 className="text-3xl font-bold tracking-tight">Customize Your Brand</h1>
-                      <p className="text-muted-foreground mt-2">Optional - personalize your content styling.</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-1">
-                      <p className="text-sm">• <strong>Brand color</strong> is used to style your articles</p>
-                      <p className="text-sm">• <strong>Example article</strong> is used to match your writing style and tone</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Brand Color (optional)</Label>
-                      <div className="flex items-center gap-3 p-3 border border-border rounded-xl">
+                      <label className="text-sm font-medium mb-2 block">Brand Color</label>
+                      <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-muted/50">
                         <input
                           type="color"
                           value={data.brandColor}
                           onChange={(e) => updateData("brandColor", e.target.value)}
-                          className="h-8 w-8 rounded border-0 cursor-pointer"
+                          className="h-10 w-10 rounded border-0 cursor-pointer"
                         />
-                        <span className="text-sm font-mono"># {data.brandColor.replace("#", "")}</span>
+                        <span className="text-sm font-mono text-muted-foreground">{data.brandColor}</span>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Article URL for brand voice (optional)</Label>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Example article URL (for brand voice)</label>
                       <Input
                         type="url"
-                        placeholder="https://yourwebsite.com/article-title"
+                        placeholder="https://yoursite.com/blog/article"
                         value={data.exampleUrl}
                         onChange={(e) => updateData("exampleUrl", e.target.value)}
+                        className="bg-muted/50 border-muted"
                       />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Continue Button */}
+          {/* Continue Button */}
+          <div className="mt-8">
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="w-full h-14 mt-8 gap-2 bg-foreground text-background hover:bg-foreground/90 text-lg font-medium"
+              className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity"
             >
-              {currentStep === totalSteps ? "Create Account & Continue" : "Continue"}
-              <ArrowRight className="h-5 w-5" />
+              {currentStep === totalSteps ? "Create Account" : "Continue"}
+              {currentStep < totalSteps && <ArrowRight className="h-5 w-5 ml-2" />}
             </Button>
           </div>
-        </div>
 
-        {/* Right Panel - Illustration */}
-        <div className="hidden lg:flex w-1/2 bg-muted/30 items-center justify-center relative overflow-hidden">
-          {currentStep <= 2 && <WorldMapIllustration />}
-          {currentStep === 3 && <WorldMapIllustration />}
-          {currentStep === 4 && <GrowthArrowsIllustration />}
-          {currentStep >= 5 && <DotsPatternIllustration />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WorldMapIllustration() {
-  return (
-    <div className="w-full h-full flex items-center justify-center p-12">
-      <svg viewBox="0 0 400 300" className="w-full max-w-md opacity-20">
-        {Array.from({ length: 20 }).map((_, row) =>
-          Array.from({ length: 30 }).map((_, col) => (
-            <circle
-              key={`${row}-${col}`}
-              cx={col * 14 + 10}
-              cy={row * 14 + 20}
-              r={Math.random() > 0.6 ? 2 : 0}
-              fill="currentColor"
-              className="text-foreground"
-            />
-          ))
-        )}
-      </svg>
-    </div>
-  );
-}
-
-function GrowthArrowsIllustration() {
-  return (
-    <div className="w-full h-full flex items-center justify-center p-12">
-      <svg viewBox="0 0 300 200" className="w-full max-w-md">
-        <polygon points="50,180 80,120 110,180" fill="hsl(var(--muted))" />
-        <polygon points="90,180 130,100 170,180" fill="hsl(var(--muted))" />
-        <polygon points="140,180 190,80 240,180" fill="hsl(var(--muted))" />
-        <path d="M 60 150 Q 150 60 260 40" stroke="hsl(var(--primary))" strokeWidth="8" fill="none" strokeLinecap="round" />
-        <polygon points="250,30 270,50 245,55" fill="hsl(var(--primary))" />
-      </svg>
-    </div>
-  );
-}
-
-function DotsPatternIllustration() {
-  return (
-    <div className="w-full h-full flex items-center justify-center p-12 relative">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="grid grid-cols-12 gap-4">
-          {Array.from({ length: 144 }).map((_, i) => (
-            <div key={i} className="h-4 w-4 rounded-full bg-muted-foreground/10" />
-          ))}
-        </div>
-      </div>
-      <div className="relative z-10">
-        <div className="w-32 h-24 bg-foreground rounded-lg relative overflow-hidden">
-          <div className="absolute -top-6 left-4 w-12 h-12 rounded-full gradient-bg" />
-          <div className="absolute -top-6 left-12 w-12 h-12 rounded-full gradient-bg" />
+          {/* Step indicator dots */}
+          <div className="flex justify-center gap-2 mt-6">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  i + 1 === currentStep ? "w-8 bg-primary" : "w-2 bg-muted"
+                )}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -811,39 +720,48 @@ function DotsPatternIllustration() {
 }
 
 function AnalyzingScreen({ websiteUrl }: { websiteUrl: string }) {
-  const [progress, setProgress] = useState(0);
-  const [currentTask, setCurrentTask] = useState("Connecting...");
-  const tasks = ["Connecting...", "Scanning structure...", "Extracting content...", "Identifying opportunities...", "Preparing dashboard..."];
+  const [currentTask, setCurrentTask] = useState("Calculating traffic potential...");
+  const tasks = [
+    "Calculating traffic potential...",
+    "Analyzing competitors...",
+    "Finding content opportunities...",
+    "Preparing your dashboard..."
+  ];
 
   useEffect(() => {
     let taskIndex = 0;
     const interval = setInterval(() => {
-      taskIndex++;
-      if (taskIndex < tasks.length) {
-        setCurrentTask(tasks[taskIndex]);
-        setProgress((taskIndex / tasks.length) * 100);
-      }
-    }, 600);
+      taskIndex = (taskIndex + 1) % tasks.length;
+      setCurrentTask(tasks[taskIndex]);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-8">
-      <div className="max-w-md w-full text-center space-y-8">
-        <div className="flex justify-center">
-          <AnimatedLogo size="lg" className="animate-pulse" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+      {/* Header */}
+      <div className="absolute top-6 left-0 right-0 flex justify-center">
+        <div className="flex items-center gap-2">
+          <AnimatedLogo size="md" />
+          <span className="text-xl font-bold tracking-tight">
+            Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
+          </span>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Analyzing your website</h1>
-          <p className="text-muted-foreground text-sm mt-2">{websiteUrl}</p>
-        </div>
-        <div className="space-y-3">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div className="h-full gradient-bg" animate={{ width: `${progress}%` }} />
+      </div>
+
+      <div className="max-w-sm w-full">
+        <div className="bg-card rounded-2xl p-8 text-center space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold">LovelyAnswers is learning<br />about your website</h1>
           </div>
-          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />{currentTask}
-          </p>
+          
+          <p className="text-muted-foreground">{currentTask}</p>
+
+          <div className="flex justify-center py-8">
+            <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center">
+              <AnimatedLogo size="lg" className="animate-pulse" />
+            </div>
+          </div>
         </div>
       </div>
     </div>

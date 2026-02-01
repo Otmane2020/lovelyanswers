@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRICE_WEEKLY = "price_1SqLQnEfti9t9nN9FABsGTDW"; // LovelyAnswers Weekly $29/week
-const PRICE_ANNUAL = "price_1SqLRmEfti9t9nN9KqByqw5P"; // LovelyAnswers Annual $1,206/year (-20%)
+const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20"; // $29/month
+const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI"; // $279/year
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,15 +34,15 @@ serve(async (req) => {
     console.log("[CREATE-CHECKOUT] User authenticated:", user.email);
 
     // Get plan from request body
-    let plan = "weekly";
+    let plan = "monthly";
     try {
       const body = await req.json();
-      plan = body.plan || "weekly";
+      plan = body.plan || "monthly";
     } catch {
-      // Default to weekly if no body
+      // Default to monthly if no body
     }
 
-    const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_WEEKLY;
+    const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_MONTHLY;
     console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
