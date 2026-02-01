@@ -351,7 +351,24 @@ export function IntegrationConfigModal({
   const [showGuide, setShowGuide] = useState(false);
   const isMobile = useIsMobile();
 
-  const LOVABLE_PROMPT = `Create a Supabase Edge Function "receive-article" that accepts POST requests with { title, body, slug, sourceId } and saves to a "published_articles" table (with upsert on slug). Also create a /blog/:slug page to display articles. Return the public URL of the created article.`;
+const LOVABLE_PROMPT = `Create an article ingestion system with the following requirements:
+
+1. **Edge Function "receive-article"**:
+   - Accept POST requests with JSON body: { title: string, body: string, slug: string, sourceId?: string, metaDescription?: string, author?: string }
+   - Validate required fields (title, body, slug) and return 400 error if missing
+   - Create table "published_articles" if it doesn't exist with columns: id (uuid), title (text), body (text), slug (text unique), source_id (text), meta_description (text), author (text), published_at (timestamp), updated_at (timestamp), created_at (timestamp)
+   - Upsert article by slug (update if exists, insert if new)
+   - Enable RLS with public SELECT policy for reading articles
+   - Return JSON: { success: true, article: { id, slug, url: "https://YOUR-SITE.lovable.app/blog/{slug}" } }
+   - Include CORS headers for cross-origin requests
+
+2. **Blog page "/blog/:slug"**:
+   - Fetch article from published_articles table by slug
+   - Display article with proper SEO meta tags (title, description)
+   - Show 404 if article not found
+   - Render body content as HTML
+
+Return the Supabase function URL after creation.`;
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
@@ -505,7 +522,7 @@ export function IntegrationConfigModal({
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-sm flex items-center gap-2">
               <span className="text-lg">📋</span> 
-              Prompt à copier dans Lovable
+              Prompt to copy in Lovable
             </h4>
             <Button
               variant="outline"
@@ -514,14 +531,14 @@ export function IntegrationConfigModal({
               className="h-8 px-3 gap-1.5 text-xs border-primary/30 hover:bg-primary/10"
             >
               {copiedPrompt ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-              {copiedPrompt ? "Copié!" : "Copier"}
+              {copiedPrompt ? "Copied!" : "Copy"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground bg-background/80 rounded-lg p-3 font-mono leading-relaxed border">
+          <p className="text-xs text-muted-foreground bg-background/80 rounded-lg p-3 font-mono leading-relaxed border max-h-40 overflow-y-auto whitespace-pre-wrap">
             {LOVABLE_PROMPT}
           </p>
           <p className="text-[11px] text-muted-foreground/80 flex items-center gap-1.5">
-            <span>💡</span> Collez ce prompt dans votre projet Lovable pour créer la fonction receive-article
+            <span>💡</span> Paste this prompt in your Lovable project to create the receive-article function
           </p>
         </div>
       )}
