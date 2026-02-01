@@ -314,12 +314,11 @@ const CMS_CONFIG: Record<string, {
     icon: lovableLogo,
     isImage: true,
     color: "from-rose-500 to-pink-600",
-    description: "Publish articles to your Lovable.dev project.",
+    description: "Publiez des articles sur votre projet Lovable.dev",
     helpText: "",
     fields: [
-      { key: "name", label: "Integration Name", placeholder: "My Lovable Site" },
-      { key: "siteUrl", label: "Published Site URL", placeholder: "https://your-site.lovable.app", helpText: "URL where articles will be visible" },
-      { key: "token", label: "API Key (optional)", placeholder: "For security", type: "password", optional: true },
+      { key: "name", label: "Nom de l'intégration", placeholder: "Mon site Lovable" },
+      { key: "endpoint", label: "URL Supabase Function", placeholder: "https://xxx.supabase.co/functions/v1/receive-article", helpText: "URL de la fonction receive-article de votre projet" },
     ],
   },
 };
@@ -349,16 +348,17 @@ export function IntegrationConfigModal({
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
   const [testMessage, setTestMessage] = useState<string>("");
   const [showGuide, setShowGuide] = useState(false);
-  const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
 
-  const LOVABLE_PROMPT = `Crée une Edge Function Supabase "receive-article" qui accepte les requêtes POST avec { title, body, slug } et enregistre dans une table "published_articles". Crée aussi une page /blog/:slug pour afficher les articles.`;
-  const SUPABASE_FUNCTION_URL = "https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/receive-article";
+  const LOVABLE_PROMPT = `Crée une Edge Function Supabase "receive-article" qui accepte les requêtes POST avec { title, body, slug, sourceId } et enregistre dans une table "published_articles" (avec upsert sur le slug). Crée aussi une page /blog/:slug pour afficher les articles. Retourne l'URL publique de l'article créé.`;
 
-  const handleCopy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(LOVABLE_PROMPT);
+    setCopiedPrompt(true);
+    toast.success("Prompt copié !");
+    setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
   // Reset form when modal opens with new data
@@ -498,46 +498,30 @@ export function IntegrationConfigModal({
 
   const ModalContent = () => (
     <div className="space-y-4 py-2">
-      {/* Lovable-specific: Copyable Prompt & Function URL */}
+      {/* Lovable-specific: Copyable Prompt only */}
       {platform === "lovable" && (
-        <div className="space-y-3">
-          {/* Copyable Prompt */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-primary">📋 Prompt pour projet externe</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCopy(LOVABLE_PROMPT)}
-                className="h-8 px-2 gap-1.5 text-xs"
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copié!" : "Copier"}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground bg-background/60 rounded-lg p-3 font-mono leading-relaxed">
-              {LOVABLE_PROMPT}
-            </p>
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <span className="text-lg">📋</span> 
+              Prompt à copier dans Lovable
+            </h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyPrompt}
+              className="h-8 px-3 gap-1.5 text-xs border-primary/30 hover:bg-primary/10"
+            >
+              {copiedPrompt ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copiedPrompt ? "Copié!" : "Copier"}
+            </Button>
           </div>
-
-          {/* Function URL */}
-          <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm">🔗 URL de la fonction</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCopy(SUPABASE_FUNCTION_URL)}
-                className="h-8 px-2 gap-1.5 text-xs"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                Copier
-              </Button>
-            </div>
-            <code className="text-[11px] text-muted-foreground bg-background/60 rounded-lg p-2 block break-all">
-              {SUPABASE_FUNCTION_URL}
-            </code>
-          </div>
+          <p className="text-xs text-muted-foreground bg-background/80 rounded-lg p-3 font-mono leading-relaxed border">
+            {LOVABLE_PROMPT}
+          </p>
+          <p className="text-[11px] text-muted-foreground/80 flex items-center gap-1.5">
+            <span>💡</span> Collez ce prompt dans votre projet Lovable pour créer la fonction receive-article
+          </p>
         </div>
       )}
 
