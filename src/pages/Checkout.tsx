@@ -19,12 +19,14 @@ const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20"; // $29/month
 const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI"; // $279/year
 
 const features = [
-  "30 AI-optimized articles/month",
-  "Automatic keyword research",
-  "Auto-publishing to your CMS",
-  "20+ languages supported",
-  "Technical SEO audit",
-  "Priority support",
+  "🤖 AEO Answers: Rank #1 on ChatGPT, Gemini & Perplexity",
+  "📝 30 SEO-optimized articles auto-published monthly",
+  "📍 Local AEO: Dominate local AI search results",
+  "🔄 Auto-posting to WordPress, Shopify, Webflow & more",
+  "🔍 Automated keyword research & SERP clustering",
+  "💬 Reddit Agent for brand visibility & backlinks",
+  "🛠️ Technical SEO audit (Google + AI crawlers)",
+  "🌍 20+ languages supported worldwide",
 ];
 
 export default function Checkout() {
