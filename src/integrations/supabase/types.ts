@@ -1051,6 +1051,45 @@ export type Database = {
         }
         Relationships: []
       }
+      published_articles: {
+        Row: {
+          author: string | null
+          body: string
+          created_at: string
+          id: string
+          meta_description: string | null
+          published_at: string
+          slug: string
+          source_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          meta_description?: string | null
+          published_at?: string
+          slug: string
+          source_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          meta_description?: string | null
+          published_at?: string
+          slug?: string
+          source_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reddit_responses: {
         Row: {
           brand_mentioned: boolean | null
