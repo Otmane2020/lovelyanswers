@@ -907,6 +907,7 @@ export type Database = {
           include_toc: boolean | null
           include_youtube: boolean | null
           project_id: string
+          publish_frequency: string | null
           publish_hour: string | null
           special_instructions: string | null
           text_overlay: boolean | null
@@ -938,6 +939,7 @@ export type Database = {
           include_toc?: boolean | null
           include_youtube?: boolean | null
           project_id: string
+          publish_frequency?: string | null
           publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null
@@ -969,6 +971,7 @@ export type Database = {
           include_toc?: boolean | null
           include_youtube?: boolean | null
           project_id?: string
+          publish_frequency?: string | null
           publish_hour?: string | null
           special_instructions?: string | null
           text_overlay?: boolean | null

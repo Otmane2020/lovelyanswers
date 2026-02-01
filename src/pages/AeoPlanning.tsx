@@ -67,7 +67,7 @@ export default function AeoPlanning() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
   
   // Calendar navigation - offset in weeks from today
   const [weekOffset, setWeekOffset] = useState(0);
@@ -424,10 +424,7 @@ export default function AeoPlanning() {
                 <span>Generating content...</span>
               </div>
             )}
-            <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
-              <Settings className="w-4 h-4 mr-2" />
-              Auto-Publish
-            </Button>
+            {project && <AutoPublishSettings projectId={project.id} />}
           </div>
         </div>
 
@@ -881,10 +878,6 @@ export default function AeoPlanning() {
           </DialogContent>
         </Dialog>
 
-        {/* Auto-Publish Settings Modal */}
-        {project && (
-          <AutoPublishSettings projectId={project.id} open={showSettingsModal} onOpenChange={setShowSettingsModal} />
-        )}
       </div>
     </DashboardLayout>
   );

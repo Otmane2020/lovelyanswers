@@ -49,6 +49,7 @@ interface ProjectSettings {
   auto_publish_enabled: boolean;
   publish_hour: string;
   timezone: string | null;
+  publish_frequency: string | null;
 }
 
 // Convert UTC time to local hour in a specific timezone
@@ -64,6 +65,26 @@ function getLocalHour(timezone: string): number {
   } catch (e) {
     console.error(`[publish-scheduled] ⚠️ Invalid timezone: ${timezone}, falling back to UTC`);
     return new Date().getUTCHours();
+  }
+}
+
+// Check if today matches the frequency schedule
+function shouldPublishToday(frequency: string | null): boolean {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const dayOfMonth = today.getDate();
+  
+  switch (frequency) {
+    case "weekly":
+      // Publish only on Mondays (day 1)
+      return dayOfWeek === 1;
+    case "monthly":
+      // Publish only on the 1st of the month
+      return dayOfMonth === 1;
+    case "daily":
+    default:
+      // Daily publishing
+      return true;
   }
 }
 
@@ -245,7 +266,7 @@ Deno.serve(async (req) => {
     // Get ALL projects with auto-publish enabled (we'll filter by timezone below)
     const { data: projectSettings, error: settingsError } = await supabase
       .from("project_settings")
-      .select("project_id, publish_hour, timezone")
+      .select("project_id, publish_hour, timezone, publish_frequency")
       .eq("auto_publish_enabled", true);
 
     if (settingsError) {
@@ -272,7 +293,8 @@ Deno.serve(async (req) => {
             project_id: forceProjectId,
             publish_hour: "00",
             auto_publish_enabled: true,
-            timezone: "UTC"
+            timezone: "UTC",
+            publish_frequency: "daily"
           });
           console.log(`[publish-scheduled] 🔧 MANUAL TRIGGER: Force publishing for project ${forceProjectId}`);
         }
@@ -284,17 +306,21 @@ Deno.serve(async (req) => {
         console.log(`[publish-scheduled] 🔧 RETROACTIVE: Publishing for ALL ${projectsToPublish.length} projects for date ${todayStr}`);
       }
     } else {
-      // Normal cron behavior - check hour for each project's timezone
+      // Normal cron behavior - check hour and frequency for each project's timezone
       for (const ps of projectSettings || []) {
         const timezone = ps.timezone || "UTC";
         const localHour = getLocalHour(timezone);
         const configuredHour = parseInt(ps.publish_hour || "10", 10);
+        const frequency = (ps as any).publish_frequency || "daily";
         
-        console.log(`[publish-scheduled] 🕐 Project ${ps.project_id}: timezone=${timezone}, localHour=${localHour}, publishHour=${configuredHour}`);
+        console.log(`[publish-scheduled] 🕐 Project ${ps.project_id}: timezone=${timezone}, localHour=${localHour}, publishHour=${configuredHour}, frequency=${frequency}`);
         
-        if (localHour === configuredHour) {
+        // Check both hour match AND frequency match
+        if (localHour === configuredHour && shouldPublishToday(frequency)) {
           projectsToPublish.push(ps as ProjectSettings);
           console.log(`[publish-scheduled] ✅ Project ${ps.project_id} MATCHED for publication`);
+        } else if (localHour === configuredHour) {
+          console.log(`[publish-scheduled] ⏭️ Project ${ps.project_id} skipped - frequency=${frequency} not matched today`);
         }
       }
     }
@@ -318,7 +344,8 @@ Deno.serve(async (req) => {
             project_id: pid, 
             publish_hour: "10", 
             auto_publish_enabled: true, 
-            timezone: "UTC" 
+            timezone: "UTC",
+            publish_frequency: "daily"
           }));
           console.log(`[publish-scheduled] 🔄 FALLBACK: Found ${projectsToPublish.length} projects with active integrations`);
         }
