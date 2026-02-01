@@ -228,8 +228,10 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       a.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const scheduledCount = answers.filter((a) => a.scheduled_date && !a.is_public).length;
-  const publishedCount = answers.filter((a) => a.is_public).length;
+  const isPublished = (a: LocalAnswer) => Boolean(a.published_url) || Boolean(a.published_at);
+
+  const scheduledCount = answers.filter((a) => a.scheduled_date && !isPublished(a)).length;
+  const publishedCount = answers.filter((a) => isPublished(a)).length;
 
   return (
     <div className="space-y-6">
@@ -357,9 +359,13 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                 <div className="flex items-center gap-2">
                   <Badge 
                     variant="secondary" 
-                    className={answer.is_public ? "bg-emerald-500/20 text-emerald-600" : "bg-orange-500/20 text-orange-600"}
+                    className={isPublished(answer) ? "bg-emerald-500/20 text-emerald-600" : "bg-orange-500/20 text-orange-600"}
                   >
-                    {answer.is_public ? "Published" : answer.scheduled_date ? `${format(new Date(answer.scheduled_date), "MMM d")}` : "Draft"}
+                    {isPublished(answer)
+                      ? "Published"
+                      : answer.scheduled_date
+                        ? `${format(new Date(answer.scheduled_date), "MMM d")}`
+                        : "Draft"}
                   </Badge>
                 </div>
                 <div className="flex gap-1">
@@ -481,7 +487,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
                 </Button>
-                {!viewingAnswer.is_public && (
+                {!isPublished(viewingAnswer) && (
                   <Button
                     onClick={() => handlePublish(viewingAnswer)}
                     disabled={publishingId === viewingAnswer.id}

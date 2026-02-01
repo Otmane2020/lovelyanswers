@@ -39,12 +39,17 @@ interface ScheduledItem {
   date: Date;
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
+  publishedAt?: string | null;
   answer?: string;
   score?: number | null;
   highCitation?: boolean | null;
   aeoScore?: number | null;
   wordCount?: number | null;
   createdAt?: string | null;
+}
+
+function getPublishStatus(input: { published_url?: string | null; published_at?: string | null }) {
+  return input.published_url || input.published_at ? "published" : "scheduled";
 }
 
 export default function AeoPlanning() {
@@ -211,7 +216,9 @@ export default function AeoPlanning() {
       const [{ data: answers, error: answersError }, { data: articles, error: articlesError }] = await Promise.all([
         supabase
           .from("answers")
-          .select("id, question, scheduled_date, is_public, answer, published_url, score, high_citation, created_at")
+          .select(
+            "id, question, scheduled_date, is_public, answer, published_url, published_at, score, high_citation, created_at"
+          )
           .in("id", answerIds),
         supabase
           .from("articles")
@@ -240,8 +247,9 @@ export default function AeoPlanning() {
             title: a.question,
             type: "answer",
             date: dayDate, // Use planning_days date, not answer.scheduled_date
-            status: a.published_url ? "published" : a.is_public ? "published" : "scheduled",
+            status: getPublishStatus(a),
             publishedUrl: a.published_url || undefined,
+            publishedAt: a.published_at ?? null,
             answer: a.answer,
             score: a.score,
             highCitation: a.high_citation,

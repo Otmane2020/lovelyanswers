@@ -64,6 +64,8 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
     );
   };
 
+  const isPublished = (a: LocalAnswer) => Boolean(a.published_url) || Boolean(a.published_at);
+
   const handleDayClick = (date: Date) => {
     const items = getItemsForDate(date);
     if (items.length > 0) {
@@ -137,8 +139,8 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
     }
   };
 
-  const scheduledCount = answers.filter((a) => a.scheduled_date && !a.is_public).length;
-  const publishedCount = answers.filter((a) => a.is_public).length;
+  const scheduledCount = answers.filter((a) => a.scheduled_date && !isPublished(a)).length;
+  const publishedCount = answers.filter((a) => isPublished(a)).length;
 
   return (
     <div className="space-y-6">
@@ -256,7 +258,7 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
               {visibleDays.map((day, idx) => {
                 const dayItems = getItemsForDate(day);
                 const hasContent = dayItems.length > 0;
-                const allPublished = hasContent && dayItems.every((i) => i.is_public);
+                const allPublished = hasContent && dayItems.every((i) => isPublished(i));
 
                 return (
                   <button
@@ -305,7 +307,7 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
                             key={i}
                             className={cn(
                               "text-[10px] px-1.5 py-0.5 rounded truncate",
-                              item.is_public
+                              isPublished(item)
                                 ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                 : "bg-orange-500/20 text-orange-700 dark:text-orange-400"
                             )}
@@ -353,8 +355,8 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
                         </p>
                       </div>
                     </div>
-                    <Badge variant={answer.is_public ? "default" : "secondary"}>
-                      {answer.is_public ? "Published" : "Scheduled"}
+                    <Badge variant={isPublished(answer) ? "default" : "secondary"}>
+                      {isPublished(answer) ? "Published" : "Scheduled"}
                     </Badge>
                   </div>
                 ))
@@ -386,11 +388,11 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
                         </p>
                       </div>
                     </div>
-                    <Badge variant={item.is_public ? "default" : "secondary"}>
-                      {item.is_public ? "Published" : "Scheduled"}
+                    <Badge variant={isPublished(item) ? "default" : "secondary"}>
+                      {isPublished(item) ? "Published" : "Scheduled"}
                     </Badge>
                   </div>
-                  {!item.is_public && (
+                  {!isPublished(item) && (
                     <Button
                       size="sm"
                       onClick={() => handlePublish(item)}
