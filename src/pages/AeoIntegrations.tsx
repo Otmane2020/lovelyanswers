@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut } from "lucide-react";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut, Clock } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -57,6 +57,12 @@ export default function AeoIntegrations() {
 
   const [autoPublish, setAutoPublish] = useState(true);
   const [publishAnswers, setPublishAnswers] = useState(true);
+  const [publishHour, setPublishHour] = useState("08");
+  const [publishMinute, setPublishMinute] = useState("00");
+  const [timezone, setTimezone] = useState("Europe/Paris");
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  
   const [connectingGsc, setConnectingGsc] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<any>(null);
@@ -73,6 +79,95 @@ export default function AeoIntegrations() {
   const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const timezones = [
+    { value: "Europe/Paris", label: "Paris (CET)" },
+    { value: "Europe/London", label: "London (GMT)" },
+    { value: "America/New_York", label: "New York (EST)" },
+    { value: "America/Los_Angeles", label: "Los Angeles (PST)" },
+    { value: "America/Chicago", label: "Chicago (CST)" },
+    { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+    { value: "Asia/Dubai", label: "Dubai (GST)" },
+    { value: "Australia/Sydney", label: "Sydney (AEST)" },
+    { value: "UTC", label: "UTC" },
+  ];
+
+  // Load auto-publish settings
+  useEffect(() => {
+    const loadPublishSettings = async () => {
+      if (!project?.id) return;
+      
+      setLoadingSettings(true);
+      try {
+        const { data } = await supabase
+          .from("project_settings")
+          .select("auto_publish_enabled, publish_hour, timezone")
+          .eq("project_id", project.id)
+          .single();
+        
+        if (data) {
+          setAutoPublish(data.auto_publish_enabled ?? true);
+          const hourStr = data.publish_hour || "08";
+          // parse HH or HH:MM format
+          if (hourStr.includes(":")) {
+            const [h, m] = hourStr.split(":");
+            setPublishHour(h.padStart(2, "0"));
+            setPublishMinute(m.padStart(2, "0"));
+          } else {
+            setPublishHour(hourStr.padStart(2, "0"));
+            setPublishMinute("00");
+          }
+          setTimezone(data.timezone || "Europe/Paris");
+        }
+      } catch (error) {
+        console.error("Error loading publish settings:", error);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+
+    loadPublishSettings();
+  }, [project?.id]);
+
+  // Save auto-publish settings
+  const savePublishSettings = async (updates: { auto_publish_enabled?: boolean; publish_hour?: string; timezone?: string }) => {
+    if (!project?.id) return;
+    
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from("project_settings")
+        .upsert({
+          project_id: project.id,
+          ...updates,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "project_id" });
+      
+      if (error) throw error;
+      toast.success("Settings saved");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleAutoPublishChange = (checked: boolean) => {
+    setAutoPublish(checked);
+    savePublishSettings({ auto_publish_enabled: checked });
+  };
+
+  const handleTimeChange = (hour: string, minute: string) => {
+    setPublishHour(hour);
+    setPublishMinute(minute);
+    savePublishSettings({ publish_hour: `${hour}:${minute}` });
+  };
+
+  const handleTimezoneChange = (tz: string) => {
+    setTimezone(tz);
+    savePublishSettings({ timezone: tz });
+  };
 
   // Handle OAuth callback for Google Search Console
   useEffect(() => {
@@ -812,17 +907,101 @@ export default function AeoIntegrations() {
 
         {/* Publishing Settings */}
         <Card className="p-6">
-          <h3 className="font-semibold mb-4">Publishing Settings</h3>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Publishing Settings
+          </h3>
           <div className="space-y-4">
+            {/* Auto-Publish Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
               <div>
-                <Label className="font-medium">Auto-Publish Articles</Label>
+                <Label className="font-medium">Auto-Publish</Label>
                 <p className="text-xs text-muted-foreground">
-                  Automatically publish articles when generation is complete
+                  Automatically publish scheduled content daily
                 </p>
               </div>
-              <Switch checked={autoPublish} onCheckedChange={setAutoPublish} />
+              <Switch 
+                checked={autoPublish} 
+                onCheckedChange={handleAutoPublishChange}
+                disabled={loadingSettings || savingSettings}
+              />
             </div>
+
+            {/* Time Selection */}
+            {autoPublish && (
+              <>
+                <div className="p-3 rounded-lg bg-muted/30 space-y-3">
+                  <Label className="font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Publish Time
+                  </Label>
+                  <div className="flex gap-2 items-center">
+                    <Select 
+                      value={publishHour} 
+                      onValueChange={(h) => handleTimeChange(h, publishMinute)}
+                      disabled={savingSettings}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue placeholder="HH" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((hour) => (
+                          <SelectItem key={hour} value={hour}>
+                            {hour}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground font-bold">:</span>
+                    <Select 
+                      value={publishMinute} 
+                      onValueChange={(m) => handleTimeChange(publishHour, m)}
+                      disabled={savingSettings}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue placeholder="MM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["00", "15", "30", "45"].map((minute) => (
+                          <SelectItem key={minute} value={minute}>
+                            {minute}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({timezone.split("/")[1] || timezone})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Timezone Selection */}
+                <div className="p-3 rounded-lg bg-muted/30 space-y-3">
+                  <Label className="font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Timezone
+                  </Label>
+                  <Select 
+                    value={timezone} 
+                    onValueChange={handleTimezoneChange}
+                    disabled={savingSettings}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezones.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {/* Publish AEO Answers Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
               <div>
                 <Label className="font-medium">Publish AEO Answers</Label>
