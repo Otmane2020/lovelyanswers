@@ -317,23 +317,24 @@ Deno.serve(async (req) => {
 
     // ============= STEP 4: Competitors detection with multi-source + scoring =============
     let rawCompetitors: string[] = [];
-    let businessTypeQuery = '';
     
-    // FIRST: Get business type for scoring (run early in parallel)
-    const businessTypePromise = lovableApiKey 
-      ? detectBusinessType(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
-      : Promise.resolve('');
+    // Get business type EARLY for contextual filtering
+    const businessTypeQuery = lovableApiKey 
+      ? await detectBusinessType(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
+      : enrichedDescription;
+    
+    console.log('[COMPETITORS] Business context for filtering:', businessTypeQuery.substring(0, 100));
     
     // SOURCE 1: DataForSEO Domain Competitors API
     if (dfLogin && dfPassword) {
-      rawCompetitors = await fetchCompetitorsFast(ownDomain, dfLogin, dfPassword, language);
+      rawCompetitors = await fetchCompetitorsFast(ownDomain, dfLogin, dfPassword, language, businessTypeQuery);
       console.log('[COMPETITORS] Source 1 (Domain API):', rawCompetitors.length, 'results');
     }
     
     // SOURCE 2: DataForSEO SERP-based detection (if Source 1 returned < 3)
     if (rawCompetitors.length < 3 && dfLogin && dfPassword && keywords.length > 0) {
       console.log('[COMPETITORS] Trying SERP-based detection...');
-      const serpCompetitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language);
+      const serpCompetitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language, businessTypeQuery);
       
       // Merge unique domains
       for (const c of serpCompetitors) {
@@ -345,7 +346,7 @@ Deno.serve(async (req) => {
     // SOURCE 3: Related Keywords expansion for niche competitors (always try if we have keywords)
     if (dfLogin && dfPassword && keywords.length > 0 && rawCompetitors.length < 5) {
       console.log('[COMPETITORS] Trying Related Keywords expansion...');
-      const nicheCompetitors = await fetchCompetitorsViaRelatedKeywords(keywords, ownDomain, dfLogin, dfPassword, language);
+      const nicheCompetitors = await fetchCompetitorsViaRelatedKeywords(keywords, ownDomain, dfLogin, dfPassword, language, businessTypeQuery);
       
       // Merge unique domains
       for (const c of nicheCompetitors) {
@@ -357,7 +358,7 @@ Deno.serve(async (req) => {
     // SOURCE 4: Google Search via Firecrawl (final fallback)
     if (rawCompetitors.length < 3 && apiKey) {
       console.log('[COMPETITORS] Using AI-powered Google Search fallback...');
-      const googleCompetitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview);
+      const googleCompetitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview, businessTypeQuery);
       
       // Merge unique domains
       for (const c of googleCompetitors) {
@@ -365,9 +366,6 @@ Deno.serve(async (req) => {
       }
       console.log('[COMPETITORS] Source 4 (Google Search):', googleCompetitors.length, 'new, total:', rawCompetitors.length);
     }
-    
-    // Wait for business type detection
-    businessTypeQuery = await businessTypePromise;
     
     // SCORING: Score competitors by business similarity
     let competitors: string[] = rawCompetitors.slice(0, 8); // Max 8 for scoring
@@ -386,12 +384,12 @@ Deno.serve(async (req) => {
       competitors = scoredCompetitors
         .filter(c => c.score >= 40)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5)
+        .slice(0, 4) // Maximum 4 high-quality competitors
         .map(c => c.domain);
       
       console.log('[COMPETITORS] After scoring:', competitors.length, 'high-quality competitors');
     } else {
-      competitors = competitors.slice(0, 5);
+      competitors = competitors.slice(0, 4); // Maximum 4 competitors
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -529,7 +527,8 @@ async function findCompetitorsViaGoogleSearch(
   language: string,
   firecrawlApiKey: string,
   extractedKeywords: Array<{keyword: string, intent: string}> = [],
-  contentSample: string = ''
+  contentSample: string = '',
+  businessContext: string = ''
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
@@ -537,12 +536,17 @@ async function findCompetitorsViaGoogleSearch(
 
     let searchQuery = '';
     
-    // FIRST: Try AI-powered business type detection for accurate query
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (lovableApiKey && (description || contentSample)) {
-      const aiQuery = await detectBusinessType(description, contentSample, brandName, language, lovableApiKey);
-      if (aiQuery && aiQuery.length > 5 && aiQuery.length < 100) {
-        searchQuery = aiQuery;
+    // Use provided businessContext or detect it
+    if (businessContext && businessContext.length > 5 && businessContext.length < 100) {
+      searchQuery = businessContext;
+    } else {
+      // FALLBACK: Try AI-powered business type detection for accurate query
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (lovableApiKey && (description || contentSample)) {
+        const aiQuery = await detectBusinessType(description, contentSample, brandName, language, lovableApiKey);
+        if (aiQuery && aiQuery.length > 5 && aiQuery.length < 100) {
+          searchQuery = aiQuery;
+        }
       }
     }
     
@@ -597,34 +601,6 @@ async function findCompetitorsViaGoogleSearch(
       return [];
     }
 
-    // Extract domains from search results - EXPANDED blocked list
-    const blocked = new Set([
-      // Social media
-      'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 
-      'youtube.com', 'tiktok.com', 'pinterest.com', 'x.com',
-      // Search engines
-      'google.com', 'google.fr', 'bing.com', 'yahoo.com',
-      // Marketplaces
-      'amazon.com', 'amazon.fr', 'ebay.com', 'ebay.fr', 'etsy.com',
-      // Generic platforms
-      'shopify.com', 'wix.com', 'wordpress.com', 'squarespace.com', 
-      'webflow.com', 'medium.com', 'substack.com', 'notion.so',
-      // French marketplaces
-      'cdiscount.com', 'leboncoin.fr', 'fnac.com',
-      // Review/directory sites
-      'trustpilot.com', 'yelp.com', 'tripadvisor.com', 'pagesjaunes.fr',
-      'g2.com', 'capterra.com', 'getapp.com', 'softwareadvice.com',
-      // Generic tech blogs
-      'reddit.com', 'quora.com', 'stackoverflow.com', 'github.com',
-      'techcrunch.com', 'producthunt.com', 'crunchbase.com',
-      // App stores
-      'apps.shopify.com', 'play.google.com', 'apps.apple.com',
-      // Generic comparison sites
-      'whatagraph.com', 'marketermilk.com', 'technologyadvice.com', 'seo.com',
-      // Wikipedia
-      'wikipedia.org', 'wikimedia.org',
-    ]);
-
     const ownDomainBase = domain.split('.')[0].toLowerCase();
     const competitors: string[] = [];
     const seenDomains = new Set<string>();
@@ -637,15 +613,8 @@ async function findCompetitorsViaGoogleSearch(
         const urlObj = new URL(url);
         const resultDomain = urlObj.hostname.replace('www.', '').toLowerCase();
         
-        // Skip blocked domains (also check if it ends with any blocked domain)
-        let isBlocked = blocked.has(resultDomain);
-        for (const b of blocked) {
-          if (resultDomain.endsWith(`.${b}`) || resultDomain === b) {
-            isBlocked = true;
-            break;
-          }
-        }
-        if (isBlocked) continue;
+        // Use global isBlockedDomain with business context for smart filtering
+        if (isBlockedDomain(resultDomain, businessContext)) continue;
         
         // Skip own domain
         if (resultDomain.includes(ownDomainBase)) continue;
@@ -663,7 +632,7 @@ async function findCompetitorsViaGoogleSearch(
         seenDomains.add(resultDomain);
         competitors.push(resultDomain);
         
-        if (competitors.length >= 5) break;
+        if (competitors.length >= 6) break;
       } catch {
         // Invalid URL, skip
       }
@@ -768,7 +737,7 @@ const BLOCKED_DOMAINS = new Set([
   'youtube.com', 'tiktok.com', 'pinterest.com', 'x.com',
   // Search engines
   'google.com', 'google.fr', 'google.de', 'bing.com', 'yahoo.com',
-  // Marketplaces
+  // Marketplaces (only generic ones like Amazon)
   'amazon.com', 'amazon.fr', 'amazon.de', 'ebay.com', 'ebay.fr', 'etsy.com',
   // Generic platforms
   'shopify.com', 'wix.com', 'wordpress.com', 'wordpress.org', 'squarespace.com', 
@@ -783,12 +752,40 @@ const BLOCKED_DOMAINS = new Set([
   'techcrunch.com', 'producthunt.com', 'crunchbase.com',
   // App stores
   'apps.shopify.com', 'play.google.com', 'apps.apple.com',
-  // French marketplaces
-  'cdiscount.com', 'leboncoin.fr', 'fnac.com', 'darty.com',
+  // French retail (NOT second-hand)
+  'cdiscount.com', 'fnac.com', 'darty.com',
 ]);
 
-function isBlockedDomain(domain: string): boolean {
+// Second-hand / C2C marketplaces - these should be ALLOWED for relevant businesses
+const SECOND_HAND_MARKETPLACES = new Set([
+  'leboncoin.fr', 'vinted.fr', 'vinted.com', 'selency.com', 'videdressing.com',
+  'vestiaire-collective.com', 'backmarket.fr', 'backmarket.com', 
+  'rebuy.fr', 'momox.fr', 'rakuten.fr', 'label-emmaus.co',
+  'paruvendu.fr', 'trocvestiaire.com', 'depop.com',
+]);
+
+// Detect if the business context indicates a second-hand / C2C marketplace
+function isSecondHandBusiness(businessContext: string): boolean {
+  if (!businessContext) return false;
+  const lowerContext = businessContext.toLowerCase();
+  return /occasion|seconde.?main|vente.?entre.?particuliers|marketplace.?c2c|vendre.*(meubles|objets|vêtements)|achat.?revente|brocante|dépôt.?vente|reconditionné|second.?hand|resale|peer.?to.?peer|used.?items|classifieds|preloved/i.test(lowerContext);
+}
+
+function isBlockedDomain(domain: string, businessContext: string = ''): boolean {
   const lower = domain.toLowerCase();
+  
+  // If it's a second-hand marketplace AND the business is in second-hand vertical, ALLOW it
+  if (SECOND_HAND_MARKETPLACES.has(lower) && isSecondHandBusiness(businessContext)) {
+    console.log('[FILTER] Allowing second-hand marketplace for this vertical:', lower);
+    return false; // NOT blocked = valid competitor
+  }
+  
+  // If it's a second-hand marketplace but business is NOT second-hand, block it
+  if (SECOND_HAND_MARKETPLACES.has(lower)) {
+    return true;
+  }
+  
+  // Standard blocking logic
   if (BLOCKED_DOMAINS.has(lower)) return true;
   for (const blocked of BLOCKED_DOMAINS) {
     if (lower.endsWith(`.${blocked}`)) return true;
@@ -886,7 +883,8 @@ async function fetchCompetitorsViaRelatedKeywords(
   ownDomain: string,
   login: string,
   password: string,
-  language: string
+  language: string,
+  businessContext: string = ''
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
@@ -982,7 +980,7 @@ async function fetchCompetitorsViaRelatedKeywords(
         const domain = item.domain?.toLowerCase();
         if (!domain) continue;
         if (domain.includes(ownDomainBase) || ownDomainBase.includes(domain.split('.')[0])) continue;
-        if (isBlockedDomain(domain)) continue;
+        if (isBlockedDomain(domain, businessContext)) continue;
         
         domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
       }
@@ -1005,7 +1003,7 @@ async function fetchCompetitorsViaRelatedKeywords(
 }
 
 // Fast competitors fetch - with proper location based on language
-async function fetchCompetitorsFast(domain: string, login: string, password: string, language: string): Promise<string[]> {
+async function fetchCompetitorsFast(domain: string, login: string, password: string, language: string, businessContext: string = ''): Promise<string[]> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -1050,11 +1048,11 @@ async function fetchCompetitorsFast(domain: string, login: string, password: str
         const lower = d.toLowerCase();
         // Skip own domain
         if (lower.includes(ownDomainBase) || ownDomainBase.includes(lower.split('.')[0])) return false;
-        // Skip blocked domains
-        if (isBlockedDomain(lower)) return false;
+        // Skip blocked domains (with business context for smart filtering)
+        if (isBlockedDomain(lower, businessContext)) return false;
         return true;
       })
-      .slice(0, 5);
+      .slice(0, 6);
 
     console.log('[COMPETITORS] Domain API found:', competitors);
     return competitors;
@@ -1071,7 +1069,8 @@ async function fetchCompetitorsFromSERP(
   ownDomain: string,
   login: string,
   password: string,
-  language: string
+  language: string,
+  businessContext: string = ''
 ): Promise<string[]> {
   try {
     const controller = new AbortController();
@@ -1141,8 +1140,8 @@ async function fetchCompetitorsFromSERP(
         
         // Skip own domain
         if (domain.includes(ownDomainBase) || ownDomainBase.includes(domain.split('.')[0])) continue;
-        // Skip blocked domains
-        if (isBlockedDomain(domain)) continue;
+        // Skip blocked domains (with business context for smart filtering)
+        if (isBlockedDomain(domain, businessContext)) continue;
         
         // Score by position (higher position = higher score)
         const position = item.rank_group || 20;
