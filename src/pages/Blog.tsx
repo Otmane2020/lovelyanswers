@@ -117,6 +117,22 @@ export default function Blog() {
     return text.substring(0, maxLength).trim() + "...";
   };
 
+  const blogStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "LovelyAnswers Blog",
+    "description": "AI-optimized answers and insights for ChatGPT, Gemini, and Claude visibility",
+    "url": "https://lovelyanswers.com/blog",
+    "publisher": {
+      "@type": "Organization",
+      "name": "LovelyAnswers",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://lovelyanswers.com/favicon.png"
+      }
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -126,6 +142,12 @@ export default function Blog() {
           content="Discover AI-optimized answers and insights. Expert content designed for maximum visibility across AI platforms like ChatGPT, Gemini, and Claude."
         />
         <link rel="canonical" href="https://lovelyanswers.com/blog" />
+        <meta property="og:title" content="LovelyAnswers Blog - AI-Optimized Content" />
+        <meta property="og:description" content="Expert answers optimized for AI search engines and chatbots." />
+        <meta property="og:url" content="https://lovelyanswers.com/blog" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">{JSON.stringify(blogStructuredData)}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

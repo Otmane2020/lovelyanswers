@@ -42,15 +42,36 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
 # Default rule
 User-agent: *
 Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /pricing
+Allow: /about
+Allow: /localAEO
+Allow: /terms
+Allow: /privacy
+Allow: /auth
+Allow: /onboarding
+
+# Disallow private dashboard routes
 Disallow: /dashboard
 Disallow: /wizard
-Disallow: /answers/
+Disallow: /answers
 Disallow: /articles
 Disallow: /planning
 Disallow: /reddit
+Disallow: /local
 Disallow: /history
 Disallow: /analytics
 Disallow: /integrations
@@ -62,6 +83,8 @@ Disallow: /superadmin
 Disallow: /seo-audit
 Disallow: /keywords
 Disallow: /checkout
+Disallow: /autoseo
+Disallow: /account
 
 # Sitemap location
 Sitemap: https://lovelyanswers.com/sitemap.xml

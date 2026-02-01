@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield, Star, CreditCard } from "lucide-react";
+import { Shield, Star, CreditCard, ExternalLink } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export function PublicFooter() {
@@ -9,10 +9,13 @@ export function PublicFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           {/* Company Info */}
           <div className="md:col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
+            <Link to="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
               <AnimatedLogo size="sm" />
               <span className="font-bold">Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span></span>
-            </div>
+            </Link>
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+              The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.
+            </p>
             <div className="text-sm text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">LovelyAnswers Ltd</p>
               <p>Suite 4, Piccadilly House</p>
@@ -40,13 +43,28 @@ export function PublicFooter() {
                   Pricing
                 </Link>
               </li>
+              <li>
+                <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Login
+                </Link>
+              </li>
+              <li>
+                <Link to="/onboarding" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Start Free Trial
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Legal Links */}
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
+            <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                  About Us
+                </Link>
+              </li>
               <li>
                 <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
@@ -58,13 +76,19 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  About Us
-                </Link>
-              </li>
-              <li>
                 <a href="mailto:support@lovelyanswers.io" className="text-muted-foreground hover:text-foreground transition-colors">
                   Contact
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://lovelyanswers.io" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+                >
+                  lovelyanswers.io
+                  <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
             </ul>
@@ -87,16 +111,32 @@ export function PublicFooter() {
                 <span>Trusted by 500+ businesses</span>
               </div>
             </div>
+            
+            {/* SEO Internal Links */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2">Resources</p>
+              <div className="flex flex-wrap gap-2">
+                <Link to="/blog" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                  AEO Articles
+                </Link>
+                <span className="text-muted-foreground/50">•</span>
+                <Link to="/localAEO" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                  Local SEO
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 LovelyAnswers Ltd. All rights reserved.
+            © {new Date().getFullYear()} LovelyAnswers Ltd. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Answer Engine Optimization Platform</span>
+            <span className="hidden md:inline">•</span>
+            <span className="hidden md:inline">Made with ❤️ in Manchester</span>
           </div>
         </div>
       </div>

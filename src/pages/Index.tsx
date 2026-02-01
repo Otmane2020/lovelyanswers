@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -211,6 +212,20 @@ export default function Index() {
   };
 
   return (
+    <>
+      <Helmet>
+        <title>LovelyAnswers – AEO AutoPost | Rank in ChatGPT, Gemini & Google</title>
+        <meta name="description" content="Generate AI-optimized AEO answers for ChatGPT, Gemini, Copilot and Google. Get 30 articles/month, backlinks, and 216% avg traffic increase." />
+        <link rel="canonical" href="https://lovelyanswers.com/" />
+        <meta property="og:title" content="LovelyAnswers – Rank in ChatGPT, Gemini & Google with AI Answers" />
+        <meta property="og:description" content="The #1 AEO platform. Get cited by AI assistants and dominate Google search." />
+        <meta property="og:url" content="https://lovelyanswers.com/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://lovelyanswers.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="LovelyAnswers – AEO Platform" />
+        <meta name="twitter:description" content="Get recommended by ChatGPT, Perplexity AND Google" />
+      </Helmet>
     <div className="min-h-screen bg-background">
       {/* Announcement Bar */}
       <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">
@@ -773,5 +788,6 @@ export default function Index() {
         </Button>
       </motion.div>
     </div>
+    </>
   );
 }

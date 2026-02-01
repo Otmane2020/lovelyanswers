@@ -1,12 +1,51 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Target, Users, Zap } from "lucide-react";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { GlassCard } from "@/components/ui/glass-card";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 
+const aboutStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  "mainEntity": {
+    "@type": "Organization",
+    "name": "LovelyAnswers",
+    "description": "Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era.",
+    "url": "https://lovelyanswers.com",
+    "foundingLocation": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Suite 4, Piccadilly House",
+        "addressLocality": "Manchester",
+        "postalCode": "M1 1AB",
+        "addressCountry": "GB"
+      }
+    },
+    "numberOfEmployees": {
+      "@type": "QuantitativeValue",
+      "value": "10-50"
+    }
+  }
+};
+
 export default function About() {
   return (
+    <>
+      <Helmet>
+        <title>About LovelyAnswers - AI Answer Engine Optimization Company</title>
+        <meta name="description" content="Learn about LovelyAnswers, the pioneering AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants. Based in Manchester, UK." />
+        <link rel="canonical" href="https://lovelyanswers.com/about" />
+        <meta property="og:title" content="About LovelyAnswers - AI Answer Engine Optimization" />
+        <meta property="og:description" content="Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era." />
+        <meta property="og:url" content="https://lovelyanswers.com/about" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About LovelyAnswers" />
+        <script type="application/ld+json">{JSON.stringify(aboutStructuredData)}</script>
+      </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -137,5 +176,6 @@ export default function About() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }

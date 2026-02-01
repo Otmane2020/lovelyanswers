@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { PublicFooter } from "@/components/layout/PublicFooter";
@@ -6,6 +7,13 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export default function Terms() {
   return (
+    <>
+      <Helmet>
+        <title>Terms of Service - LovelyAnswers</title>
+        <meta name="description" content="Read the Terms of Service for LovelyAnswers AEO platform. Understand your rights, subscription terms, and usage policies." />
+        <link rel="canonical" href="https://lovelyanswers.com/terms" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -103,5 +111,6 @@ export default function Terms() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }
