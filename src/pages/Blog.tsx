@@ -55,11 +55,31 @@ export default function Blog() {
 
         if (localError) throw localError;
         
-        // Combine both sources
-        const allAnswers = [...(aeoData || []), ...(localData || [])];
+        // Fetch externally published articles
+        const { data: publishedData, error: publishedError } = await supabase
+          .from("published_articles")
+          .select("id, title, body, slug, published_at")
+          .order("published_at", { ascending: false });
+
+        if (publishedError) {
+          console.warn("Error fetching published articles:", publishedError);
+        }
         
-        // Only show answers from lovelyanswers.com projects
-        const lovelyanswersAnswers = allAnswers.filter((answer: any) => {
+        // Transform published articles to match PublicAnswer format
+        const publishedAnswers = (publishedData || []).map((article: any) => ({
+          id: article.id,
+          question: article.title,
+          answer: article.body,
+          slug: article.slug,
+          published_at: article.published_at,
+          score: null
+        }));
+        
+        // Combine AEO and Local answers
+        const internalAnswers = [...(aeoData || []), ...(localData || [])];
+        
+        // Only show internal answers from lovelyanswers.com projects
+        const lovelyanswersAnswers = internalAnswers.filter((answer: any) => {
           const projectDomain = (answer.projects?.domain || '').toLowerCase();
           const projectUrl = (answer.projects?.website_url || '').toLowerCase();
           
@@ -68,12 +88,15 @@ export default function Blog() {
                  projectUrl.includes('lovelyanswers.com');
         });
         
+        // Combine internal and external articles
+        const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers];
+        
         // Sort by published_at descending
-        lovelyanswersAnswers.sort((a: any, b: any) => 
+        allAnswers.sort((a: any, b: any) => 
           new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
         );
         
-        setAnswers(lovelyanswersAnswers);
+        setAnswers(allAnswers);
       } catch (error) {
         console.error("Error fetching public answers:", error);
       } finally {
