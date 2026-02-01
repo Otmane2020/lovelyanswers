@@ -349,24 +349,39 @@ export function IntegrationConfigModal({
   const [showGuide, setShowGuide] = useState(false);
   const isMobile = useIsMobile();
 
-const LOVABLE_PROMPT = `Create an article ingestion system with the following requirements:
+const LOVABLE_PROMPT = `Create a complete blog system with article ingestion:
 
-1. **Edge Function "receive-article"**:
-   - Accept POST requests with JSON body: { title: string, body: string, slug: string, sourceId?: string, metaDescription?: string, author?: string }
-   - Validate required fields (title, body, slug) and return 400 error if missing
-   - Create table "published_articles" if it doesn't exist with columns: id (uuid), title (text), body (text), slug (text unique), source_id (text), meta_description (text), author (text), published_at (timestamp), updated_at (timestamp), created_at (timestamp)
-   - Upsert article by slug (update if exists, insert if new)
-   - Enable RLS with public SELECT policy for reading articles
-   - Return JSON: { success: true, article: { id, slug, url: "https://YOUR-SITE.lovable.app/blog/{slug}" } }
-   - Include CORS headers for cross-origin requests
+## 1. Edge Function "receive-article"
+Create supabase/functions/receive-article/index.ts:
+- Accept POST with JSON: { title, body, slug, sourceId?, metaDescription?, author? }
+- Validate required fields (title, body, slug) - return 400 if missing
+- Create "published_articles" table: id (uuid), title (text), body (text), slug (text UNIQUE), source_id (text), meta_description (text), author (text), published_at (timestamptz default now()), created_at (timestamptz default now()), updated_at (timestamptz)
+- Enable RLS with public SELECT policy
+- Upsert by slug (update if exists, insert if new)
+- Return: { success: true, article: { id, slug }, url: "/blog/{slug}" }
+- Add CORS headers for cross-origin requests
 
-2. **Blog page "/blog/:slug"**:
-   - Fetch article from published_articles table by slug
-   - Display article with proper SEO meta tags (title, description)
-   - Show 404 if article not found
-   - Render body content as HTML
+## 2. Blog Index Page "/blog"
+Create src/pages/Blog.tsx and add route:
+- Fetch all articles from published_articles ordered by published_at DESC
+- Display article cards with title, excerpt (first 150 chars of body stripped of HTML), published date
+- Link each card to /blog/{slug}
+- Add SEO meta tags
 
-Return the Supabase function URL after creation.`;
+## 3. Blog Article Page "/blog/:slug"  
+Create src/pages/BlogArticle.tsx and add route:
+- Fetch single article by slug from published_articles
+- Show 404 page if not found
+- Display title, body (render as HTML with dangerouslySetInnerHTML)
+- Add SEO meta tags (title, meta_description)
+- Add "Back to blog" link
+
+## 4. Add Routes in App.tsx
+Add these routes:
+<Route path="/blog" element={<Blog />} />
+<Route path="/blog/:slug" element={<BlogArticle />} />
+
+After implementation, give me the Edge Function URL (format: https://xxx.supabase.co/functions/v1/receive-article)`;
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
