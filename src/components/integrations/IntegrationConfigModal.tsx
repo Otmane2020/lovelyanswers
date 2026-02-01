@@ -59,16 +59,16 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
     ],
   },
   wix: {
-    title: "🔑 Comment Obtenir Votre API Key Wix",
+    title: "🔑 How to Get Your Wix API Key",
     steps: [
-      "1️⃣ Allez sur dev.wix.com et connectez-vous",
-      "2️⃣ Dans le menu gauche, cliquez 'API Keys'",
-      "3️⃣ Cliquez le bouton '+ Generate API Key'",
-      "4️⃣ Donnez un nom (ex: 'AeoRocket')",
-      "5️⃣ IMPORTANT: Cochez 'All site permissions' ou sélectionnez votre site",
-      "6️⃣ Dans les permissions, activez 'Wix Blog' → 'Read & Write Blog'",
-      "7️⃣ Cliquez 'Generate' et copiez la clé (commence par IST...)",
-      "8️⃣ Pour le Site ID: allez sur manage.wix.com → l'ID est dans l'URL après /dashboard/",
+      "1️⃣ Go to dev.wix.com and sign in",
+      "2️⃣ In the left menu, click 'API Keys'",
+      "3️⃣ Click the '+ Generate API Key' button",
+      "4️⃣ Give it a name (e.g., 'LovelyAnswers')",
+      "5️⃣ IMPORTANT: Check 'All site permissions' or select your site",
+      "6️⃣ In permissions, enable 'Wix Blog' → 'Read & Write Blog'",
+      "7️⃣ Click 'Generate' and copy the key (starts with IST...)",
+      "8️⃣ For Site ID: go to manage.wix.com → the ID is in the URL after /dashboard/",
     ],
   },
   webflow: {
@@ -203,13 +203,13 @@ const CMS_CONFIG: Record<string, {
     icon: wixLogo,
     isImage: true,
     color: "from-yellow-500 to-yellow-600",
-    description: "Publiez des articles sur votre blog Wix.",
-    helpText: "Créez une API Key sur dev.wix.com avec permissions Blog.",
+    description: "Publish articles to your Wix blog.",
+    helpText: "Create an API Key on dev.wix.com with Blog permissions.",
     tutorialUrl: "https://dev.wix.com/docs/rest/account-level-apis/api-keys/generating-api-keys",
     fields: [
-      { key: "name", label: "Nom de l'intégration", placeholder: "Mon Blog Wix" },
-      { key: "token", label: "API Key", placeholder: "IST.eyJ... (commence par IST)", type: "password", helpText: "Depuis dev.wix.com → API Keys → Generate" },
-      { key: "siteId", label: "Site ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", helpText: "Dans l'URL: manage.wix.com/dashboard/SITE-ID-ICI/..." },
+      { key: "name", label: "Integration Name", placeholder: "My Wix Blog" },
+      { key: "token", label: "API Key", placeholder: "IST.eyJ... (starts with IST)", type: "password", helpText: "From dev.wix.com → API Keys → Generate" },
+      { key: "siteId", label: "Site ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", helpText: "In the URL: manage.wix.com/dashboard/SITE-ID-HERE/..." },
     ],
   },
   webflow: {
@@ -314,11 +314,11 @@ const CMS_CONFIG: Record<string, {
     icon: lovableLogo,
     isImage: true,
     color: "from-rose-500 to-pink-600",
-    description: "Publiez des articles sur votre projet Lovable.dev",
+    description: "Publish articles to your Lovable.dev project",
     helpText: "",
     fields: [
-      { key: "name", label: "Nom de l'intégration", placeholder: "Mon site Lovable" },
-      { key: "endpoint", label: "URL Supabase Function", placeholder: "https://xxx.supabase.co/functions/v1/receive-article", helpText: "URL de la fonction receive-article de votre projet" },
+      { key: "name", label: "Integration Name", placeholder: "My Lovable Site" },
+      { key: "endpoint", label: "Supabase Function URL", placeholder: "https://xxx.supabase.co/functions/v1/receive-article", helpText: "The receive-article function URL from your project" },
     ],
   },
 };
@@ -350,14 +350,14 @@ export function IntegrationConfigModal({
   const [showGuide, setShowGuide] = useState(false);
   const isMobile = useIsMobile();
 
-  const LOVABLE_PROMPT = `Crée une Edge Function Supabase "receive-article" qui accepte les requêtes POST avec { title, body, slug, sourceId } et enregistre dans une table "published_articles" (avec upsert sur le slug). Crée aussi une page /blog/:slug pour afficher les articles. Retourne l'URL publique de l'article créé.`;
+  const LOVABLE_PROMPT = `Create a Supabase Edge Function "receive-article" that accepts POST requests with { title, body, slug, sourceId } and saves to a "published_articles" table (with upsert on slug). Also create a /blog/:slug page to display articles. Return the public URL of the created article.`;
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const handleCopyPrompt = async () => {
     await navigator.clipboard.writeText(LOVABLE_PROMPT);
     setCopiedPrompt(true);
-    toast.success("Prompt copié !");
+    toast.success("Prompt copied!");
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
@@ -385,7 +385,7 @@ export function IntegrationConfigModal({
     // Validate required fields for testing based on platform
     if (platform === "wix") {
       if (!formData.token) {
-        toast.error("Veuillez entrer votre API Key Wix");
+        toast.error("Please enter your Wix API Key");
         return;
       }
     } else if (!formData.endpoint && !formData.token) {
