@@ -69,6 +69,116 @@ Return ONLY a valid JSON array with exactly 4 strings: ["audience1", "audience2"
   }
 }
 
+// CMS detection from HTML content
+function detectCMSFromContent(html: string, markdown: string): string {
+  const content = (html + ' ' + markdown).toLowerCase();
+  
+  // WooCommerce (check first - it's WordPress + WooCommerce)
+  if (content.includes('woocommerce') || content.includes('wc-ajax') || content.includes('wc-block')) {
+    return 'WooCommerce';
+  }
+  
+  // WordPress patterns
+  if (
+    content.includes('/wp-content/') ||
+    content.includes('/wp-includes/') ||
+    content.includes('wp-json') ||
+    content.includes('wordpress.org') ||
+    content.includes('wp-block')
+  ) {
+    return 'WordPress';
+  }
+  
+  // Shopify patterns
+  if (
+    content.includes('cdn.shopify.com') ||
+    content.includes('myshopify.com') ||
+    content.includes('shopify.shop') ||
+    content.includes('shopify-section')
+  ) {
+    return 'Shopify';
+  }
+  
+  // Wix patterns
+  if (
+    content.includes('wix.com') ||
+    content.includes('wixstatic.com') ||
+    content.includes('wixsite.com') ||
+    content.includes('_wix_browser_')
+  ) {
+    return 'Wix';
+  }
+  
+  // Webflow patterns
+  if (
+    content.includes('webflow.com') ||
+    content.includes('assets.webflow.com') ||
+    content.includes('w-webflow')
+  ) {
+    return 'Webflow';
+  }
+  
+  // Framer patterns
+  if (
+    content.includes('framer.website') ||
+    content.includes('framer.app') ||
+    content.includes('framerusercontent.com')
+  ) {
+    return 'Framer';
+  }
+  
+  // Squarespace patterns
+  if (
+    content.includes('squarespace.com') ||
+    content.includes('sqsp.net') ||
+    content.includes('squarespace-cdn')
+  ) {
+    return 'Squarespace';
+  }
+  
+  // Duda patterns
+  if (content.includes('duda.co') || content.includes('dudaone.com')) {
+    return 'Duda';
+  }
+  
+  // BigCommerce patterns
+  if (content.includes('bigcommerce.com') || content.includes('bcapp.dev')) {
+    return 'BigCommerce';
+  }
+  
+  // PrestaShop patterns
+  if (content.includes('prestashop') || content.includes('/modules/ps_')) {
+    return 'PrestaShop';
+  }
+  
+  // Magento patterns
+  if (content.includes('magento') || content.includes('mage/') || content.includes('varien')) {
+    return 'Magento';
+  }
+  
+  // Ghost patterns
+  if (content.includes('ghost.org') || content.includes('ghost-portal')) {
+    return 'Ghost';
+  }
+  
+  // Drupal patterns
+  if (content.includes('drupal.org') || content.includes('/sites/default/files')) {
+    return 'Drupal';
+  }
+  
+  // Joomla patterns
+  if (content.includes('joomla') || content.includes('/media/com_')) {
+    return 'Joomla';
+  }
+  
+  // HubSpot patterns
+  if (content.includes('hubspot.com') || content.includes('hs-scripts')) {
+    return 'HubSpot';
+  }
+  
+  return ''; // Unknown CMS
+}
+
 // Fast language detection based on content analysis
 function detectLanguageFromContent(content: string, metaLang: string): string {
   if (!content || content.length < 100) {
@@ -278,8 +388,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ['markdown'],
-        onlyMainContent: true,
+        formats: ['markdown', 'html'], // Include HTML for CMS detection
+        onlyMainContent: false, // Full HTML needed for CMS detection
         timeout: 15000, // 15 second timeout
       }),
     });
@@ -300,10 +410,15 @@ Deno.serve(async (req) => {
     }
 
     const markdown = data.data?.markdown || '';
+    const rawHtml = data.data?.html || data.data?.rawHtml || '';
     const metadata = data.data?.metadata || {};
     const title = metadata.title || '';
     const metaDescription = metadata.description || '';
     const metaLanguage = metadata.language || '';
+
+    // Detect CMS from HTML content
+    const cms = detectCMSFromContent(rawHtml, markdown);
+    console.log('[FAST] CMS detected:', cms || 'unknown');
 
     // Fast local processing - ALL INSTANT (no AI blocking)
     const language = detectLanguageFromContent(markdown, metaLanguage);
@@ -344,6 +459,7 @@ Deno.serve(async (req) => {
           description,
           language,
           audiences,
+          cms, // Include detected CMS
           sourceUrl: formattedUrl,
         }
       }),
