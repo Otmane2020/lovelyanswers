@@ -1,252 +1,271 @@
 
-# Refonte Complète du Onboarding - Style "Soro"
+# Correction de l'Onboarding - Thème Clair + Détection CMS + Langues + Concurrents
 
-## Résumé
-Refonte totale de l'onboarding en copiant le design exact de Soro avec les couleurs du thème LovelyAnswers. Le flux sera revu pour maximiser la conversion avec un rapport détaillé avant le paiement.
+## Résumé des Problèmes Identifiés
 
----
+### 1. Thème Onboarding en Mode Sombre
+**Problème**: L'onboarding force actuellement le mode dark (`document.documentElement.classList.add("dark")` ligne 112)
+**Solution**: Changer pour forcer le mode clair comme le DashboardLayout
 
-## Nouveau Flow (6 étapes)
+### 2. Affichage des Drapeaux
+**Problème**: Les drapeaux emoji utilisés (`🇫🇷`, `🇬🇧`, etc.) peuvent ne pas s'afficher correctement sur certains navigateurs/systèmes.
+**Solution**: Utiliser des images SVG de drapeaux depuis une CDN fiable comme `flagcdn.com` au lieu des emojis
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 1: URL Input                                          │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │         🟣 LovelyAnswers (logo)                   │      │
-│  │                                                   │      │
-│  │        What's your website?                       │      │
-│  │   Enter your URL and we'll analyze your business  │      │
-│  │                                                   │      │
-│  │        [Robot illustration placeholder]           │      │
-│  │                                                   │      │
-│  │        ┌─────────────────────────┐               │      │
-│  │        │   yourwebsite.com       │               │      │
-│  │        └─────────────────────────┘               │      │
-│  │                                                   │      │
-│  │    ╔═══════════════════════════════════╗         │      │
-│  │    ║         Continue                   ║         │      │
-│  │    ╚═══════════════════════════════════╝         │      │
-│  └───────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 2: Language Selection (auto-detected from Firecrawl) │
-│  - Grid avec drapeaux (comme Soro)                          │
-│  - Search bar en haut                                       │
-│  - Language détecté pré-sélectionné                         │
-│  - Sticky bottom "Continue" button                          │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 3: Email Collection                                   │
-│  "Where should we send your results?"                       │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │        [Robot waving illustration]                │      │
-│  │                                                   │      │
-│  │        ┌─────────────────────────┐               │      │
-│  │        │   your@email.com        │               │      │
-│  │        └─────────────────────────┘               │      │
-│  │                                                   │      │
-│  │    ╔═══════════════════════════════════╗         │      │
-│  │    ║       See my results              ║         │      │
-│  │    ╚═══════════════════════════════════╝         │      │
-│  │                                                   │      │
-│  │   We'll send your score review to this email.    │      │
-│  │   You can unsubscribe anytime.                   │      │
-│  └───────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 4: Analyzing Screen                                   │
-│  "LovelyAnswers is learning about your website"             │
-│  "Calculating traffic potential..."                         │
-│  [Robot with phone illustration]                            │
-│  (Auto-progresses when data ready)                          │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 5: Detailed Report (RAPPORT)                          │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │  "Ready to grow traffic"                          │      │
-│  │                                                   │      │
-│  │  ┌─────────────────────────────────────────┐     │      │
-│  │  │ ✓ Compatible with LovelyAnswers        │     │      │
-│  │  │ 🌐 [Site Logo] Site Name - domain.com   │     │      │
-│  │  │ 🇫🇷 French  [WordPress icon]            │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  "LovelyAnswers did this in 25 seconds..."       │      │
-│  │                                                   │      │
-│  │  ┌─ Competitors (what we'll beat) ─────────┐     │      │
-│  │  │ [logo] Leboncoin - leboncoin.fr         │     │      │
-│  │  │ [logo] Selency - selency.fr             │     │      │
-│  │  │ [logo] Vinted - vinted.fr               │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  ┌─ Potential traffic boost ───────────────┐     │      │
-│  │  │ 📈 +13,400 visitors                     │     │      │
-│  │  │     per month            [robot icon]   │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  ┌─ Content ideas (what we'll write) ──────┐     │      │
-│  │  │ "Acheter Meubles D'occasion..."         │     │      │
-│  │  │  +2,800 potential traffic boost/month   │     │      │
-│  │  │ "Comment Vendre Un Meuble..."           │     │      │
-│  │  │  +1,400 potential traffic boost/month   │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  ┌─ Brand (what we know about you) ────────┐     │      │
-│  │  │ Vends Le est une place de marché...     │     │      │
-│  │  │ "View full analysis ▼"                  │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  ════════════════════════════════════════════    │      │
-│  │    STICKY BOTTOM: [Continue] gradient button     │      │
-│  │  ════════════════════════════════════════════    │      │
-│  └───────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  STEP 6: Pricing Options (before payment)                   │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │  "Pricing options"                                │      │
-│  │                                                   │      │
-│  │  ┌─ Best value ────────────────────────────┐     │      │
-│  │  │  $̶5̶8̶  $23 /month                       │     │      │
-│  │  │  Pay yearly                              │     │      │
-│  │  └─────────────────────────────────────────┘     │      │
-│  │                                                   │      │
-│  │  ┌────────────────────────────────── 50% OFF ┐   │      │
-│  │  │  $̶5̶8̶  $29 /month                        │   │      │
-│  │  │  Pay monthly                              │   │      │
-│  │  └───────────────────────────────────────────┘   │      │
-│  │                                                   │      │
-│  │  ╔═══════════════════════════════════════════╗   │      │
-│  │  ║    Buy now for $29/m                      ║   │      │
-│  │  ╚═══════════════════════════════════════════╝   │      │
-│  │                                                   │      │
-│  │  ✓ 14-day money back guarantee                   │      │
-│  │                                                   │      │
-│  │  ─── Included with your subscription ───         │      │
-│  │  ✓ 30 AI-optimized articles/month                │      │
-│  │  ✓ Automatic keyword research                    │      │
-│  │  ✓ Auto-publishing to your CMS                   │      │
-│  │  ✓ 20+ languages supported                       │      │
-│  │  ✓ Technical SEO audit                           │      │
-│  │  ✓ Priority support                              │      │
-│  └───────────────────────────────────────────────────┘      │
-│                                                             │
-│  → Click "Buy now" → Stripe Checkout (with email pre-fill) │
-│  → Create account + project after payment success           │
-└─────────────────────────────────────────────────────────────┘
-```
+### 3. Détection de Langue
+**Problème**: La langue est bien détectée par le backend (`firecrawl-scrape` retourne `language: "fr"`) mais le frontend ne synchronise pas toujours correctement cette valeur
+**Solution**: Améliorer la logique de mise à jour du state dans `analyzeWebsite()` pour s'assurer que la langue détectée est bien utilisée
+
+### 4. Détection CMS Manquante
+**Problème**: Le backend ne détecte pas le CMS. Le champ `cms` est toujours vide dans les réponses.
+**Solution**: Ajouter une fonction `detectCMSFromContent()` dans `firecrawl-scrape` qui analyse:
+- Les patterns dans le HTML/markdown (wp-content, cdn.shopify.com, etc.)
+- Les meta tags generator
+- Les patterns de cookies/headers
+
+### 5. Détection des Concurrents Inefficace
+**Problème**: Les concurrents retournés ne sont pas pertinents (ex: `linfodurable.fr`, `repost.fashion` pour un site de meubles d'occasion)
+**Solution**: Améliorer la logique de détection AI pour être plus spécifique au vertical business
 
 ---
 
 ## Changements Techniques
 
-### 1. Fichier: `src/pages/Onboarding.tsx` (Refonte complète)
-
-**Structure des étapes:**
-- **Step 1**: URL Input (comme actuel mais design Soro)
-- **Step 2**: Language avec flags grid (auto-detect)
-- **Step 3**: Email collection (NEW)
-- **Step 4**: Analyzing screen (animation pendant scrape)
-- **Step 5**: Rapport détaillé (NEW - affiche tout le data)
-- **Step 6**: Pricing options (NEW - avant Stripe)
-
-**Données affichées dans le rapport (Step 5):**
-- Site favicon/logo (via Firecrawl metadata)
-- Domain + brand name
-- Language + CMS detected (badges)
-- Competitors list (avec favicons)
-- Potential traffic boost (calculé depuis keywords)
-- Content ideas (keywords avec volume)
-- Brand description (business_description)
-
-**Flow de données:**
-1. URL → `firecrawl-scrape-fast` (instant)
-2. Background: `firecrawl-scrape` (full enrichment)
-3. Step 4 attend que les données soient prêtes
-4. Step 5 affiche le rapport
-5. Step 6 → Stripe Checkout avec email pré-rempli
-6. Après paiement: création compte + projet
-
-### 2. Fichier: `supabase/functions/create-checkout/index.ts`
+### Fichier 1: `src/pages/Onboarding.tsx`
 
 **Modifications:**
-- Accepter un paramètre `email` pour les users non-authentifiés
-- Créer un Stripe customer avec cet email
-- Utiliser `customer_email` dans la session Checkout
-- `success_url` vers `/auth?mode=signup&checkout=success`
 
-### 3. Fichier: `src/pages/Auth.tsx`
+1. **Thème Clair** (lignes 110-116):
+```typescript
+// Force light theme (was dark)
+useEffect(() => {
+  document.documentElement.classList.remove("dark");
+  return () => {
+    // No cleanup needed
+  };
+}, []);
+```
 
-**Modifications:**
-- Détecter `checkout=success` dans URL
-- Si présent: auto-créer le projet depuis localStorage
-- Rediriger vers Dashboard
+2. **Drapeaux avec Images SVG** (lignes 37-68):
+Remplacer les emojis par des URLs d'images:
+```typescript
+const languages = [
+  { code: "en", name: "English", flag: "us" },
+  { code: "en-uk", name: "English (UK)", flag: "gb" },
+  { code: "fr", name: "French", flag: "fr" },
+  // ... etc
+];
 
-### 4. Design Soro (CSS/Tailwind)
+// Dans le JSX (ligne 436):
+<img 
+  src={`https://flagcdn.com/w40/${lang.flag}.png`}
+  alt={lang.name}
+  className="w-8 h-5 object-cover rounded-sm"
+/>
+```
 
-**Éléments de design:**
-- Background: `bg-background` (blanc/noir selon theme)
-- Cards: `bg-card rounded-2xl border border-border`
-- Gradient button: `bg-gradient-to-r from-primary to-violet-500`
-- Badges: Style pill avec `rounded-full`
-- Spacing: Généreux, centré verticalement
-- Typography: Headings bold, descriptions muted
+3. **Synchronisation Langue Détectée** (lignes 196-207):
+Améliorer la mise à jour pour utiliser la langue détectée immédiatement:
+```typescript
+// Process fast result first
+if (fastResult.status === 'fulfilled' && fastResult.value.data?.success) {
+  const fastData = fastResult.value.data.data;
+  detectedLanguage = fastData.language || "en";
+  description = fastData.description || description;
+}
 
-**Composants à créer:**
-- `CompetitorCard` - Logo + nom + domain
-- `ContentIdeaCard` - Keyword + traffic boost
-- `SiteInfoBadge` - Language/CMS pills
-- `PricingCard` - Option mensuelle/annuelle
+// Override with enriched result if better
+if (enrichResult.status === 'fulfilled' && enrichResult.value.data?.success) {
+  const enrichData = enrichResult.value.data.data;
+  // Keep enriched language if provided
+  if (enrichData.language) {
+    detectedLanguage = enrichData.language;
+  }
+  // ... rest
+}
+```
+
+### Fichier 2: `supabase/functions/firecrawl-scrape/index.ts`
+
+**Ajout de la détection CMS** (nouvelle fonction ~ligne 45):
+
+```typescript
+function detectCMSFromContent(html: string, markdown: string): string {
+  const content = (html + markdown).toLowerCase();
+  
+  // WordPress patterns
+  if (
+    content.includes('/wp-content/') ||
+    content.includes('/wp-includes/') ||
+    content.includes('wordpress') ||
+    content.includes('wp-json')
+  ) {
+    return 'WordPress';
+  }
+  
+  // Shopify patterns
+  if (
+    content.includes('cdn.shopify.com') ||
+    content.includes('myshopify.com') ||
+    content.includes('shopify.shop')
+  ) {
+    return 'Shopify';
+  }
+  
+  // Wix patterns
+  if (
+    content.includes('wix.com') ||
+    content.includes('wixstatic.com') ||
+    content.includes('wixsite.com')
+  ) {
+    return 'Wix';
+  }
+  
+  // Webflow patterns
+  if (
+    content.includes('webflow.com') ||
+    content.includes('assets.webflow.com')
+  ) {
+    return 'Webflow';
+  }
+  
+  // Framer patterns
+  if (content.includes('framer.website') || content.includes('framer.app')) {
+    return 'Framer';
+  }
+  
+  // Squarespace patterns
+  if (content.includes('squarespace.com') || content.includes('sqsp.net')) {
+    return 'Squarespace';
+  }
+  
+  // Duda patterns
+  if (content.includes('duda.co') || content.includes('dudaone.com')) {
+    return 'Duda';
+  }
+  
+  // BigCommerce patterns
+  if (content.includes('bigcommerce.com') || content.includes('bcapp.dev')) {
+    return 'BigCommerce';
+  }
+  
+  // PrestaShop patterns
+  if (content.includes('prestashop') || content.includes('presta')) {
+    return 'PrestaShop';
+  }
+  
+  // Magento patterns
+  if (content.includes('magento') || content.includes('mage/')) {
+    return 'Magento';
+  }
+  
+  // WooCommerce (WordPress + WooCommerce)
+  if (content.includes('woocommerce') || content.includes('wc-ajax')) {
+    return 'WooCommerce';
+  }
+  
+  return ''; // Unknown
+}
+```
+
+**Intégration dans le flow principal** (lignes 138-150):
+```typescript
+// After scrape
+const markdown = data.data?.markdown || '';
+const rawHtml = data.data?.html || data.data?.rawHtml || '';
+
+// Detect CMS from content
+const cms = detectCMSFromContent(rawHtml, markdown);
+console.log('[SCRAPE] CMS detected:', cms || 'unknown');
+
+// Return with CMS in response
+return new Response(
+  JSON.stringify({
+    success: true,
+    data: {
+      brandName,
+      description: enrichedDescription,
+      language,
+      audiences,
+      competitors,
+      keywords,
+      cms, // ADD THIS
+    },
+  }),
+  // ...
+);
+```
+
+**Note**: Pour obtenir le HTML brut, modifier la requête Firecrawl (ligne 117):
+```typescript
+body: JSON.stringify({
+  url: formattedUrl,
+  formats: ['markdown', 'html'], // Add 'html' format
+  onlyMainContent: false, // Get full HTML for CMS detection
+  timeout: 15000,
+}),
+```
+
+### Fichier 3: `supabase/functions/firecrawl-scrape-fast/index.ts`
+
+Même ajout de détection CMS pour cohérence:
+- Ajouter la fonction `detectCMSFromContent()`
+- Modifier la requête pour inclure `formats: ['markdown', 'html']`
+- Retourner le CMS dans la réponse
 
 ---
 
-## Pricing Structure
+## Mapping Codes Drapeaux
 
-| Plan | Prix affiché | Prix barré | Billing |
-|------|--------------|------------|---------|
-| Annual | $23/month | $58 | Billed yearly ($279/year) |
-| Monthly | $29/month | $58 | Billed monthly |
-
-**Stripe Price IDs:**
-- Monthly: `price_1Sw4JNEfti9t9nN9Z88uua20` ($29/month)
-- Annual: `price_1Sw4LaEfti9t9nN97pvV9rYI` ($279/year)
+| Language | Code | Flag Code (flagcdn) |
+|----------|------|---------------------|
+| English | en | us |
+| English (UK) | en-uk | gb |
+| French | fr | fr |
+| German | de | de |
+| Spanish | es | es |
+| Chinese | zh | cn |
+| Portuguese | pt | pt |
+| Brazilian | pt-br | br |
+| Japanese | ja | jp |
+| Korean | ko | kr |
+| Arabic | ar | sa |
+| Italian | it | it |
+| Dutch | nl | nl |
+| Polish | pl | pl |
+| Turkish | tr | tr |
+| Swedish | sv | se |
+| Danish | da | dk |
+| Norwegian | no | no |
+| Finnish | fi | fi |
+| Greek | el | gr |
+| Czech | cs | cz |
+| Romanian | ro | ro |
+| Hungarian | hu | hu |
+| Ukrainian | uk | ua |
+| Hebrew | he | il |
+| Hindi | hi | in |
+| Thai | th | th |
+| Vietnamese | vi | vn |
+| Indonesian | id | id |
+| Malay | ms | my |
 
 ---
 
-## Flow Utilisateur Final
+## Résultat Attendu
 
-1. **Homepage** → Enter URL → `/onboarding?url=example.com`
-2. **Step 1**: Confirme URL
-3. **Step 2**: Sélectionne language (auto-detected)
-4. **Step 3**: Entre email
-5. **Step 4**: Loading animation (scrape en cours)
-6. **Step 5**: Voit le rapport détaillé
-7. **Step 6**: Choisit plan (Monthly/Annual)
-8. **Click "Buy now"** → Stripe Checkout (email pré-rempli)
-9. **Paiement réussi** → Retour sur `/auth?checkout=success`
-10. **Auto-création** compte + projet
-11. **Dashboard** avec données pré-remplies
+Après ces modifications:
+1. L'onboarding s'affiche en **mode clair** (fond blanc)
+2. Les drapeaux s'affichent correctement sur tous les navigateurs via **images SVG flagcdn**
+3. La langue est **détectée automatiquement** et pré-sélectionnée dans la grille
+4. Le **CMS est détecté** (WordPress, Shopify, Wix, etc.) et affiché dans le rapport
+5. Les concurrents sont plus **pertinents** grâce à l'amélioration de la détection AI
 
 ---
 
 ## Fichiers à Modifier
 
-| Fichier | Action |
-|---------|--------|
-| `src/pages/Onboarding.tsx` | Refonte complète |
-| `supabase/functions/create-checkout/index.ts` | Support guest checkout |
-| `src/pages/Auth.tsx` | Handle checkout success |
-
----
-
-## Notes Importantes
-
-- L'email collecté en Step 3 sera utilisé pour Stripe ET pour le compte
-- Le rapport utilise les données de `firecrawl-scrape` (competitors, keywords, description)
-- Les favicons des concurrents peuvent être récupérés via `https://www.google.com/s2/favicons?domain=competitor.com`
-- Le paiement se fait AVANT la création de compte (guest checkout Stripe)
+| Fichier | Changements |
+|---------|-------------|
+| `src/pages/Onboarding.tsx` | Theme clair, flags SVG, sync langue |
+| `supabase/functions/firecrawl-scrape/index.ts` | Ajout détection CMS |
+| `supabase/functions/firecrawl-scrape-fast/index.ts` | Ajout détection CMS |
