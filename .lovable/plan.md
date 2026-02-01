@@ -1,76 +1,252 @@
 
-# Plan de Correction : Isolation des Intégrations entre Utilisateurs
+# Refonte Complète du Onboarding - Style "Soro"
 
-## Diagnostic
+## Résumé
+Refonte totale de l'onboarding en copiant le design exact de Soro avec les couleurs du thème LovelyAnswers. Le flux sera revu pour maximiser la conversion avec un rapport détaillé avant le paiement.
 
-**Problème critique identifié** : L'Edge Function `cms-publish` utilise le Service Role Key pour accéder aux intégrations, ce qui bypass complètement les politiques RLS. Un utilisateur malveillant peut publier sur l'intégration d'un autre utilisateur en devinant ou obtenant un UUID d'intégration.
+---
 
-## Changements Requis
-
-### 1. Edge Function `cms-publish` - Ajouter Vérification d'Appartenance
-
-Modifier la logique pour vérifier que l'intégration appartient bien à un projet de l'utilisateur authentifié :
+## Nouveau Flow (6 étapes)
 
 ```text
-supabase/functions/cms-publish/index.ts
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 1: URL Input                                          │
+│  ┌───────────────────────────────────────────────────┐      │
+│  │         🟣 LovelyAnswers (logo)                   │      │
+│  │                                                   │      │
+│  │        What's your website?                       │      │
+│  │   Enter your URL and we'll analyze your business  │      │
+│  │                                                   │      │
+│  │        [Robot illustration placeholder]           │      │
+│  │                                                   │      │
+│  │        ┌─────────────────────────┐               │      │
+│  │        │   yourwebsite.com       │               │      │
+│  │        └─────────────────────────┘               │      │
+│  │                                                   │      │
+│  │    ╔═══════════════════════════════════╗         │      │
+│  │    ║         Continue                   ║         │      │
+│  │    ╚═══════════════════════════════════╝         │      │
+│  └───────────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 2: Language Selection (auto-detected from Firecrawl) │
+│  - Grid avec drapeaux (comme Soro)                          │
+│  - Search bar en haut                                       │
+│  - Language détecté pré-sélectionné                         │
+│  - Sticky bottom "Continue" button                          │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 3: Email Collection                                   │
+│  "Where should we send your results?"                       │
+│  ┌───────────────────────────────────────────────────┐      │
+│  │        [Robot waving illustration]                │      │
+│  │                                                   │      │
+│  │        ┌─────────────────────────┐               │      │
+│  │        │   your@email.com        │               │      │
+│  │        └─────────────────────────┘               │      │
+│  │                                                   │      │
+│  │    ╔═══════════════════════════════════╗         │      │
+│  │    ║       See my results              ║         │      │
+│  │    ╚═══════════════════════════════════╝         │      │
+│  │                                                   │      │
+│  │   We'll send your score review to this email.    │      │
+│  │   You can unsubscribe anytime.                   │      │
+│  └───────────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 4: Analyzing Screen                                   │
+│  "LovelyAnswers is learning about your website"             │
+│  "Calculating traffic potential..."                         │
+│  [Robot with phone illustration]                            │
+│  (Auto-progresses when data ready)                          │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 5: Detailed Report (RAPPORT)                          │
+│  ┌───────────────────────────────────────────────────┐      │
+│  │  "Ready to grow traffic"                          │      │
+│  │                                                   │      │
+│  │  ┌─────────────────────────────────────────┐     │      │
+│  │  │ ✓ Compatible with LovelyAnswers        │     │      │
+│  │  │ 🌐 [Site Logo] Site Name - domain.com   │     │      │
+│  │  │ 🇫🇷 French  [WordPress icon]            │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  "LovelyAnswers did this in 25 seconds..."       │      │
+│  │                                                   │      │
+│  │  ┌─ Competitors (what we'll beat) ─────────┐     │      │
+│  │  │ [logo] Leboncoin - leboncoin.fr         │     │      │
+│  │  │ [logo] Selency - selency.fr             │     │      │
+│  │  │ [logo] Vinted - vinted.fr               │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  ┌─ Potential traffic boost ───────────────┐     │      │
+│  │  │ 📈 +13,400 visitors                     │     │      │
+│  │  │     per month            [robot icon]   │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  ┌─ Content ideas (what we'll write) ──────┐     │      │
+│  │  │ "Acheter Meubles D'occasion..."         │     │      │
+│  │  │  +2,800 potential traffic boost/month   │     │      │
+│  │  │ "Comment Vendre Un Meuble..."           │     │      │
+│  │  │  +1,400 potential traffic boost/month   │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  ┌─ Brand (what we know about you) ────────┐     │      │
+│  │  │ Vends Le est une place de marché...     │     │      │
+│  │  │ "View full analysis ▼"                  │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  ════════════════════════════════════════════    │      │
+│  │    STICKY BOTTOM: [Continue] gradient button     │      │
+│  │  ════════════════════════════════════════════    │      │
+│  └───────────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 6: Pricing Options (before payment)                   │
+│  ┌───────────────────────────────────────────────────┐      │
+│  │  "Pricing options"                                │      │
+│  │                                                   │      │
+│  │  ┌─ Best value ────────────────────────────┐     │      │
+│  │  │  $̶5̶8̶  $23 /month                       │     │      │
+│  │  │  Pay yearly                              │     │      │
+│  │  └─────────────────────────────────────────┘     │      │
+│  │                                                   │      │
+│  │  ┌────────────────────────────────── 50% OFF ┐   │      │
+│  │  │  $̶5̶8̶  $29 /month                        │   │      │
+│  │  │  Pay monthly                              │   │      │
+│  │  └───────────────────────────────────────────┘   │      │
+│  │                                                   │      │
+│  │  ╔═══════════════════════════════════════════╗   │      │
+│  │  ║    Buy now for $29/m                      ║   │      │
+│  │  ╚═══════════════════════════════════════════╝   │      │
+│  │                                                   │      │
+│  │  ✓ 14-day money back guarantee                   │      │
+│  │                                                   │      │
+│  │  ─── Included with your subscription ───         │      │
+│  │  ✓ 30 AI-optimized articles/month                │      │
+│  │  ✓ Automatic keyword research                    │      │
+│  │  ✓ Auto-publishing to your CMS                   │      │
+│  │  ✓ 20+ languages supported                       │      │
+│  │  ✓ Technical SEO audit                           │      │
+│  │  ✓ Priority support                              │      │
+│  └───────────────────────────────────────────────────┘      │
+│                                                             │
+│  → Click "Buy now" → Stripe Checkout (with email pre-fill) │
+│  → Create account + project after payment success           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Avant** (vulnérable) :
-```typescript
-const { data: integration, error: intError } = await supabase
-  .from("integrations")
-  .select("*")
-  .eq("id", requestData.integrationId)
-  .single();
-```
+---
 
-**Après** (sécurisé) :
-```typescript
-// Récupérer l'intégration avec son projet
-const { data: integration, error: intError } = await supabase
-  .from("integrations")
-  .select("*, projects!inner(user_id)")
-  .eq("id", requestData.integrationId)
-  .single();
+## Changements Techniques
 
-if (intError || !integration) {
-  throw new Error("Integration not found");
-}
+### 1. Fichier: `src/pages/Onboarding.tsx` (Refonte complète)
 
-// CRITIQUE: Vérifier que l'utilisateur est propriétaire OU que c'est un appel interne
-if (!isInternalCall && authenticatedUserId) {
-  if (integration.projects.user_id !== authenticatedUserId) {
-    console.error(`[cms-publish] SECURITY: User ${authenticatedUserId} tried to access integration owned by ${integration.projects.user_id}`);
-    return new Response(
-      JSON.stringify({ error: "Access denied - integration belongs to another user" }),
-      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-}
-```
+**Structure des étapes:**
+- **Step 1**: URL Input (comme actuel mais design Soro)
+- **Step 2**: Language avec flags grid (auto-detect)
+- **Step 3**: Email collection (NEW)
+- **Step 4**: Analyzing screen (animation pendant scrape)
+- **Step 5**: Rapport détaillé (NEW - affiche tout le data)
+- **Step 6**: Pricing options (NEW - avant Stripe)
 
-### 2. Vérification Similaire pour `test-integration`
+**Données affichées dans le rapport (Step 5):**
+- Site favicon/logo (via Firecrawl metadata)
+- Domain + brand name
+- Language + CMS detected (badges)
+- Competitors list (avec favicons)
+- Potential traffic boost (calculé depuis keywords)
+- Content ideas (keywords avec volume)
+- Brand description (business_description)
 
-Inspecter et corriger la fonction `test-integration` avec la même logique.
+**Flow de données:**
+1. URL → `firecrawl-scrape-fast` (instant)
+2. Background: `firecrawl-scrape` (full enrichment)
+3. Step 4 attend que les données soient prêtes
+4. Step 5 affiche le rapport
+5. Step 6 → Stripe Checkout avec email pré-rempli
+6. Après paiement: création compte + projet
 
-### 3. Vérification pour `gmb-publish-post`
+### 2. Fichier: `supabase/functions/create-checkout/index.ts`
 
-Appliquer le même pattern de sécurité.
+**Modifications:**
+- Accepter un paramètre `email` pour les users non-authentifiés
+- Créer un Stripe customer avec cet email
+- Utiliser `customer_email` dans la session Checkout
+- `success_url` vers `/auth?mode=signup&checkout=success`
 
-### 4. Audit des Autres Edge Functions
+### 3. Fichier: `src/pages/Auth.tsx`
 
-Vérifier toutes les Edge Functions qui accèdent à des ressources utilisateur :
-- `publish-scheduled-answers` (cron - OK car utilise project_id)
-- Autres fonctions utilisant `integrationId`
+**Modifications:**
+- Détecter `checkout=success` dans URL
+- Si présent: auto-créer le projet depuis localStorage
+- Rediriger vers Dashboard
 
-## Impact
+### 4. Design Soro (CSS/Tailwind)
 
-- **Sécurité** : Empêche la publication croisée entre utilisateurs
-- **Logging** : Trace les tentatives d'accès non autorisées
-- **Compatibilité** : Les appels internes (cron jobs) continuent de fonctionner
+**Éléments de design:**
+- Background: `bg-background` (blanc/noir selon theme)
+- Cards: `bg-card rounded-2xl border border-border`
+- Gradient button: `bg-gradient-to-r from-primary to-violet-500`
+- Badges: Style pill avec `rounded-full`
+- Spacing: Généreux, centré verticalement
+- Typography: Headings bold, descriptions muted
 
-## Tests à Effectuer
+**Composants à créer:**
+- `CompetitorCard` - Logo + nom + domain
+- `ContentIdeaCard` - Keyword + traffic boost
+- `SiteInfoBadge` - Language/CMS pills
+- `PricingCard` - Option mensuelle/annuelle
 
-1. Créer une intégration avec User A
-2. Essayer de publier avec User B en utilisant l'UUID de l'intégration de User A
-3. Vérifier que le système retourne une erreur 403
+---
+
+## Pricing Structure
+
+| Plan | Prix affiché | Prix barré | Billing |
+|------|--------------|------------|---------|
+| Annual | $23/month | $58 | Billed yearly ($279/year) |
+| Monthly | $29/month | $58 | Billed monthly |
+
+**Stripe Price IDs:**
+- Monthly: `price_1Sw4JNEfti9t9nN9Z88uua20` ($29/month)
+- Annual: `price_1Sw4LaEfti9t9nN97pvV9rYI` ($279/year)
+
+---
+
+## Flow Utilisateur Final
+
+1. **Homepage** → Enter URL → `/onboarding?url=example.com`
+2. **Step 1**: Confirme URL
+3. **Step 2**: Sélectionne language (auto-detected)
+4. **Step 3**: Entre email
+5. **Step 4**: Loading animation (scrape en cours)
+6. **Step 5**: Voit le rapport détaillé
+7. **Step 6**: Choisit plan (Monthly/Annual)
+8. **Click "Buy now"** → Stripe Checkout (email pré-rempli)
+9. **Paiement réussi** → Retour sur `/auth?checkout=success`
+10. **Auto-création** compte + projet
+11. **Dashboard** avec données pré-remplies
+
+---
+
+## Fichiers à Modifier
+
+| Fichier | Action |
+|---------|--------|
+| `src/pages/Onboarding.tsx` | Refonte complète |
+| `supabase/functions/create-checkout/index.ts` | Support guest checkout |
+| `src/pages/Auth.tsx` | Handle checkout success |
+
+---
+
+## Notes Importantes
+
+- L'email collecté en Step 3 sera utilisé pour Stripe ET pour le compte
+- Le rapport utilise les données de `firecrawl-scrape` (competitors, keywords, description)
+- Les favicons des concurrents peuvent être récupérés via `https://www.google.com/s2/favicons?domain=competitor.com`
+- Le paiement se fait AVANT la création de compte (guest checkout Stripe)
