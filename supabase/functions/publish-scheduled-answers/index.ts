@@ -340,52 +340,60 @@ Deno.serve(async (req) => {
     }
 
     const projectIds = projectsToPublish.map(ps => ps.project_id);
-    
-    // Fetch answers scheduled for the target date (exact match if targetDate provided)
-    let answersQuery = supabase
-      .from("answers")
-      .select("*")
-      .in("project_id", projectIds)
-      .eq("is_public", false)
-      .not("scheduled_date", "is", null);
+
+    // IMPORTANT: Use planning_days as the canonical schedule source (fixed calendar)
+    // This prevents future items being published early because of drift in answers/articles.scheduled_date.
+    let planningQuery = supabase
+      .from("planning_days")
+      .select("project_id, scheduled_date, answer_id, article_id")
+      .in("project_id", projectIds);
 
     if (targetDate) {
-      // Exact date match for retroactive publishing
-      answersQuery = answersQuery.eq("scheduled_date", todayStr);
+      // Exact day publishing (retroactive)
+      planningQuery = planningQuery.eq("scheduled_date", todayStr);
+    } else if (forceToday) {
+      // Manual trigger from UI: publish ONLY today
+      planningQuery = planningQuery.eq("scheduled_date", todayStr);
     } else {
-      // Today or earlier for normal operation
-      answersQuery = answersQuery.lte("scheduled_date", todayStr + "T23:59:59Z");
+      // Normal cron: allow catch-up (today or earlier)
+      planningQuery = planningQuery.lte("scheduled_date", todayStr);
     }
 
-    const { data: answers, error: answersError } = await answersQuery.order("scheduled_date", { ascending: true });
+    const { data: planningRows, error: planningError } = await planningQuery;
+
+    if (planningError) {
+      console.error("[publish-scheduled] ❌ Error fetching planning_days:", planningError);
+    }
+
+    const answerIds = [...new Set((planningRows || []).map((r: any) => r.answer_id).filter(Boolean))];
+    const articleIds = [...new Set((planningRows || []).map((r: any) => r.article_id).filter(Boolean))];
+
+    // Fetch answers/articles by IDs only (no scheduled_date filtering here)
+    const [{ data: answers, error: answersError }, { data: articles, error: articlesError }] = await Promise.all([
+      answerIds.length
+        ? supabase
+            .from("answers")
+            .select("*")
+            .in("id", answerIds)
+            .eq("is_public", false)
+        : Promise.resolve({ data: [], error: null }),
+      articleIds.length
+        ? supabase
+            .from("articles")
+            .select("*")
+            .in("id", articleIds)
+            .neq("status", "published")
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
     if (answersError) {
       console.error("[publish-scheduled] ❌ Error fetching answers:", answersError);
     }
-
-    // Fetch articles scheduled for the target date
-    let articlesQuery = supabase
-      .from("articles")
-      .select("*")
-      .in("project_id", projectIds)
-      .neq("status", "published")
-      .not("scheduled_date", "is", null);
-
-    if (targetDate) {
-      // Exact date match for retroactive publishing
-      articlesQuery = articlesQuery.eq("scheduled_date", todayStr);
-    } else {
-      // Today or earlier for normal operation
-      articlesQuery = articlesQuery.lte("scheduled_date", todayStr + "T23:59:59Z");
-    }
-
-    const { data: articles, error: articlesError } = await articlesQuery.order("scheduled_date", { ascending: true });
-
     if (articlesError) {
       console.error("[publish-scheduled] ❌ Error fetching articles:", articlesError);
     }
 
-    console.log(`[publish-scheduled] 📝 Found ${answers?.length || 0} answers (violet) and ${articles?.length || 0} articles (emerald) to publish`);
+    console.log(`[publish-scheduled] 📝 Found ${answers?.length || 0} answers (violet) and ${articles?.length || 0} articles (emerald) to publish (source=planning_days)`);
 
     const results: { id: string; type: "answer" | "article"; success: boolean; url?: string; error?: string }[] = [];
 
