@@ -247,7 +247,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    // Priority: custom key > connector key (for when connector credits are exhausted)
+    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY_CUSTOM') || Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     if (!firecrawlApiKey) {
@@ -257,6 +258,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    console.log('[FAST] Using API key:', Deno.env.get('FIRECRAWL_API_KEY_CUSTOM') ? 'CUSTOM' : 'CONNECTOR');
 
     // Format URL
     let formattedUrl = url.trim();
