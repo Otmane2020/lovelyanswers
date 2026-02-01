@@ -1,37 +1,42 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Clock, Loader2, Globe } from "lucide-react";
+import { Clock, Loader2, Globe, Calendar, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface AutoPublishSettingsProps {
   projectId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
-export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPublishSettingsProps) {
+export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
+  const [frequency, setFrequency] = useState("daily");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const timezones = [
-    { value: "Europe/Paris", label: "Paris (CET/CEST)" },
-    { value: "Europe/London", label: "London (GMT/BST)" },
-    { value: "America/New_York", label: "New York (EST/EDT)" },
-    { value: "America/Los_Angeles", label: "Los Angeles (PST/PDT)" },
-    { value: "America/Chicago", label: "Chicago (CST/CDT)" },
-    { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-    { value: "Asia/Dubai", label: "Dubai (GST)" },
-    { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+    { value: "Europe/Paris", label: "Paris" },
+    { value: "Europe/London", label: "London" },
+    { value: "America/New_York", label: "New York" },
+    { value: "America/Los_Angeles", label: "Los Angeles" },
+    { value: "America/Chicago", label: "Chicago" },
+    { value: "Asia/Tokyo", label: "Tokyo" },
+    { value: "Asia/Dubai", label: "Dubai" },
+    { value: "Australia/Sydney", label: "Sydney" },
     { value: "UTC", label: "UTC" },
+  ];
+
+  const frequencies = [
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
   ];
 
   useEffect(() => {
@@ -42,7 +47,7 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
       try {
         const { data } = await supabase
           .from("project_settings")
-          .select("auto_publish_enabled, publish_hour, timezone")
+          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency")
           .eq("project_id", projectId)
           .single();
         
@@ -55,6 +60,7 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
+          setFrequency((data as any).publish_frequency || "daily");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -63,10 +69,8 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
       }
     };
 
-    if (open) {
-      loadSettings();
-    }
-  }, [projectId, open]);
+    loadSettings();
+  }, [projectId]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -83,13 +87,14 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
           auto_publish_enabled: autoPublishEnabled,
           publish_hour: hour24.toString().padStart(2, "0"),
           timezone: timezone,
+          publish_frequency: frequency,
           updated_at: new Date().toISOString()
         }, { onConflict: "project_id" });
       
       if (error) throw error;
       
       toast.success("Settings saved");
-      onOpenChange(false);
+      setHasChanges(false);
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Failed to save settings");
@@ -98,113 +103,114 @@ export function AutoPublishSettings({ projectId, open, onOpenChange }: AutoPubli
     }
   };
 
+  const handleChange = (setter: (v: any) => void) => (value: any) => {
+    setter(value);
+    setHasChanges(true);
+  };
+
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-sm">Loading...</span>
+      </div>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-primary" />
-            Auto-Publish Settings
-          </DialogTitle>
-          <DialogDescription>
-            Configure automatic publishing of scheduled content to your connected CMS.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Auto-Publish Toggle */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
+        <Switch
+          checked={autoPublishEnabled}
+          onCheckedChange={handleChange(setAutoPublishEnabled)}
+          className="data-[state=checked]:bg-primary"
+        />
+        <Label className="text-sm font-medium cursor-pointer">
+          Auto-Publish
+        </Label>
+      </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-6 py-4">
-            {/* Enable Toggle */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-1">
-                <Label className="font-medium">Auto-Publish</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automatically publish scheduled answers daily
-                </p>
-              </div>
-              <Switch
-                checked={autoPublishEnabled}
-                onCheckedChange={setAutoPublishEnabled}
-              />
-            </div>
+      {/* Frequency */}
+      <div className="flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <Select value={frequency} onValueChange={handleChange(setFrequency)}>
+          <SelectTrigger className="w-[100px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {frequencies.map((freq) => (
+              <SelectItem key={freq.value} value={freq.value}>
+                {freq.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            {/* Publish Hour */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Publish Time
-              </Label>
-              <div className="flex gap-2">
-                <Select value={publishHour} onValueChange={setPublishHour}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Hour" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hours.map((hour) => (
-                      <SelectItem key={hour} value={hour}>
-                        {hour}:00
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={publishPeriod} onValueChange={(v) => setPublishPeriod(v as "AM" | "PM")}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AM">AM</SelectItem>
-                    <SelectItem value="PM">PM</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+      {/* Time */}
+      <div className="flex items-center gap-2">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        <Select value={publishHour} onValueChange={handleChange(setPublishHour)}>
+          <SelectTrigger className="w-[70px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {hours.map((hour) => (
+              <SelectItem key={hour} value={hour}>
+                {hour}:00
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={publishPeriod} onValueChange={handleChange(setPublishPeriod)}>
+          <SelectTrigger className="w-[65px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="AM">AM</SelectItem>
+            <SelectItem value="PM">PM</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-            {/* Timezone */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Timezone
-              </Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timezones.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Content scheduled for today or earlier will be published at this time.
-              </p>
-            </div>
+      {/* Timezone */}
+      <div className="flex items-center gap-2">
+        <Globe className="h-4 w-4 text-muted-foreground" />
+        <Select value={timezone} onValueChange={handleChange(setTimezone)}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timezones.map((tz) => (
+              <SelectItem key={tz.value} value={tz.value}>
+                {tz.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            {/* Save Button */}
-            <Button 
-              className="w-full" 
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Settings"
-              )}
-            </Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      {/* Save Button */}
+      {hasChanges && (
+        <Button 
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="h-9"
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-1" />
+              Save
+            </>
+          )}
+        </Button>
+      )}
+    </div>
   );
 }
