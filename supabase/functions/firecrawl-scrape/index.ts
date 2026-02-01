@@ -380,9 +380,9 @@ Deno.serve(async (req) => {
         lovableApiKey
       );
       
-      // Filter out low-scoring competitors (< 40) and sort by score descending
+      // Filter out low-scoring competitors (< 50) and sort by score descending - stricter to exclude media
       competitors = scoredCompetitors
-        .filter(c => c.score >= 40)
+        .filter(c => c.score >= 50)
         .sort((a, b) => b.score - a.score)
         .slice(0, 4) // Maximum 4 high-quality competitors
         .map(c => c.domain);
@@ -773,6 +773,25 @@ const SECOND_HAND_MARKETPLACES = new Set([
   'paruvendu.fr', 'trocvestiaire.com', 'depop.com',
 ]);
 
+// BLOCKED: Media, news, magazines, blogs that appear in SERP but are NOT competitors
+const BLOCKED_MEDIA_DOMAINS = new Set([
+  // Médias français écologie/lifestyle
+  'linfodurable.fr', 'madmoizelle.com', 'lepoint.fr', 'lefigaro.fr',
+  'lemonde.fr', 'liberation.fr', 'lexpress.fr', '20minutes.fr',
+  'huffingtonpost.fr', 'bfmtv.com', 'tf1info.fr', 'francetvinfo.fr',
+  'rtl.fr', 'europe1.fr', 'rmc.bfmtv.com', 'leparisien.fr',
+  // Blogs déco/lifestyle
+  'deco.fr', 'cotemaison.fr', 'elle.fr', 'marieclaire.fr',
+  'femmeactuelle.fr', 'aufeminin.com', 'journaldesfemmes.fr',
+  'maison-travaux.fr', 'maisonapart.com', 'houzz.fr',
+  // Magazine/guide généralistes
+  'consoglobe.com', 'radins.com', 'frenchweb.fr', 'maddyness.com',
+  'debongout-paris.com', 'neonmag.fr', 'konbini.com', 'melty.fr',
+  // English media
+  'forbes.com', 'businessinsider.com', 'techcrunch.com', 'theguardian.com',
+  'nytimes.com', 'washingtonpost.com', 'bbc.com', 'cnn.com',
+]);
+
 // Detect if the business context indicates a second-hand / C2C marketplace
 function isSecondHandBusiness(businessContext: string): boolean {
   if (!businessContext) return false;
@@ -782,6 +801,12 @@ function isSecondHandBusiness(businessContext: string): boolean {
 
 function isBlockedDomain(domain: string, businessContext: string = ''): boolean {
   const lower = domain.toLowerCase();
+  
+  // ALWAYS block media/news sites regardless of business context
+  if (BLOCKED_MEDIA_DOMAINS.has(lower)) {
+    console.log('[FILTER] Blocking media/blog site:', lower);
+    return true;
+  }
   
   // If it's a second-hand marketplace AND the business is in second-hand vertical, ALLOW it
   if (SECOND_HAND_MARKETPLACES.has(lower) && isSecondHandBusiness(businessContext)) {
@@ -846,10 +871,12 @@ ${competitors.map((c, i) => `${i + 1}. ${c}`).join('\n')}
 
 Scoring rules:
 - 90-100: Same business model AND same niche (direct competitor)
-- 70-89: Same business model OR same niche
+- 70-89: Same business model OR same niche  
 - 50-69: Related industry but different model
 - 30-49: Tangentially related
-- 0-29: Not a competitor (news sites, blogs, directories)
+- 0-29: NOT a competitor (news sites, blogs, magazines, directories, media portals)
+
+CRITICAL: News sites, magazines, content portals, and media outlets are NEVER competitors for e-commerce/marketplace businesses. Score them 0-20 maximum. Examples: linfodurable.fr, madmoizelle.com, 20minutes.fr = score 0-15.
 
 Return ONLY JSON array: [{"domain":"...","score":85,"reason":"..."}]`
         }],
