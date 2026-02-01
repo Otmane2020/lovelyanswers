@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useOnboardingSession } from "@/hooks/useOnboardingSession";
 
 interface OnboardingData {
   websiteUrl: string;
@@ -97,6 +98,18 @@ export default function Onboarding() {
   const languageTouchedRef = useRef(false);
   const languageAutoDetectRef = useRef<string | null>(null);
   const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
+  const [isPreDetecting, setIsPreDetecting] = useState(false);
+  
+  // Session tracking hook
+  const { 
+    trackStep, 
+    updateSession, 
+    detectLanguage,
+    isDetectingLanguage,
+    detectedLanguage,
+    trackCheckoutStarted,
+    trackCompleted,
+  } = useOnboardingSession();
   
   const [data, setData] = useState<OnboardingData>({
     websiteUrl: "",
@@ -159,37 +172,8 @@ export default function Onboarding() {
     }
   }, [searchParams]);
 
-  // Best-effort language pre-detection so Step 2 is pre-selected correctly.
-  // We only apply it if the user hasn't manually chosen a language yet.
-  useEffect(() => {
-    const url = data.websiteUrl?.trim();
-    if (!url || !isValidUrl(url)) return;
-    if (languageTouchedRef.current) return;
-    if (languageAutoDetectRef.current === url) return;
-
-    languageAutoDetectRef.current = url;
-
-    (async () => {
-      try {
-        const { data: res, error } = await supabase.functions.invoke('firecrawl-scrape-fast', {
-          body: { url },
-        });
-
-        if (error) return;
-        if (!res?.success) return;
-
-        const detected = res.data?.language;
-        if (!detected || typeof detected !== 'string') return;
-
-        // Only update if still not user-touched.
-        if (!languageTouchedRef.current) {
-          setData(prev => ({ ...prev, language: detected }));
-        }
-      } catch {
-        // Silent: language detection is best-effort.
-      }
-    })();
-  }, [data.websiteUrl]);
+  // Language pre-detection is now handled in handleContinue for step 1
+  // to show loading state and go directly to detected language
 
   const isValidUrl = (url: string): boolean => {
     if (!url || url.length < 3) return false;
@@ -310,24 +294,51 @@ export default function Onboarding() {
     }
   }, [analysisStartTime]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (currentStep === 1) {
       if (!isValidUrl(data.websiteUrl)) {
         setUrlError("Please enter a valid URL");
         return;
       }
       setUrlError("");
+      
+      // Start pre-detection with loading state
+      setIsPreDetecting(true);
+      
+      // Track step 1 completion with URL
+      await trackStep(1, { website_url: data.websiteUrl });
+      
+      // Detect language
+      const detected = await detectLanguage(data.websiteUrl);
+      
+      if (detected && !languageTouchedRef.current) {
+        setData(prev => ({ ...prev, language: detected }));
+      }
+      
+      setIsPreDetecting(false);
       setCurrentStep(2);
+      
     } else if (currentStep === 2) {
+      // Track step 2 with language
+      await trackStep(2, { language: data.language });
       setCurrentStep(3);
+      
     } else if (currentStep === 3) {
       if (!isValidEmail(data.email)) {
         setEmailError("Please enter a valid email");
         return;
       }
       setEmailError("");
+      
+      // Track step 3 with email
+      await trackStep(3, { email: data.email });
+      
       analyzeWebsite(data.websiteUrl);
+      
     } else if (currentStep === 5) {
+      // Track step 5 completion
+      await trackStep(5);
+      await trackCompleted();
       setCurrentStep(6);
     }
   };
@@ -349,6 +360,17 @@ export default function Onboarding() {
       };
       localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
       localStorage.setItem('onboarding_email', data.email);
+
+      // Track checkout started with all data
+      await trackCheckoutStarted(data.email);
+      await updateSession({
+        brand_name: data.brandName,
+        business_description: data.businessDescription,
+        cms: data.cms,
+        competitors: data.competitors.map(c => c.domain),
+        keywords: data.keywords,
+        traffic_potential: data.trafficPotential,
+      });
 
       const { data: checkoutData, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
@@ -781,12 +803,17 @@ export default function Onboarding() {
               <Button
                 onClick={handleContinue}
                 disabled={
-                  (currentStep === 1 && !isValidUrl(data.websiteUrl)) ||
+                  (currentStep === 1 && (!isValidUrl(data.websiteUrl) || isPreDetecting)) ||
                   (currentStep === 3 && !isValidEmail(data.email))
                 }
                 className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
               >
-                {currentStep === 3 ? (
+                {currentStep === 1 && isPreDetecting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Detecting language...
+                  </>
+                ) : currentStep === 3 ? (
                   <>
                     See my results
                     <ArrowRight className="w-5 h-5 ml-2" />
