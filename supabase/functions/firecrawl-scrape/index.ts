@@ -315,24 +315,83 @@ Deno.serve(async (req) => {
       keywordsPromise,
     ]);
 
-    // ============= STEP 4: Competitors detection (uses keywords + language) =============
-    let competitors: string[] = [];
+    // ============= STEP 4: Competitors detection with multi-source + scoring =============
+    let rawCompetitors: string[] = [];
+    let businessTypeQuery = '';
     
-    // Use DataForSEO with correct location based on detected language
+    // FIRST: Get business type for scoring (run early in parallel)
+    const businessTypePromise = lovableApiKey 
+      ? detectBusinessType(enrichedDescription, contentPreview, brandName, language, lovableApiKey)
+      : Promise.resolve('');
+    
+    // SOURCE 1: DataForSEO Domain Competitors API
     if (dfLogin && dfPassword) {
-      competitors = await fetchCompetitorsFast(ownDomain, dfLogin, dfPassword, language);
+      rawCompetitors = await fetchCompetitorsFast(ownDomain, dfLogin, dfPassword, language);
+      console.log('[COMPETITORS] Source 1 (Domain API):', rawCompetitors.length, 'results');
     }
     
-    // Fallback to SERP-based detection if DataForSEO returned nothing
-    if (competitors.length === 0 && dfLogin && dfPassword && keywords.length > 0) {
-      console.log('[COMPETITORS] Domain API returned nothing, trying SERP-based detection');
-      competitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language);
+    // SOURCE 2: DataForSEO SERP-based detection (if Source 1 returned < 3)
+    if (rawCompetitors.length < 3 && dfLogin && dfPassword && keywords.length > 0) {
+      console.log('[COMPETITORS] Trying SERP-based detection...');
+      const serpCompetitors = await fetchCompetitorsFromSERP(keywords, ownDomain, dfLogin, dfPassword, language);
+      
+      // Merge unique domains
+      for (const c of serpCompetitors) {
+        if (!rawCompetitors.includes(c)) rawCompetitors.push(c);
+      }
+      console.log('[COMPETITORS] Source 2 (SERP API):', serpCompetitors.length, 'new, total:', rawCompetitors.length);
     }
     
-    // Final fallback: Google Search via Firecrawl with AI-powered business detection
-    if (competitors.length === 0 && apiKey) {
-      console.log('[COMPETITORS] SERP returned nothing, using AI-powered Google Search fallback');
-      competitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview);
+    // SOURCE 3: Related Keywords expansion for niche competitors (always try if we have keywords)
+    if (dfLogin && dfPassword && keywords.length > 0 && rawCompetitors.length < 5) {
+      console.log('[COMPETITORS] Trying Related Keywords expansion...');
+      const nicheCompetitors = await fetchCompetitorsViaRelatedKeywords(keywords, ownDomain, dfLogin, dfPassword, language);
+      
+      // Merge unique domains
+      for (const c of nicheCompetitors) {
+        if (!rawCompetitors.includes(c)) rawCompetitors.push(c);
+      }
+      console.log('[COMPETITORS] Source 3 (Related Keywords):', nicheCompetitors.length, 'new, total:', rawCompetitors.length);
+    }
+    
+    // SOURCE 4: Google Search via Firecrawl (final fallback)
+    if (rawCompetitors.length < 3 && apiKey) {
+      console.log('[COMPETITORS] Using AI-powered Google Search fallback...');
+      const googleCompetitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview);
+      
+      // Merge unique domains
+      for (const c of googleCompetitors) {
+        if (!rawCompetitors.includes(c)) rawCompetitors.push(c);
+      }
+      console.log('[COMPETITORS] Source 4 (Google Search):', googleCompetitors.length, 'new, total:', rawCompetitors.length);
+    }
+    
+    // Wait for business type detection
+    businessTypeQuery = await businessTypePromise;
+    
+    // SCORING: Score competitors by business similarity
+    let competitors: string[] = rawCompetitors.slice(0, 8); // Max 8 for scoring
+    
+    if (lovableApiKey && competitors.length > 0 && (enrichedDescription || businessTypeQuery)) {
+      console.log('[COMPETITORS] Scoring by business similarity...');
+      const scoredCompetitors = await scoreCompetitorSimilarity(
+        competitors,
+        enrichedDescription,
+        businessTypeQuery,
+        language,
+        lovableApiKey
+      );
+      
+      // Filter out low-scoring competitors (< 40) and sort by score descending
+      competitors = scoredCompetitors
+        .filter(c => c.score >= 40)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(c => c.domain);
+      
+      console.log('[COMPETITORS] After scoring:', competitors.length, 'high-quality competitors');
+    } else {
+      competitors = competitors.slice(0, 5);
     }
 
     console.log('[SCRAPE] Total time:', Date.now() - startTime, 'ms');
@@ -735,6 +794,214 @@ function isBlockedDomain(domain: string): boolean {
     if (lower.endsWith(`.${blocked}`)) return true;
   }
   return false;
+}
+
+// ============= BUSINESS SIMILARITY SCORING =============
+// Score competitors by how similar their business type is to ours
+interface CompetitorWithScore {
+  domain: string;
+  score: number;
+  intersections?: number;
+  avgPosition?: number;
+}
+
+async function scoreCompetitorSimilarity(
+  competitors: string[],
+  businessDescription: string,
+  businessType: string,
+  language: string,
+  apiKey: string
+): Promise<CompetitorWithScore[]> {
+  if (!competitors.length || !apiKey) return competitors.map(d => ({ domain: d, score: 50 }));
+  
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const langInstruction = language === 'fr' ? 'Réponds en JSON.' : 'Respond in JSON.';
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [{
+          role: 'user',
+          content: `Score each competitor by business similarity (0-100). ${langInstruction}
+
+Our business: ${businessDescription.substring(0, 500)}
+Business type/niche: ${businessType}
+
+Competitors to score:
+${competitors.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+Scoring rules:
+- 90-100: Same business model AND same niche (direct competitor)
+- 70-89: Same business model OR same niche
+- 50-69: Related industry but different model
+- 30-49: Tangentially related
+- 0-29: Not a competitor (news sites, blogs, directories)
+
+Return ONLY JSON array: [{"domain":"...","score":85,"reason":"..."}]`
+        }],
+        temperature: 0.1,
+        max_tokens: 500,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return competitors.map(d => ({ domain: d, score: 50 }));
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*?\]/);
+
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) {
+        console.log('[SCORING] AI similarity scores:', parsed.map((p: any) => `${p.domain}:${p.score}`).join(', '));
+        return parsed.map((p: any) => ({
+          domain: p.domain,
+          score: typeof p.score === 'number' ? p.score : 50,
+        }));
+      }
+    }
+    
+    return competitors.map(d => ({ domain: d, score: 50 }));
+  } catch (e) {
+    console.error('[SCORING] Error:', e);
+    return competitors.map(d => ({ domain: d, score: 50 }));
+  }
+}
+
+// ============= RELATED KEYWORDS DATAFORSEO =============
+// Discover niche competitors via related keywords expansion
+async function fetchCompetitorsViaRelatedKeywords(
+  keywords: Array<{keyword: string, intent: string}>,
+  ownDomain: string,
+  login: string,
+  password: string,
+  language: string
+): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const auth = btoa(`${login}:${password}`);
+    const locationCode = getLocationCode(language);
+    const languageCode = language === 'fr' ? 'fr' : language === 'de' ? 'de' : language === 'es' ? 'es' : 'en';
+    
+    // Use top keywords for related expansion
+    const seedKeyword = keywords
+      .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
+      .slice(0, 1)
+      .map(k => k.keyword)[0] || keywords[0]?.keyword;
+    
+    if (!seedKeyword) {
+      console.log('[RELATED-KW] No seed keyword available');
+      return [];
+    }
+    
+    console.log('[RELATED-KW] Fetching related keywords for:', seedKeyword);
+    
+    const response = await fetch('https://api.dataforseo.com/v3/dataforseo_labs/google/related_keywords/live', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([{
+        keyword: seedKeyword,
+        location_code: locationCode,
+        language_code: languageCode,
+        depth: 2,
+        limit: 30,
+      }]),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const data = await response.json();
+    
+    if (data.status_code !== 20000 || !data.tasks?.[0]?.result?.[0]?.items) {
+      console.log('[RELATED-KW] No results:', data.status_message || 'empty');
+      return [];
+    }
+
+    // Extract related keywords
+    const relatedKeywords = data.tasks[0].result[0].items
+      .filter((item: any) => item.keyword_data?.keyword)
+      .map((item: any) => item.keyword_data.keyword)
+      .slice(0, 5);
+    
+    if (relatedKeywords.length === 0) {
+      console.log('[RELATED-KW] No related keywords found');
+      return [];
+    }
+    
+    console.log('[RELATED-KW] Found related keywords:', relatedKeywords);
+    
+    // Now query SERP for these related keywords to find niche competitors
+    const serpResponse = await fetch('https://api.dataforseo.com/v3/serp/google/organic/live/regular', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(relatedKeywords.slice(0, 3).map((kw: string) => ({
+        keyword: kw,
+        location_code: locationCode,
+        language_code: languageCode,
+        depth: 15,
+      }))),
+    });
+
+    const serpData = await serpResponse.json();
+    
+    if (serpData.status_code !== 20000 || !serpData.tasks) {
+      console.log('[RELATED-KW] SERP error:', serpData.status_message || 'empty');
+      return [];
+    }
+
+    const ownDomainBase = ownDomain.split('.')[0].toLowerCase();
+    const domainCounts = new Map<string, number>();
+    
+    // Aggregate domains from SERP results
+    for (const task of serpData.tasks) {
+      if (!task.result?.[0]?.items) continue;
+      
+      for (const item of task.result[0].items) {
+        if (item.type !== 'organic') continue;
+        
+        const domain = item.domain?.toLowerCase();
+        if (!domain) continue;
+        if (domain.includes(ownDomainBase) || ownDomainBase.includes(domain.split('.')[0])) continue;
+        if (isBlockedDomain(domain)) continue;
+        
+        domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
+      }
+    }
+    
+    // Return domains that appear in multiple keyword SERPs (more likely to be niche competitors)
+    const competitors = [...domainCounts.entries()]
+      .filter(([_, count]) => count >= 2) // Appears in at least 2 keyword SERPs
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([domain]) => domain);
+    
+    console.log('[RELATED-KW] Niche competitors found:', competitors);
+    return competitors;
+
+  } catch (e) {
+    console.error('[RELATED-KW] Error:', e);
+    return [];
+  }
 }
 
 // Fast competitors fetch - with proper location based on language
