@@ -545,7 +545,8 @@ Return ONLY the search query, nothing else. Example: "plateformes vente meubles 
   }
 }
 
-// Find competitors via Google Search using Firecrawl + AI-powered business detection
+// Find competitors via Google Search using Firecrawl - KEYWORD-FIRST approach
+// Uses actual transactional keywords like "meubles occasion" for precise results
 async function findCompetitorsViaGoogleSearch(
   description: string,
   brandName: string,
@@ -560,78 +561,81 @@ async function findCompetitorsViaGoogleSearch(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
+    // PRIORITY 1: Use transactional/commercial keywords DIRECTLY (like "meubles occasion")
+    // This simulates what a real user would search on Google
+    const transactionalKeywords = extractedKeywords
+      .filter(k => k.intent === 'transactional' || k.intent === 'commercial')
+      .slice(0, 3)
+      .map(k => k.keyword);
+    
     let searchQuery = '';
     
-    // Use provided businessContext or detect it
-    if (businessContext && businessContext.length > 5 && businessContext.length < 100) {
+    if (transactionalKeywords.length > 0) {
+      // Use the BEST keyword directly - no need to add "alternatives" which pollutes results
+      // "meubles occasion" finds leboncoin, troc.com, selency directly
+      searchQuery = transactionalKeywords[0];
+      console.log('[COMPETITORS] Using direct keyword search:', searchQuery);
+    } else if (businessContext && businessContext.length > 5 && businessContext.length < 100) {
+      // PRIORITY 2: Use AI-detected business context
       searchQuery = businessContext;
+      console.log('[COMPETITORS] Using business context:', searchQuery);
     } else {
-      // FALLBACK: Try AI-powered business type detection for accurate query
-      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-      if (lovableApiKey && (description || contentSample)) {
-        const aiQuery = await detectBusinessType(description, contentSample, brandName, language, lovableApiKey);
-        if (aiQuery && aiQuery.length > 5 && aiQuery.length < 100) {
-          searchQuery = aiQuery;
-        }
-      }
+      // PRIORITY 3: Ultimate fallback with brand
+      searchQuery = language === 'fr'
+        ? `sites comme ${brandName}`
+        : `sites like ${brandName}`;
+      console.log('[COMPETITORS] Using brand fallback:', searchQuery);
     }
-    
-    // FALLBACK: Use extracted keywords if AI detection failed
-    if (!searchQuery) {
-      const keywordTerms = extractedKeywords
-        .filter(k => k.intent === 'commercial' || k.intent === 'transactional')
-        .slice(0, 3)
-        .map(k => k.keyword)
-        .join(' ');
-      
-      if (keywordTerms) {
-        searchQuery = language === 'fr' 
-          ? `${keywordTerms} sites alternatives`
-          : `${keywordTerms} alternatives`;
-      } else {
-        // Ultimate fallback
-        searchQuery = language === 'fr'
-          ? `sites comme ${brandName} alternatives`
-          : `sites like ${brandName} alternatives`;
-      }
-    }
-    
-    console.log('[COMPETITORS] Final search query:', searchQuery);
 
-    const response = await fetch('https://api.firecrawl.dev/v1/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: searchQuery,
-        limit: 15,
-        lang: language === 'fr' ? 'fr' : 'en',
-        country: language === 'fr' ? 'FR' : 'US',
-      }),
-      signal: controller.signal,
+    // Run multiple searches in parallel for better coverage
+    const searchQueries = [searchQuery];
+    
+    // Add second keyword if available (e.g., "vendre meubles occasion")
+    if (transactionalKeywords.length > 1 && transactionalKeywords[1] !== searchQuery) {
+      searchQueries.push(transactionalKeywords[1]);
+    }
+    
+    console.log('[COMPETITORS] Search queries:', searchQueries);
+
+    // Execute searches in parallel
+    const searchPromises = searchQueries.map(async (query) => {
+      const response = await fetch('https://api.firecrawl.dev/v1/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          limit: 12,
+          lang: language === 'fr' ? 'fr' : 'en',
+          country: language === 'fr' ? 'FR' : 'US',
+        }),
+        signal: controller.signal,
+      });
+      
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.success && data.data ? data.data : [];
     });
+    
+    const searchResults = await Promise.all(searchPromises);
+    const allResults = searchResults.flat();
 
     clearTimeout(timeout);
 
-    if (!response.ok) {
-      console.error('[COMPETITORS] Firecrawl search error:', response.status);
+    if (allResults.length === 0) {
+      console.log('[COMPETITORS] No search results from Firecrawl');
       return [];
     }
-
-    const data = await response.json();
     
-    if (!data.success || !data.data) {
-      console.log('[COMPETITORS] No search results');
-      return [];
-    }
+    console.log('[COMPETITORS] Total search results:', allResults.length);
 
     const ownDomainBase = domain.split('.')[0].toLowerCase();
     const competitors: string[] = [];
     const seenDomains = new Set<string>();
 
-    for (const result of data.data) {
+    for (const result of allResults) {
       try {
         const url = result.url || result.sourceURL || '';
         if (!url) continue;
@@ -658,7 +662,7 @@ async function findCompetitorsViaGoogleSearch(
         seenDomains.add(resultDomain);
         competitors.push(resultDomain);
         
-        if (competitors.length >= 6) break;
+        if (competitors.length >= 8) break; // Get more candidates for scoring
       } catch {
         // Invalid URL, skip
       }
