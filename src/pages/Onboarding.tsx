@@ -881,7 +881,7 @@ export default function Onboarding() {
                 {currentStep === 1 && isPreDetecting ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Detecting language...
+                    Loading {data.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').substring(0, 30)}...
                   </>
                 ) : currentStep === 3 ? (
                   <>
