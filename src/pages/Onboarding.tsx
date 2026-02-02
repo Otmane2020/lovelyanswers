@@ -165,12 +165,29 @@ export default function Onboarding() {
     checkExistingProject();
   }, [navigate, searchParams]);
 
-  // Initialize from URL param
+  // Initialize from URL param and auto-advance to step 2
   useEffect(() => {
     const urlFromParam = searchParams.get('url');
-    if (urlFromParam) {
+    if (urlFromParam && currentStep === 1) {
       const decodedUrl = decodeURIComponent(urlFromParam);
       setData(prev => ({ ...prev, websiteUrl: decodedUrl }));
+      
+      // Auto-advance to step 2 if URL is valid
+      if (isValidUrl(decodedUrl)) {
+        const autoAdvance = async () => {
+          setIsPreDetecting(true);
+          await trackStep(1, { website_url: decodedUrl });
+          
+          const detected = await detectLanguage(decodedUrl);
+          if (detected && !languageTouchedRef.current) {
+            setData(prev => ({ ...prev, language: detected }));
+          }
+          
+          setIsPreDetecting(false);
+          setCurrentStep(2);
+        };
+        autoAdvance();
+      }
     }
   }, [searchParams]);
 
