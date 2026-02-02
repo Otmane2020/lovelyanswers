@@ -3,9 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRedditPreload } from "@/hooks/useRedditPreload";
+import { useActiveProject } from "@/hooks/useProjects";
 import {
   MessageSquare,
   TrendingUp,
@@ -24,7 +24,7 @@ const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
 export default function AeoDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { project } = useActiveProject();
   const { subscribed, startCheckout, isLoading } = useSubscription();
   
   // Preload Reddit posts in background on first dashboard visit
@@ -39,13 +39,13 @@ export default function AeoDashboard() {
 
   useEffect(() => {
     const fetchAnswersStats = async () => {
-      if (!user) return;
+      if (!project) return;
 
       try {
         const { data: answers } = await supabase
           .from('answers')
           .select('id, score')
-          .eq('project_id', user.id);
+          .eq('project_id', project.id);
 
         if (answers) {
           const total = answers.length;
@@ -63,7 +63,7 @@ export default function AeoDashboard() {
     };
 
     fetchAnswersStats();
-  }, [user]);
+  }, [project]);
 
   const stats = [
     { 
