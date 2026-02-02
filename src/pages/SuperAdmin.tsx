@@ -14,8 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
-  LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3
+  LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
+  Plus, Trash2, Globe, Building, Phone
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
@@ -54,6 +57,20 @@ interface SubscriptionInfo {
   subscription_end: string | null;
 }
 
+interface AdminProspect {
+  id: string;
+  email: string;
+  full_name: string | null;
+  company: string | null;
+  website: string | null;
+  phone: string | null;
+  source: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const ADMIN_EMAIL = "oben.rockman@gmail.com";
 
 const SuperAdmin = () => {
@@ -71,6 +88,20 @@ const SuperAdmin = () => {
   // Users state
   const [subscribers, setSubscribers] = useState<SubscriptionInfo[]>([]);
   const [prospects, setProspects] = useState<UserProfile[]>([]);
+  const [adminProspects, setAdminProspects] = useState<AdminProspect[]>([]);
+  
+  // Add prospect form state
+  const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
+  const [newProspect, setNewProspect] = useState({
+    email: "",
+    full_name: "",
+    company: "",
+    website: "",
+    phone: "",
+    source: "",
+    notes: "",
+    status: "new"
+  });
 
   // Force light theme
   useEffect(() => {
@@ -104,6 +135,7 @@ const SuperAdmin = () => {
       loadTickets(),
       loadSubscribers(),
       loadProspects(),
+      loadAdminProspects(),
     ]);
   };
 
@@ -219,6 +251,102 @@ const SuperAdmin = () => {
       setProspects(prospectUsers);
     } catch (error) {
       console.error("Error loading prospects:", error);
+    }
+  };
+
+  const loadAdminProspects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("admin_prospects")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setAdminProspects((data || []) as AdminProspect[]);
+    } catch (error) {
+      console.error("Error loading admin prospects:", error);
+    }
+  };
+
+  const handleAddProspect = async () => {
+    if (!newProspect.email.trim()) {
+      toast({
+        title: "Erreur",
+        description: "L'email est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("admin_prospects")
+        .insert({
+          email: newProspect.email.trim(),
+          full_name: newProspect.full_name.trim() || null,
+          company: newProspect.company.trim() || null,
+          website: newProspect.website.trim() || null,
+          phone: newProspect.phone.trim() || null,
+          source: newProspect.source.trim() || null,
+          notes: newProspect.notes.trim() || null,
+          status: newProspect.status,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Erreur",
+            description: "Ce prospect existe déjà",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast({
+        title: "Prospect ajouté",
+        description: `${newProspect.email} a été ajouté à la liste`,
+      });
+
+      setNewProspect({
+        email: "",
+        full_name: "",
+        company: "",
+        website: "",
+        phone: "",
+        source: "",
+        notes: "",
+        status: "new"
+      });
+      setIsAddProspectOpen(false);
+      loadAdminProspects();
+    } catch (error) {
+      console.error("Error adding prospect:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le prospect",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProspect = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("admin_prospects")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Prospect supprimé",
+      });
+      loadAdminProspects();
+    } catch (error) {
+      console.error("Error deleting prospect:", error);
     }
   };
 
@@ -610,12 +738,237 @@ const SuperAdmin = () => {
           </TabsContent>
 
           {/* Prospects Tab */}
-          <TabsContent value="prospects">
+          <TabsContent value="prospects" className="space-y-6">
+            {/* Manual Prospects Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Prospects Manuels ({adminProspects.length})
+                    </CardTitle>
+                    <CardDescription>Prospects ajoutés manuellement par l'admin</CardDescription>
+                  </div>
+                  <Dialog open={isAddProspectOpen} onOpenChange={setIsAddProspectOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Ajouter un prospect
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Ajouter un prospect</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="email@example.com"
+                            value={newProspect.email}
+                            onChange={(e) => setNewProspect({ ...newProspect, email: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="full_name">Nom complet</Label>
+                          <Input
+                            id="full_name"
+                            placeholder="John Doe"
+                            value={newProspect.full_name}
+                            onChange={(e) => setNewProspect({ ...newProspect, full_name: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company">Entreprise</Label>
+                          <div className="flex items-center gap-2">
+                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="company"
+                              placeholder="Nom de l'entreprise"
+                              value={newProspect.company}
+                              onChange={(e) => setNewProspect({ ...newProspect, company: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="website">Site web</Label>
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="website"
+                              placeholder="https://example.com"
+                              value={newProspect.website}
+                              onChange={(e) => setNewProspect({ ...newProspect, website: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Téléphone</Label>
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="phone"
+                              placeholder="+33 1 23 45 67 89"
+                              value={newProspect.phone}
+                              onChange={(e) => setNewProspect({ ...newProspect, phone: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="source">Source</Label>
+                          <Select
+                            value={newProspect.source}
+                            onValueChange={(value) => setNewProspect({ ...newProspect, source: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="D'où vient ce prospect?" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="linkedin">LinkedIn</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="referral">Recommandation</SelectItem>
+                              <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
+                              <SelectItem value="event">Événement</SelectItem>
+                              <SelectItem value="other">Autre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="status">Statut</Label>
+                          <Select
+                            value={newProspect.status}
+                            onValueChange={(value) => setNewProspect({ ...newProspect, status: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="new">Nouveau</SelectItem>
+                              <SelectItem value="contacted">Contacté</SelectItem>
+                              <SelectItem value="interested">Intéressé</SelectItem>
+                              <SelectItem value="demo_scheduled">Demo planifiée</SelectItem>
+                              <SelectItem value="negotiation">Négociation</SelectItem>
+                              <SelectItem value="lost">Perdu</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Notes</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Notes sur ce prospect..."
+                            value={newProspect.notes}
+                            onChange={(e) => setNewProspect({ ...newProspect, notes: e.target.value })}
+                            rows={3}
+                          />
+                        </div>
+                        <Button onClick={handleAddProspect} className="w-full">
+                          Ajouter le prospect
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Entreprise</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adminProspects.map((prospect) => (
+                      <TableRow key={prospect.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{prospect.email}</p>
+                            {prospect.website && (
+                              <a href={prospect.website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                                <Globe className="h-3 w-3" />
+                                {prospect.website.replace(/^https?:\/\//, '').slice(0, 30)}
+                              </a>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{prospect.full_name || "-"}</TableCell>
+                        <TableCell>{prospect.company || "-"}</TableCell>
+                        <TableCell>
+                          {prospect.source ? (
+                            <Badge variant="outline" className="capitalize">
+                              {prospect.source.replace("_", " ")}
+                            </Badge>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              prospect.status === "interested" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                              prospect.status === "contacted" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                              prospect.status === "demo_scheduled" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
+                              prospect.status === "negotiation" ? "bg-orange-500/10 text-orange-500 border-orange-500/20" :
+                              prospect.status === "lost" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              ""
+                            }
+                          >
+                            {prospect.status === "new" ? "Nouveau" :
+                             prospect.status === "contacted" ? "Contacté" :
+                             prospect.status === "interested" ? "Intéressé" :
+                             prospect.status === "demo_scheduled" ? "Demo" :
+                             prospect.status === "negotiation" ? "Négo" :
+                             prospect.status === "lost" ? "Perdu" :
+                             prospect.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(prospect.created_at), "d MMM yyyy", { locale: enUS })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={`mailto:${prospect.email}`}>
+                                <Mail className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteProspect(prospect.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {adminProspects.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          Aucun prospect manuel ajouté. Cliquez sur "Ajouter un prospect" pour commencer.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Auto-detected Prospects Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserX className="h-5 w-5" />
-                  Prospects ({prospects.length})
+                  Prospects Inscrits ({prospects.length})
                 </CardTitle>
                 <CardDescription>Utilisateurs inscrits mais n'ayant pas souscrit d'abonnement</CardDescription>
               </CardHeader>
@@ -641,9 +994,11 @@ const SuperAdmin = () => {
                           }
                         </TableCell>
                         <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Mail className="h-4 w-4 mr-2" />
-                            Follow Up
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={`mailto:${prospect.email}`}>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Follow Up
+                            </a>
                           </Button>
                         </TableCell>
                       </TableRow>
