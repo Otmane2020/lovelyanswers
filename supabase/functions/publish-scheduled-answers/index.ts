@@ -56,12 +56,17 @@ interface ProjectSettings {
 function getLocalHour(timezone: string): number {
   try {
     const now = new Date();
-    const localTime = now.toLocaleString("en-US", { 
+    // Use numeric hour to avoid locale issues with "24" vs "00"
+    const formatter = new Intl.DateTimeFormat("en-US", { 
       timeZone: timezone, 
-      hour: "2-digit", 
+      hour: "numeric", 
       hour12: false 
     });
-    return parseInt(localTime, 10);
+    const parts = formatter.formatToParts(now);
+    const hourPart = parts.find(p => p.type === "hour");
+    const hour = parseInt(hourPart?.value || "0", 10);
+    // Handle midnight: some locales return 24 instead of 0
+    return hour === 24 ? 0 : hour;
   } catch (e) {
     console.error(`[publish-scheduled] ⚠️ Invalid timezone: ${timezone}, falling back to UTC`);
     return new Date().getUTCHours();
