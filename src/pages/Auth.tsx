@@ -39,12 +39,9 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
 
-  // Force dark theme on auth page
+  // Force light theme on auth page
   useEffect(() => {
-    document.documentElement.classList.add("dark");
-    return () => {
-      document.documentElement.classList.remove("dark");
-    };
+    document.documentElement.classList.remove("dark");
   }, []);
 
   // Listen for auth events (OAuth callback, password recovery, etc.)
