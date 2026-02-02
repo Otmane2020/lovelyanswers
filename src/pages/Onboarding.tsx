@@ -14,7 +14,9 @@ import {
   Zap,
   Languages,
   Users,
+  Bot,
 } from "lucide-react";
+import lovelyMascot from "@/assets/lovely-mascot.png";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -561,16 +563,27 @@ export default function Onboarding() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="space-y-8 text-center"
+                className="space-y-6 text-center"
               >
-                <div className="space-y-6">
-                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center mx-auto animate-pulse">
-                    <Zap className="w-12 h-12 text-primary-foreground" />
-                  </div>
-                  <div className="space-y-2">
-                    <h1 className="text-2xl font-bold tracking-tight">LovelyAnswers is learning about your website</h1>
-                    <p className="text-muted-foreground animate-pulse">Calculating traffic potential...</p>
-                  </div>
+                {/* Lovely Mascot */}
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="relative mx-auto w-40 h-40"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[40px]" />
+                  <img 
+                    src={lovelyMascot} 
+                    alt="Lovely analyzing your site" 
+                    className="relative w-full h-full object-contain drop-shadow-lg animate-bounce"
+                    style={{ animationDuration: '2s' }}
+                  />
+                </motion.div>
+
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-bold tracking-tight">Lovely is analyzing your site</h1>
+                  <p className="text-muted-foreground animate-pulse">Your AI agent is getting to know your business...</p>
                 </div>
 
                 <div className="space-y-3">
@@ -584,7 +597,7 @@ export default function Onboarding() {
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                       <FileText className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <span className="text-sm">Analyzing competitors...</span>
+                    <span className="text-sm">Finding competitors to outrank...</span>
                   </div>
                   <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border opacity-50">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -593,6 +606,12 @@ export default function Onboarding() {
                     <span className="text-sm">Calculating growth potential...</span>
                   </div>
                 </div>
+
+                {/* Reassurance message */}
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                  <Sparkles className="inline w-3 h-3 mr-1 text-primary" />
+                  Lovely works 24/7 to get you recommended by ChatGPT, Gemini & Google
+                </p>
               </motion.div>
             )}
 
@@ -657,11 +676,11 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Marketing message */}
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                {/* Marketing message with Lovely branding */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/20 space-y-1">
                   <p className="text-sm">
-                    <span className="font-semibold text-emerald-600">LovelyAnswers did this in 35 seconds.</span>{' '}
-                    <span className="text-muted-foreground">Imagine LovelyAnswers full-time for your team...</span>
+                    <span className="font-semibold text-primary">✨ Lovely did this in 35 seconds.</span>{' '}
+                    <span className="text-muted-foreground">Imagine Lovely working full-time on your marketing...</span>
                   </p>
                 </div>
 
@@ -731,8 +750,19 @@ export default function Onboarding() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold tracking-tight">Pricing options</h1>
+                {/* Lovely mascot mini + headline */}
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <img 
+                      src={lovelyMascot} 
+                      alt="Lovely" 
+                      className="w-16 h-16 object-contain drop-shadow-md"
+                    />
+                    <div className="text-left">
+                      <h1 className="text-2xl font-bold tracking-tight">Hire Lovely</h1>
+                      <p className="text-sm text-muted-foreground">Your 24/7 AI Marketing Agent</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Pricing Cards */}
