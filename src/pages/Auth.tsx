@@ -133,11 +133,36 @@ export default function Auth() {
 
       console.log("[AUTH] User found, checking for projects...", user.id);
 
-      // Check if there's saved onboarding data (from guest checkout flow)
+      // FIRST: Check if user has an existing project
+      const { data: existingProjects, error } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (error) {
+        console.error("[AUTH] Error fetching projects:", error);
+        return;
+      }
+
+      console.log("[AUTH] Existing projects found:", existingProjects?.length);
+
+      // If user already has projects, clear any stale onboarding data and go to dashboard
+      if (existingProjects && existingProjects.length > 0) {
+        // Clear stale onboarding data to prevent accidental project creation
+        localStorage.removeItem('onboarding_data');
+        localStorage.removeItem('onboarding_email');
+        
+        console.log("[AUTH] Existing user with project, redirecting to dashboard...");
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      // ONLY create project from onboarding data if user has NO existing projects
       const savedOnboardingData = localStorage.getItem('onboarding_data');
       
       if (savedOnboardingData) {
-        console.log("[AUTH] Found saved onboarding data, creating project...");
+        console.log("[AUTH] New user with saved onboarding data, creating project...");
         try {
           const onboardingData = JSON.parse(savedOnboardingData);
           
@@ -215,29 +240,9 @@ export default function Auth() {
         }
       }
 
-      // Check if user has an existing project
-      const { data: projects, error } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1);
-
-      if (error) {
-        console.error("[AUTH] Error fetching projects:", error);
-        return;
-      }
-
-      console.log("[AUTH] Projects found:", projects?.length);
-
-      if (projects && projects.length > 0) {
-        // Existing user with project → Dashboard (ProtectedRoute handles subscription check)
-        console.log("[AUTH] Redirecting to dashboard...");
-        navigate("/dashboard", { replace: true });
-      } else {
-        // New user without project → Onboarding
-        console.log("[AUTH] No projects, redirecting to onboarding...");
-        navigate("/onboarding", { replace: true });
-      }
+      // New user without project and without onboarding data → Onboarding
+      console.log("[AUTH] No projects, redirecting to onboarding...");
+      navigate("/onboarding", { replace: true });
     };
 
     checkUserAndRedirect();
