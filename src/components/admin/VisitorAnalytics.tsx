@@ -67,6 +67,25 @@ export const VisitorAnalytics = () => {
   const [dateRange, setDateRange] = useState("7d");
   const [selectedSession, setSelectedSession] = useState<VisitorSession | null>(null);
 
+  // Filter out internal traffic (onboarding clients and lovable.dev)
+  const isInternalTraffic = (session: VisitorSession): boolean => {
+    const referrer = session.referrer?.toLowerCase() || "";
+    const landingPage = session.landing_page?.toLowerCase() || "";
+    const userAgent = session.user_agent?.toLowerCase() || "";
+    
+    // Filter out lovable.dev and lovableproject.com internal traffic
+    if (referrer.includes("lovable.dev") || referrer.includes("lovableproject.com")) {
+      return true;
+    }
+    
+    // Filter out onboarding page visits that are internal dev/testing
+    if (landingPage === "/onboarding" && referrer.includes("localhost")) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -91,7 +110,9 @@ export const VisitorAnalytics = () => {
           .limit(1000),
       ]);
 
-      if (sessionsResult.data) setSessions(sessionsResult.data);
+      // Filter out internal traffic
+      const filteredSessions = (sessionsResult.data || []).filter(s => !isInternalTraffic(s));
+      if (filteredSessions) setSessions(filteredSessions);
       if (pageViewsResult.data) setPageViews(pageViewsResult.data);
     } catch (error) {
       console.error("Error loading analytics:", error);
@@ -149,6 +170,10 @@ export const VisitorAnalytics = () => {
     // Claude / Anthropic
     if (referrer.includes("claude.ai") || referrer.includes("anthropic.com") || utmSource.includes("claude")) {
       return "Claude";
+    }
+    // Lovable Projects (AI-generated sites)
+    if (referrer.includes("lovableproject.com") || utmSource.includes("lovable")) {
+      return "Lovable";
     }
     return null;
   };
@@ -256,6 +281,9 @@ export const VisitorAnalytics = () => {
     }
     if (aiSource === "Claude") {
       return <Bot className="h-4 w-4 text-orange-500" />;
+    }
+    if (aiSource === "Lovable") {
+      return <Sparkles className="h-4 w-4 text-pink-500" />;
     }
     if (session.fbclid || session.utm_source?.toLowerCase() === "facebook") {
       return <Facebook className="h-4 w-4 text-blue-500" />;
@@ -386,13 +414,14 @@ export const VisitorAnalytics = () => {
           {/* AI Sources Breakdown */}
           {aiSourceData.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4 border-t">
-              {["ChatGPT", "Gemini", "Copilot", "Perplexity", "Claude"].map((source) => {
+              {["ChatGPT", "Gemini", "Copilot", "Perplexity", "Claude", "Lovable"].map((source) => {
                 const count = aiSourcesBreakdown[source] || 0;
                 const icon = source === "ChatGPT" ? <MessageSquare className="h-5 w-5 text-emerald-500" /> :
                              source === "Gemini" ? <Sparkles className="h-5 w-5 text-blue-400" /> :
                              source === "Copilot" ? <Bot className="h-5 w-5 text-cyan-500" /> :
                              source === "Perplexity" ? <Brain className="h-5 w-5 text-violet-500" /> :
-                             <Bot className="h-5 w-5 text-orange-500" />;
+                             source === "Claude" ? <Bot className="h-5 w-5 text-orange-500" /> :
+                             <Sparkles className="h-5 w-5 text-pink-500" />;
                 return (
                   <div key={source} className={`p-3 rounded-lg border ${count > 0 ? 'bg-card' : 'bg-muted/30 opacity-50'}`}>
                     <div className="flex items-center gap-2 mb-1">
