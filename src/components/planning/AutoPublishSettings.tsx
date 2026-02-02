@@ -53,10 +53,20 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
         
         if (data) {
           setAutoPublishEnabled(data.auto_publish_enabled !== false);
-          // Convert 24h to 12h format
+          // Convert 24h to 12h format for display
           const hour24 = parseInt(data.publish_hour || "08");
-          const period = hour24 >= 12 ? "PM" : "AM";
-          const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+          const period: "AM" | "PM" = hour24 >= 12 ? "PM" : "AM";
+          // Convert: 0->12AM, 1-11->1-11AM, 12->12PM, 13-23->1-11PM
+          let hour12: number;
+          if (hour24 === 0) {
+            hour12 = 12; // midnight = 12 AM
+          } else if (hour24 > 12) {
+            hour12 = hour24 - 12;
+          } else if (hour24 === 12) {
+            hour12 = 12; // noon = 12 PM
+          } else {
+            hour12 = hour24;
+          }
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
