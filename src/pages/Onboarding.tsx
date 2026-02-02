@@ -17,6 +17,7 @@ import {
   Bot,
 } from "lucide-react";
 import lovelyMascot from "@/assets/lovely-mascot.png";
+import lovelyRobotMascot from "@/assets/lovely-robot-mascot.png";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -693,12 +694,21 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Marketing message with Lovely branding */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/20 space-y-1">
-                  <p className="text-sm">
-                    <span className="font-semibold text-primary">✨ Lovely did this in 35 seconds.</span>{' '}
-                    <span className="text-muted-foreground">Imagine Lovely working full-time on your marketing...</span>
-                  </p>
+                {/* Hire Lovely Ad Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/5 via-violet-500/5 to-fuchsia-500/5 border border-primary/20 flex items-center gap-4">
+                  <img 
+                    src={lovelyRobotMascot} 
+                    alt="Lovely AI Agent" 
+                    className="w-16 h-16 object-contain flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      ✨ Lovely analysed your site in 35 seconds
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Imagine what Lovely could do full-time for your marketing team...
+                    </p>
+                  </div>
                 </div>
 
                 {/* Competitors */}
