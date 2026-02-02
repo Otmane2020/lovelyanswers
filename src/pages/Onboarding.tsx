@@ -695,17 +695,19 @@ export default function Onboarding() {
                 </div>
 
                 {/* Hire Lovely Ad Banner */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/5 via-violet-500/5 to-fuchsia-500/5 border border-primary/20 flex items-center gap-4">
-                  <img 
-                    src={lovelyRobotMascot} 
-                    alt="Lovely AI Agent" 
-                    className="w-16 h-16 object-contain flex-shrink-0"
-                  />
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/30 flex items-center gap-4 overflow-hidden">
+                  <div className="flex-shrink-0 -ml-2 -my-2">
+                    <img 
+                      src={lovelyRobotMascot} 
+                      alt="Lovely AI Agent" 
+                      className="w-24 h-24 object-contain drop-shadow-lg"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">
                       ✨ Lovely analysed your site in 35 seconds
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Imagine what Lovely could do full-time for your marketing team...
                     </p>
                   </div>
