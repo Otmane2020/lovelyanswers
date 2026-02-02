@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Eye, Clock, MousePointer, Globe, Monitor, Smartphone, Tablet,
-  Facebook, Search, Share2, TrendingUp, Users, ArrowRight, RefreshCw
+  Facebook, Search, Share2, TrendingUp, Users, ArrowRight, RefreshCw,
+  Bot, Sparkles, MessageSquare, Brain
 } from "lucide-react";
 import { format, subDays, subHours } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -124,13 +125,65 @@ export const VisitorAnalytics = () => {
   // Google traffic
   const googleSessions = sessions.filter(s => s.gclid || s.utm_source?.toLowerCase() === "google");
 
-  // Traffic sources breakdown
+  // AI Sources detection helper
+  const getAISource = (session: VisitorSession): string | null => {
+    const referrer = session.referrer?.toLowerCase() || "";
+    const utmSource = session.utm_source?.toLowerCase() || "";
+    
+    // ChatGPT / OpenAI
+    if (referrer.includes("chat.openai.com") || referrer.includes("chatgpt.com") || utmSource.includes("chatgpt") || utmSource.includes("openai")) {
+      return "ChatGPT";
+    }
+    // Gemini / Google AI
+    if (referrer.includes("gemini.google.com") || referrer.includes("bard.google.com") || utmSource.includes("gemini") || utmSource.includes("bard")) {
+      return "Gemini";
+    }
+    // Microsoft Copilot / Bing Chat
+    if (referrer.includes("copilot.microsoft.com") || referrer.includes("bing.com/chat") || utmSource.includes("copilot") || utmSource.includes("bing_chat")) {
+      return "Copilot";
+    }
+    // Perplexity AI
+    if (referrer.includes("perplexity.ai") || utmSource.includes("perplexity")) {
+      return "Perplexity";
+    }
+    // Claude / Anthropic
+    if (referrer.includes("claude.ai") || referrer.includes("anthropic.com") || utmSource.includes("claude")) {
+      return "Claude";
+    }
+    return null;
+  };
+
+  // AI traffic breakdown
+  const aiSessions = sessions.filter(s => getAISource(s) !== null);
+  const aiSourcesBreakdown = sessions.reduce((acc, s) => {
+    const aiSource = getAISource(s);
+    if (aiSource) {
+      acc[aiSource] = (acc[aiSource] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const aiSourceData = Object.entries(aiSourcesBreakdown)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const aiConversions = aiSessions.filter(s => s.converted).length;
+
+  // Traffic sources breakdown (with AI sources)
   const trafficSources = sessions.reduce((acc, s) => {
     let source = "Direct";
-    if (s.fbclid || s.utm_source?.toLowerCase() === "facebook") source = "Facebook";
+    const aiSource = getAISource(s);
+    if (aiSource) source = aiSource;
+    else if (s.fbclid || s.utm_source?.toLowerCase() === "facebook") source = "Facebook";
     else if (s.gclid || s.utm_source?.toLowerCase() === "google") source = "Google";
     else if (s.utm_source) source = s.utm_source;
-    else if (s.referrer) source = new URL(s.referrer).hostname.replace("www.", "");
+    else if (s.referrer) {
+      try {
+        source = new URL(s.referrer).hostname.replace("www.", "");
+      } catch {
+        source = s.referrer;
+      }
+    }
     
     acc[source] = (acc[source] || 0) + 1;
     return acc;
@@ -188,6 +241,22 @@ export const VisitorAnalytics = () => {
   };
 
   const getSourceIcon = (session: VisitorSession) => {
+    const aiSource = getAISource(session);
+    if (aiSource === "ChatGPT") {
+      return <MessageSquare className="h-4 w-4 text-emerald-500" />;
+    }
+    if (aiSource === "Gemini") {
+      return <Sparkles className="h-4 w-4 text-blue-400" />;
+    }
+    if (aiSource === "Copilot") {
+      return <Bot className="h-4 w-4 text-cyan-500" />;
+    }
+    if (aiSource === "Perplexity") {
+      return <Brain className="h-4 w-4 text-violet-500" />;
+    }
+    if (aiSource === "Claude") {
+      return <Bot className="h-4 w-4 text-orange-500" />;
+    }
     if (session.fbclid || session.utm_source?.toLowerCase() === "facebook") {
       return <Facebook className="h-4 w-4 text-blue-500" />;
     }
@@ -281,6 +350,67 @@ export const VisitorAnalytics = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Traffic Sources */}
+      <Card className="border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-cyan-500/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Bot className="h-4 w-4 text-purple-500" />
+            AI Traffic Sources (ChatGPT, Gemini, Copilot, etc.)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <p className="text-3xl font-bold text-purple-500">{aiSessions.length}</p>
+              <p className="text-xs text-muted-foreground">AI Sessions</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-green-500">{aiConversions}</p>
+              <p className="text-xs text-muted-foreground">Conversions</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold">
+                {aiSessions.length ? Math.round((aiConversions / aiSessions.length) * 100) : 0}%
+              </p>
+              <p className="text-xs text-muted-foreground">Conv. Rate</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold">
+                {totalSessions ? Math.round((aiSessions.length / totalSessions) * 100) : 0}%
+              </p>
+              <p className="text-xs text-muted-foreground">% of Traffic</p>
+            </div>
+          </div>
+          
+          {/* AI Sources Breakdown */}
+          {aiSourceData.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4 border-t">
+              {["ChatGPT", "Gemini", "Copilot", "Perplexity", "Claude"].map((source) => {
+                const count = aiSourcesBreakdown[source] || 0;
+                const icon = source === "ChatGPT" ? <MessageSquare className="h-5 w-5 text-emerald-500" /> :
+                             source === "Gemini" ? <Sparkles className="h-5 w-5 text-blue-400" /> :
+                             source === "Copilot" ? <Bot className="h-5 w-5 text-cyan-500" /> :
+                             source === "Perplexity" ? <Brain className="h-5 w-5 text-violet-500" /> :
+                             <Bot className="h-5 w-5 text-orange-500" />;
+                return (
+                  <div key={source} className={`p-3 rounded-lg border ${count > 0 ? 'bg-card' : 'bg-muted/30 opacity-50'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {icon}
+                      <span className="text-sm font-medium">{source}</span>
+                    </div>
+                    <p className="text-2xl font-bold">{count}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground pt-4 border-t">
+              No AI traffic detected yet. Traffic from ChatGPT, Gemini, Copilot, Perplexity, and Claude will appear here.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Facebook & Google Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
