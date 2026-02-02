@@ -47,18 +47,22 @@ export default function Auth() {
     };
   }, []);
 
-  // Listen for password recovery event
+  // Listen for auth events (OAuth callback, password recovery, etc.)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[AUTH] Auth event:", event);
+      console.log("[AUTH] Auth event:", event, "Session:", !!session);
+      
       if (event === "PASSWORD_RECOVERY") {
         console.log("[AUTH] Password recovery detected, showing reset form");
         setIsResetPassword(true);
+        return;
       }
       
-      // Handle SIGNED_IN event for OAuth - send welcome email if first login
+      // Handle SIGNED_IN event - this fires after OAuth callback
       if (event === "SIGNED_IN" && session?.user) {
         const user = session.user;
+        console.log("[AUTH] SIGNED_IN event for user:", user.id);
+        
         const isOAuth = user.app_metadata?.provider && user.app_metadata.provider !== "email";
         const createdAt = new Date(user.created_at);
         const now = new Date();
@@ -78,6 +82,11 @@ export default function Auth() {
           } catch (emailError) {
             console.error("[AUTH] Failed to send welcome email:", emailError);
           }
+        }
+        
+        // For OAuth logins, trigger redirect check immediately
+        if (isOAuth) {
+          console.log("[AUTH] OAuth login detected, will redirect via useEffect");
         }
       }
     });
@@ -439,8 +448,9 @@ export default function Auth() {
                     variant="outline"
                     className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
                     onClick={async () => {
+                      // Redirect back to /auth so the useEffect can handle the redirect logic
                       const { error } = await lovable.auth.signInWithOAuth('google', {
-                        redirect_uri: window.location.origin,
+                        redirect_uri: `${window.location.origin}/auth`,
                       });
                       if (error) {
                         toast({
@@ -465,7 +475,7 @@ export default function Auth() {
                     className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
                     onClick={async () => {
                       const { error } = await lovable.auth.signInWithOAuth('apple', {
-                        redirect_uri: window.location.origin,
+                        redirect_uri: `${window.location.origin}/auth`,
                       });
                       if (error) {
                         toast({
