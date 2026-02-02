@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,11 +67,11 @@ export const VisitorAnalytics = () => {
   const [dateRange, setDateRange] = useState("7d");
   const [selectedSession, setSelectedSession] = useState<VisitorSession | null>(null);
 
-  // Filter out internal traffic (onboarding clients and lovable.dev)
+  // Filter out internal traffic (onboarding clients, lovable.dev, and admin pages)
   const isInternalTraffic = (session: VisitorSession): boolean => {
     const referrer = session.referrer?.toLowerCase() || "";
     const landingPage = session.landing_page?.toLowerCase() || "";
-    const userAgent = session.user_agent?.toLowerCase() || "";
+    const lastPage = session.last_page?.toLowerCase() || "";
     
     // Filter out lovable.dev and lovableproject.com internal traffic
     if (referrer.includes("lovable.dev") || referrer.includes("lovableproject.com")) {
@@ -83,8 +83,28 @@ export const VisitorAnalytics = () => {
       return true;
     }
     
+    // Filter out superadmin pages
+    if (landingPage.includes("/superadmin") || lastPage.includes("/superadmin")) {
+      return true;
+    }
+    
     return false;
   };
+
+  // Group sessions by landing page
+  const sessionsByPage = useMemo(() => {
+    const grouped: Record<string, VisitorSession[]> = {};
+    sessions.forEach(session => {
+      const page = session.landing_page || "/";
+      if (!grouped[page]) {
+        grouped[page] = [];
+      }
+      grouped[page].push(session);
+    });
+    // Sort by number of sessions descending
+    return Object.entries(grouped)
+      .sort((a, b) => b[1].length - a[1].length);
+  }, [sessions]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -571,62 +591,78 @@ export const VisitorAnalytics = () => {
         </CardContent>
       </Card>
 
-      {/* Sessions Table */}
+      {/* Sessions Grouped by Page */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Recent Sessions</CardTitle>
+          <CardTitle className="text-sm">Recent Sessions by Page</CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Visitor ID</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Landing Page</TableHead>
-                  <TableHead>Pages</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>UTM Campaign</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessions.slice(0, 50).map((session) => (
-                  <TableRow 
-                    key={session.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedSession(selectedSession?.id === session.id ? null : session)}
-                  >
-                    <TableCell>{getSourceIcon(session)}</TableCell>
-                    <TableCell className="font-mono text-xs">{session.visitor_id.slice(0, 12)}...</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getDeviceIcon(session.device_type)}
-                        <span className="text-xs">{session.browser}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate">{session.landing_page}</TableCell>
-                    <TableCell>{session.page_views || 1}</TableCell>
-                    <TableCell>{formatDuration(session.session_duration_seconds || 0)}</TableCell>
-                    <TableCell className="max-w-[100px] truncate">{session.utm_campaign || "-"}</TableCell>
-                    <TableCell>
-                      {session.converted ? (
-                        <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Converted</Badge>
-                      ) : session.is_bounce ? (
-                        <Badge variant="outline" className="text-muted-foreground">Bounce</Badge>
-                      ) : (
-                        <Badge variant="outline">Active</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {format(new Date(session.created_at), "MMM dd HH:mm")}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <ScrollArea className="h-[500px]">
+            <div className="space-y-4">
+              {sessionsByPage.map(([page, pageSessions]) => (
+                <div key={page} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted/50 px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">{page}</span>
+                    </div>
+                    <Badge variant="outline">{pageSessions.length} sessions</Badge>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Visitor ID</TableHead>
+                        <TableHead>Device</TableHead>
+                        <TableHead>Pages</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>UTM Campaign</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pageSessions.slice(0, 10).map((session) => (
+                        <TableRow 
+                          key={session.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedSession(selectedSession?.id === session.id ? null : session)}
+                        >
+                          <TableCell>{getSourceIcon(session)}</TableCell>
+                          <TableCell className="font-mono text-xs">{session.visitor_id.slice(0, 12)}...</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getDeviceIcon(session.device_type)}
+                              <span className="text-xs">{session.browser}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{session.page_views || 1}</TableCell>
+                          <TableCell>{formatDuration(session.session_duration_seconds || 0)}</TableCell>
+                          <TableCell className="max-w-[100px] truncate">{session.utm_campaign || "-"}</TableCell>
+                          <TableCell>
+                            {session.converted ? (
+                              <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Converted</Badge>
+                            ) : session.is_bounce ? (
+                              <Badge variant="outline" className="text-muted-foreground">Bounce</Badge>
+                            ) : (
+                              <Badge variant="outline">Active</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {format(new Date(session.created_at), "MMM dd HH:mm")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {pageSessions.length > 10 && (
+                    <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">
+                      +{pageSessions.length - 10} more sessions
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
