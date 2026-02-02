@@ -44,6 +44,9 @@ import geminiLogo from "@/assets/gemini-logo.png";
 import claudeLogo from "@/assets/claude-logo.png";
 import perplexityLogo from "@/assets/perplexity-logo.png";
 
+// Lovely mascot
+import lovelyMascot from "@/assets/lovely-mascot.png";
+
 const stats = [
   { value: "216%", label: "Avg Traffic Increase" },
   { value: "527+", label: "Businesses Growing" },
@@ -354,6 +357,85 @@ export default function Index() {
 
       {/* Trusted By Marquee */}
       <TrustedByMarquee />
+
+      {/* Hire Lovely Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-br from-violet-50 via-background to-primary/5 dark:from-violet-950/30 dark:via-background dark:to-primary/10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+        <div className="container px-4 relative">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+              {/* Left: Text */}
+              <div className="space-y-6 text-center md:text-left order-2 md:order-1">
+                <Badge className="bg-gradient-to-r from-primary/10 to-violet-500/10 text-primary border-primary/20">
+                  <Sparkles className="mr-1 h-3 w-3" />
+                  Meet Your AI Assistant
+                </Badge>
+                <h2 className="text-3xl md:text-5xl font-bold leading-tight">
+                  Hire <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500">Lovely</span> — Your 24/7 AI Marketing Agent
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  While you sleep, <strong>Lovely</strong> writes expert articles, answers customer questions, 
+                  and gets your brand recommended by ChatGPT, Gemini & Google. 
+                  <span className="text-primary font-semibold"> No hiring, no managing, no stress.</span>
+                </p>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <span>Publishes 1 SEO article every day automatically</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <span>Gets you cited by AI assistants (ChatGPT, Gemini, Perplexity)</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <span>Costs less than a coffee a day — $29/month</span>
+                  </li>
+                </ul>
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <Button 
+                    size="lg" 
+                    className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl"
+                    onClick={() => navigate("/onboarding")}
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    Hire Lovely Now
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    3-day free trial • Cancel anytime
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right: Mascot */}
+              <div className="relative order-1 md:order-2">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="relative"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[80px] scale-75" />
+                  <img 
+                    src={lovelyMascot} 
+                    alt="Lovely - Your AI Marketing Agent" 
+                    className="relative w-full max-w-md mx-auto drop-shadow-2xl"
+                  />
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* AI Comparison Section - WITHOUT vs WITH */}
       <section className="py-12 md:py-20 bg-muted/30">
