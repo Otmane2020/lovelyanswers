@@ -141,7 +141,7 @@ export default function Pricing() {
         <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
         <link rel="canonical" href="https://lovelyanswers.com/pricing" />
         <meta property="og:title" content="Pricing - LovelyAnswers AEO Platform" />
-        <meta property="og:description" content="All-in-one AI SEO solution for $29/week. 30 articles, backlinks, and AI optimization included." />
+        <meta property="og:description" content="All-in-one AI SEO solution for $29/month. 30 articles, backlinks, and AI optimization included." />
         <meta property="og:url" content="https://lovelyanswers.com/pricing" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />

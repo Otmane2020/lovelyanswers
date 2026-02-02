@@ -77,7 +77,7 @@ const testimonialsTweets = [
     handle: "@RyanGrowthCo",
     role: "Agency Owner",
     date: "Jul 12, 2025",
-    text: "Burned through $1,200/mo on Jasper + Surfer + SEMrush. Results were meh. Canceled all 3 tools, now paying $29/week and getting better rankings.",
+    text: "Burned through $1,200/mo on Jasper + Surfer + SEMrush. Results were meh. Canceled all 3 tools, now paying $29/month and getting better rankings.",
   },
   {
     name: "Jessica",
@@ -91,7 +91,7 @@ const testimonialsTweets = [
     handle: "@TomLocalBiz",
     role: "Local Business Owner",
     date: "May 17, 2025",
-    text: "Set it up once with the WordPress plugin, and now articles just appear on my site every day. Like having a full-time content team for $29/week.",
+    text: "Set it up once with the WordPress plugin, and now articles just appear on my site every day. Like having a full-time content team for $29/month.",
   },
 ];
 
@@ -240,7 +240,7 @@ export default function Index() {
           <span className="hidden sm:inline">•</span>
           <span><span className="font-bold">70% OFF</span> Code</span>
           <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded font-bold">FLASHSALE</span>
-          <span className="hidden sm:inline text-white/90">only first month</span>
+          <span className="hidden sm:inline text-white/90">forever</span>
         </span>
       </div>
       
@@ -465,7 +465,7 @@ export default function Index() {
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
               We used to grow enterprises like <span className="font-semibold text-foreground">Vodafone</span> (+62% conversion). Now we help small businesses grow.
               <br />
-              Same <span className="text-muted-foreground/60 line-through">$10,000/month</span> expertise for <span className="text-emerald-500 font-bold text-xl">$29/week</span>
+              Same <span className="text-muted-foreground/60 line-through">$10,000/month</span> expertise for <span className="text-emerald-500 font-bold text-xl">$29/month</span>
             </p>
           </div>
 

@@ -9,6 +9,8 @@ import { IntegrationsSettings } from "./settings/IntegrationsSettings";
 import { CompetitorSettings } from "./settings/CompetitorSettings";
 import { KeywordsSettings } from "./settings/KeywordsSettings";
 import { AudiencesSettings } from "./settings/AudiencesSettings";
+import { AnalyticsSettings } from "./settings/AnalyticsSettings";
+
 export default function AeoSettings() {
   return (
     <DashboardLayout>
@@ -74,6 +76,12 @@ export default function AeoSettings() {
             >
               Audiences
             </TabsTrigger>
+            <TabsTrigger 
+              value="analytics"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Google Analytics
+            </TabsTrigger>
           </TabsList>
 
           <div className="mt-6 max-w-2xl">
@@ -103,6 +111,9 @@ export default function AeoSettings() {
             </TabsContent>
             <TabsContent value="audiences" className="mt-0">
               <AudiencesSettings />
+            </TabsContent>
+            <TabsContent value="analytics" className="mt-0">
+              <AnalyticsSettings />
             </TabsContent>
           </div>
         </Tabs>
