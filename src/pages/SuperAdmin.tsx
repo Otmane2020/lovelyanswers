@@ -72,6 +72,11 @@ const SuperAdmin = () => {
   const [subscribers, setSubscribers] = useState<SubscriptionInfo[]>([]);
   const [prospects, setProspects] = useState<UserProfile[]>([]);
 
+  // Force light theme
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   useEffect(() => {
     checkAdminAuth();
   }, []);
