@@ -189,11 +189,13 @@ function detectLanguageFromContent(content: string, metaLang: string): string {
   
   // Common word patterns for each language
   const languagePatterns: Record<string, RegExp[]> = {
-    'fr': [/\ble\b/g, /\bla\b/g, /\bles\b/g, /\bde\b/g, /\bdu\b/g, /\bet\b/g, /\bdes\b/g, /\bune\b/g, /\bpour\b/g, /\bvous\b/g, /\bnous\b/g, /\bvotre\b/g, /\bnotre\b/g, /\bsur\b/g, /\bavec\b/g, /\bque\b/g, /\bqui\b/g, /\bdans\b/g, /\bplus\b/g, /\bêtre\b/g],
+    // French - add more unique French words to avoid confusion with Portuguese
+    'fr': [/\ble\b/g, /\bla\b/g, /\bles\b/g, /\bdu\b/g, /\bet\b/g, /\bdes\b/g, /\bune\b/g, /\bpour\b/g, /\bvous\b/g, /\bnous\b/g, /\bvotre\b/g, /\bnotre\b/g, /\bsur\b/g, /\bavec\b/g, /\bque\b/g, /\bqui\b/g, /\bdans\b/g, /\bplus\b/g, /\bêtre\b/g, /\bcette\b/g, /\bces\b/g, /\baux\b/g, /\bchez\b/g, /\bsont\b/g, /\baussi\b/g, /\btrès\b/g, /\bfaire\b/g, /\bcomme\b/g, /\btout\b/g, /\btoute\b/g, /\bj'ai\b/g, /\bc'est\b/g, /\bqu'il\b/g, /\bqu'elle\b/g, /\bn'est\b/g],
     'de': [/\bder\b/g, /\bdie\b/g, /\bdas\b/g, /\bund\b/g, /\bist\b/g, /\bein\b/g, /\beine\b/g, /\bfür\b/g, /\bmit\b/g, /\bauf\b/g, /\bden\b/g, /\bdem\b/g, /\bnicht\b/g, /\bsich\b/g, /\bvon\b/g, /\bzu\b/g, /\bauch\b/g, /\bwir\b/g, /\bsie\b/g, /\bihr\b/g],
-    'es': [/\bel\b/g, /\bla\b/g, /\blos\b/g, /\blas\b/g, /\bde\b/g, /\bdel\b/g, /\by\b/g, /\bque\b/g, /\ben\b/g, /\bun\b/g, /\buna\b/g, /\bpara\b/g, /\bcon\b/g, /\bpor\b/g, /\bsu\b/g, /\bse\b/g, /\bes\b/g, /\bson\b/g, /\bcomo\b/g, /\bnuestro\b/g],
-    'it': [/\bil\b/g, /\bla\b/g, /\bi\b/g, /\ble\b/g, /\bdi\b/g, /\bche\b/g, /\be\b/g, /\bun\b/g, /\buna\b/g, /\bper\b/g, /\bcon\b/g, /\bnon\b/g, /\bè\b/g, /\bsono\b/g, /\bdel\b/g, /\bdella\b/g, /\bdei\b/g, /\bdelle\b/g, /\bsul\b/g, /\bnostro\b/g],
-    'pt': [/\bo\b/g, /\ba\b/g, /\bos\b/g, /\bas\b/g, /\bde\b/g, /\bdo\b/g, /\bda\b/g, /\be\b/g, /\bque\b/g, /\bum\b/g, /\buma\b/g, /\bpara\b/g, /\bcom\b/g, /\bpor\b/g, /\bseu\b/g, /\bsua\b/g, /\bé\b/g, /\bsão\b/g, /\bnosso\b/g, /\bnossa\b/g],
+    'es': [/\bel\b/g, /\blos\b/g, /\blas\b/g, /\bdel\b/g, /\by\b/g, /\bque\b/g, /\ben\b/g, /\bpara\b/g, /\bcon\b/g, /\bpor\b/g, /\bsu\b/g, /\bse\b/g, /\bes\b/g, /\bson\b/g, /\bcomo\b/g, /\bnuestro\b/g, /\besta\b/g, /\beste\b/g, /\besos\b/g, /\besas\b/g],
+    'it': [/\bil\b/g, /\bi\b/g, /\bdi\b/g, /\bche\b/g, /\bper\b/g, /\bcon\b/g, /\bnon\b/g, /\bè\b/g, /\bsono\b/g, /\bdel\b/g, /\bdella\b/g, /\bdei\b/g, /\bdelle\b/g, /\bsul\b/g, /\bnostro\b/g, /\bquesto\b/g, /\bquella\b/g, /\bquesti\b/g, /\bqueste\b/g, /\bcome\b/g],
+    // Portuguese - add more unique Portuguese words
+    'pt': [/\bo\b/g, /\bos\b/g, /\bas\b/g, /\bdo\b/g, /\bda\b/g, /\bdos\b/g, /\bdas\b/g, /\bque\b/g, /\bum\b/g, /\buma\b/g, /\bpara\b/g, /\bcom\b/g, /\bpor\b/g, /\bseu\b/g, /\bsua\b/g, /\bé\b/g, /\bsão\b/g, /\bnosso\b/g, /\bnossa\b/g, /\beste\b/g, /\besta\b/g, /\besses\b/g, /\bessas\b/g, /\bnão\b/g, /\bmais\b/g, /\btambém\b/g, /\bmuito\b/g, /\baqui\b/g, /\bpelo\b/g, /\bpela\b/g],
     'en': [/\bthe\b/g, /\ba\b/g, /\ban\b/g, /\band\b/g, /\bor\b/g, /\bof\b/g, /\bto\b/g, /\bin\b/g, /\bfor\b/g, /\bwith\b/g, /\bis\b/g, /\bare\b/g, /\byou\b/g, /\byour\b/g, /\bour\b/g, /\bwe\b/g, /\bthis\b/g, /\bthat\b/g, /\bfrom\b/g, /\bby\b/g],
   };
   
