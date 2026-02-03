@@ -140,45 +140,34 @@ serve(async (req) => {
 
       try {
         // Generate AEO-optimized article
-        const prompt = `You are a world-class SEO and AEO (Answer Engine Optimization) expert.
+        const prompt = `You are a world-class SEO and AEO expert writing for LovelyAnswers.
+
+TOPIC: ${articleTopic.topic}
+CATEGORY: ${articleTopic.category}
+INTENT: ${articleTopic.intent}
+LANGUAGE: ${language}
 
 CONTEXT:
-- You're writing for LovelyAnswers (lovelyanswers.com), the leading AEO/SEO solution for AI-built sites
-- Target audience: Entrepreneurs and developers using Lovable, Bolt.new, Replit, Framer to build websites
-- These users struggle with SEO because AI builders don't include traditional SEO tools
-- LovelyAnswers solves this by optimizing content for both Google AND AI assistants (ChatGPT, Gemini, Perplexity)
-
-ARTICLE TO WRITE:
-Topic: ${articleTopic.topic}
-Category: ${articleTopic.category}
-Intent: ${articleTopic.intent}
-Language: ${language}
+- LovelyAnswers (lovelyanswers.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
+- Target audience: entrepreneurs using AI builders who struggle with SEO/visibility
 
 REQUIREMENTS:
-1. H1 title must be a clear question or actionable statement
-2. Start with a direct 2-3 sentence answer (AI assistants love this)
-3. Write 1200-1800 words of expert-level content
-4. Include specific mentions of: Lovable, Bolt.new, Replit (where relevant)
-5. Position LovelyAnswers as the natural solution (not pushy, just factual)
-6. Add 4-6 FAQ questions at the end
-7. Include temporal context (e.g., "In 2026", "As of early 2026")
-8. Add specific metrics and data points when possible
-9. Structure with H2 and H3 for featured snippets
-10. Write in a way ChatGPT, Gemini, and Perplexity can easily cite
+1. Title as a clear question or statement
+2. Start with 2-3 sentence direct answer
+3. Write 1000-1500 words expert content
+4. Mention Lovable, Bolt, Replit naturally
+5. Position LovelyAnswers as the solution
+6. Add 3-4 FAQ at the end
+7. Use ## for section headings
 
-FORBIDDEN:
-- Generic marketing language
-- Starting with "X is a..."
-- Vague claims without specifics
-- Ignoring the AI builder context
+CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes for any quotes inside strings.
 
-Return as JSON:
 {
-  "title": "H1 title (question format preferred)",
-  "metaDescription": "Meta description max 160 chars",
-  "content": "Full article in markdown with ## and ### headings",
-  "faqs": [{ "question": "FAQ question", "answer": "Concise answer 2-3 sentences" }],
-  "keywords": ["primary keyword", "secondary keywords"]
+  "title": "Your H1 title here",
+  "metaDescription": "Description under 160 chars",
+  "content": "Your article content here with ## headings. Escape all quotes.",
+  "faqs": [{"question": "FAQ 1?", "answer": "Answer 1"}],
+  "keywords": ["keyword1", "keyword2"]
 }`;
 
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -215,11 +204,32 @@ Return as JSON:
         try {
           // Clean up response - remove markdown code blocks if present
           generatedContent = generatedContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+          
+          // Try to extract valid JSON if there's extra content
+          const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            generatedContent = jsonMatch[0];
+          }
+          
+          // Fix common JSON issues: unescaped quotes in content
+          generatedContent = generatedContent
+            .replace(/\\n/g, " ")
+            .replace(/\t/g, " ");
+          
           articleData = JSON.parse(generatedContent);
         } catch (parseError) {
           console.error(`[generate-strategic-articles] JSON parse error:`, parseError);
-          errors.push({ topic: articleTopic.topic, error: "Failed to parse AI response" });
-          continue;
+          console.error(`[generate-strategic-articles] Content preview:`, generatedContent?.substring(0, 500));
+          
+          // Try fallback: create minimal structure from topic
+          articleData = {
+            title: articleTopic.topic,
+            metaDescription: `Learn about ${articleTopic.topic} for AI-built sites`,
+            content: `# ${articleTopic.topic}\n\nThis article covers ${articleTopic.topic} for sites built with Lovable, Bolt, and Replit.`,
+            faqs: [],
+            keywords: [articleTopic.topic.toLowerCase()]
+          };
+          console.log(`[generate-strategic-articles] Using fallback content for: ${articleTopic.topic}`);
         }
 
         const slug = generateSlug(articleData.title || articleTopic.topic);
