@@ -328,8 +328,8 @@ export default function Index() {
               Get more customers from ChatGPT & Google on autopilot 👇
             </p>
 
-            {/* URL Input Section */}
-            <div className="max-w-xl mx-auto mb-6 md:mb-8">
+            {/* URL Input Section - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:block max-w-xl mx-auto mb-6 md:mb-8">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -347,6 +347,30 @@ export default function Index() {
                   onClick={handleGetStarted}
                 >
                   Get Started Free
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Sticky Mobile CTA - Fixed at bottom on mobile */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-lg border-t border-border shadow-2xl">
+              <div className="flex flex-col gap-2 max-w-xl mx-auto">
+                <div className="relative">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    placeholder="https://yourwebsite.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    className="pl-12 h-12 text-base border-2 border-primary/20 focus:border-primary"
+                  />
+                </div>
+                <Button 
+                  size="lg" 
+                  className="w-full h-12 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl text-base font-semibold"
+                  onClick={handleGetStarted}
+                >
+                  🚀 Get Free Audit
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </div>
