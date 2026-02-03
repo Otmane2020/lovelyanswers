@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
-  Plus, Trash2, Globe, Building, Phone
+  Plus, Trash2, Globe, Building, Phone, RefreshCw
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -114,16 +114,28 @@ const SuperAdmin = () => {
 
   const checkAdminAuth = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Use getSession to ensure the session is fully ready for RLS
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log("[SuperAdmin] No active session");
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      const user = session.user;
+      console.log("[SuperAdmin] User authenticated:", user?.email);
       
       if (user?.email === ADMIN_EMAIL) {
         setIsAuthenticated(true);
+        // Small delay to ensure token is propagated for RLS
+        await new Promise(resolve => setTimeout(resolve, 100));
         loadAllData();
       } else {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error("Auth check error:", error);
+      console.error("[SuperAdmin] Auth check error:", error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -257,16 +269,34 @@ const SuperAdmin = () => {
   const loadAdminProspects = async () => {
     try {
       console.log("[SuperAdmin] Loading admin prospects...");
+      
+      // Verify session is active before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[SuperAdmin] Current session:", { 
+        hasSession: !!session, 
+        userEmail: session?.user?.email 
+      });
+      
       const { data, error } = await supabase
         .from("admin_prospects")
         .select("*")
         .order("created_at", { ascending: false });
 
-      console.log("[SuperAdmin] Admin prospects response:", { data, error, count: data?.length });
-      if (error) throw error;
+      console.log("[SuperAdmin] Admin prospects response:", { 
+        data, 
+        error, 
+        count: data?.length,
+        firstItem: data?.[0] 
+      });
+      
+      if (error) {
+        console.error("[SuperAdmin] Query error:", error);
+        throw error;
+      }
+      
       setAdminProspects((data || []) as AdminProspect[]);
     } catch (error) {
-      console.error("Error loading admin prospects:", error);
+      console.error("[SuperAdmin] Error loading admin prospects:", error);
     }
   };
 
@@ -752,7 +782,16 @@ const SuperAdmin = () => {
                     </CardTitle>
                     <CardDescription>Prospects ajoutés manuellement par l'admin</CardDescription>
                   </div>
-                  <Dialog open={isAddProspectOpen} onOpenChange={setIsAddProspectOpen}>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => loadAdminProspects()}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Rafraîchir
+                    </Button>
+                    <Dialog open={isAddProspectOpen} onOpenChange={setIsAddProspectOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -873,6 +912,7 @@ const SuperAdmin = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
