@@ -461,24 +461,41 @@ export default function Onboarding() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 pb-32">
         <div className="w-full max-w-lg">
           <AnimatePresence mode="wait">
-            {/* Step 1: URL Input */}
+            {/* Step 1: URL Input - Landing Page Style */}
             {currentStep === 1 && (
               <motion.div
                 key="step1"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="space-y-8 text-center"
+                className="space-y-6 text-center"
               >
+                {/* Hero Badge */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-violet-500/10 border border-primary/20"
+                >
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Free SEO Audit in 30 seconds</span>
+                </motion.div>
+
+                {/* Main Title */}
                 <div className="space-y-3">
-                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-6">
-                    <Globe className="w-10 h-10 text-primary" />
-                  </div>
-                  <h1 className="text-3xl font-bold tracking-tight">What's your website?</h1>
-                  <p className="text-muted-foreground">Enter your URL and we'll analyze your business</p>
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
+                    Get Your Website Ranked by{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">
+                      ChatGPT & Google
+                    </span>
+                  </h1>
+                  <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
+                    Discover how AI search engines see your business and unlock hidden traffic opportunities
+                  </p>
                 </div>
 
-                <div className="space-y-3">
+                {/* URL Input */}
+                <div className="space-y-3 pt-2">
                   <Input
                     type="url"
                     placeholder="yourwebsite.com"
@@ -489,11 +506,80 @@ export default function Onboarding() {
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleContinue()}
                     className={cn(
-                      "h-14 text-lg text-center rounded-xl border-2 bg-card",
+                      "h-14 text-lg text-center rounded-xl border-2 bg-card shadow-sm",
                       urlError ? "border-destructive" : "border-border focus:border-primary"
                     )}
                   />
                   {urlError && <p className="text-sm text-destructive">{urlError}</p>}
+                </div>
+
+                {/* Trust Elements */}
+                <div className="pt-4 space-y-4">
+                  {/* Star Rating */}
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg key={star} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold">4.9/5</span>
+                    <span className="text-sm text-muted-foreground">(527+ businesses)</span>
+                  </div>
+
+                  {/* Mini Testimonials */}
+                  <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto">
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        M
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my clients."
+                        </p>
+                        <p className="text-xs font-medium mt-1">Mike — Roofing Company</p>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        A
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          "Went from page 3 to page 1 for 12+ keywords in 8 weeks."
+                        </p>
+                        <p className="text-xs font-medium mt-1">Amanda — E-commerce Owner</p>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Trust Badges */}
+                  <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span>Free audit</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span>No credit card</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="w-4 h-4 text-green-500" />
+                      <span>Secure</span>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
