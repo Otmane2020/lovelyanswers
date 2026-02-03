@@ -71,7 +71,7 @@ interface AdminProspect {
   updated_at: string;
 }
 
-const ADMIN_EMAIL = "oben.rockman@gmail.com";
+const ADMIN_EMAIL = "oben.rocman@gmail.com";
 
 const SuperAdmin = () => {
   const navigate = useNavigate();
