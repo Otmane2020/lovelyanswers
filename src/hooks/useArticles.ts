@@ -41,13 +41,13 @@ export function useArticles() {
           )
         `)
         .eq("project_id", project.id)
-        .order("created_at", { ascending: false })
+        .order("scheduled_date", { ascending: true })
         .limit(1000);
 
       if (error) throw error;
       
       // Flatten the published_url from linked answer and build URL from slug if needed
-      return (data || []).map((article: any) => {
+      const articles = (data || []).map((article: any) => {
         let publishedUrl = article.answers?.published_url || null;
         
         // If no published_url but article is published and has slug, build internal URL
@@ -61,6 +61,20 @@ export function useArticles() {
           answers: undefined, // Remove nested object
         };
       }) as Article[];
+
+      // Sort: today's articles first, then by scheduled_date ascending
+      const today = new Date().toISOString().split('T')[0];
+      return articles.sort((a, b) => {
+        const dateA = a.scheduled_date?.split('T')[0] || '';
+        const dateB = b.scheduled_date?.split('T')[0] || '';
+        
+        // Today's articles first
+        if (dateA === today && dateB !== today) return -1;
+        if (dateB === today && dateA !== today) return 1;
+        
+        // Then by date ascending
+        return dateA.localeCompare(dateB);
+      });
     },
     enabled: !!project,
   });
