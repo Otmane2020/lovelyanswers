@@ -20,36 +20,55 @@ interface RequestBody {
 }
 
 const STRATEGIC_ARTICLES: ArticleTopic[] = [
-  // Pillar 1: SEO & AEO for AI-Built Sites
-  { topic: "How to do SEO on a site built with Lovable", category: "seo-sites-ia", intent: "howto" },
-  { topic: "SEO for AI-generated sites: what really works in 2026", category: "seo-sites-ia", intent: "criteria" },
-  { topic: "Why AI sites don't rank on Google (and how to fix it)", category: "seo-sites-ia", intent: "why" },
-  { topic: "AEO: how to get your AI site cited by ChatGPT", category: "seo-sites-ia", intent: "howto" },
-  { topic: "SEO vs AEO: which strategy for AI-generated sites", category: "seo-sites-ia", intent: "comparison" },
-  { topic: "How to structure a Lovable site for Google and ChatGPT", category: "seo-sites-ia", intent: "howto" },
-  { topic: "Common SEO mistakes on Bolt / Replit sites", category: "seo-sites-ia", intent: "criteria" },
-  { topic: "How Google analyzes AI-generated sites", category: "seo-sites-ia", intent: "what" },
-  { topic: "Why ChatGPT ignores most AI sites", category: "seo-sites-ia", intent: "why" },
-  { topic: "SEO & AEO checklist for auto-generated sites", category: "seo-sites-ia", intent: "criteria" },
-  { topic: "Technical SEO for Lovable, Bolt, and Replit projects", category: "seo-sites-ia", intent: "howto" },
-  { topic: "How to add meta tags and Schema to Lovable sites", category: "seo-sites-ia", intent: "howto" },
-  { topic: "Site speed optimization for AI-built websites", category: "seo-sites-ia", intent: "howto" },
-  { topic: "Internal linking strategy for AI-generated sites", category: "seo-sites-ia", intent: "howto" },
-  { topic: "Mobile SEO for Lovable and Bolt projects", category: "seo-sites-ia", intent: "howto" },
-  
-  // Pillar 2: Platform Comparisons
-  { topic: "Lovable and SEO: is it enough without an AEO tool?", category: "comparisons", intent: "criteria" },
-  { topic: "Is Bolt.new good for Google ranking?", category: "comparisons", intent: "criteria" },
-  { topic: "Is Replit suitable for production SEO?", category: "comparisons", intent: "criteria" },
-  { topic: "Lovable vs WordPress: which is better for SEO?", category: "comparisons", intent: "comparison" },
-  { topic: "Lovable + LovelyAnswers: winning combo for ChatGPT", category: "comparisons", intent: "comparison" },
-  { topic: "Can you rank on Google with an AI-generated site?", category: "comparisons", intent: "what" },
-  { topic: "Lovable + AEO: how to appear in AI responses", category: "comparisons", intent: "howto" },
-  { topic: "Bolt + SEO: technical limitations and solutions", category: "comparisons", intent: "criteria" },
-  { topic: "Best AI builder for Google ranking in 2026", category: "comparisons", intent: "best" },
-  { topic: "Why LovelyAnswers complements Lovable for SEO", category: "comparisons", intent: "why" },
-  
-  // Pillar 3: Pure AEO
+  // === LOVABLE (10 articles) ===
+  { topic: "How to do SEO on a site built with Lovable", category: "lovable", intent: "howto" },
+  { topic: "Why Lovable sites struggle to rank on Google", category: "lovable", intent: "why" },
+  { topic: "Lovable SEO checklist for 2026", category: "lovable", intent: "criteria" },
+  { topic: "How to structure a Lovable site for ChatGPT and Google", category: "lovable", intent: "howto" },
+  { topic: "Lovable vs WordPress: SEO and AEO comparison", category: "lovable", intent: "comparison" },
+  { topic: "How to add Schema markup to a Lovable website", category: "lovable", intent: "howto" },
+  { topic: "Can ChatGPT recommend a site built with Lovable?", category: "lovable", intent: "what" },
+  { topic: "Common SEO mistakes on Lovable-generated sites", category: "lovable", intent: "criteria" },
+  { topic: "How LovelyAnswers improves SEO for Lovable projects", category: "lovable", intent: "howto" },
+  { topic: "Best AEO strategy for Lovable-built SaaS websites", category: "lovable", intent: "best" },
+
+  // === BOLT.NEW (10 articles) ===
+  { topic: "Is Bolt.new good for SEO in production?", category: "bolt", intent: "criteria" },
+  { topic: "Why Bolt sites have SEO limitations (and how to fix them)", category: "bolt", intent: "why" },
+  { topic: "How to optimize a Bolt.new site for Google Search", category: "bolt", intent: "howto" },
+  { topic: "Bolt.new vs traditional frameworks for SEO", category: "bolt", intent: "comparison" },
+  { topic: "How ChatGPT evaluates websites built with Bolt", category: "bolt", intent: "what" },
+  { topic: "Technical SEO checklist for Bolt-generated sites", category: "bolt", intent: "criteria" },
+  { topic: "Bolt.new and AEO: how to appear in AI answers", category: "bolt", intent: "howto" },
+  { topic: "Common indexing problems on Bolt.new projects", category: "bolt", intent: "criteria" },
+  { topic: "How LovelyAnswers complements Bolt.new for SEO", category: "bolt", intent: "howto" },
+  { topic: "Best SEO and AEO practices for Bolt-based SaaS", category: "bolt", intent: "best" },
+
+  // === REPLIT (10 articles) ===
+  { topic: "Is Replit suitable for SEO in production websites?", category: "replit", intent: "criteria" },
+  { topic: "How to optimize a Replit website for Google", category: "replit", intent: "howto" },
+  { topic: "Why Replit apps struggle with SEO visibility", category: "replit", intent: "why" },
+  { topic: "Replit vs Vercel vs WordPress for SEO", category: "replit", intent: "comparison" },
+  { topic: "How to add meta tags and Schema on Replit", category: "replit", intent: "howto" },
+  { topic: "Can ChatGPT recommend a Replit-built site?", category: "replit", intent: "what" },
+  { topic: "SEO mistakes developers make on Replit", category: "replit", intent: "criteria" },
+  { topic: "How LovelyAnswers improves AEO for Replit projects", category: "replit", intent: "howto" },
+  { topic: "Replit and AI search engines: what works in 2026", category: "replit", intent: "what" },
+  { topic: "Best SEO & AEO strategy for SaaS built on Replit", category: "replit", intent: "best" },
+
+  // === BASE44 (10 articles) ===
+  { topic: "Can you rank on Google with a Base44-built site?", category: "base44", intent: "what" },
+  { topic: "Base44 SEO limitations explained", category: "base44", intent: "why" },
+  { topic: "How to optimize a Base44 site for ChatGPT", category: "base44", intent: "howto" },
+  { topic: "Base44 vs Bubble vs WordPress for SEO", category: "base44", intent: "comparison" },
+  { topic: "How to structure Base44 pages for AEO", category: "base44", intent: "howto" },
+  { topic: "Common SEO issues on no-code AI builders", category: "base44", intent: "criteria" },
+  { topic: "How LovelyAnswers boosts visibility for Base44 sites", category: "base44", intent: "howto" },
+  { topic: "AEO strategy for no-code AI applications", category: "base44", intent: "howto" },
+  { topic: "Why AI-built no-code sites need AEO", category: "base44", intent: "why" },
+  { topic: "Best SEO & AEO checklist for Base44 projects", category: "base44", intent: "best" },
+
+  // === PURE AEO (10 articles) ===
   { topic: "What is AEO (Answer Engine Optimization)?", category: "aeo-pure", intent: "what" },
   { topic: "How to get recommended by ChatGPT for your business", category: "aeo-pure", intent: "howto" },
   { topic: "How to appear in ChatGPT answers", category: "aeo-pure", intent: "howto" },
@@ -60,25 +79,54 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How ChatGPT chooses which sites to recommend", category: "aeo-pure", intent: "what" },
   { topic: "How LovelyAnswers optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
   { topic: "AEO checklist for 2026", category: "aeo-pure", intent: "criteria" },
-  
-  // Pillar 4: Case Studies
+
+  // === CASE STUDIES (10 articles) ===
   { topic: "How a Lovable site went from invisible to ChatGPT-recommended", category: "case-studies", intent: "howto" },
-  { topic: "Before/after AEO on an AI site", category: "case-studies", intent: "comparison" },
+  { topic: "Before/after AEO on an AI-built site", category: "case-studies", intent: "comparison" },
   { topic: "How LovelyAnswers improves AI traffic", category: "case-studies", intent: "howto" },
   { topic: "Case study: AI-generated site + AEO optimization", category: "case-studies", intent: "howto" },
-  { topic: "Why our Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
+  { topic: "Why Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
   { topic: "From zero visibility to AI citations: method", category: "case-studies", intent: "howto" },
   { topic: "How to capture traffic from ChatGPT", category: "case-studies", intent: "howto" },
   { topic: "AI traffic vs Google traffic: real numbers", category: "case-studies", intent: "comparison" },
   { topic: "Automatic SEO for AI sites: myth or reality?", category: "case-studies", intent: "what" },
-  { topic: "Feedback: AEO on a Bolt site", category: "case-studies", intent: "howto" },
-  
-  // Pillar 5: Business Intent Pages
+  { topic: "AEO success story on a Bolt site", category: "case-studies", intent: "howto" },
+
+  // === COMPARISONS (10 articles) ===
+  { topic: "Lovable vs Bolt vs Replit: which is best for SEO?", category: "comparisons", intent: "comparison" },
+  { topic: "AI builders vs WordPress for Google ranking", category: "comparisons", intent: "comparison" },
+  { topic: "Framer vs Lovable for SEO performance", category: "comparisons", intent: "comparison" },
+  { topic: "No-code vs low-code for AEO optimization", category: "comparisons", intent: "comparison" },
+  { topic: "SEO plugins vs AEO tools: what works in 2026", category: "comparisons", intent: "comparison" },
+  { topic: "Best AI website builder for ChatGPT citations", category: "comparisons", intent: "best" },
+  { topic: "Webflow vs Lovable: SEO and AEO comparison", category: "comparisons", intent: "comparison" },
+  { topic: "V0 vs Lovable: which ranks better on Google?", category: "comparisons", intent: "comparison" },
+  { topic: "AI content generation vs human writing for SEO", category: "comparisons", intent: "comparison" },
+  { topic: "Why LovelyAnswers outperforms traditional SEO tools for AI sites", category: "comparisons", intent: "why" },
+
+  // === COMMERCIAL INTENT (10 articles) ===
   { topic: "AEO tool for Lovable sites", category: "commercial", intent: "commercial" },
   { topic: "Automatic SEO for AI-generated sites", category: "commercial", intent: "commercial" },
   { topic: "Solution to appear on ChatGPT", category: "commercial", intent: "commercial" },
   { topic: "Best AEO tool for SaaS", category: "commercial", intent: "best" },
   { topic: "AEO as a Service: how it works", category: "commercial", intent: "what" },
+  { topic: "SEO automation for no-code websites", category: "commercial", intent: "commercial" },
+  { topic: "Get cited by AI assistants: professional solution", category: "commercial", intent: "commercial" },
+  { topic: "LovelyAnswers pricing and plans for AI builders", category: "commercial", intent: "commercial" },
+  { topic: "Enterprise AEO for AI-generated platforms", category: "commercial", intent: "commercial" },
+  { topic: "Free trial: optimize your AI site for ChatGPT", category: "commercial", intent: "commercial" },
+
+  // === TECHNICAL SEO (10 articles) ===
+  { topic: "Technical SEO for Lovable, Bolt, and Replit projects", category: "technical", intent: "howto" },
+  { topic: "How to add meta tags and Schema to AI-built sites", category: "technical", intent: "howto" },
+  { topic: "Site speed optimization for AI-built websites", category: "technical", intent: "howto" },
+  { topic: "Internal linking strategy for AI-generated sites", category: "technical", intent: "howto" },
+  { topic: "Mobile SEO for Lovable and Bolt projects", category: "technical", intent: "howto" },
+  { topic: "Core Web Vitals on AI-generated websites", category: "technical", intent: "criteria" },
+  { topic: "How to submit an AI site to Google Search Console", category: "technical", intent: "howto" },
+  { topic: "Sitemap generation for Lovable projects", category: "technical", intent: "howto" },
+  { topic: "Robots.txt best practices for AI-built sites", category: "technical", intent: "criteria" },
+  { topic: "Structured data implementation on no-code platforms", category: "technical", intent: "howto" },
 ];
 
 function generateSlug(title: string): string {
