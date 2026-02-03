@@ -1555,6 +1555,9 @@ export type Database = {
           total_days: number
         }[]
       }
+      is_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { p_user_id: string }; Returns: boolean }
       project_has_public_answers: {
         Args: { p_project_id: string }
         Returns: boolean
