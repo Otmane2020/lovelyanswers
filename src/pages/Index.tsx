@@ -893,7 +893,7 @@ export default function Index() {
         href="https://trust-avis.com/entreprise/lovelyanswers"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-[180px] md:bottom-6 left-4 md:left-auto md:right-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2 flex items-center gap-2 hover:shadow-xl hover:scale-105 transition-all group"
+        className="fixed top-1/2 -translate-y-1/2 right-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2 flex items-center gap-2 hover:shadow-xl hover:scale-105 transition-all group"
       >
         {/* TrustAvis Logo */}
         <div className="flex items-center justify-center w-8 h-8 bg-[#2563EB] rounded-md">
