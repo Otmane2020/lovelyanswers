@@ -256,11 +256,13 @@ const SuperAdmin = () => {
 
   const loadAdminProspects = async () => {
     try {
+      console.log("[SuperAdmin] Loading admin prospects...");
       const { data, error } = await supabase
         .from("admin_prospects")
         .select("*")
         .order("created_at", { ascending: false });
 
+      console.log("[SuperAdmin] Admin prospects response:", { data, error, count: data?.length });
       if (error) throw error;
       setAdminProspects((data || []) as AdminProspect[]);
     } catch (error) {
