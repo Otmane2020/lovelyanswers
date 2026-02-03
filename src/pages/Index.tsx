@@ -30,8 +30,7 @@ import { TrustedByMarquee } from "@/components/TrustedByMarquee";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable/index";
-import { toast } from "sonner";
+import { GoogleOneTap } from "@/components/GoogleOneTap";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -192,7 +191,6 @@ const integrationLogos = [
 export default function Index() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [showFloatingCTA, setShowFloatingCTA] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -231,24 +229,6 @@ export default function Index() {
     navigate(`/onboarding?url=${encodeURIComponent(websiteUrl)}`);
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth`,
-      });
-      if (error) {
-        toast.error("Erreur de connexion Google");
-        console.error("Google OAuth error:", error);
-      }
-    } catch (err) {
-      toast.error("Erreur de connexion");
-      console.error("Google sign in error:", err);
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
   return (
     <>
       <Helmet>
@@ -265,6 +245,9 @@ export default function Index() {
         <meta name="twitter:description" content="Get recommended by ChatGPT, Perplexity AND Google" />
       </Helmet>
     <div className="min-h-screen bg-background">
+      {/* Google One Tap Popup */}
+      <GoogleOneTap />
+      
       {/* Announcement Bar */}
       <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">
         <span className="inline-flex flex-wrap items-center justify-center gap-1 md:gap-2">
@@ -290,32 +273,19 @@ export default function Index() {
             <Button variant="ghost" asChild>
               <Link to="/pricing">Pricing</Link>
             </Button>
-            <Button 
-              variant="outline" 
-              className="gap-2 border-border/50"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-            >
-              <GoogleLogo className="h-4 w-4" />
-              {isGoogleLoading ? "Connexion..." : "Connexion Google"}
+            <Button variant="ghost" asChild>
+              <Link to="/auth">Login</Link>
             </Button>
             <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90" asChild>
               <Link to="/onboarding">
-                Start Free Trial
-                <ArrowRight className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
+                Start Free
               </Link>
             </Button>
           </div>
           <div className="flex md:hidden items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="gap-1.5"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-            >
-              <GoogleLogo className="h-4 w-4" />
-              {isGoogleLoading ? "..." : "Google"}
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">Login</Link>
             </Button>
           </div>
         </div>
