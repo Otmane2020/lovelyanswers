@@ -755,6 +755,7 @@ export type Database = {
       }
       onboarding_sessions: {
         Row: {
+          audiences: string[] | null
           brand_name: string | null
           business_description: string | null
           checkout_started_at: string | null
@@ -780,6 +781,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          audiences?: string[] | null
           brand_name?: string | null
           business_description?: string | null
           checkout_started_at?: string | null
@@ -805,6 +807,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          audiences?: string[] | null
           brand_name?: string | null
           business_description?: string | null
           checkout_started_at?: string | null

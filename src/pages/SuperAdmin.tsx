@@ -15,13 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
-  Plus, Trash2, Globe, Building, Phone, RefreshCw
+  Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
+import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 
 interface SupportTicket {
   id: string;
@@ -621,8 +622,12 @@ const SuperAdmin = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="analytics" className="space-y-6">
+        <Tabs defaultValue="onboarding" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="onboarding" className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Onboarding
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -640,6 +645,11 @@ const SuperAdmin = () => {
               Prospects
             </TabsTrigger>
           </TabsList>
+
+          {/* Onboarding Tracking Tab */}
+          <TabsContent value="onboarding">
+            <OnboardingTracking />
+          </TabsContent>
 
           {/* Analytics Tab */}
           <TabsContent value="analytics">

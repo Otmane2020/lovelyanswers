@@ -41,6 +41,7 @@ interface OnboardingData {
   cms: string;
   competitors: Array<{ name: string; domain: string }>;
   keywords: Array<{ keyword: string; volume: number; intent: string }>;
+  audiences: string[];
   trafficPotential: number;
 }
 
@@ -136,6 +137,7 @@ export default function Onboarding() {
     cms: "",
     competitors: [],
     keywords: [],
+    audiences: [],
     trafficPotential: 0,
   });
 
@@ -249,6 +251,7 @@ export default function Onboarding() {
       let description = `${brandName} is a professional service provider.`;
       let competitors: Array<{ name: string; domain: string }> = [];
       let keywords: Array<{ keyword: string; volume: number; intent: string }> = [];
+      let audiences: string[] = [];
       let cms = "";
 
       // Process fast result
@@ -284,6 +287,11 @@ export default function Onboarding() {
             intent: k.intent || "informational",
           }));
         }
+        
+        // Extract audiences from enriched data
+        if (enrichData.audiences?.length > 0) {
+          audiences = enrichData.audiences.slice(0, 5);
+        }
       }
 
       // Calculate traffic potential
@@ -298,6 +306,7 @@ export default function Onboarding() {
         cms,
         competitors,
         keywords,
+        audiences,
         trafficPotential,
       }));
 
@@ -401,6 +410,7 @@ export default function Onboarding() {
         cms: data.cms,
         competitors: data.competitors.map(c => c.domain),
         keywords: data.keywords,
+        audiences: data.audiences,
         traffic_potential: data.trafficPotential,
       });
 
@@ -769,6 +779,26 @@ export default function Onboarding() {
                           <p className="text-sm font-medium truncate flex-1 mr-4">"{kw.keyword}"</p>
                           <span className="text-xs text-emerald-500 whitespace-nowrap">+{kw.volume.toLocaleString()}/mo</span>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audiences */}
+                {data.audiences.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Audiences (who we'll target)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.audiences.map((audience, i) => (
+                        <span 
+                          key={i}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                        >
+                          {audience}
+                        </span>
                       ))}
                     </div>
                   </div>
