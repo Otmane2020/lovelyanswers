@@ -77,6 +77,7 @@ const SuperAdmin = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAdminProspects, setIsLoadingAdminProspects] = useState(false);
   
   // Support state
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -129,7 +130,7 @@ const SuperAdmin = () => {
       if (user?.email === ADMIN_EMAIL) {
         setIsAuthenticated(true);
         // Small delay to ensure token is propagated for RLS
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 250));
         loadAllData();
       } else {
         setIsAuthenticated(false);
@@ -267,36 +268,82 @@ const SuperAdmin = () => {
   };
 
   const loadAdminProspects = async () => {
+    const maxAttempts = 3;
+    const baseDelayMs = 250;
+
+    setIsLoadingAdminProspects(true);
     try {
       console.log("[SuperAdmin] Loading admin prospects...");
-      
+
       // Verify session is active before querying
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("[SuperAdmin] Current session:", { 
-        hasSession: !!session, 
-        userEmail: session?.user?.email 
+      console.log("[SuperAdmin] Current session:", {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
       });
-      
-      const { data, error } = await supabase
-        .from("admin_prospects")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      console.log("[SuperAdmin] Admin prospects response:", { 
-        data, 
-        error, 
-        count: data?.length,
-        firstItem: data?.[0] 
-      });
-      
-      if (error) {
-        console.error("[SuperAdmin] Query error:", error);
-        throw error;
+      if (!session) {
+        console.warn("[SuperAdmin] No session available while loading prospects; skipping");
+        setAdminProspects([]);
+        return;
       }
-      
-      setAdminProspects((data || []) as AdminProspect[]);
+
+      let lastData: AdminProspect[] = [];
+      let lastError: unknown = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const { data, error } = await supabase
+          .from("admin_prospects")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        console.log("[SuperAdmin] Admin prospects response:", {
+          attempt,
+          data,
+          error,
+          count: data?.length,
+          firstItem: data?.[0],
+        });
+
+        if (error) {
+          lastError = error;
+          // No point retrying if we already have an explicit error
+          break;
+        }
+
+        lastData = (data || []) as AdminProspect[];
+
+        // Heuristic: if we get empty result immediately after login, it can be an auth/RLS propagation race.
+        if (lastData.length > 0) break;
+        if (attempt < maxAttempts) {
+          const delay = baseDelayMs * attempt;
+          console.warn(`[SuperAdmin] Prospects empty (attempt ${attempt}/${maxAttempts}). Retrying in ${delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
+      if (lastError) {
+        console.error("[SuperAdmin] Query error:", lastError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les prospects (droits d'accès).",
+          variant: "destructive",
+        });
+        setAdminProspects([]);
+        return;
+      }
+
+      setAdminProspects(lastData);
     } catch (error) {
       console.error("[SuperAdmin] Error loading admin prospects:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur inattendue lors du chargement des prospects.",
+        variant: "destructive",
+      });
+      setAdminProspects([]);
+    } finally {
+      setIsLoadingAdminProspects(false);
     }
   };
 
@@ -787,9 +834,10 @@ const SuperAdmin = () => {
                       variant="outline" 
                       size="sm"
                       onClick={() => loadAdminProspects()}
+                       disabled={isLoadingAdminProspects}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Rafraîchir
+                       {isLoadingAdminProspects ? "Chargement..." : "Rafraîchir"}
                     </Button>
                     <Dialog open={isAddProspectOpen} onOpenChange={setIsAddProspectOpen}>
                     <DialogTrigger asChild>
