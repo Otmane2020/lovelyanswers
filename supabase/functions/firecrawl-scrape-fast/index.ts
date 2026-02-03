@@ -3,72 +3,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Fast audience extraction with short prompts (2-3s)
-async function extractAudiencesFast(
-  description: string,
-  content: string,
-  language: string,
-  apiKey: string
-): Promise<string[]> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2500); // 2.5s max
-
-    // Use very short content to minimize processing time
-    const shortDesc = description.substring(0, 150);
-    const shortContent = content.substring(0, 300);
-    
-    const langInstruction = language === 'fr' ? 'En français.' : 
-                            language === 'de' ? 'Auf Deutsch.' :
-                            language === 'es' ? 'En español.' : 'In English.';
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
-        messages: [{
-          role: 'user',
-          content: `Extract 4 target audiences for this business. Each audience should be 2-4 words. ${langInstruction}
-Business: ${shortDesc}
-Site content: ${shortContent}
-Return ONLY a valid JSON array with exactly 4 strings: ["audience1", "audience2", "audience3", "audience4"]`
-        }],
-        temperature: 0.2,
-        max_tokens: 150,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error('[FAST] AI error:', response.status);
-      return [];
-    }
-
-    const result = await response.json();
-    const text = result.choices?.[0]?.message?.content || '';
-    
-    // Extract JSON array from response
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
-    if (jsonMatch) {
-      const audiences = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(audiences) && audiences.length > 0) {
-        console.log('[FAST] Extracted audiences:', audiences);
-        return audiences.slice(0, 4);
-      }
-    }
-    return [];
-  } catch (error) {
-    console.error('[FAST] Audience extraction error:', error);
-    return [];
-  }
-}
-
 // CMS detection from HTML content
 function detectCMSFromContent(html: string, markdown: string): string {
   const content = (html + ' ' + markdown).toLowerCase();
@@ -179,24 +113,80 @@ function detectCMSFromContent(html: string, markdown: string): string {
   return ''; // Unknown CMS
 }
 
-// Fast language detection based on content analysis
+// IMPROVED: Fast language detection with weighted scoring to avoid FR/PT confusion
 function detectLanguageFromContent(content: string, metaLang: string): string {
   if (!content || content.length < 100) {
     return metaLang || 'en';
   }
   
-  const sampleText = content.substring(0, 3000).toLowerCase();
+  const sampleText = content.substring(0, 5000).toLowerCase();
   
-  // Common word patterns for each language
-  const languagePatterns: Record<string, RegExp[]> = {
-    // French - add more unique French words to avoid confusion with Portuguese
-    'fr': [/\ble\b/g, /\bla\b/g, /\bles\b/g, /\bdu\b/g, /\bet\b/g, /\bdes\b/g, /\bune\b/g, /\bpour\b/g, /\bvous\b/g, /\bnous\b/g, /\bvotre\b/g, /\bnotre\b/g, /\bsur\b/g, /\bavec\b/g, /\bque\b/g, /\bqui\b/g, /\bdans\b/g, /\bplus\b/g, /\bêtre\b/g, /\bcette\b/g, /\bces\b/g, /\baux\b/g, /\bchez\b/g, /\bsont\b/g, /\baussi\b/g, /\btrès\b/g, /\bfaire\b/g, /\bcomme\b/g, /\btout\b/g, /\btoute\b/g, /\bj'ai\b/g, /\bc'est\b/g, /\bqu'il\b/g, /\bqu'elle\b/g, /\bn'est\b/g],
-    'de': [/\bder\b/g, /\bdie\b/g, /\bdas\b/g, /\bund\b/g, /\bist\b/g, /\bein\b/g, /\beine\b/g, /\bfür\b/g, /\bmit\b/g, /\bauf\b/g, /\bden\b/g, /\bdem\b/g, /\bnicht\b/g, /\bsich\b/g, /\bvon\b/g, /\bzu\b/g, /\bauch\b/g, /\bwir\b/g, /\bsie\b/g, /\bihr\b/g],
-    'es': [/\bel\b/g, /\blos\b/g, /\blas\b/g, /\bdel\b/g, /\by\b/g, /\bque\b/g, /\ben\b/g, /\bpara\b/g, /\bcon\b/g, /\bpor\b/g, /\bsu\b/g, /\bse\b/g, /\bes\b/g, /\bson\b/g, /\bcomo\b/g, /\bnuestro\b/g, /\besta\b/g, /\beste\b/g, /\besos\b/g, /\besas\b/g],
-    'it': [/\bil\b/g, /\bi\b/g, /\bdi\b/g, /\bche\b/g, /\bper\b/g, /\bcon\b/g, /\bnon\b/g, /\bè\b/g, /\bsono\b/g, /\bdel\b/g, /\bdella\b/g, /\bdei\b/g, /\bdelle\b/g, /\bsul\b/g, /\bnostro\b/g, /\bquesto\b/g, /\bquella\b/g, /\bquesti\b/g, /\bqueste\b/g, /\bcome\b/g],
-    // Portuguese - add more unique Portuguese words
-    'pt': [/\bo\b/g, /\bos\b/g, /\bas\b/g, /\bdo\b/g, /\bda\b/g, /\bdos\b/g, /\bdas\b/g, /\bque\b/g, /\bum\b/g, /\buma\b/g, /\bpara\b/g, /\bcom\b/g, /\bpor\b/g, /\bseu\b/g, /\bsua\b/g, /\bé\b/g, /\bsão\b/g, /\bnosso\b/g, /\bnossa\b/g, /\beste\b/g, /\besta\b/g, /\besses\b/g, /\bessas\b/g, /\bnão\b/g, /\bmais\b/g, /\btambém\b/g, /\bmuito\b/g, /\baqui\b/g, /\bpelo\b/g, /\bpela\b/g],
-    'en': [/\bthe\b/g, /\ba\b/g, /\ban\b/g, /\band\b/g, /\bor\b/g, /\bof\b/g, /\bto\b/g, /\bin\b/g, /\bfor\b/g, /\bwith\b/g, /\bis\b/g, /\bare\b/g, /\byou\b/g, /\byour\b/g, /\bour\b/g, /\bwe\b/g, /\bthis\b/g, /\bthat\b/g, /\bfrom\b/g, /\bby\b/g],
+  // Language patterns with weights: [pattern, weight]
+  // Higher weights for accented words and contractions (more reliable)
+  const languagePatterns: Record<string, Array<[RegExp, number]>> = {
+    // French - prioritize accents and contractions (very reliable)
+    'fr': [
+      // Common words (weight 1)
+      [/\ble\b/g, 1], [/\bla\b/g, 1], [/\bles\b/g, 1], [/\bdu\b/g, 1], [/\bet\b/g, 1], 
+      [/\bdes\b/g, 1], [/\bune\b/g, 1], [/\bpour\b/g, 1], [/\bvous\b/g, 1], [/\bnous\b/g, 1], 
+      [/\bvotre\b/g, 1], [/\bnotre\b/g, 1], [/\bsur\b/g, 1], [/\bavec\b/g, 1], [/\bdans\b/g, 1], [/\bplus\b/g, 1],
+      // Exclusively French words (weight 2)
+      [/\bcette\b/g, 2], [/\bces\b/g, 2], [/\baux\b/g, 2], [/\bchez\b/g, 2], [/\bsont\b/g, 2], 
+      [/\baussi\b/g, 2], [/\btrès\b/g, 2], [/\bcomme\b/g, 2], [/\btout\b/g, 2], [/\btoute\b/g, 2], 
+      [/\bfaire\b/g, 2], [/\bpas\b/g, 2], [/\bvos\b/g, 2], [/\bsi\b/g, 1], [/\bou\b/g, 1],
+      // French accented words (weight 3 - very reliable)
+      [/\bêtre\b/g, 3], [/\bété\b/g, 3], [/\boù\b/g, 3], [/\bdéjà\b/g, 3], [/\baprès\b/g, 3], 
+      [/\bmême\b/g, 3], [/\bà\b/g, 2], [/\bélégant/g, 3], [/\bqualité\b/g, 3], [/\blivré/g, 3],
+      [/\bdécouvr/g, 3], [/\bprésent/g, 2], [/\bréalis/g, 3], [/\bcréa/g, 2],
+      // French contractions (weight 4 - most reliable)
+      [/\bc'est\b/g, 4], [/\bqu'il\b/g, 4], [/\bqu'elle\b/g, 4], [/\bn'est\b/g, 4], 
+      [/\bj'ai\b/g, 4], [/\bl'un\b/g, 4], [/\bd'un\b/g, 4], [/\bd'une\b/g, 4],
+      [/\bs'il\b/g, 4], [/\bqu'on\b/g, 4], [/\bl'on\b/g, 4], [/\bn'a\b/g, 4],
+    ],
+    // German
+    'de': [
+      [/\bder\b/g, 1], [/\bdie\b/g, 1], [/\bdas\b/g, 1], [/\bund\b/g, 1], [/\bist\b/g, 1], 
+      [/\bein\b/g, 1], [/\beine\b/g, 1], [/\bfür\b/g, 2], [/\bmit\b/g, 1], [/\bauf\b/g, 1], 
+      [/\bden\b/g, 1], [/\bdem\b/g, 1], [/\bnicht\b/g, 2], [/\bsich\b/g, 2], [/\bvon\b/g, 1], 
+      [/\bzu\b/g, 1], [/\bauch\b/g, 2], [/\bwir\b/g, 2], [/\bsie\b/g, 1], [/\bihr\b/g, 1],
+      [/\büber\b/g, 3], [/\bkönnen\b/g, 3], [/\bmöchten\b/g, 3],
+    ],
+    // Spanish
+    'es': [
+      [/\bel\b/g, 1], [/\blos\b/g, 1], [/\blas\b/g, 1], [/\bdel\b/g, 1], [/\by\b/g, 1], 
+      [/\bque\b/g, 1], [/\ben\b/g, 1], [/\bpara\b/g, 1], [/\bcon\b/g, 1], [/\bpor\b/g, 1], 
+      [/\bsu\b/g, 1], [/\bse\b/g, 1], [/\bes\b/g, 1], [/\bson\b/g, 1], [/\bcomo\b/g, 1], 
+      [/\bnuestro\b/g, 2], [/\besta\b/g, 1], [/\beste\b/g, 1], [/\besos\b/g, 1], [/\besas\b/g, 1],
+      [/\btambién\b/g, 3], [/\bestá\b/g, 2], [/\bsí\b/g, 2],
+    ],
+    // Italian
+    'it': [
+      [/\bil\b/g, 1], [/\bi\b/g, 1], [/\bdi\b/g, 1], [/\bche\b/g, 1], [/\bper\b/g, 1], 
+      [/\bcon\b/g, 1], [/\bnon\b/g, 2], [/\bè\b/g, 2], [/\bsono\b/g, 2], [/\bdel\b/g, 1], 
+      [/\bdella\b/g, 2], [/\bdei\b/g, 2], [/\bdelle\b/g, 2], [/\bsul\b/g, 1], [/\bnostro\b/g, 2], 
+      [/\bquesto\b/g, 2], [/\bquella\b/g, 2], [/\bquesti\b/g, 2], [/\bqueste\b/g, 2], [/\bcome\b/g, 1],
+      [/\bperché\b/g, 3], [/\bpiù\b/g, 3],
+    ],
+    // Portuguese - more specific words to avoid FR confusion
+    'pt': [
+      // Unique Portuguese words (weight 2-3)
+      [/\bsão\b/g, 3], [/\bnão\b/g, 3], [/\bvocê\b/g, 3], [/\bestá\b/g, 2], [/\bnosso\b/g, 2], 
+      [/\bnossa\b/g, 2], [/\btambém\b/g, 3], [/\bmuito\b/g, 2], [/\baqui\b/g, 2], [/\bpelo\b/g, 2], 
+      [/\bpela\b/g, 2], [/\besse\b/g, 2], [/\bessa\b/g, 2], [/\bisso\b/g, 2], [/\bquando\b/g, 1], 
+      [/\bseus\b/g, 2], [/\bsuas\b/g, 2], [/\btem\b/g, 1], [/\bser\b/g, 1], [/\bestar\b/g, 2],
+      [/\bção\b/g, 3], [/\bões\b/g, 3], // Portuguese suffixes
+      // Common words (weight 1) - removed ambiguous ones like "para", "com"
+      [/\bo\b/g, 1], [/\bos\b/g, 1], [/\bas\b/g, 1], [/\bdo\b/g, 1], [/\bda\b/g, 1], 
+      [/\bdos\b/g, 1], [/\bdas\b/g, 1], [/\bum\b/g, 1], [/\buma\b/g, 1], [/\bmais\b/g, 2],
+    ],
+    // English
+    'en': [
+      [/\bthe\b/g, 1], [/\ba\b/g, 1], [/\ban\b/g, 1], [/\band\b/g, 1], [/\bor\b/g, 1], 
+      [/\bof\b/g, 1], [/\bto\b/g, 1], [/\bin\b/g, 1], [/\bfor\b/g, 1], [/\bwith\b/g, 1], 
+      [/\bis\b/g, 1], [/\bare\b/g, 1], [/\byou\b/g, 1], [/\byour\b/g, 2], [/\bour\b/g, 1], 
+      [/\bwe\b/g, 1], [/\bthis\b/g, 1], [/\bthat\b/g, 1], [/\bfrom\b/g, 1], [/\bby\b/g, 1],
+      [/\bwould\b/g, 2], [/\bcould\b/g, 2], [/\bshould\b/g, 2], [/\btheir\b/g, 2],
+    ],
   };
   
   let maxScore = 0;
@@ -204,12 +194,14 @@ function detectLanguageFromContent(content: string, metaLang: string): string {
   
   for (const [lang, patterns] of Object.entries(languagePatterns)) {
     let score = 0;
-    for (const pattern of patterns) {
+    for (const [pattern, weight] of patterns) {
       const matches = sampleText.match(pattern);
       if (matches) {
-        score += matches.length;
+        score += matches.length * weight;
       }
     }
+    
+    console.log(`[LANG-FAST] ${lang}: score=${score}`);
     
     if (score > maxScore) {
       maxScore = score;
@@ -217,11 +209,13 @@ function detectLanguageFromContent(content: string, metaLang: string): string {
     }
   }
   
-  // Only return detected language if we have a reasonable confidence
-  if (maxScore < 10) {
+  // Only return detected language if we have reasonable confidence
+  if (maxScore < 15) {
+    console.log('[LANG-FAST] Low confidence, using meta:', metaLang);
     return metaLang || 'en';
   }
   
+  console.log('[LANG-FAST] Detected:', detectedLang, 'with score:', maxScore);
   return detectedLang;
 }
 
@@ -361,7 +355,6 @@ Deno.serve(async (req) => {
 
     // Priority: custom key > connector key (for when connector credits are exhausted)
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY_CUSTOM') || Deno.env.get('FIRECRAWL_API_KEY');
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured');
@@ -381,7 +374,7 @@ Deno.serve(async (req) => {
     console.log('[FAST] Scraping URL:', formattedUrl);
     const startTime = Date.now();
 
-    // Single Firecrawl request - no AI processing
+    // Single Firecrawl request - NO AI processing, reduced timeout for speed
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -392,7 +385,7 @@ Deno.serve(async (req) => {
         url: formattedUrl,
         formats: ['markdown', 'html'], // Include HTML for CMS detection
         onlyMainContent: false, // Full HTML needed for CMS detection
-        timeout: 15000, // 15 second timeout
+        timeout: 8000, // REDUCED: 8 second timeout (was 15s)
       }),
     });
 
@@ -422,36 +415,17 @@ Deno.serve(async (req) => {
     const cms = detectCMSFromContent(rawHtml, markdown);
     console.log('[FAST] CMS detected:', cms || 'unknown');
 
-    // Fast local processing - ALL INSTANT (no AI blocking)
+    // Fast local processing - ALL INSTANT (no AI)
     const language = detectLanguageFromContent(markdown, metaLanguage);
     const brandName = extractBrandName(formattedUrl, title);
     const description = extractDescriptionFast(markdown, metaDescription, brandName);
     
-    // Return description IMMEDIATELY - audiences will come async
-    // This makes the UI feel instant (~1s instead of 2s+)
     const totalTime = Date.now() - startTime;
-    console.log(`[FAST] Local processing complete: ${totalTime}ms`);
+    console.log(`[FAST] Total processing complete: ${totalTime}ms`);
     console.log(`[FAST] Detected language: ${language}`);
 
-    // Try quick audience extraction (best effort) so step 3 can show something quickly.
-    // This is intentionally time-bounded; enrichment will refine later.
-    let audiences: string[] = [];
-
-    if (lovableApiKey) {
-      console.log('[FAST] Starting quick audience extraction...');
-      const aiStart = Date.now();
-
-      audiences = await extractAudiencesFast(description, markdown, language, lovableApiKey);
-
-      console.log(`[FAST] Audience extraction: ${Date.now() - aiStart}ms (found ${audiences.length})`);
-    }
-
-    // Fallback: never return empty audiences (keeps UX consistent)
-    if (!audiences || audiences.length === 0) {
-      audiences = language === 'fr'
-        ? ['Clients potentiels', 'Acheteurs en ligne', 'Amateurs de déco', 'Propriétaires']
-        : ['Potential customers', 'Online shoppers', 'Home decor lovers', 'Homeowners'];
-    }
+    // NO audience extraction here - it's done by firecrawl-scrape in enrichment step
+    // This makes the function MUCH faster (~1-2s instead of 4-5s)
 
     return new Response(
       JSON.stringify({
@@ -460,7 +434,6 @@ Deno.serve(async (req) => {
           brandName,
           description,
           language,
-          audiences,
           cms, // Include detected CMS
           sourceUrl: formattedUrl,
         }
