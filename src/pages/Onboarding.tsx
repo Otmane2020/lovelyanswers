@@ -14,6 +14,12 @@ import {
   Zap,
   Languages,
   Users,
+  Target,
+  MapPin,
+  RefreshCw,
+  MessageSquare,
+  Wrench,
+  type LucideIcon,
   Bot,
 } from "lucide-react";
 import lovelyMascot from "@/assets/lovely-mascot.png";
@@ -74,15 +80,21 @@ const languages = [
 const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20";
 const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI";
 
-const features = [
-  "🤖 AEO Answers: Rank #1 on ChatGPT, Gemini & Perplexity",
-  "📝 30 SEO-optimized articles auto-published monthly",
-  "📍 Local AEO: Dominate local AI search results",
-  "🔄 Auto-posting to WordPress, Shopify, Webflow & more",
-  "🔍 Automated keyword research & SERP clustering",
-  "💬 Reddit Agent for brand visibility & backlinks",
-  "🛠️ Technical SEO audit (Google + AI crawlers)",
-  "🌍 20+ languages supported worldwide",
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}
+
+const features: Feature[] = [
+  { icon: Target, title: "AEO Answers", description: "Rank #1 on ChatGPT, Gemini & Perplexity" },
+  { icon: FileText, title: "30 Articles/month", description: "SEO-optimized, auto-published" },
+  { icon: MapPin, title: "Local AEO", description: "Dominate local AI search results" },
+  { icon: RefreshCw, title: "Auto-publishing", description: "WordPress, Shopify, Webflow & more" },
+  { icon: Search, title: "Keyword Research", description: "Automated SERP clustering" },
+  { icon: MessageSquare, title: "Reddit Agent", description: "Brand visibility & backlinks" },
+  { icon: Wrench, title: "Technical SEO Audit", description: "Google + AI crawlers" },
+  { icon: Globe, title: "20+ Languages", description: "Supported worldwide" },
 ];
 
 export default function Onboarding() {
@@ -850,16 +862,30 @@ export default function Onboarding() {
                 </div>
 
                 {/* Features */}
-                <div className="pt-4 border-t border-border">
-                  <p className="text-sm font-medium mb-4">Included with your subscription:</p>
-                  <ul className="space-y-2">
-                    {features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="pt-5 border-t border-border/50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+                    Everything included
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {features.map((feature, i) => {
+                      const Icon = feature.icon;
+                      return (
+                        <div key={i} className="flex items-start gap-3 group">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <Icon className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground leading-tight">
+                              {feature.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </motion.div>
             )}
