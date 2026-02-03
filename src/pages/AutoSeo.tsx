@@ -39,10 +39,22 @@ export default function AutoSeo() {
           .from("articles")
           .select("id, title, status, word_count, aeo_score, created_at, scheduled_date")
           .eq("project_id", project.id)
-          .order("created_at", { ascending: false });
+          .order("scheduled_date", { ascending: true });
 
         if (error) throw error;
-        setArticles(data || []);
+        
+        // Sort: today's articles first, then by scheduled_date ascending
+        const today = new Date().toISOString().split('T')[0];
+        const sortedData = (data || []).sort((a, b) => {
+          const dateA = a.scheduled_date?.split('T')[0] || '';
+          const dateB = b.scheduled_date?.split('T')[0] || '';
+          
+          if (dateA === today && dateB !== today) return -1;
+          if (dateB === today && dateA !== today) return 1;
+          
+          return dateA.localeCompare(dateB);
+        });
+        setArticles(sortedData);
       } catch (error) {
         console.error("Error fetching articles:", error);
       } finally {
