@@ -762,13 +762,13 @@ export default function Index() {
                   Most Popular
                 </Badge>
                 
-                <h2 className="text-2xl font-bold mb-2">Weekly Plan</h2>
+                <h2 className="text-2xl font-bold mb-2">Monthly Plan</h2>
                 <p className="text-muted-foreground mb-6">Best for serious growth</p>
                 
                 <div className="flex items-baseline justify-center gap-2 mb-8">
                   <span className="text-2xl text-muted-foreground line-through">$99</span>
                   <span className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">$29</span>
-                  <span className="text-muted-foreground">/week</span>
+                  <span className="text-muted-foreground">/month</span>
                 </div>
 
                 <ul className="space-y-4 text-left mb-8">
