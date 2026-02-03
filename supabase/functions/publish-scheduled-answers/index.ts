@@ -620,7 +620,17 @@ Deno.serve(async (req) => {
         const integration = integrations[0] as Integration;
         const { title, body } = generateArticleHTML(article, project);
 
-        // Call cms-publish
+        // Call cms-publish with slug included
+        const articleSlug = (article as any).slug || article.title
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "")
+          .substring(0, 80);
+          
         const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
           method: "POST",
           headers: {
@@ -629,7 +639,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             integrationId: integration.id,
-            content: { title, body, type: "article", sourceId: article.id }
+            content: { title, body, type: "article", sourceId: article.id, slug: articleSlug }
           })
         });
 
