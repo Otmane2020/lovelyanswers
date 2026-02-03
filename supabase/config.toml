@@ -132,3 +132,7 @@ verify_jwt = false
 
 [functions.serp-first]
 verify_jwt = false
+
+[functions.abandoned-cart-emails]
+verify_jwt = false
+schedule = "0 * * * *"

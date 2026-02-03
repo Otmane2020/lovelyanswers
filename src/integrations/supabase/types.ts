@@ -243,6 +243,8 @@ export type Database = {
           currency: string | null
           id: string
           items: Json
+          promo_email_sent: boolean | null
+          promo_email_sent_at: string | null
           session_id: string | null
           status: string | null
           total_amount: number | null
@@ -258,6 +260,8 @@ export type Database = {
           currency?: string | null
           id?: string
           items?: Json
+          promo_email_sent?: boolean | null
+          promo_email_sent_at?: string | null
           session_id?: string | null
           status?: string | null
           total_amount?: number | null
@@ -273,6 +277,8 @@ export type Database = {
           currency?: string | null
           id?: string
           items?: Json
+          promo_email_sent?: boolean | null
+          promo_email_sent_at?: string | null
           session_id?: string | null
           status?: string | null
           total_amount?: number | null
@@ -755,6 +761,8 @@ export type Database = {
       }
       onboarding_sessions: {
         Row: {
+          abandoned_email_sent: boolean | null
+          abandoned_email_sent_at: string | null
           audiences: string[] | null
           brand_name: string | null
           business_description: string | null
@@ -770,6 +778,8 @@ export type Database = {
           id: string
           keywords: Json | null
           language: string | null
+          promo_email_sent: boolean | null
+          promo_email_sent_at: string | null
           referrer: string | null
           session_id: string
           traffic_potential: number | null
@@ -781,6 +791,8 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          abandoned_email_sent?: boolean | null
+          abandoned_email_sent_at?: string | null
           audiences?: string[] | null
           brand_name?: string | null
           business_description?: string | null
@@ -796,6 +808,8 @@ export type Database = {
           id?: string
           keywords?: Json | null
           language?: string | null
+          promo_email_sent?: boolean | null
+          promo_email_sent_at?: string | null
           referrer?: string | null
           session_id: string
           traffic_potential?: number | null
@@ -807,6 +821,8 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          abandoned_email_sent?: boolean | null
+          abandoned_email_sent_at?: string | null
           audiences?: string[] | null
           brand_name?: string | null
           business_description?: string | null
@@ -822,6 +838,8 @@ export type Database = {
           id?: string
           keywords?: Json | null
           language?: string | null
+          promo_email_sent?: boolean | null
+          promo_email_sent_at?: string | null
           referrer?: string | null
           session_id?: string
           traffic_potential?: number | null

@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Globe, Mail, Users, TrendingUp, Smartphone, Monitor, Tablet, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, Globe, Mail, Users, TrendingUp, Smartphone, Monitor, Tablet, ExternalLink, Search } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 
@@ -71,6 +72,15 @@ export function OnboardingTracking() {
   const [sessions, setSessions] = useState<OnboardingSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<OnboardingSession | null>(null);
+  const [emailFilter, setEmailFilter] = useState("");
+
+  // Filter sessions by email
+  const filteredSessions = useMemo(() => {
+    if (!emailFilter.trim()) return sessions;
+    return sessions.filter(s => 
+      s.email?.toLowerCase().includes(emailFilter.toLowerCase())
+    );
+  }, [sessions, emailFilter]);
 
   const loadSessions = async () => {
     setIsLoading(true);
@@ -140,7 +150,16 @@ export function OnboardingTracking() {
         </Card>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Filter by email..."
+            value={emailFilter}
+            onChange={(e) => setEmailFilter(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Button variant="outline" size="sm" onClick={loadSessions} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
@@ -167,7 +186,7 @@ export function OnboardingTracking() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sessions.map((session) => (
+                  {filteredSessions.map((session) => (
                     <TableRow 
                       key={session.id}
                       className={`cursor-pointer hover:bg-muted/50 ${selectedSession?.id === session.id ? 'bg-muted' : ''}`}
