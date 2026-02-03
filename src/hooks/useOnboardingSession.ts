@@ -118,30 +118,44 @@ export const useOnboardingSession = () => {
     });
   }, [updateSession]);
 
-  // Quick language detection for step 1
+  // Quick language detection for step 1 with 5s client-side timeout
   const detectLanguage = useCallback(async (url: string): Promise<string | null> => {
     if (!url) return null;
     
     setIsDetectingLanguage(true);
     
+    // Create a promise that rejects after 5 seconds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 5000);
+    });
+    
     try {
-      const { data: res, error } = await supabase.functions.invoke('firecrawl-scrape-fast', {
-        body: { url },
-      });
+      // Race between the actual request and the timeout
+      const result = await Promise.race([
+        supabase.functions.invoke('firecrawl-scrape-fast', {
+          body: { url },
+        }),
+        timeoutPromise,
+      ]);
+
+      const { data: res, error } = result as { data: any; error: any };
 
       if (error || !res?.success) {
+        console.log('[LANG DETECT] Failed or no success:', error?.message || 'unknown');
         setIsDetectingLanguage(false);
         return null;
       }
 
       const detected = res.data?.language;
       if (detected && typeof detected === 'string') {
+        console.log('[LANG DETECT] Detected:', detected);
         setDetectedLanguage(detected);
         setIsDetectingLanguage(false);
         return detected;
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      // Silent fail on timeout or other errors - user can choose manually
+      console.log('[LANG DETECT] Timeout or error, user will choose manually');
     }
     
     setIsDetectingLanguage(false);
