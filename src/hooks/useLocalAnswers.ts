@@ -46,7 +46,21 @@ export function useLocalAnswers(businessId?: string) {
         throw error;
       }
       
-      return (data || []) as LocalAnswer[];
+      // Sort with today first, then chronologically
+      const today = new Date().toISOString().split('T')[0];
+      const sorted = (data || []).sort((a, b) => {
+        const dateA = a.scheduled_date?.split('T')[0] || '';
+        const dateB = b.scheduled_date?.split('T')[0] || '';
+        
+        // Today first
+        if (dateA === today && dateB !== today) return -1;
+        if (dateB === today && dateA !== today) return 1;
+        
+        // Then by date ascending
+        return dateA.localeCompare(dateB);
+      });
+      
+      return sorted as LocalAnswer[];
     },
     enabled: !!project?.id,
   });
