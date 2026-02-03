@@ -893,7 +893,7 @@ export default function Index() {
         href="https://trust-avis.com/entreprise/lovelyanswers"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed top-20 right-2 md:top-1/2 md:-translate-y-1/2 md:right-4 z-40 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 p-1.5 md:px-3 md:py-2 md:rounded-lg flex items-center gap-1.5 hover:shadow-lg transition-all"
+        className="fixed bottom-[140px] md:bottom-6 right-2 md:right-4 z-40 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 p-1.5 md:px-3 md:py-2 md:rounded-lg flex items-center gap-1.5 hover:shadow-lg transition-all"
       >
         {/* Compact: just star + rating on mobile */}
         <div className="flex items-center gap-1">
@@ -903,7 +903,7 @@ export default function Index() {
           <span className="text-xs font-bold text-gray-800">4.9</span>
         </div>
         {/* Extended info on desktop */}
-        <span className="hidden md:inline text-xs text-gray-500">• 289 avis</span>
+        <span className="hidden md:inline text-xs text-gray-500">• 289 reviews</span>
       </a>
     </div>
     </>
