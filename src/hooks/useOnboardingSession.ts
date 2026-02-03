@@ -54,6 +54,7 @@ interface OnboardingSessionData {
   competitors?: string[];
   keywords?: any;
   traffic_potential?: number;
+  audiences?: string[];
   completed_at?: string;
   checkout_started_at?: string;
   converted_at?: string;
