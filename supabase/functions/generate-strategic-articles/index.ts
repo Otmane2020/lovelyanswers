@@ -17,6 +17,7 @@ interface RequestBody {
   language?: string;
   articles: ArticleTopic[];
   batchSize?: number;
+  autoPublish?: boolean; // Immediately publish to blog
 }
 
 const STRATEGIC_ARTICLES: ArticleTopic[] = [
@@ -156,7 +157,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { projectId, language = "en", articles, batchSize = 5 }: RequestBody = await req.json();
+    const { projectId, language = "en", articles, batchSize = 5, autoPublish = false }: RequestBody = await req.json();
 
     // Use provided articles or default to all strategic articles
     const articlesToGenerate = articles && articles.length > 0 ? articles : STRATEGIC_ARTICLES;
@@ -348,6 +349,56 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
             article_id: article.id,
           });
 
+        // If autoPublish is enabled, publish immediately to blog
+        if (autoPublish) {
+          // Convert markdown to HTML
+          let htmlContent = `<h1>${articleData.title}</h1>\n`;
+          htmlContent += articleData.content
+            .replace(/## (.*?)$/gm, '<h2>$1</h2>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/^(.+)$/gm, (match: string) => {
+              if (match.startsWith('<h') || match.startsWith('</')) return match;
+              return `<p>${match}</p>`;
+            });
+          
+          // Add FAQs
+          if (articleData.faqs && articleData.faqs.length > 0) {
+            htmlContent += '<h2>Frequently Asked Questions</h2>';
+            for (const faq of articleData.faqs) {
+              htmlContent += `<h3>${faq.question}</h3><p>${faq.answer}</p>`;
+            }
+          }
+
+          // Insert into published_articles for immediate blog visibility
+          await supabase
+            .from("published_articles")
+            .insert({
+              title: articleData.title,
+              body: htmlContent,
+              slug: slug,
+              meta_description: articleData.metaDescription,
+              source_id: article.id,
+            });
+
+          // Mark answer as public and published
+          await supabase
+            .from("answers")
+            .update({ 
+              is_public: true, 
+              published_at: new Date().toISOString(),
+              published_url: `https://lovelyanswers.com/blog/${slug}`
+            })
+            .eq("id", answer.id);
+
+          // Update article status to published
+          await supabase
+            .from("articles")
+            .update({ status: "published" })
+            .eq("id", article.id);
+
+          console.log(`[generate-strategic-articles] Auto-published article: ${slug}`);
+        }
+
         generatedArticles.push({
           id: article.id,
           title: articleData.title,
@@ -355,6 +406,7 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
           scheduledDate: scheduledDate,
           wordCount: wordCount,
           category: articleTopic.category,
+          published: autoPublish,
         });
 
         console.log(`[generate-strategic-articles] Created article: ${article.id} scheduled for ${scheduledDate}`);
