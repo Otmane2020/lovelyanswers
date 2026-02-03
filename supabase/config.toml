@@ -136,3 +136,6 @@ verify_jwt = false
 [functions.abandoned-cart-emails]
 verify_jwt = false
 schedule = "0 * * * *"
+
+[functions.generate-strategic-articles]
+verify_jwt = false

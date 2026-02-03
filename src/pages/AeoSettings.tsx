@@ -10,6 +10,7 @@ import { CompetitorSettings } from "./settings/CompetitorSettings";
 import { KeywordsSettings } from "./settings/KeywordsSettings";
 import { AudiencesSettings } from "./settings/AudiencesSettings";
 import { AnalyticsSettings } from "./settings/AnalyticsSettings";
+import { BulkArticleGenerator } from "./settings/BulkArticleGenerator";
 
 export default function AeoSettings() {
   return (
@@ -82,6 +83,12 @@ export default function AeoSettings() {
             >
               Google Analytics
             </TabsTrigger>
+            <TabsTrigger 
+              value="bulk-generator"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Bulk Generator
+            </TabsTrigger>
           </TabsList>
 
           <div className="mt-6 max-w-2xl">
@@ -114,6 +121,9 @@ export default function AeoSettings() {
             </TabsContent>
             <TabsContent value="analytics" className="mt-0">
               <AnalyticsSettings />
+            </TabsContent>
+            <TabsContent value="bulk-generator" className="mt-0 max-w-4xl">
+              <BulkArticleGenerator />
             </TabsContent>
           </div>
         </Tabs>
