@@ -29,6 +29,17 @@ interface Article {
   linked_answer_id: string | null;
 }
 
+interface LocalAnswer {
+  id: string;
+  project_id: string;
+  business_id: string;
+  business_name: string;
+  question: string;
+  answer: string;
+  slug: string;
+  scheduled_date: string;
+}
+
 interface Integration {
   id: string;
   platform: string;
@@ -236,6 +247,54 @@ function generateArticleHTML(
   };
 }
 
+function generateLocalAnswerHTML(
+  localAnswer: LocalAnswer,
+  project: Project
+): { title: string; body: string } {
+  const { question, answer, business_name } = localAnswer;
+  const brandName = project.brand_name || project.name;
+  const websiteUrl = project.website_url;
+  const language = project.language || "fr";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": business_name,
+    "url": websiteUrl,
+    "mainEntity": {
+      "@type": "Question",
+      "name": question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": answer
+      }
+    }
+  };
+
+  const body = `
+<article class="local-aeo-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+  
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+    <span style="background: linear-gradient(135deg, #f97316, #ef4444); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Local AEO</span>
+    <span style="color: #666; font-size: 14px;">${business_name}</span>
+  </div>
+  
+  <h1 style="font-size: 28px; margin-bottom: 24px; color: #0a0a0a; font-weight: 700; line-height: 1.3;">${question}</h1>
+  
+  <div class="local-answer-box" style="background: linear-gradient(135deg, #f9731615 0%, #ef444415 100%); border-left: 4px solid #f97316; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
+    <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #2d2d2d;">${answer}</p>
+  </div>
+  
+  <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
+    <p style="margin: 0 0 8px 0;"><a href="https://lovelyanswers.com" style="color: #f97316; text-decoration: none; font-weight: 500;" target="_blank">LovelyAnswers</a> – Local AEO for AI Search</p>
+    <p style="margin: 0; font-size: 12px; color: #999;">LovelyAnswers – Rank in ChatGPT</p>
+  </footer>
+</article>`;
+
+  return { title: question, body };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -401,7 +460,12 @@ Deno.serve(async (req) => {
     const articleIds = [...new Set((planningRows || []).map((r: any) => r.article_id).filter(Boolean))];
 
     // Fetch answers/articles by IDs only (no scheduled_date filtering here)
-    const [{ data: answers, error: answersError }, { data: articles, error: articlesError }] = await Promise.all([
+    // Also fetch local_answers directly by scheduled_date (they don't use planning_days)
+    const [
+      { data: answers, error: answersError }, 
+      { data: articles, error: articlesError },
+      { data: localAnswers, error: localAnswersError }
+    ] = await Promise.all([
       answerIds.length
         ? supabase
             .from("answers")
@@ -416,6 +480,13 @@ Deno.serve(async (req) => {
             .in("id", articleIds)
             .neq("status", "published")
         : Promise.resolve({ data: [], error: null }),
+      // Local answers: fetch by scheduled_date and project_ids directly
+      supabase
+        .from("local_answers")
+        .select("*")
+        .in("project_id", projectIds)
+        .lte("scheduled_date", todayStr)
+        .eq("is_public", false)
     ]);
 
     if (answersError) {
@@ -424,10 +495,13 @@ Deno.serve(async (req) => {
     if (articlesError) {
       console.error("[publish-scheduled] ❌ Error fetching articles:", articlesError);
     }
+    if (localAnswersError) {
+      console.error("[publish-scheduled] ❌ Error fetching local_answers:", localAnswersError);
+    }
 
-    console.log(`[publish-scheduled] 📝 Found ${answers?.length || 0} answers (violet) and ${articles?.length || 0} articles (emerald) to publish (source=planning_days)`);
+    console.log(`[publish-scheduled] 📝 Found ${answers?.length || 0} answers (violet), ${articles?.length || 0} articles (emerald), ${localAnswers?.length || 0} local answers (orange) to publish`);
 
-    const results: { id: string; type: "answer" | "article"; success: boolean; url?: string; error?: string }[] = [];
+    const results: { id: string; type: "answer" | "article" | "local-answer"; success: boolean; url?: string; error?: string }[] = [];
 
     // Process answers (violet items)
     for (const answer of answers || []) {
@@ -579,12 +653,90 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Process local answers (orange items)
+    for (const localAnswer of localAnswers || []) {
+      try {
+        console.log(`[publish-scheduled] 🧡 Processing local answer: ${localAnswer.question.substring(0, 50)}...`);
+        
+        // Get project info
+        const { data: project } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", localAnswer.project_id)
+          .single();
+
+        if (!project) {
+          results.push({ id: localAnswer.id, type: "local-answer", success: false, error: "Project not found" });
+          continue;
+        }
+
+        // Get integration
+        const { data: integrations } = await supabase
+          .from("integrations")
+          .select("*")
+          .eq("project_id", localAnswer.project_id)
+          .eq("is_connected", true)
+          .limit(1);
+
+        if (!integrations || integrations.length === 0) {
+          // Just mark as public without CMS publishing
+          await supabase
+            .from("local_answers")
+            .update({ is_public: true, published_at: new Date().toISOString() })
+            .eq("id", localAnswer.id);
+          
+          console.log(`[publish-scheduled] ✅ Local answer marked as public (no CMS): ${localAnswer.id}`);
+          results.push({ id: localAnswer.id, type: "local-answer", success: true, url: "internal" });
+          continue;
+        }
+
+        const integration = integrations[0] as Integration;
+        const { title, body } = generateLocalAnswerHTML(localAnswer as LocalAnswer, project);
+
+        // Call cms-publish
+        const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`
+          },
+          body: JSON.stringify({
+            integrationId: integration.id,
+            content: { title, body, type: "local-answer", sourceId: localAnswer.id }
+          })
+        });
+
+        const publishResult = await publishResponse.json();
+
+        if (publishResult.success) {
+          await supabase
+            .from("local_answers")
+            .update({
+              is_public: true,
+              published_url: publishResult.url || null,
+              published_at: new Date().toISOString()
+            })
+            .eq("id", localAnswer.id);
+
+          console.log(`[publish-scheduled] ✅ Local answer published: ${publishResult.url || localAnswer.id}`);
+          results.push({ id: localAnswer.id, type: "local-answer", success: true, url: publishResult.url });
+        } else {
+          console.error(`[publish-scheduled] ❌ Failed to publish local answer: ${publishResult.error}`);
+          results.push({ id: localAnswer.id, type: "local-answer", success: false, error: publishResult.error });
+        }
+      } catch (err) {
+        console.error(`[publish-scheduled] ❌ Error processing local answer ${localAnswer.id}:`, err);
+        results.push({ id: localAnswer.id, type: "local-answer", success: false, error: String(err) });
+      }
+    }
+
     const successCount = results.filter(r => r.success).length;
     const answerCount = results.filter(r => r.type === "answer" && r.success).length;
     const articleCount = results.filter(r => r.type === "article" && r.success).length;
+    const localAnswerCount = results.filter(r => r.type === "local-answer" && r.success).length;
     const failedCount = results.filter(r => !r.success).length;
 
-    console.log(`[publish-scheduled] 🎉 COMPLETED: ${answerCount} answers (💜) and ${articleCount} articles (💚) published`);
+    console.log(`[publish-scheduled] 🎉 COMPLETED: ${answerCount} answers (💜), ${articleCount} articles (💚), ${localAnswerCount} local answers (🧡) published`);
     if (failedCount > 0) {
       console.log(`[publish-scheduled] ⚠️ ${failedCount} items failed to publish`);
     }
@@ -592,11 +744,12 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Published ${answerCount} answers and ${articleCount} articles`,
+        message: `Published ${answerCount} answers, ${articleCount} articles, and ${localAnswerCount} local answers`,
         published: successCount,
         failed: failedCount,
         answers: answerCount,
         articles: articleCount,
+        localAnswers: localAnswerCount,
         currentUtcHour,
         results 
       }),
