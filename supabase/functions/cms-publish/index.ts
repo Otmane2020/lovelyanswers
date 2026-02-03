@@ -914,26 +914,46 @@ async function publishToLovable(
     }
     
     // Internal Lovable site - use the published site URL with /blog/:slug route
-    // Get the answer slug from database
-    let answerSlug = slug;
-    if (!answerSlug && sourceId) {
+    // Get the slug from database (try answers first, then articles)
+    let contentSlug = slug;
+    if (!contentSlug && sourceId) {
+      // Try answers first
       const { data: answer } = await supabase
         .from("answers")
         .select("slug")
         .eq("id", sourceId)
         .single();
-      answerSlug = answer?.slug;
+      contentSlug = answer?.slug;
+      
+      // If not found in answers, try articles
+      if (!contentSlug) {
+        const { data: article } = await supabase
+          .from("articles")
+          .select("slug")
+          .eq("id", sourceId)
+          .single();
+        contentSlug = article?.slug;
+      }
     }
     
-    if (!answerSlug) {
-      console.error("[Lovable] No slug found for answer");
-      return { success: false, message: "No slug found for answer" };
+    // Final fallback: generate slug from title
+    if (!contentSlug) {
+      contentSlug = content.title
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .substring(0, 80);
+      console.log(`[Lovable] Generated fallback slug from title: ${contentSlug}`);
     }
     
     // Use the published site URL (configured in integration or default to lovelyanswers.com)
     // Priority: config.siteUrl -> lovelyanswers.com (hardcoded for this project)
     const siteUrl = config.siteUrl?.replace(/\/+$/, '') || "https://lovelyanswers.com";
-    const publishedUrl = `${siteUrl}/blog/${answerSlug}`;
+    const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
     
     console.log(`[Lovable] Content published at: ${publishedUrl}`);
     
