@@ -888,38 +888,22 @@ export default function Index() {
 
       <PublicFooter />
 
-      {/* TrustAvis Floating Widget - Mobile First */}
+      {/* TrustAvis Floating Widget - Minimal Mobile First */}
       <a
         href="https://trust-avis.com/entreprise/lovelyanswers"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed top-1/2 -translate-y-1/2 right-4 z-40 bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2 flex items-center gap-2 hover:shadow-xl hover:scale-105 transition-all group"
+        className="fixed top-20 right-2 md:top-1/2 md:-translate-y-1/2 md:right-4 z-40 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 p-1.5 md:px-3 md:py-2 md:rounded-lg flex items-center gap-1.5 hover:shadow-lg transition-all"
       >
-        {/* TrustAvis Logo */}
-        <div className="flex items-center justify-center w-8 h-8 bg-[#2563EB] rounded-md">
-          <svg className="w-5 h-5 text-white fill-current" viewBox="0 0 20 20">
+        {/* Compact: just star + rating on mobile */}
+        <div className="flex items-center gap-1">
+          <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
+          <span className="text-xs font-bold text-gray-800">4.9</span>
         </div>
-        
-        {/* Rating & Brand */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-bold text-gray-900">Trust</span>
-            <span className="text-sm font-bold text-[#2563EB]">Avis</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <svg key={star} className="w-3 h-3 text-amber-400 fill-current" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <span className="text-xs font-semibold text-gray-700">4.9</span>
-            <span className="text-xs text-gray-500">(289)</span>
-          </div>
-        </div>
+        {/* Extended info on desktop */}
+        <span className="hidden md:inline text-xs text-gray-500">• 289 avis</span>
       </a>
     </div>
     </>
