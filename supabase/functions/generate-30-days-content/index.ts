@@ -383,6 +383,98 @@ Return ONLY this JSON:
   }
 }
 
+// Convert content to clean HTML - handles both HTML and markdown input
+function convertToCleanHTML(content: string): string {
+  // If content already looks like HTML (has tags), clean it up
+  if (/<(h[1-6]|p|ul|ol|li|div|section|article|strong|em)\b/i.test(content)) {
+    // Already HTML - just clean up any markdown artifacts
+    let html = content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return html;
+  }
+  
+  // Content is markdown - convert to HTML properly
+  const lines = content.split('\n');
+  let html = '';
+  let inList = false;
+  let listType = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line) {
+      if (inList) {
+        html += listType === 'ul' ? '</ul>\n' : '</ol>\n';
+        inList = false;
+      }
+      continue;
+    }
+    
+    // Headers
+    if (line.startsWith('### ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h3>${line.slice(4).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h3>\n`;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h2>${line.slice(3).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h2>\n`;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h1>${line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h1>\n`;
+      continue;
+    }
+    
+    // Unordered list items
+    if (/^[-*•]\s+/.test(line)) {
+      const itemContent = line.replace(/^[-*•]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      if (!inList || listType !== 'ul') {
+        if (inList) html += listType === 'ul' ? '</ul>\n' : '</ol>\n';
+        html += '<ul>\n';
+        inList = true;
+        listType = 'ul';
+      }
+      html += `  <li>${itemContent}</li>\n`;
+      continue;
+    }
+    
+    // Ordered list items
+    if (/^\d+[.)]\s+/.test(line)) {
+      const itemContent = line.replace(/^\d+[.)]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      if (!inList || listType !== 'ol') {
+        if (inList) html += listType === 'ul' ? '</ul>\n' : '</ol>\n';
+        html += '<ol>\n';
+        inList = true;
+        listType = 'ol';
+      }
+      html += `  <li>${itemContent}</li>\n`;
+      continue;
+    }
+    
+    // Regular paragraph
+    if (inList) {
+      html += listType === 'ul' ? '</ul>\n' : '</ol>\n';
+      inList = false;
+    }
+    
+    // Apply inline formatting
+    line = line
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    html += `<p>${line}</p>\n`;
+  }
+  
+  // Close any open list
+  if (inList) {
+    html += listType === 'ul' ? '</ul>\n' : '</ol>\n';
+  }
+  
+  return html;
+}
+
 // Generate article - AEO-OPTIMIZED for LLM citation
 async function generateArticle(
   question: string,
@@ -419,14 +511,19 @@ Contexte: ${description}
 - Paragraphes de plus de 4 phrases
 - "${brandName}" répété plus de 2 fois
 
-✅ STRUCTURE IDÉALE:
-- Listes à puces pour les critères
-- Phrases courtes et factuelles
-- Définitions claires
+✅ FORMAT HTML OBLIGATOIRE:
+- Contenu DIRECTEMENT en HTML propre (pas de markdown)
+- <h1> pour le titre principal
+- <h2> pour les sections
+- <h3> pour les sous-sections
+- <p> pour les paragraphes
+- <ul><li> pour les listes à puces
+- <ol><li> pour les listes numérotées
+- <strong> pour les données clés (prix, pourcentages, dates)
 - 500-700 mots max
 
-Retourne UNIQUEMENT ce JSON (pas de markdown dans les clés):
-{"title":"Titre clair avec question","content":"Introduction factuelle. Section 1... Section 2... Conclusion synthétique.","metaDescription":"Description 150 chars max"}`
+Retourne UNIQUEMENT ce JSON (pas de markdown dans le content, du HTML pur):
+{"title":"Titre clair avec question","content":"<h1>Titre</h1><p>Introduction factuelle...</p><h2>Section 1</h2><p>...</p><ul><li>...</li></ul><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`
     : `You are an AEO expert. Write a PILLAR article citable by AI.
 
 Source question: ${question}
@@ -447,14 +544,19 @@ Context: ${description}
 - Paragraphs longer than 4 sentences
 - "${brandName}" repeated more than 2 times
 
-✅ IDEAL STRUCTURE:
-- Bullet lists for criteria
-- Short factual sentences
-- Clear definitions
+✅ MANDATORY HTML FORMAT:
+- Content DIRECTLY in clean HTML (no markdown)
+- <h1> for the main title
+- <h2> for sections
+- <h3> for subsections
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <ol><li> for numbered lists
+- <strong> for key data (prices, percentages, dates)
 - 500-700 words max
 
-Return ONLY this JSON (no markdown in keys):
-{"title":"Clear title with question","content":"Factual introduction. Section 1... Section 2... Synthetic conclusion.","metaDescription":"Description 150 chars max"}`;
+Return ONLY this JSON (no markdown in content, pure HTML):
+{"title":"Clear title with question","content":"<h1>Title</h1><p>Factual introduction...</p><h2>Section 1</h2><p>...</p><ul><li>...</li></ul><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -494,16 +596,8 @@ Return ONLY this JSON (no markdown in keys):
     const articleContent = parsed.content || answer;
     const wordCount = articleContent.split(/\s+/).length;
 
-    // Convert to simple HTML
-    let htmlContent = articleContent
-      .replace(/### (.*)/g, '<h3>$1</h3>')
-      .replace(/## (.*)/g, '<h2>$1</h2>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .split('\n\n')
-      .filter((p: string) => p.trim())
-      .map((p: string) => `<p>${p.trim()}</p>`)
-      .join('\n');
+    // Convert content to proper HTML - handle both HTML and markdown responses
+    let htmlContent = convertToCleanHTML(articleContent);
 
     // Add FAQ section
     if (faq.length > 0) {
