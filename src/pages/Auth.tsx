@@ -235,6 +235,20 @@ export default function Auth() {
               }
             }).catch(err => console.error('[AUTH] 30-day content generation error:', err));
             
+            // Fire-and-forget: Send audit report by email
+            if (user.email && onboardingData.websiteUrl) {
+              supabase.functions.invoke('send-audit-email', {
+                body: { 
+                  url: onboardingData.websiteUrl,
+                  email: user.email,
+                }
+              }).then(res => {
+                if (res.data?.auditId) {
+                  console.log('[AUTH] Audit email sent, ID:', res.data.auditId);
+                }
+              }).catch(err => console.error('[AUTH] Audit email error:', err));
+            }
+            
             // Clear onboarding data and email
             localStorage.removeItem('onboarding_data');
             localStorage.removeItem('onboarding_email');

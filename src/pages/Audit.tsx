@@ -124,6 +124,7 @@ export default function Audit() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const urlFromParams = searchParams.get("url") || "";
+  const idFromParams = searchParams.get("id") || "";
 
   const [websiteUrl, setWebsiteUrl] = useState(urlFromParams);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,12 +137,55 @@ export default function Audit() {
     document.documentElement.classList.remove("dark");
   }, []);
 
-  // Auto-start audit if URL provided
+  // Load audit from DB if ID provided
   useEffect(() => {
-    if (urlFromParams && !auditData && !isLoading) {
+    if (idFromParams && !auditData && !isLoading) {
+      loadAuditFromDb(idFromParams);
+    }
+  }, [idFromParams]);
+
+  // Auto-start audit if URL provided (and no ID)
+  useEffect(() => {
+    if (urlFromParams && !idFromParams && !auditData && !isLoading) {
       runAudit(urlFromParams);
     }
-  }, [urlFromParams]);
+  }, [urlFromParams, idFromParams]);
+
+  const loadAuditFromDb = async (auditId: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: dbError } = await supabase
+        .from("site_audits")
+        .select("*")
+        .eq("id", auditId)
+        .single();
+
+      if (dbError || !data) {
+        console.error("[audit] DB load error:", dbError);
+        setError("Audit report not found. It may have expired.");
+        return;
+      }
+
+      setWebsiteUrl(data.url);
+      setAuditData({
+        success: true,
+        url: data.url,
+        domain: data.domain,
+        pageTitle: data.page_title || "",
+        scores: data.scores as unknown as AuditData["scores"],
+        summary: data.summary as unknown as AuditData["summary"],
+        results: data.results as unknown as AuditResult[],
+        scrapedAt: data.created_at,
+      });
+    } catch (err) {
+      console.error("[audit] Error loading from DB:", err);
+      setError("Failed to load audit report.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const runAudit = async (url: string) => {
     if (!url.trim()) return;
