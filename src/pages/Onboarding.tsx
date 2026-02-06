@@ -318,17 +318,47 @@ export default function Onboarding() {
       
       setAnalysisComplete(true);
       setIsAnalyzing(false);
+      
+      // Save onboarding data to localStorage NOW so project is created even without checkout
+      const onboardingPayload = {
+        websiteUrl: url,
+        language: data.language,
+        businessDescription: description,
+        email: data.email,
+        keywords,
+        competitors: competitors.map(c => c.domain),
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(onboardingPayload));
+      localStorage.setItem('onboarding_email', data.email);
+      console.log('[ONBOARDING] Saved onboarding_data to localStorage after analysis');
+      
       setCurrentStep(5); // Move to report
     } catch (error) {
       console.error('[ONBOARDING] Analysis error:', error);
       // Fallback data
+      const fallbackBrandName = brandName;
+      const fallbackDescription = `${brandName} provides professional services.`;
       setData(prev => ({
         ...prev,
-        brandName,
+        brandName: fallbackBrandName,
         siteLogo: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
-        businessDescription: `${brandName} provides professional services.`,
+        businessDescription: fallbackDescription,
         trafficPotential: 8500,
       }));
+      
+      // Save fallback data too
+      const fallbackPayload = {
+        websiteUrl: url,
+        language: data.language,
+        businessDescription: fallbackDescription,
+        email: data.email,
+        keywords: [],
+        competitors: [],
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(fallbackPayload));
+      localStorage.setItem('onboarding_email', data.email);
+      console.log('[ONBOARDING] Saved fallback onboarding_data to localStorage');
+      
       setAnalysisComplete(true);
       setIsAnalyzing(false);
       setCurrentStep(5);
