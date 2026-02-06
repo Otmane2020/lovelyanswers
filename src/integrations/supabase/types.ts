@@ -241,6 +241,8 @@ export type Database = {
           converted_at: string | null
           created_at: string
           currency: string | null
+          final_email_sent: boolean | null
+          final_email_sent_at: string | null
           id: string
           items: Json
           promo_email_sent: boolean | null
@@ -258,6 +260,8 @@ export type Database = {
           converted_at?: string | null
           created_at?: string
           currency?: string | null
+          final_email_sent?: boolean | null
+          final_email_sent_at?: string | null
           id?: string
           items?: Json
           promo_email_sent?: boolean | null
@@ -275,6 +279,8 @@ export type Database = {
           converted_at?: string | null
           created_at?: string
           currency?: string | null
+          final_email_sent?: boolean | null
+          final_email_sent_at?: string | null
           id?: string
           items?: Json
           promo_email_sent?: boolean | null
@@ -775,6 +781,8 @@ export type Database = {
           current_step: number | null
           device_type: string | null
           email: string | null
+          final_email_sent: boolean | null
+          final_email_sent_at: string | null
           id: string
           keywords: Json | null
           language: string | null
@@ -805,6 +813,8 @@ export type Database = {
           current_step?: number | null
           device_type?: string | null
           email?: string | null
+          final_email_sent?: boolean | null
+          final_email_sent_at?: string | null
           id?: string
           keywords?: Json | null
           language?: string | null
@@ -835,6 +845,8 @@ export type Database = {
           current_step?: number | null
           device_type?: string | null
           email?: string | null
+          final_email_sent?: boolean | null
+          final_email_sent_at?: string | null
           id?: string
           keywords?: Json | null
           language?: string | null
