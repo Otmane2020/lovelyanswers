@@ -1303,6 +1303,51 @@ export type Database = {
           },
         ]
       }
+      site_audits: {
+        Row: {
+          created_at: string
+          domain: string
+          email: string | null
+          email_sent: boolean | null
+          email_sent_at: string | null
+          id: string
+          page_title: string | null
+          results: Json
+          scores: Json
+          summary: Json
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          email?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          page_title?: string | null
+          results?: Json
+          scores?: Json
+          summary?: Json
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          email?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          page_title?: string | null
+          results?: Json
+          scores?: Json
+          summary?: Json
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       site_pages: {
         Row: {
           created_at: string

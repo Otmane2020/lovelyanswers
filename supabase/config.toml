@@ -169,3 +169,6 @@ verify_jwt = false
 
 [functions.reset-project-content]
 verify_jwt = false
+
+[functions.send-audit-email]
+verify_jwt = false
