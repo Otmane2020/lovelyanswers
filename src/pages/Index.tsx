@@ -31,6 +31,7 @@ import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
+import { InactivityPopup } from "@/components/InactivityPopup";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -251,6 +252,9 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Google One Tap Popup */}
       <GoogleOneTap />
+
+      {/* Inactivity Popup - 2 months free */}
+      <InactivityPopup inactivityDelay={45} />
       
       {/* Announcement Bar */}
       <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">

@@ -20,6 +20,9 @@ import {
   BarChart3,
   Search,
   RefreshCw,
+  Mail,
+  Send,
+  CheckCheck,
 } from "lucide-react";
 
 interface AuditResult {
@@ -131,6 +134,9 @@ export default function Audit() {
   const [auditData, setAuditData] = useState<AuditData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [emailInput, setEmailInput] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   // Force light theme
   useEffect(() => {
@@ -239,6 +245,29 @@ export default function Audit() {
 
   const handleGetStarted = () => {
     navigate(`/onboarding?url=${encodeURIComponent(websiteUrl || urlFromParams)}`);
+  };
+
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim() || !websiteUrl.trim()) return;
+
+    setIsSendingEmail(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("send-audit-email", {
+        body: { url: websiteUrl.trim(), email: emailInput.trim() },
+      });
+
+      if (fnError) {
+        console.error("[audit] Email send error:", fnError);
+      } else {
+        console.log("[audit] Audit email sent, ID:", data?.auditId);
+        setEmailSent(true);
+      }
+    } catch (err) {
+      console.error("[audit] Email error:", err);
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   return (
@@ -427,6 +456,65 @@ export default function Audit() {
                   Fix My Site Now
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+              </div>
+
+              {/* Email Capture - Send Report */}
+              <div className="bg-card border border-border rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">📧 Get this report in your inbox</h3>
+                    <p className="text-sm text-muted-foreground">We'll send you a detailed summary with actionable recommendations</p>
+                  </div>
+                </div>
+
+                {emailSent ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl"
+                  >
+                    <CheckCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="font-medium text-emerald-700 dark:text-emerald-400">Report sent!</p>
+                      <p className="text-sm text-emerald-600/80 dark:text-emerald-400/70">Check your inbox (and spam folder) for your full audit report.</p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleSendEmail} className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="pl-10 h-11"
+                        required
+                        disabled={isSendingEmail}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isSendingEmail || !emailInput.trim()}
+                      className="h-11 gap-2 bg-gradient-to-r from-primary to-violet-500 text-white hover:opacity-90 whitespace-nowrap"
+                    >
+                      {isSendingEmail ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Send Report
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                )}
               </div>
 
               {/* Detailed Results */}
