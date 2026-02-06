@@ -217,13 +217,23 @@ export default function Auth() {
               await supabase.from('keywords').insert(keywordsToInsert);
             }
             
-            // Fire-and-forget: Start AEO generation in background (don't wait!)
+            // Fire-and-forget: Start AEO answer generation in background
             supabase.functions.invoke('auto-generate-aeo', {
               body: { 
                 projectId: newProject.id,
                 language: onboardingData.language || "en"
               }
             }).catch(err => console.error('[AUTH] AEO generation error:', err));
+            
+            // Fire-and-forget: Start 30-day content generation (answers + articles)
+            supabase.functions.invoke('generate-30-days-content', {
+              body: { 
+                projectId: newProject.id,
+                language: onboardingData.language || "en",
+                days: 30,
+                questionsPerDay: 1
+              }
+            }).catch(err => console.error('[AUTH] 30-day content generation error:', err));
             
             // Clear onboarding data and email
             localStorage.removeItem('onboarding_data');
