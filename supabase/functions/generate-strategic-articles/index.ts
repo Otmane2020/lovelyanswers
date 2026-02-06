@@ -6,6 +6,64 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Convert content to clean HTML - handles both HTML and markdown input
+function convertToCleanHTML(content: string, title?: string): string {
+  let html = title ? `<h1>${title}</h1>\n` : '';
+  
+  // If content already looks like HTML, clean it up
+  if (/<(h[1-6]|p|ul|ol|li|div|section|article|strong|em)\b/i.test(content)) {
+    html += content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return html;
+  }
+  
+  // Content is markdown - convert to HTML properly
+  const lines = content.split('\n');
+  let inList = false;
+  let listType = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      continue;
+    }
+    if (line.startsWith('### ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h3>${line.slice(4).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h3>\n`;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h2>${line.slice(3).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h2>\n`;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += `<h1>${line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h1>\n`;
+      continue;
+    }
+    if (/^[-*•]\s+/.test(line)) {
+      const itemContent = line.replace(/^[-*•]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      if (!inList || listType !== 'ul') { if (inList) html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; html += '<ul>\n'; inList = true; listType = 'ul'; }
+      html += `  <li>${itemContent}</li>\n`;
+      continue;
+    }
+    if (/^\d+[.)]\s+/.test(line)) {
+      const itemContent = line.replace(/^\d+[.)]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      if (!inList || listType !== 'ol') { if (inList) html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; html += '<ol>\n'; inList = true; listType = 'ol'; }
+      html += `  <li>${itemContent}</li>\n`;
+      continue;
+    }
+    if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+    line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html += `<p>${line}</p>\n`;
+  }
+  if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; }
+  return html;
+}
+
 interface ArticleTopic {
   topic: string;
   category: string;
@@ -351,15 +409,8 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
 
         // If autoPublish is enabled, publish immediately to blog
         if (autoPublish) {
-          // Convert markdown to HTML
-          let htmlContent = `<h1>${articleData.title}</h1>\n`;
-          htmlContent += articleData.content
-            .replace(/## (.*?)$/gm, '<h2>$1</h2>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/^(.+)$/gm, (match: string) => {
-              if (match.startsWith('<h') || match.startsWith('</')) return match;
-              return `<p>${match}</p>`;
-            });
+          // Convert content to proper HTML
+          let htmlContent = convertToCleanHTML(articleData.content, articleData.title);
           
           // Add FAQs
           if (articleData.faqs && articleData.faqs.length > 0) {
