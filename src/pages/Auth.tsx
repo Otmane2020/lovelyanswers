@@ -435,12 +435,21 @@ export default function Auth() {
                 ) : (
                   <>
                     {isLogin ? "Don't have an account? " : "Already have an account? "}
-                    <button
-                      onClick={() => setIsLogin(!isLogin)}
-                      className="text-primary font-medium hover:underline"
-                    >
-                      {isLogin ? "Sign up" : "Sign in"}
-                    </button>
+                    {isLogin ? (
+                      <button
+                        onClick={() => navigate("/onboarding")}
+                        className="text-primary font-medium hover:underline"
+                      >
+                        Sign up
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsLogin(true)}
+                        className="text-primary font-medium hover:underline"
+                      >
+                        Sign in
+                      </button>
+                    )}
                   </>
                 )}
               </p>
