@@ -142,3 +142,30 @@ verify_jwt = false
 
 [functions.admin-login-as]
 verify_jwt = false
+
+[functions.free-audit]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.email-webhook]
+verify_jwt = false
+
+[functions.db-email-trigger]
+verify_jwt = false
+
+[functions.parse-sitemap]
+verify_jwt = false
+
+[functions.sitemap]
+verify_jwt = false
+
+[functions.receive-article]
+verify_jwt = false
+
+[functions.delete-project-content]
+verify_jwt = false
+
+[functions.reset-project-content]
+verify_jwt = false

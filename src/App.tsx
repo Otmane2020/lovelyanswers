@@ -33,6 +33,7 @@ import AeoHistory from "./pages/AeoHistory";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
+import Audit from "./pages/Audit";
 import Cart from "./pages/Cart";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -58,6 +59,7 @@ const App = () => (
                 <FloatingSupportButton />
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/audit" element={<Audit />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
                   <Route path="/cart" element={<Cart />} />

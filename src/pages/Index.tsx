@@ -226,7 +226,11 @@ export default function Index() {
   }, []);
 
   const handleGetStarted = () => {
-    navigate(`/onboarding?url=${encodeURIComponent(websiteUrl)}`);
+    if (websiteUrl.trim()) {
+      navigate(`/audit?url=${encodeURIComponent(websiteUrl)}`);
+    } else {
+      navigate(`/onboarding`);
+    }
   };
 
   return (
