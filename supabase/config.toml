@@ -139,3 +139,6 @@ schedule = "0 * * * *"
 
 [functions.generate-strategic-articles]
 verify_jwt = false
+
+[functions.admin-login-as]
+verify_jwt = false

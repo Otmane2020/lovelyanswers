@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
+import { AdminUsersList } from "@/components/admin/AdminUsersList";
 
 interface SupportTicket {
   id: string;
@@ -628,6 +629,10 @@ const SuperAdmin = () => {
               <Rocket className="h-4 w-4" />
               Onboarding
             </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -649,6 +654,11 @@ const SuperAdmin = () => {
           {/* Onboarding Tracking Tab */}
           <TabsContent value="onboarding">
             <OnboardingTracking />
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <AdminUsersList />
           </TabsContent>
 
           {/* Analytics Tab */}
