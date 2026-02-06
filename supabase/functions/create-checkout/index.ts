@@ -94,9 +94,6 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      subscription_data: {
-        trial_period_days: 3,
-      },
       allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: `${origin}/onboarding`,
