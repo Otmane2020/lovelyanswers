@@ -953,59 +953,85 @@ export default function Onboarding() {
                 </div>
 
                 {/* Pricing Cards */}
-                <div className="space-y-3">
-                  {/* Annual - Best Value */}
-                  <button
-                    onClick={() => setBillingCycle("annual")}
-                    className={cn(
-                      "w-full p-4 rounded-xl border-2 text-left transition-all relative",
-                      billingCycle === "annual"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-muted-foreground bg-card"
-                    )}
-                  >
-                    <div className="absolute -top-3 left-4">
-                      <span className="bg-foreground text-background text-xs font-medium px-2 py-0.5 rounded-full">
-                        Best value
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-lg text-muted-foreground line-through">$58</span>
-                      <span className="text-3xl font-bold">$23</span>
-                      <span className="text-muted-foreground">/month</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">Pay yearly</p>
-                  </button>
+                {(() => {
+                  const trialEndDate = new Date();
+                  trialEndDate.setDate(trialEndDate.getDate() + 3);
+                  const formattedDate = trialEndDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  return (
+                    <div className="space-y-3">
+                      {/* Annual - 2 months free */}
+                      <button
+                        onClick={() => setBillingCycle("annual")}
+                        className={cn(
+                          "w-full p-4 rounded-xl border-2 text-left transition-all relative",
+                          billingCycle === "annual"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-muted-foreground bg-card"
+                        )}
+                      >
+                        <div className="absolute -top-3 left-4">
+                          <span className="bg-emerald-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                            2 months free
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg text-muted-foreground line-through">$58</span>
+                              <span className="text-3xl font-bold">$23</span>
+                              <span className="text-muted-foreground">/month</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">Billed $279/year</p>
+                          </div>
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                            billingCycle === "annual" ? "border-primary bg-primary" : "border-muted-foreground/30"
+                          )}>
+                            {billingCycle === "annual" && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                      </button>
 
-                  {/* Monthly */}
-                  <button
-                    onClick={() => setBillingCycle("monthly")}
-                    className={cn(
-                      "w-full p-4 rounded-xl border-2 text-left transition-all relative",
-                      billingCycle === "monthly"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-muted-foreground bg-card"
-                    )}
-                  >
-                    <div className="absolute -top-3 right-4">
-                      <span className="bg-rose-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                        50% OFF
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-lg text-muted-foreground line-through">$58</span>
-                      <span className="text-3xl font-bold">$29</span>
-                      <span className="text-muted-foreground">/month</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">Pay monthly</p>
-                  </button>
-                </div>
+                      {/* Monthly */}
+                      <button
+                        onClick={() => setBillingCycle("monthly")}
+                        className={cn(
+                          "w-full p-4 rounded-xl border-2 text-left transition-all relative",
+                          billingCycle === "monthly"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-muted-foreground bg-card"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold">$29</span>
+                              <span className="text-muted-foreground">/month</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">Billed monthly</p>
+                          </div>
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                            billingCycle === "monthly" ? "border-primary bg-primary" : "border-muted-foreground/30"
+                          )}>
+                            {billingCycle === "monthly" && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                      </button>
 
-                {/* Guarantee */}
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="h-4 w-4" />
-                  <span>14-day money back guarantee</span>
-                </div>
+                      {/* Pay after 3 days notice */}
+                      <p className="text-center text-sm text-muted-foreground">
+                        Free for 3 days · You'll be charged on <span className="font-medium text-foreground">{formattedDate}</span>
+                      </p>
+
+                      {/* Guarantee */}
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Shield className="h-4 w-4" />
+                        <span>14-day money back guarantee</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Features */}
                 <div className="pt-5 border-t border-border/50">
