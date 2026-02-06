@@ -19,6 +19,7 @@ const VIP_EMAILS = [
   "expertt.webdev@gmail.com",
   "otmane.benyahya@sweetdeco.com",
   "starlinko.app@gmail.com",
+  "support@meubleoccasion.com",
 ];
 
 serve(async (req) => {
