@@ -359,6 +359,17 @@ export default function Index() {
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Or get a{" "}
+                <Link
+                  to={websiteUrl.trim() ? `/audit-premium?url=${encodeURIComponent(websiteUrl)}` : "/audit-premium"}
+                  className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Premium Audit
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+                {" "}with competitor analysis
+              </p>
             </div>
 
             {/* Sticky Mobile CTA - Fixed at bottom on mobile */}
