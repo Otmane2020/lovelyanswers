@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Loader2, Tag, Trash2, Sparkles, Check } from "lucide-react";
+import { BulkKeywordsDialog } from "@/components/keywords/BulkKeywordsDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
@@ -287,6 +288,13 @@ export function KeywordsSettings() {
             <Button onClick={handleAddKeyword} disabled={isAdding || !newKeyword.trim()} size="icon">
               {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </Button>
+            {project && (
+              <BulkKeywordsDialog
+                projectId={project.id}
+                existingKeywords={keywords.map((k) => k.keyword)}
+                onKeywordsAdded={fetchKeywords}
+              />
+            )}
           </div>
 
           <Button
