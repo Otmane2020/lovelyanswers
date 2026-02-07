@@ -278,7 +278,10 @@ export default function Index() {
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           </Link>
-          <div className="hidden md:flex items-center gap-4">
+           <div className="hidden md:flex items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link to="/audit">Free AEO Audit</Link>
+            </Button>
             <Button variant="ghost" asChild>
               <Link to="/pricing">Pricing</Link>
             </Button>
@@ -355,20 +358,19 @@ export default function Index() {
                   className="h-14 px-6 md:px-8 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg whitespace-nowrap"
                   onClick={handleGetStarted}
                 >
-                  Get Started Free
+                  🔍 Get Free AEO Audit
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Or get a{" "}
+                Free instant analysis of your AI visibility •{" "}
                 <Link
                   to={websiteUrl.trim() ? `/audit-premium?url=${encodeURIComponent(websiteUrl)}` : "/audit-premium"}
                   className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  Premium Audit
+                  Or get Premium Audit
                   <ArrowRight className="h-3 w-3" />
                 </Link>
-                {" "}with competitor analysis
               </p>
             </div>
 
@@ -390,7 +392,7 @@ export default function Index() {
                   className="w-full h-12 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl text-base font-semibold"
                   onClick={handleGetStarted}
                 >
-                  🚀 Get Free Audit
+                  🔍 Free AEO Audit
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </div>
@@ -414,6 +416,104 @@ export default function Index() {
 
       {/* AI Demo Section - Google & ChatGPT Simulation */}
       <AIDemoSection />
+
+      {/* Free AEO Audit Section */}
+      <section className="py-16 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-violet-500/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-emerald-500/15 to-cyan-500/15 rounded-full blur-[120px]" />
+        
+        <div className="container px-4 relative">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10 md:mb-14">
+              <Badge className="mb-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                <Zap className="mr-1 h-3 w-3" />
+                Free — No signup required
+              </Badge>
+              <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                Is Your Website{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500">Visible to AI?</span>
+              </h2>
+              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+                Get your free AEO score in 30 seconds. Discover how ChatGPT, Gemini, and Perplexity see your business.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              {[
+                {
+                  icon: <Globe className="h-6 w-6" />,
+                  title: "AI Visibility Score",
+                  description: "See if AI assistants can find and recommend your business to potential customers.",
+                  gradient: "from-emerald-500 to-cyan-500",
+                },
+                {
+                  icon: <FileText className="h-6 w-6" />,
+                  title: "Content Gap Analysis",
+                  description: "Identify what's missing from your content that prevents AI from citing you.",
+                  gradient: "from-cyan-500 to-violet-500",
+                },
+                {
+                  icon: <TrendingUp className="h-6 w-6" />,
+                  title: "Actionable Recommendations",
+                  description: "Get a clear roadmap to improve your ranking in AI search results.",
+                  gradient: "from-violet-500 to-fuchsia-500",
+                },
+              ].map((item, i) => (
+                <GlassCard key={i} className="p-6 text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white mx-auto mb-4 shadow-lg`}>
+                    {item.icon}
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </GlassCard>
+              ))}
+            </div>
+
+            <div className="max-w-xl mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    placeholder="https://yourwebsite.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    className="pl-12 h-14 text-base md:text-lg border-2 border-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+                <Button 
+                  size="lg" 
+                  className="h-14 px-8 gap-2 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg whitespace-nowrap"
+                  onClick={() => {
+                    if (websiteUrl.trim()) {
+                      navigate(`/audit?url=${encodeURIComponent(websiteUrl)}`);
+                    } else {
+                      navigate("/audit");
+                    }
+                  }}
+                >
+                  🔍 Get Free Audit
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  30-second analysis
+                </span>
+                <span className="flex items-center gap-1">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  No signup needed
+                </span>
+                <span className="flex items-center gap-1">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  100% free
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Trusted By Marquee */}
       <TrustedByMarquee />
