@@ -137,6 +137,25 @@ export default function Audit() {
   const [emailInput, setEmailInput] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [isPremiumLoading, setIsPremiumLoading] = useState(false);
+
+  const handlePremiumCheckout = async (url: string) => {
+    if (!url?.trim()) return;
+    setIsPremiumLoading(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("create-audit-checkout", {
+        body: { url: url.trim() },
+      });
+      if (fnError) throw fnError;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("[audit] Premium checkout error:", err);
+    } finally {
+      setIsPremiumLoading(false);
+    }
+  };
 
   // Force light theme
   useEffect(() => {
@@ -473,11 +492,16 @@ export default function Audit() {
                   <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" /> Content gap analysis with priority ranking</li>
                 </ul>
                 <Button
-                  onClick={() => navigate(`/audit-premium?url=${encodeURIComponent(websiteUrl || urlFromParams)}`)}
+                  onClick={() => handlePremiumCheckout(websiteUrl || urlFromParams)}
+                  disabled={isPremiumLoading}
                   className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Get Premium Audit
+                  {isPremiumLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Get Premium Audit — $9.99
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -648,13 +672,18 @@ export default function Audit() {
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                   <Button
-                    onClick={() => navigate(`/audit-premium?url=${encodeURIComponent(websiteUrl || urlFromParams)}`)}
+                    onClick={() => handlePremiumCheckout(websiteUrl || urlFromParams)}
+                    disabled={isPremiumLoading}
                     size="lg"
                     variant="outline"
                     className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
                   >
-                    <Sparkles className="h-5 w-5" />
-                    Get Premium Audit
+                    {isPremiumLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-5 w-5" />
+                    )}
+                    Get Premium Audit — $9.99
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">

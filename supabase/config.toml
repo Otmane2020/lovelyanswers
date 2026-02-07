@@ -175,3 +175,9 @@ verify_jwt = false
 
 [functions.analyze-aeo]
 verify_jwt = false
+
+[functions.create-audit-checkout]
+verify_jwt = false
+
+[functions.verify-audit-payment]
+verify_jwt = false
