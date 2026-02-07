@@ -31,7 +31,7 @@ serve(async (req) => {
 
     // Step 1: Run the audit (call free-audit logic inline to avoid function-to-function calls)
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
 
     let cleanUrl = url.trim();
     if (!cleanUrl.startsWith("http")) {
@@ -163,11 +163,13 @@ Rules:
 - Include actionable recommendations for warnings and fails
 - Return exactly 15 checks`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://lovelyanswers.com",
+        "X-Title": "LovelyAnswers Audit",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
