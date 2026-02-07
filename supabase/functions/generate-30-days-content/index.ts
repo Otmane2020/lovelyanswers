@@ -166,7 +166,8 @@ async function generateQuestions(
   description: string,
   language: string,
   apiKey: string,
-  count: number = 5
+  count: number = 5,
+  keywords: string[] = []
 ): Promise<{ question: string; intent: IntentType }[]> {
   const currentYear = new Date().getFullYear();
   
@@ -179,6 +180,7 @@ Règles:
 - Questions orientées décision (Comment choisir, Quel budget, Quelles erreurs éviter)
 - Ne pas utiliser le nom "${brandName}" dans les questions
 - Contexte ${currentYear}
+${keywords && keywords.length > 0 ? `\nMots-clés SEO du projet à UTILISER comme base pour les questions:\n${keywords.join(", ")}\n\nTransforme ces mots-clés en questions naturelles et décisionnelles.` : ""}
 
 Exemples:
 - "Comment choisir un mobilier écoresponsable de qualité ?"
@@ -193,6 +195,7 @@ Rules:
 - Decision-oriented (How to choose, What budget, What mistakes to avoid)
 - Don't use "${brandName}" in questions
 - ${currentYear} context
+${keywords && keywords.length > 0 ? `\nProject SEO keywords to USE as the basis for questions:\n${keywords.join(", ")}\n\nTransform these keywords into natural, decision-oriented questions.` : ""}
 
 Return ONLY this JSON (no markdown, no code block):
 {"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
@@ -787,10 +790,21 @@ serve(async (req) => {
         .lt("day", endDate.toISOString().split('T')[0]);
     }
 
+    // Fetch project keywords to inject into question generation
+    const { data: projectKeywords } = await supabase
+      .from("keywords")
+      .select("keyword")
+      .eq("project_id", projectId)
+      .eq("is_used", false)
+      .limit(30);
+
+    const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
+    console.log(`[generate-30-days] Found ${keywordList.length} unused keywords for question generation`);
+
     // Generate questions for this batch (1 question per day = 1 answer + 1 article = 2 items per day)
     const totalQuestions = days * questionsPerDay;
     console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per day for ${days} days, each produces 1 answer + 1 article)...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions);
+    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
