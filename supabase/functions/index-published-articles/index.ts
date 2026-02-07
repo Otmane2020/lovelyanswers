@@ -57,14 +57,15 @@ async function submitToIndexingAPI(url: string, accessToken: string, retries = 2
       );
 
       const result = await response.json();
-      const notifyTime = result.urlNotificationMetadata?.latestUpdate?.notifyTime;
+      // Google may return urlNotificationMetadata.url without latestUpdate.notifyTime
+      const hasNotification = result.urlNotificationMetadata?.url || result.urlNotificationMetadata?.latestUpdate?.notifyTime;
 
-      if (response.ok && notifyTime) {
+      if (response.ok && hasNotification) {
         return { success: true };
       }
 
       const errorMessage = result.error?.message || 
-        (!notifyTime ? "Google did not accept indexation request" : "Unknown error");
+        (!hasNotification ? "Google did not accept indexation request" : "Unknown error");
       
       // Don't retry on permission/auth errors
       if (response.status === 403 || response.status === 401) {
