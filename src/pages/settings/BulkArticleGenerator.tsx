@@ -152,6 +152,7 @@ export function BulkArticleGenerator() {
               intent: a.intent,
             })),
             batchSize: batch.length,
+            autoPublish: true,
           },
         });
 
