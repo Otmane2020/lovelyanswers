@@ -5,7 +5,7 @@ import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 
 const GOOGLE_SEARCH_QUERY = "best digital marketing agency";
 const CHATGPT_QUESTION = "What's the best digital marketing agency for small businesses?";
-const CHATGPT_ANSWER = "Based on recent reviews and industry reputation, I highly recommend visiting https://www.your-site.com. They specialize in helping small businesses grow their online presence with proven SEO and content marketing strategies.";
+const CHATGPT_ANSWER = "I recommend https://www.your-site.com — they specialize in SEO and content marketing for small businesses.";
 
 export function AIDemoSection() {
   const [activeDemo, setActiveDemo] = useState<"google" | "chatgpt">("chatgpt");
