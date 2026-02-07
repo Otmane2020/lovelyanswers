@@ -441,7 +441,36 @@ export default function Audit() {
                 </span>
               </div>
 
-              {/* CTA Banner */}
+              {/* Premium Audit Cross-sell */}
+              <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-500/10 dark:via-orange-500/10 dark:to-yellow-500/10 border-2 border-amber-300/50 rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-amber-500 text-white border-0 text-xs font-bold">
+                    ⭐ PREMIUM
+                  </Badge>
+                </div>
+                <h3 className="text-lg font-bold mb-2">
+                  🔬 Want the full deep-dive audit?
+                </h3>
+                <p className="text-muted-foreground text-sm mb-3">
+                  Our Premium AEO Audit goes 10x deeper: competitor analysis, AI citation scoring, content gap mapping, and a full strategic roadmap.
+                </p>
+                <ul className="text-sm space-y-1.5 mb-4 text-muted-foreground">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" /> Competitor AI visibility comparison</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" /> Full schema markup audit</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" /> 90-day strategic action plan</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0" /> Content gap analysis with priority ranking</li>
+                </ul>
+                <Button
+                  onClick={() => navigate(`/audit-premium?url=${encodeURIComponent(websiteUrl || urlFromParams)}`)}
+                  className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Get Premium Audit
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* CTA Banner - leads to onboarding/signup */}
               <div className="bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/20 rounded-2xl p-6 text-center">
                 <h3 className="text-lg font-bold mb-2">
                   🚀 Fix these issues automatically with LovelyAnswers
@@ -453,9 +482,12 @@ export default function Audit() {
                   onClick={handleGetStarted}
                   className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white hover:opacity-90"
                 >
-                  Fix My Site Now
+                  Create My Account & Fix My Site
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Free to start — no credit card required
+                </p>
               </div>
 
               {/* Email Capture - Send Report */}
@@ -593,15 +625,26 @@ export default function Audit() {
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                   LovelyAnswers fixes these issues and publishes expert content daily — automatically.
                 </p>
-                <Button
-                  onClick={handleGetStarted}
-                  size="lg"
-                  className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:opacity-90 text-lg px-8"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  Start Growing Now
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Button
+                    onClick={handleGetStarted}
+                    size="lg"
+                    className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:opacity-90 text-lg px-8"
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                    Create Account & Start
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/audit-premium?url=${encodeURIComponent(websiteUrl || urlFromParams)}`)}
+                    size="lg"
+                    variant="outline"
+                    className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    Get Premium Audit
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground mt-3">
                   <Shield className="inline h-3 w-3 mr-1" />
                   14-day money-back guarantee • No credit card required to start
