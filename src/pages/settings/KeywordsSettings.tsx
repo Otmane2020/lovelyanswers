@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Loader2, Tag, Trash2, Sparkles, Check } from "lucide-react";
+import { X, Plus, Loader2, Tag, Trash2, Sparkles, Check, Globe } from "lucide-react";
 import { BulkKeywordsDialog } from "@/components/keywords/BulkKeywordsDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -78,6 +78,7 @@ export function KeywordsSettings() {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [suggestions, setSuggestions] = useState<KeywordSuggestion[]>([]);
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   useEffect(() => {
     if (project?.id) fetchKeywords();
@@ -234,6 +235,51 @@ export function KeywordsSettings() {
     setSuggestions(suggestions.filter((s) => s.keyword !== keyword));
   };
 
+  const handleAutoFillFromWebsite = async () => {
+    if (!project?.id) return;
+
+    setIsAutoFilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-website", {
+        body: { url: project.website_url },
+      });
+
+      if (error) throw error;
+
+      if (data?.keywords && Array.isArray(data.keywords) && data.keywords.length > 0) {
+        const existingLower = keywords.map((k) => k.keyword.toLowerCase());
+        const newKeywords = data.keywords
+          .map((k: any) => (typeof k === "string" ? { keyword: k, intent: "informational" } : k))
+          .filter((k: any) => !existingLower.includes(k.keyword.toLowerCase()));
+
+        if (newKeywords.length === 0) {
+          toast.info("No new keywords found from your website");
+          return;
+        }
+
+        const rows = newKeywords.map((k: any) => ({
+          project_id: project.id,
+          keyword: k.keyword,
+          intent: k.intent || "informational",
+          is_used: false,
+        }));
+
+        const { error: insertError } = await supabase.from("keywords").insert(rows);
+        if (insertError) throw insertError;
+
+        await fetchKeywords();
+        toast.success(`${newKeywords.length} keywords extracted from your website`);
+      } else {
+        toast.info("No keywords found on your website");
+      }
+    } catch (error) {
+      console.error("Error auto-filling keywords:", error);
+      toast.error("Failed to extract keywords from website");
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   const usedCount = keywords.filter((k) => k.is_used).length;
   const unusedCount = keywords.filter((k) => !k.is_used).length;
 
@@ -297,24 +343,44 @@ export function KeywordsSettings() {
             )}
           </div>
 
-          <Button
-            variant="outline"
-            onClick={fetchAISuggestions}
-            disabled={isFetchingSuggestions}
-            className="w-full gap-2"
-          >
-            {isFetchingSuggestions ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating suggestions...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Suggest daily keywords with AI
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleAutoFillFromWebsite}
+              disabled={isAutoFilling}
+              className="flex-1 gap-2"
+            >
+              {isAutoFilling ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Extracting from website...
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  Auto-fill from website
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={fetchAISuggestions}
+              disabled={isFetchingSuggestions}
+              className="flex-1 gap-2"
+            >
+              {isFetchingSuggestions ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating suggestions...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  AI suggestions
+                </>
+              )}
+            </Button>
+          </div>
 
           {suggestions.length > 0 && (
             <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
