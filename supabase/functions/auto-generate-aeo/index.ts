@@ -253,7 +253,7 @@ Generate 5 decision-oriented questions. Return JSON:
 }`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -363,7 +363,7 @@ Transform each keyword into a unique decision-oriented question. Return JSON:
 }`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -531,7 +531,7 @@ Return ONLY valid JSON:
 }`;
 
   const res = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
+    "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
       headers: {
@@ -568,8 +568,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("Missing LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
     const auth = req.headers.get("authorization");
     if (!auth) throw new Error("Missing auth header");

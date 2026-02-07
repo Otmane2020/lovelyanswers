@@ -976,7 +976,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const lovableApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -1512,7 +1512,7 @@ Return JSON with these fields:
 
 CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -1646,7 +1646,7 @@ Return JSON:
   ]
 }`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -1722,7 +1722,7 @@ Return JSON (respond in ${context.language === "fr" ? "French" : "English"}):
   "recommendedSubreddits": ["sub1", "sub2", "sub3"]
 }`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -1839,7 +1839,7 @@ Write the Reddit comment now:`;
 
   console.log(`[reddit-agent] Generating reply for r/${subreddit}: "${title.substring(0, 50)}..." (brand: ${shouldMentionBrand}, link: ${shouldIncludeLink})`);
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

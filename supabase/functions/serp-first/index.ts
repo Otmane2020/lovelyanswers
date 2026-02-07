@@ -223,7 +223,7 @@ async function lovableGenerateAnswer(
   }));
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
     const dfPassword = Deno.env.get("DATAFORSEO_PASSWORD");
     const firecrawlKey =
       Deno.env.get("FIRECRAWL_API_KEY_CUSTOM") || Deno.env.get("FIRECRAWL_API_KEY");
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const lovableKey = Deno.env.get("OPENROUTER_API_KEY");
 
     if (!dfLogin || !dfPassword) {
       return new Response(

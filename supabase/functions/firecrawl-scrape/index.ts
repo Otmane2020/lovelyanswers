@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
 
     // ============= STEP 1: Scrape + Competitors in PARALLEL =============
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const lovableApiKey = Deno.env.get('OPENROUTER_API_KEY');
     const dfLogin = Deno.env.get('DATAFORSEO_LOGIN');
     const dfPassword = Deno.env.get('DATAFORSEO_PASSWORD');
 
@@ -502,7 +502,7 @@ async function extractAudiencesFast(description: string, content: string, langua
 
     const langInstruction = language === 'fr' ? 'Réponds en FRANÇAIS.' : 'Respond in ENGLISH.';
     
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -562,7 +562,7 @@ async function detectBusinessType(
       .map(k => k.keyword)
       .join(', ');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -802,7 +802,7 @@ async function extractKeywordsFast(description: string, content: string, brandNa
     // Content is already sampled across the page; keep it reasonably sized for speed.
     const contentForModel = content.substring(0, 5000);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -984,7 +984,7 @@ async function scoreCompetitorSimilarity(
 
     const langInstruction = language === 'fr' ? 'Réponds en JSON.' : 'Respond in JSON.';
     
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -1358,7 +1358,7 @@ async function generateQaAndSeoTitlesFromCompetitors(
         : 'Respond in ENGLISH.';
 
     const response = await fetch(
-      'https://ai.gateway.lovable.dev/v1/chat/completions',
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: 'POST',
         headers: {

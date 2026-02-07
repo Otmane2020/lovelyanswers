@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const lovableApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
     if (!firecrawlApiKey) {
       return new Response(
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
         const combinedContent = batch.map((c, idx) => `[PAGE ${idx + 1}: ${c.url}]\n${c.content}`).join('\n\n---\n\n');
 
         try {
-          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
