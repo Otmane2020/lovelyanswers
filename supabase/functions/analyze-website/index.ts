@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const dataforseoLogin = Deno.env.get("DATAFORSEO_LOGIN");
     const dataforseoPassword = Deno.env.get("DATAFORSEO_PASSWORD");
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
     // Auth check
     const authHeader = req.headers.get("Authorization");
@@ -193,7 +193,7 @@ serve(async (req) => {
     console.log("[ANALYZE-WEBSITE] 📄 Total page content extracted:", pageContent.length, "chars");
 
     // Step 2: Use AI to analyze the FULL page content and find competitors + keywords
-    if (openaiApiKey && pageContent.length > 50) {
+    if (openrouterApiKey && pageContent.length > 50) {
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Using AI to analyze full page content...");
         
@@ -236,20 +236,19 @@ Réponds UNIQUEMENT avec ce JSON (pas d'explication):
   "audiences": ["audience 1", "audience 2", "audience 3"]
 }`;
 
-        const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${openaiApiKey}`,
+            "Authorization": `Bearer ${openrouterApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: analysisPrompt }
             ],
             temperature: 0.3,
-            max_tokens: 2000,
           }),
         });
 
@@ -303,7 +302,7 @@ Réponds UNIQUEMENT avec ce JSON (pas d'explication):
     }
 
     // Step 2b: Fallback - Use simpler AI call if main analysis failed
-    if (competitors.length === 0 && openaiApiKey && (description || allHeadings.length > 0)) {
+    if (competitors.length === 0 && openrouterApiKey && (description || allHeadings.length > 0)) {
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Fallback: Simple competitor search...");
         
@@ -315,20 +314,19 @@ ${allHeadings.length > 0 ? `Contenu: ${allHeadings.slice(0, 5).join(", ")}` : ''
 Réponds UNIQUEMENT avec un JSON array de domaines:
 ["concurrent1.com", "concurrent2.fr"]`;
 
-        const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${openaiApiKey}`,
+            "Authorization": `Bearer ${openrouterApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: "Tu es un expert en analyse de marché et en identification de concurrents. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: prompt }
             ],
             temperature: 0.3,
-            max_tokens: 500,
           }),
         });
 
