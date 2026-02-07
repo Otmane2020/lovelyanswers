@@ -181,3 +181,6 @@ verify_jwt = false
 
 [functions.verify-audit-payment]
 verify_jwt = false
+
+[functions.bulk-index-articles]
+verify_jwt = false

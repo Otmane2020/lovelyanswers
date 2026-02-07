@@ -1212,6 +1212,9 @@ export type Database = {
           author: string | null
           body: string
           created_at: string
+          gsc_index_error: string | null
+          gsc_indexed: boolean | null
+          gsc_indexed_at: string | null
           id: string
           meta_description: string | null
           published_at: string
@@ -1224,6 +1227,9 @@ export type Database = {
           author?: string | null
           body: string
           created_at?: string
+          gsc_index_error?: string | null
+          gsc_indexed?: boolean | null
+          gsc_indexed_at?: string | null
           id?: string
           meta_description?: string | null
           published_at?: string
@@ -1236,6 +1242,9 @@ export type Database = {
           author?: string | null
           body?: string
           created_at?: string
+          gsc_index_error?: string | null
+          gsc_indexed?: boolean | null
+          gsc_indexed_at?: string | null
           id?: string
           meta_description?: string | null
           published_at?: string
