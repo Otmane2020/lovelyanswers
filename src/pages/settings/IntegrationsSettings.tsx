@@ -188,7 +188,20 @@ export function IntegrationsSettings() {
                         {integration.config?.name || cms?.name || integration.platform}
                       </p>
                       <p className="text-sm text-muted-foreground truncate max-w-md">
-                        {integration.config?.endpoint || "Connected"}
+                        {(() => {
+                          const endpoint = integration.config?.endpoint;
+                          if (!endpoint) return "Connected";
+                          try {
+                            const url = new URL(endpoint);
+                            // Hide raw supabase URLs, show clean domain instead
+                            if (url.hostname.endsWith(".supabase.co")) {
+                              return project?.domain || project?.website_url || "Connected";
+                            }
+                            return url.hostname;
+                          } catch {
+                            return endpoint;
+                          }
+                        })()}
                       </p>
                     </div>
                   </div>
