@@ -281,34 +281,121 @@ Deno.serve(async (req) => {
     const dfLogin = Deno.env.get('DATAFORSEO_LOGIN');
     const dfPassword = Deno.env.get('DATAFORSEO_PASSWORD');
 
-    // Start all requests in parallel
-    const scrapePromise = fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: formattedUrl,
-        formats: ['markdown', 'html'], // Include HTML for CMS detection
-        onlyMainContent: false, // Full HTML needed for CMS detection
-        timeout: 15000,
-      }),
-    });
+    // Try Firecrawl with both keys, fallback to basic fetch on 402
+    let data: any = null;
+    let firecrawlSuccess = false;
+    const keysToTry = [
+      { key: Deno.env.get('FIRECRAWL_API_KEY_CUSTOM'), label: 'CUSTOM' },
+      { key: Deno.env.get('FIRECRAWL_API_KEY'), label: 'CONNECTOR' },
+    ].filter(k => k.key);
 
-    // Wait for scrape
-    const response = await scrapePromise;
-    const data = await response.json();
+    for (const { key, label } of keysToTry) {
+      try {
+        console.log('[SCRAPE] Trying Firecrawl with', label, 'key...');
+        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            formats: ['markdown', 'html'],
+            onlyMainContent: false,
+            timeout: 15000,
+          }),
+        });
 
-    if (!response.ok) {
-      console.error('Firecrawl API error:', data);
-      return new Response(
-        JSON.stringify({ success: false, error: data.error || 'Scrape failed' }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        if (response.ok) {
+          data = await response.json();
+          firecrawlSuccess = true;
+          console.log('[SCRAPE] Firecrawl done in', Date.now() - startTime, 'ms with', label);
+          break;
+        }
+
+        const errBody = await response.json().catch(() => ({}));
+        console.warn('[SCRAPE] Firecrawl', label, 'failed:', response.status, errBody.error || '');
+
+        if (response.status !== 402) {
+          // Non-credit error, don't try other keys
+          break;
+        }
+      } catch (e) {
+        console.warn('[SCRAPE] Firecrawl', label, 'exception:', e);
+      }
     }
 
-    console.log('[SCRAPE] Firecrawl done in', Date.now() - startTime, 'ms');
+    // Fallback: basic HTML fetch if Firecrawl failed (402 credits exhausted)
+    if (!firecrawlSuccess) {
+      console.log('[SCRAPE] All Firecrawl keys exhausted, falling back to basic fetch...');
+      try {
+        const fetchRes = await fetch(formattedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+          },
+        });
+        if (fetchRes.ok) {
+          const html = await fetchRes.text();
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+          const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
+
+          // Strip tags for markdown-like text
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          let textContent = '';
+          if (bodyMatch) {
+            textContent = bodyMatch[1]
+              .replace(/<script[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[\s\S]*?<\/style>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .substring(0, 10000);
+          }
+
+          data = {
+            data: {
+              markdown: textContent,
+              html: html.substring(0, 50000),
+              metadata: {
+                title: titleMatch?.[1]?.trim() || '',
+                description: descMatch?.[1]?.trim() || '',
+                language: langMatch?.[1]?.substring(0, 2) || '',
+              },
+            },
+          };
+          console.log('[SCRAPE] Basic fetch successful, extracted', textContent.length, 'chars');
+        } else {
+          console.error('[SCRAPE] Basic fetch failed:', fetchRes.status);
+        }
+      } catch (fetchErr) {
+        console.error('[SCRAPE] Basic fetch error:', fetchErr);
+      }
+    }
+
+    // If everything failed, return minimal data from URL parsing
+    if (!data) {
+      console.log('[SCRAPE] All methods failed, returning URL-based data');
+      const domainName = ownDomain.split('.')[0];
+      const brandFallback = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            brandName: brandFallback,
+            description: '',
+            language: 'en',
+            audiences: ['business owners', 'professionals', 'decision makers'],
+            competitors: [],
+            keywords: [],
+            cms: '',
+            qaSeo: [],
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Extract metadata
     const metadata = data.data?.metadata || {};
