@@ -37,10 +37,10 @@ export function AIDemoSection() {
           setTimeout(() => {
             setActiveDemo("chatgpt");
             setIsAnimating(false);
-          }, 4000);
-        }, 500);
+          }, 2000);
+        }, 300);
       }
-    }, 80);
+    }, 40);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -80,12 +80,12 @@ export function AIDemoSection() {
               setTimeout(() => {
                 setActiveDemo("google");
                 setIsAnimating(false);
-              }, 4000);
+              }, 2000);
             }
-          }, 25);
-        }, 1000);
+          }, 12);
+        }, 500);
       }
-    }, 50);
+    }, 25);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
