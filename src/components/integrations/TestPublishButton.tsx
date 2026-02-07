@@ -25,24 +25,40 @@ export function TestPublishButton({
     setTestResult(null);
 
     try {
-      // Try to fetch a real answer from the project
       let title = "Test Article from AEO Reply";
       let body = `<p>This is a test article published from AEO Reply on ${new Date().toLocaleString()}.</p>`;
       let sourceId = "test";
 
       if (projectId) {
-        const { data: answers } = await supabase
-          .from("answers")
-          .select("id, question, answer, slug")
+        // First try to get a real article with full HTML content
+        const { data: articles } = await supabase
+          .from("articles")
+          .select("id, title, html_content, content, slug")
           .eq("project_id", projectId)
+          .not("html_content", "is", null)
           .order("created_at", { ascending: false })
           .limit(1);
 
-        if (answers && answers.length > 0) {
-          const answer = answers[0];
-          title = answer.question;
-          body = answer.answer;
-          sourceId = answer.id;
+        if (articles && articles.length > 0 && articles[0].html_content) {
+          const article = articles[0];
+          title = article.title;
+          body = article.html_content;
+          sourceId = article.id;
+        } else {
+          // Fallback: use an answer but wrap in HTML
+          const { data: answers } = await supabase
+            .from("answers")
+            .select("id, question, answer, slug")
+            .eq("project_id", projectId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (answers && answers.length > 0) {
+            const answer = answers[0];
+            title = answer.question;
+            body = `<h1>${answer.question}</h1><p>${answer.answer}</p>`;
+            sourceId = answer.id;
+          }
         }
       }
 
