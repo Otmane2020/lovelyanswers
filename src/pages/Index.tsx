@@ -203,16 +203,7 @@ export default function Index() {
     }
   }, [user, navigate]);
 
-  // Force dark theme on landing page
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-    return () => {
-      // Cleanup: restore light theme when leaving
-      document.documentElement.classList.remove("dark");
-    };
-  }, []);
-
-  // Force light theme for landing page
+  // Force light theme on landing page
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
