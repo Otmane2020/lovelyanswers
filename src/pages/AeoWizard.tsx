@@ -10,6 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
 
+interface AnalyzedKeyword {
+  keyword: string;
+  intent: string;
+}
+
 export default function AeoWizard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -18,6 +23,9 @@ export default function AeoWizard() {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [analyzedKeywords, setAnalyzedKeywords] = useState<AnalyzedKeyword[]>([]);
+  const [analyzedCompetitors, setAnalyzedCompetitors] = useState<string[]>([]);
+  const [analyzedAudiences, setAnalyzedAudiences] = useState<string[]>([]);
   const [data, setData] = useState({
     websiteUrl: "",
     language: "en",
@@ -66,7 +74,8 @@ export default function AeoWizard() {
         ? data.websiteUrl 
         : `https://${data.websiteUrl}`;
 
-      const { data: result, error } = await supabase.functions.invoke("firecrawl-scrape", {
+      // Use analyze-website which extracts keywords, competitors, audiences
+      const { data: result, error } = await supabase.functions.invoke("analyze-website", {
         body: { url: urlToAnalyze },
       });
 
@@ -79,6 +88,15 @@ export default function AeoWizard() {
           language: result.language || "en",
         }));
       }
+      
+      // Store extracted keywords, competitors, audiences for later
+      if (result?.keywords && Array.isArray(result.keywords)) {
+        setAnalyzedKeywords(result.keywords.map((k: any) => 
+          typeof k === "string" ? { keyword: k, intent: "informational" } : k
+        ));
+      }
+      if (result?.competitors) setAnalyzedCompetitors(result.competitors);
+      if (result?.targetAudiences) setAnalyzedAudiences(result.targetAudiences);
       
       setStep(2);
     } catch (error) {
@@ -102,12 +120,34 @@ export default function AeoWizard() {
       
       const domain = new URL(urlToSave).hostname.replace("www.", "");
 
-      await createProject.mutateAsync({
+      const project = await createProject.mutateAsync({
         name: domain,
         website_url: urlToSave,
         language: data.language,
         business_description: data.businessDescription,
+        competitors: analyzedCompetitors.length > 0 ? analyzedCompetitors : undefined,
+        audience: analyzedAudiences.length > 0 ? analyzedAudiences.join(", ") : undefined,
       });
+
+      // Auto-insert keywords extracted from website analysis
+      if (analyzedKeywords.length > 0 && project?.id) {
+        const keywordRows = analyzedKeywords.map((k) => ({
+          project_id: project.id,
+          keyword: k.keyword,
+          intent: k.intent || "informational",
+          is_used: false,
+        }));
+        
+        const { error: kwError } = await supabase
+          .from("keywords")
+          .insert(keywordRows);
+        
+        if (kwError) {
+          console.error("Failed to insert keywords:", kwError);
+        } else {
+          console.log(`Auto-inserted ${keywordRows.length} keywords`);
+        }
+      }
 
       toast.success("Project created! Welcome to LovelyAnswers 💜");
       navigate("/dashboard");
