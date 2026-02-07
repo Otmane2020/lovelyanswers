@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, ChevronDown, Crown, Bell, Moon, Sun, LogOut, Check } from "lucide-react";
+import { Globe, ChevronDown, Crown, Bell, LogOut, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -23,15 +23,6 @@ export function AppTopbar() {
   const { subscribed, isLoading: subLoading, startCheckout } = useSubscription();
   const setActiveProject = useSetActiveProject();
   const [currentLanguage, setCurrentLanguage] = useState(languages[0]);
-  const [isDark, setIsDark] = useState(() => {
-    // Check if dark class is on html element
-    return document.documentElement.classList.contains('dark');
-  });
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -107,7 +98,6 @@ export function AppTopbar() {
           </Button>
         )}
         
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>{isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</Button>
         <Button variant="ghost" size="icon" className="relative"><Bell className="h-5 w-5" /></Button>
 
         <DropdownMenu>

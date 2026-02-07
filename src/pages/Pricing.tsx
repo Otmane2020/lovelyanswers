@@ -126,12 +126,9 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  // Force dark theme on public pages
+  // Force light theme on public pages
   useEffect(() => {
-    document.documentElement.classList.add("dark");
-    return () => {
-      document.documentElement.classList.remove("dark");
-    };
+    document.documentElement.classList.remove("dark");
   }, []);
 
   return (
