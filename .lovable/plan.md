@@ -1,87 +1,132 @@
 
 
-# Checkout Page Redesign
+# Plan: Ajouter la fonction analyze-aeo + Audit Premium + Cross-sell
 
-## Summary of Changes
+## Objectif
 
-This plan redesigns the `/checkout` page to be more professional, conversion-oriented, and aligned with the marketing strategy. Here are all the changes:
-
----
-
-## 1. Switch to Light Theme
-
-The page currently forces dark mode. We will switch it to force **light mode** instead (removing `dark` class), consistent with other marketing pages (Index, Auth, Onboarding).
-
-## 2. Default to Annual Billing
-
-The billing cycle default will change from `"monthly"` to `"annual"`. The annual card will emphasize **"2 months free"** instead of the current "Best value" badge, making the savings immediately clear.
-
-## 3. Remove 3-Day Trial from Stripe Checkout
-
-The `create-checkout` edge function currently sets `trial_period_days: 3`. This will be **removed** so users are charged immediately upon checkout (no free trial).
-
-## 4. Redesign Pricing Cards
-
-- **Annual card**: Show crossed-out original price, highlight the monthly equivalent, and add a prominent green "2 months free" badge
-- **Monthly card**: Clean display with `$29/month`, remove the misleading "50% OFF" badge
-- Both cards get a more polished, professional look with better visual hierarchy
-
-## 5. Replace Amateur Icons with Clean Feature List
-
-Instead of using emojis inline with a generic `Check` icon, each feature will use a **styled gradient check icon** only (no emojis). The feature text will be clean and professional:
-
-- AEO Answers: Rank #1 on ChatGPT, Gemini and Perplexity
-- 30 SEO-optimized articles auto-published monthly
-- Local AEO: Dominate local AI search results
-- Auto-posting to WordPress, Shopify, Webflow and more
-- Automated keyword research and SERP clustering
-- Reddit Agent for brand visibility and backlinks
-- Technical SEO audit (Google + AI crawlers)
-- 20+ languages supported worldwide
-
-## 6. Add TrustAvis Social Proof Widget
-
-A clickable TrustAvis badge will be added below the guarantee section, showing:
-- 4.9 star rating (with gold star icons)
-- 289 reviews
-- "Excellent" badge
-- Links to: https://trust-avis.com/entreprise/lovelyanswers
-
-## 7. Improve CTA Button
-
-The main call-to-action button will display:
-- "Start now" with the price for the selected plan
-- Gradient styling for visual impact
-- Larger, more prominent sizing
-
-## 8. Improve Overall Layout
-
-- Add a subtle tagline under the title: "Everything you need to dominate AI search results"
-- Better spacing and visual breathing room
-- Professional typography hierarchy
-- Keep the 14-day money-back guarantee with shield icon
+1. Creer la edge function `analyze-aeo` (audit detaille avec analyse concurrentielle complete)
+2. Ajouter une table `reports` pour stocker les rapports premium
+3. Creer une page `/audit-premium` pour afficher les resultats detailles
+4. Modifier la page d'accueil pour proposer les 2 options (Free Audit / Premium Audit)
+5. Ajouter un CTA cross-sell dans l'email d'audit gratuit
+6. Corriger l'analyse des concurrents (utiliser Firecrawl + OpenRouter au lieu de l'approche actuelle)
 
 ---
 
-## Technical Details
+## Etape 1 : Edge Function `analyze-aeo`
 
-### Files Modified
+Creer `supabase/functions/analyze-aeo/index.ts` base sur le code fourni, avec ces adaptations :
+- Remplacer `OPENAI_API_KEY` par `OPENROUTER_API_KEY` (coherence avec le projet)
+- Utiliser le modele `google/gemini-2.5-flash` via OpenRouter
+- Garder la logique de cache (slug -> reports table)
+- Prompt complet avec `competitorLandscape`, `macroAnalysis`, `microAnalysis`, etc.
+- Scraping via Firecrawl pour des donnees riches
 
-1. **`src/pages/Checkout.tsx`** -- Full redesign:
-   - Change `useEffect` from adding `dark` class to removing it (light theme)
-   - Change default `billingCycle` state from `"monthly"` to `"annual"`
-   - Remove emojis from features list
-   - Redesign pricing cards with "2 months free" badge on annual
-   - Remove "50% OFF" badge from monthly
-   - Add TrustAvis social proof section with external link
-   - Use styled gradient checkmarks instead of plain icons
-   - Improve overall layout and typography
+Ajouter dans `supabase/config.toml` :
+```text
+[functions.analyze-aeo]
+verify_jwt = false
+```
 
-2. **`supabase/functions/create-checkout/index.ts`** -- Remove trial:
-   - Remove `subscription_data: { trial_period_days: 3 }` from the Stripe checkout session creation
-   - Users will be charged immediately
+---
 
-### No Database Changes Required
+## Etape 2 : Table `reports` (migration SQL)
 
-### No New Dependencies Required
+Creer la table `reports` pour persister les rapports premium :
+
+```sql
+CREATE TABLE public.reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  url text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  company_info jsonb DEFAULT '{}',
+  scores jsonb DEFAULT '{}',
+  macro_analysis jsonb DEFAULT '{}',
+  micro_analysis jsonb DEFAULT '{}',
+  recommendations jsonb DEFAULT '{}',
+  kpi_tracking jsonb DEFAULT '[]',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view reports" ON public.reports
+  FOR SELECT USING (true);
+```
+
+---
+
+## Etape 3 : Page `/audit-premium`
+
+Creer `src/pages/AuditPremium.tsx` qui :
+- Accepte une URL en parametre (`?url=...`) ou un ID de rapport (`?id=...`)
+- Appelle `analyze-aeo` pour generer le rapport
+- Affiche les resultats en sections :
+  - **Scores** : global, GSO, AEO, schema, content (score rings)
+  - **Infos entreprise** : nom, tagline, KPIs detectes
+  - **Analyse concurrentielle** : tableau comparatif avec barres de presence, forces/faiblesses
+  - **Tendances marche** : cards avec impact et score
+  - **Questions cles** : liste avec volume, difficulte, priorite
+  - **Recommandations** : immediate / court terme / long terme
+  - CTA pour s'inscrire
+
+Ajouter la route dans `App.tsx`.
+
+---
+
+## Etape 4 : Modifier la page d'accueil (Index.tsx)
+
+Modifier la section hero pour proposer 2 actions :
+- Le bouton actuel "Get Started Free" / "Get Free Audit" reste identique
+- Ajouter un lien secondaire sous le CTA principal : "Or get a **Premium Audit** with competitor analysis"
+- Ce lien redirige vers `/audit-premium?url=...`
+
+---
+
+## Etape 5 : Cross-sell dans l'email d'audit
+
+Modifier `supabase/functions/send-audit-email/index.ts` pour ajouter une section apres les resultats :
+
+```html
+<!-- Premium Audit CTA -->
+<div style="background: #f8f5ff; border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; text-align: center;">
+  <h3>Want to see how you compare to competitors?</h3>
+  <p>Get a Premium AEO Audit with competitor landscape, market trends, and strategic recommendations.</p>
+  <a href="https://lovelyanswers.lovable.app/audit-premium?url={url}">Get Premium Audit (Free)</a>
+</div>
+```
+
+---
+
+## Etape 6 : Corriger l'analyse concurrentielle
+
+Le prompt de `analyze-aeo` est deja excellent pour trouver des vrais concurrents (regle "Les concurrents doivent etre des entreprises REELLES du meme secteur"). En utilisant Firecrawl pour scraper le contenu complet + les liens, l'IA dispose de suffisamment de contexte pour identifier les bons concurrents.
+
+Contrairement a `analyze-website` qui utilise un simple fetch HTML et des appels AI minimaux, `analyze-aeo` :
+- Scrappe avec Firecrawl (JavaScript rendering, contenu complet)
+- Envoie un prompt beaucoup plus detaille avec des regles strictes sur les concurrents
+- Demande explicitement 3 concurrents reels + le site analyse
+- Inclut les forces et faiblesses de chaque concurrent
+
+---
+
+## Fichiers impactes
+
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/analyze-aeo/index.ts` | Nouveau |
+| `supabase/config.toml` | Ajouter section analyze-aeo |
+| `src/pages/AuditPremium.tsx` | Nouveau |
+| `src/App.tsx` | Ajouter route /audit-premium |
+| `src/pages/Index.tsx` | Ajouter lien Premium Audit |
+| `supabase/functions/send-audit-email/index.ts` | Ajouter CTA cross-sell |
+| Migration SQL | Table `reports` |
+
+## Details techniques
+
+- **API** : OpenRouter avec `OPENROUTER_API_KEY` existante + modele `google/gemini-2.5-flash`
+- **Scraping** : Firecrawl via `FIRECRAWL_API_KEY` existante
+- **Cache** : Les rapports sont caches par slug dans la table `reports` (pas de regeneration pour le meme domaine)
+- **Pas d'auth requise** : L'audit premium est public (outil marketing d'acquisition)
 
