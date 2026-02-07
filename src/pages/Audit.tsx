@@ -244,7 +244,19 @@ export default function Audit() {
   };
 
   const handleGetStarted = () => {
-    navigate(`/onboarding?url=${encodeURIComponent(websiteUrl || urlFromParams)}`);
+    const url = websiteUrl || urlFromParams;
+    // Save minimal onboarding data so Auth page can auto-create the project
+    const onboardingData = {
+      websiteUrl: url.startsWith('http') ? url : `https://${url}`,
+      language: 'en',
+      businessDescription: '',
+      targetAudiences: [],
+      keywords: [],
+    };
+    localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
+    localStorage.setItem('onboarding_email', '');
+    // Go directly to signup instead of onboarding
+    navigate('/auth?mode=signup');
   };
 
   const handleSendEmail = async (e: React.FormEvent) => {
