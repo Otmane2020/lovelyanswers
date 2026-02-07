@@ -502,6 +502,7 @@ export default function AeoIntegrations() {
                       <TestPublishButton
                         integrationId={integration.id}
                         platformName={cms?.name || integration.platform}
+                        projectId={project?.id}
                       />
                       <Badge className="bg-green-500/20 text-green-600 border-0">
                         Connected
