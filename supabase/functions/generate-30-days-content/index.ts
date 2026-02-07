@@ -198,7 +198,7 @@ Return ONLY this JSON (no markdown, no code block):
 {"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -337,7 +337,7 @@ Return ONLY this JSON:
 {"answer":"2-3 sentence response...","bullets":["criterion 1","criterion 2","criterion 3"],"faq":[{"q":"related question?","a":"short factual answer"}]}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -559,7 +559,7 @@ Return ONLY this JSON (no markdown in content, pure HTML):
 {"title":"Clear title with question","content":"<h1>Title</h1><p>Factual introduction...</p><h2>Section 1</h2><p>...</p><ul><li>...</li></ul><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -653,8 +653,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("Missing LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
     const auth = req.headers.get("authorization");
     if (!auth) throw new Error("Missing auth header");

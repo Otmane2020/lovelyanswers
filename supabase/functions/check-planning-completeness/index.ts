@@ -73,7 +73,7 @@ async function generateQuestions(
   const userPrompt = `Business: ${brandName}\nDescription: ${description}\n\nGenerate ${count} unique COMPLETE QUESTIONS. Return JSON: {"questions": [{"question": "...", "intent": "criteria|price|howto|comparison|why|best"}]}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -127,7 +127,7 @@ async function generateAnswer(
   const userPrompt = `Question: ${question}\nBrand: ${brandName}\nDescription: ${description}\nIntent: ${intent}\n\nReturn JSON: {"answer": "...", "bullets": [], "faq": []}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -170,7 +170,7 @@ async function generateArticle(
   const userPrompt = `Question: ${question}\nAnswer: ${answer}\nBrand: ${brandName}\n\nReturn JSON: {"title": "...", "content": "...", "metaDescription": "..."}`;
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -244,8 +244,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("Missing LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
     console.log("[check-planning] Starting planning completeness check...");
 

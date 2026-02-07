@@ -689,7 +689,7 @@ Reply in JSON:
   "keywords": ["main keyword", "secondary keyword 1", "secondary keyword 2", "secondary keyword 3"]
 }`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
@@ -753,7 +753,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const lovableApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
     
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
