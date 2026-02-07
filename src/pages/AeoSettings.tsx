@@ -11,8 +11,14 @@ import { KeywordsSettings } from "./settings/KeywordsSettings";
 import { AudiencesSettings } from "./settings/AudiencesSettings";
 import { AnalyticsSettings } from "./settings/AnalyticsSettings";
 import { BulkArticleGenerator } from "./settings/BulkArticleGenerator";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ADMIN_EMAILS = ["otmane.benyahya@sweetdeco.com", "oben.rockman@gmail.com"];
 
 export default function AeoSettings() {
+  const { user } = useAuth();
+  const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -83,12 +89,14 @@ export default function AeoSettings() {
             >
               Google Analytics
             </TabsTrigger>
-            <TabsTrigger 
-              value="bulk-generator"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
-            >
-              Bulk Generator
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger 
+                value="bulk-generator"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+              >
+                Bulk Generator
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <div className="mt-6 max-w-2xl">
@@ -122,9 +130,11 @@ export default function AeoSettings() {
             <TabsContent value="analytics" className="mt-0">
               <AnalyticsSettings />
             </TabsContent>
-            <TabsContent value="bulk-generator" className="mt-0 max-w-4xl">
-              <BulkArticleGenerator />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="bulk-generator" className="mt-0 max-w-4xl">
+                <BulkArticleGenerator />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </div>
