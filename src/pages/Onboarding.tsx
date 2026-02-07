@@ -404,6 +404,16 @@ export default function Onboarding() {
       // Track step 3 with email
       await trackStep(3, { email: data.email });
       
+      // Fire-and-forget: send audit report by email
+      if (data.email && data.websiteUrl) {
+        supabase.functions.invoke('send-audit-email', {
+          body: { url: data.websiteUrl, email: data.email },
+        }).then(({ data: res, error }) => {
+          if (error) console.error('[ONBOARDING] Audit email error:', error);
+          else console.log('[ONBOARDING] Audit email sent:', res?.auditId);
+        });
+      }
+      
       analyzeWebsite(data.websiteUrl);
       
     } else if (currentStep === 5) {
