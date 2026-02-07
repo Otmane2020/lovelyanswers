@@ -8,7 +8,7 @@ const CHATGPT_QUESTION = "What's the best digital marketing agency for small bus
 const CHATGPT_ANSWER = "Based on recent reviews and industry reputation, I highly recommend visiting https://www.your-site.com. They specialize in helping small businesses grow their online presence with proven SEO and content marketing strategies.";
 
 export function AIDemoSection() {
-  const [activeDemo, setActiveDemo] = useState<"google" | "chatgpt">("google");
+  const [activeDemo, setActiveDemo] = useState<"google" | "chatgpt">("chatgpt");
   const [googleTypedText, setGoogleTypedText] = useState("");
   const [showGoogleResults, setShowGoogleResults] = useState(false);
   const [chatTypedQuestion, setChatTypedQuestion] = useState("");
