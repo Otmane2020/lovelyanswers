@@ -32,6 +32,7 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { InactivityPopup } from "@/components/InactivityPopup";
+import { AIDemoSection } from "@/components/landing/AIDemoSection";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -399,6 +400,9 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* AI Demo Section - Google & ChatGPT Simulation */}
+      <AIDemoSection />
 
       {/* Trusted By Marquee */}
       <TrustedByMarquee />
