@@ -58,15 +58,22 @@ async function generateQuestion(
   description: string,
   language: string,
   apiKey: string,
-  dayNumber: number
+  dayNumber: number,
+  keywords: string[] = []
 ): Promise<{ question: string; intent: IntentType }> {
   const currentYear = new Date().getFullYear();
   
+  const keywordsInstruction = keywords.length > 0
+    ? language === "fr"
+      ? `\nMots-clés SEO du projet à UTILISER comme base pour la question:\n${keywords.join(", ")}\n\nTransforme l'un de ces mots-clés en question naturelle et décisionnelle.`
+      : `\nProject SEO keywords to USE as the basis for the question:\n${keywords.join(", ")}\n\nTransform one of these keywords into a natural, decision-oriented question.`
+    : "";
+
   const systemPrompt = language === "fr"
     ? `Tu génères UNE question DÉCISIONNELLE unique. La question DOIT finir par "?". INTERDIT de générer des mots-clés simples.`
     : `Generate ONE unique DECISION-ORIENTED question. The question MUST end with "?". FORBIDDEN to generate simple keywords.`;
 
-  const userPrompt = `Business: ${brandName}\nDescription: ${description}\nDay number: ${dayNumber}\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {"question": "...", "intent": "criteria|price|howto|comparison|why|best"}`;
+  const userPrompt = `Business: ${brandName}\nDescription: ${description}\nDay number: ${dayNumber}${keywordsInstruction}\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {"question": "...", "intent": "criteria|price|howto|comparison|why|best"}`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -297,6 +304,17 @@ serve(async (req) => {
       const description = project.business_description || "";
       const language = project.language || "fr";
 
+      // Fetch project keywords to inject into question generation
+      const { data: projectKeywords } = await supabase
+        .from("keywords")
+        .select("keyword")
+        .eq("project_id", project.id)
+        .eq("is_used", false)
+        .limit(30);
+
+      const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
+      console.log(`[daily-planning-fill] Found ${keywordList.length} unused keywords for project ${project.name}`);
+
       let daysTouched = 0;
       let daysCompleted = 0;
       let stoppedEarly = false;
@@ -355,7 +373,7 @@ serve(async (req) => {
         }
 
         if (!answerId) {
-          const q = await generateQuestion(brandName, description, language, apiKey, dayOffset);
+          const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList);
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
           const score = computeScore(answerData.answer, brandName);
 
