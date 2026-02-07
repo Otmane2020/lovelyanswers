@@ -26,6 +26,11 @@ export default function Blog() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Force light theme
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   useEffect(() => {
     const fetchPublicAnswers = async () => {
       try {
@@ -251,7 +256,7 @@ export default function Blog() {
                               {answer.question}
                             </CardTitle>
                             {answer.score && answer.score >= 80 && (
-                              <Badge variant="secondary" className="shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              <Badge variant="secondary" className="shrink-0 bg-emerald-100 text-emerald-700">
                                 {answer.score}%
                               </Badge>
                             )}
