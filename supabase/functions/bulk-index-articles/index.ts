@@ -158,11 +158,13 @@ Deno.serve(async (req) => {
         );
 
         const result = await response.json();
-        const notifyTime = result.urlNotificationMetadata?.latestUpdate?.notifyTime;
+        // Google may return urlNotificationMetadata.url without latestUpdate.notifyTime
+        // Both are valid success indicators
+        const hasNotification = result.urlNotificationMetadata?.url || result.urlNotificationMetadata?.latestUpdate?.notifyTime;
 
         console.log(`[bulk-index] Google response for ${article.slug}:`, JSON.stringify(result).slice(0, 500));
 
-        if (response.ok && notifyTime) {
+        if (response.ok && hasNotification) {
           await supabase
             .from("published_articles")
             .update({
