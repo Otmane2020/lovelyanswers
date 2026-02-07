@@ -16,8 +16,8 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Fetch all public answers for lovelyanswers.com
-    const { data: answers, error } = await supabase
+    // 1. Fetch all public Q&A answers for lovelyanswers.com
+    const { data: answers, error: answersError } = await supabase
       .from('answers')
       .select(`
         slug, published_at, updated_at,
@@ -27,19 +27,33 @@ Deno.serve(async (req) => {
       .not('published_at', 'is', null)
       .order('published_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching answers:', error)
-      throw error
+    if (answersError) {
+      console.error('Error fetching answers:', answersError)
+      throw answersError
     }
 
-    // Filter only lovelyanswers.com articles
-    const lovelyanswersArticles = (answers || []).filter((answer: any) => {
+    // 2. Fetch all published blog articles
+    const { data: articles, error: articlesError } = await supabase
+      .from('published_articles')
+      .select('slug, published_at, updated_at')
+      .order('published_at', { ascending: false })
+
+    if (articlesError) {
+      console.error('Error fetching published_articles:', articlesError)
+      throw articlesError
+    }
+
+    // Filter only lovelyanswers.com Q&A answers
+    const lovelyanswersAnswers = (answers || []).filter((answer: any) => {
       const projectUrl = (answer.projects?.website_url || '').toLowerCase()
       const projectDomain = (answer.projects?.domain || '').toLowerCase()
       return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
     })
 
     const today = new Date().toISOString().split('T')[0]
+
+    // Collect all slugs to deduplicate
+    const seenSlugs = new Set<string>()
 
     // Build sitemap XML
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -101,16 +115,36 @@ Deno.serve(async (req) => {
   </url>
 `
 
-    // Add blog articles dynamically
-    for (const article of lovelyanswersArticles) {
+    // Add published blog articles (priority - these are the main content)
+    for (const article of (articles || [])) {
+      if (seenSlugs.has(article.slug)) continue
+      seenSlugs.add(article.slug)
+
       const lastmod = article.updated_at 
         ? new Date(article.updated_at).toISOString().split('T')[0]
         : new Date(article.published_at).toISOString().split('T')[0]
       
       sitemap += `
-  <!-- Blog Article -->
   <url>
     <loc>https://lovelyanswers.com/blog/${article.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+    }
+
+    // Add Q&A answers (only if slug not already seen)
+    for (const answer of lovelyanswersAnswers) {
+      if (seenSlugs.has(answer.slug)) continue
+      seenSlugs.add(answer.slug)
+
+      const lastmod = answer.updated_at 
+        ? new Date(answer.updated_at).toISOString().split('T')[0]
+        : new Date(answer.published_at).toISOString().split('T')[0]
+      
+      sitemap += `
+  <url>
+    <loc>https://lovelyanswers.com/blog/${answer.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -120,7 +154,9 @@ Deno.serve(async (req) => {
     sitemap += `
 </urlset>`
 
-    console.log(`Generated sitemap with ${lovelyanswersArticles.length} blog articles`)
+    const totalArticles = (articles || []).length
+    const totalAnswers = lovelyanswersAnswers.length
+    console.log(`Generated sitemap with ${totalArticles} blog articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
 
     return new Response(sitemap, {
       headers: {

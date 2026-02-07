@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -38,7 +37,62 @@ async function refreshGoogleToken(refreshToken: string): Promise<{ accessToken: 
   };
 }
 
-serve(async (req) => {
+// Submit a single URL to the Google Indexing API with retry
+async function submitToIndexingAPI(url: string, accessToken: string, retries = 2): Promise<{ success: boolean; error?: string }> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(
+        "https://indexing.googleapis.com/v3/urlNotifications:publish",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url,
+            type: "URL_UPDATED",
+          }),
+        }
+      );
+
+      const result = await response.json();
+      const notifyTime = result.urlNotificationMetadata?.latestUpdate?.notifyTime;
+
+      if (response.ok && notifyTime) {
+        return { success: true };
+      }
+
+      const errorMessage = result.error?.message || 
+        (!notifyTime ? "Google did not accept indexation request" : "Unknown error");
+      
+      // Don't retry on permission/auth errors
+      if (response.status === 403 || response.status === 401) {
+        return { success: false, error: errorMessage };
+      }
+
+      // Retry on transient errors
+      if (attempt < retries) {
+        const delay = Math.pow(2, attempt) * 1000; // exponential backoff: 1s, 2s
+        console.log(`[index] Retry ${attempt + 1} for ${url} in ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      return { success: false, error: errorMessage };
+    } catch (err) {
+      if (attempt < retries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      return { success: false, error: err instanceof Error ? err.message : "Network error" };
+    }
+  }
+  return { success: false, error: "Max retries exceeded" };
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -50,34 +104,32 @@ serve(async (req) => {
   console.log("[index-published-articles] Starting cron job...");
 
   try {
-    // Find articles published in the last 24h that haven't been indexed yet
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // Step 1: Reset old failed articles (failed more than 6 hours ago) so they can be retried
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: resetData } = await supabase
+      .from("published_articles")
+      .update({ gsc_indexed: null, gsc_index_error: null })
+      .eq("gsc_indexed", false)
+      .lt("updated_at", sixHoursAgo)
+      .select("id");
     
+    if (resetData && resetData.length > 0) {
+      console.log(`[index] Reset ${resetData.length} failed articles for retry`);
+    }
+
+    // Step 2: Fetch all unindexed published articles (NO 24h filter)
     const { data: articles, error: articlesError } = await supabase
-      .from("articles")
-      .select(`
-        id,
-        slug,
-        status,
-        gsc_indexed,
-        created_at,
-        project_id,
-        projects (
-          user_id,
-          website_url,
-          domain
-        )
-      `)
-      .eq("status", "published")
+      .from("published_articles")
+      .select("id, slug, title, published_at")
       .is("gsc_indexed", null)
-      .gte("created_at", yesterday)
-      .limit(50);
+      .order("published_at", { ascending: true })
+      .limit(50); // Batch size: 50 per cron run (200/day quota, runs every 30min)
 
     if (articlesError) {
       throw articlesError;
     }
 
-    console.log(`[index-published-articles] Found ${articles?.length || 0} articles to index`);
+    console.log(`[index] Found ${articles?.length || 0} articles to index`);
 
     if (!articles || articles.length === 0) {
       return new Response(
@@ -86,139 +138,85 @@ serve(async (req) => {
       );
     }
 
+    // Step 3: Get OAuth tokens from the primary account
+    // Find the user who owns the lovelyanswers.com project
+    const { data: project } = await supabase
+      .from("projects")
+      .select("user_id")
+      .or("domain.eq.lovelyanswers.com,website_url.ilike.%lovelyanswers.com%")
+      .limit(1)
+      .single();
+
+    if (!project?.user_id) {
+      throw new Error("Could not find lovelyanswers.com project owner");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("google_oauth_token, google_refresh_token, google_token_expires_at")
+      .eq("id", project.user_id)
+      .single();
+
+    if (profileError || !profile?.google_refresh_token) {
+      throw new Error("Project owner has no Google OAuth tokens");
+    }
+
+    // Step 4: Refresh token if needed
+    let accessToken = profile.google_oauth_token;
+    const expiresAt = profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null;
+    
+    if (!expiresAt || expiresAt < new Date()) {
+      console.log("[index] Refreshing Google OAuth token...");
+      const refreshed = await refreshGoogleToken(profile.google_refresh_token);
+      accessToken = refreshed.accessToken;
+      
+      await supabase
+        .from("profiles")
+        .update({
+          google_oauth_token: refreshed.accessToken,
+          google_token_expires_at: refreshed.expiresAt.toISOString(),
+        })
+        .eq("id", project.user_id);
+    }
+
+    // Step 5: Submit each article to the Indexing API
     let indexedCount = 0;
     let errorCount = 0;
 
     for (const article of articles) {
-      try {
-        // Handle the projects relationship - Supabase returns object for single FK
-        const projectData = article.projects as unknown as { user_id: string; website_url: string; domain: string | null } | null;
-        
-        if (!projectData?.user_id) {
-          console.log(`[index-published-articles] Article ${article.id}: No project owner found`);
-          continue;
-        }
+      const publishedUrl = `https://lovelyanswers.com/blog/${article.slug}`;
+      console.log(`[index] Submitting: ${publishedUrl}`);
 
-        // Build the published URL from project domain and slug
-        let publishedUrl: string | null = null;
-        
-        if (article.slug && projectData.website_url) {
-          try {
-            const baseUrl = new URL(projectData.website_url);
-            publishedUrl = `${baseUrl.origin}/blog/${article.slug}`;
-          } catch {
-            publishedUrl = `https://${projectData.domain || projectData.website_url}/blog/${article.slug}`;
-          }
-        }
+      const result = await submitToIndexingAPI(publishedUrl, accessToken!);
 
-        if (!publishedUrl) {
-          console.log(`[index-published-articles] Article ${article.id}: Cannot build URL (no slug or website_url)`);
-          continue;
-        }
-
-        // Get user's OAuth tokens
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("google_oauth_token, google_refresh_token, google_token_expires_at")
-          .eq("id", projectData.user_id)
-          .single();
-
-        if (profileError || !profile?.google_refresh_token) {
-          console.log(`[index-published-articles] Article ${article.id}: User has no Google OAuth tokens`);
-          await supabase
-            .from("articles")
-            .update({ gsc_index_error: "User has no Google account connected" })
-            .eq("id", article.id);
-          continue;
-        }
-
-        // Refresh token if needed
-        let accessToken = profile.google_oauth_token;
-        const expiresAt = profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null;
-        
-        if (!expiresAt || expiresAt < new Date()) {
-          console.log(`[index-published-articles] Refreshing token for user ${projectData.user_id}`);
-          try {
-            const refreshed = await refreshGoogleToken(profile.google_refresh_token);
-            accessToken = refreshed.accessToken;
-            
-            await supabase
-              .from("profiles")
-              .update({
-                google_oauth_token: refreshed.accessToken,
-                google_token_expires_at: refreshed.expiresAt.toISOString(),
-              })
-              .eq("id", projectData.user_id);
-          } catch (refreshError) {
-            console.error(`[index-published-articles] Token refresh failed:`, refreshError);
-            await supabase
-              .from("articles")
-              .update({ gsc_index_error: "Google token expired" })
-              .eq("id", article.id);
-            errorCount++;
-            continue;
-          }
-        }
-
-        // Request indexation
-        console.log(`[index-published-articles] Indexing: ${publishedUrl}`);
-        
-        const indexingResponse = await fetch(
-          "https://indexing.googleapis.com/v3/urlNotifications:publish",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              url: publishedUrl,
-              type: "URL_UPDATED",
-            }),
-          }
-        );
-
-        const indexingResult = await indexingResponse.json();
-        
-        // Check for valid notifyTime (real indexation acceptance)
-        const notifyTime = indexingResult.urlNotificationMetadata?.latestUpdate?.notifyTime;
-
-        if (indexingResponse.ok && notifyTime) {
-          console.log(`[index-published-articles] ✓ Indexed: ${publishedUrl}`);
-          await supabase
-            .from("articles")
-            .update({
-              gsc_indexed: true,
-              gsc_indexed_at: new Date().toISOString(),
-              gsc_index_error: null,
-            })
-            .eq("id", article.id);
-          indexedCount++;
-        } else {
-          const errorMessage = indexingResult.error?.message || 
-            (!notifyTime ? "Google did not accept indexation request" : "Unknown error");
-          
-          console.error(`[index-published-articles] ✗ Failed: ${publishedUrl} - ${errorMessage}`);
-          await supabase
-            .from("articles")
-            .update({
-              gsc_indexed: false,
-              gsc_index_error: errorMessage,
-            })
-            .eq("id", article.id);
-          errorCount++;
-        }
-
-        // Rate limit: wait 500ms between requests
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-      } catch (articleError) {
-        console.error(`[index-published-articles] Error processing article ${article.id}:`, articleError);
+      if (result.success) {
+        console.log(`[index] ✓ Indexed: ${publishedUrl}`);
+        await supabase
+          .from("published_articles")
+          .update({
+            gsc_indexed: true,
+            gsc_indexed_at: new Date().toISOString(),
+            gsc_index_error: null,
+          })
+          .eq("id", article.id);
+        indexedCount++;
+      } else {
+        console.error(`[index] ✗ Failed: ${publishedUrl} - ${result.error}`);
+        await supabase
+          .from("published_articles")
+          .update({
+            gsc_indexed: false,
+            gsc_index_error: result.error || "Unknown error",
+          })
+          .eq("id", article.id);
         errorCount++;
       }
+
+      // Rate limit: 500ms between requests
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    console.log(`[index-published-articles] Completed: ${indexedCount} indexed, ${errorCount} errors`);
+    console.log(`[index] Completed: ${indexedCount} indexed, ${errorCount} errors out of ${articles.length}`);
 
     return new Response(
       JSON.stringify({ 

@@ -36,6 +36,12 @@ export default function AeoPublicAnswer() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  // Track if showing a published_article (HTML article vs Q&A answer)
+  const [isPublishedArticle, setIsPublishedArticle] = useState(false);
+  const [articleHtml, setArticleHtml] = useState<string | null>(null);
+  const [articleTitle, setArticleTitle] = useState<string | null>(null);
+  const [articleMeta, setArticleMeta] = useState<string | null>(null);
+  const [articleDate, setArticleDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -45,7 +51,7 @@ export default function AeoPublicAnswer() {
 
   const fetchAnswer = async () => {
     try {
-      // Fetch answer with project info to verify it's from lovelyanswers.com
+      // First try: fetch from answers table (Q&A content)
       const { data, error } = await supabase
         .from('answers')
         .select(`
@@ -56,29 +62,45 @@ export default function AeoPublicAnswer() {
         .eq('is_public', true)
         .single();
 
-      if (error) throw error;
-      
-      // Strict filter: ONLY show if it's a lovelyanswers.com project
-      const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
-      const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
-      
-      const isLovelyAnswersProject = 
-        projectUrl.includes('lovelyanswers.com') || 
-        projectDomain === 'lovelyanswers.com';
-      
-      // Block access for non-lovelyanswers.com projects
-      if (!isLovelyAnswersProject) {
-        console.log('Answer belongs to external client, not showing on lovelyanswers.com');
-        setAnswer(null);
+      if (!error && data) {
+        // Strict filter: ONLY show if it's a lovelyanswers.com project
+        const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
+        const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
+        
+        const isLovelyAnswersProject = 
+          projectUrl.includes('lovelyanswers.com') || 
+          projectDomain === 'lovelyanswers.com';
+        
+        if (isLovelyAnswersProject) {
+          const supportingContent = data.supporting_content as SupportingContent | null;
+          setAnswer({
+            ...data,
+            supporting_content: supportingContent
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fallback: try published_articles table (blog articles)
+      const { data: articleData, error: articleError } = await supabase
+        .from('published_articles')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (!articleError && articleData) {
+        setIsPublishedArticle(true);
+        setArticleHtml(articleData.body);
+        setArticleTitle(articleData.title);
+        setArticleMeta(articleData.meta_description);
+        setArticleDate(articleData.published_at);
+        setLoading(false);
         return;
       }
-      
-      // Parse supporting_content safely
-      const supportingContent = data.supporting_content as SupportingContent | null;
-      setAnswer({
-        ...data,
-        supporting_content: supportingContent
-      });
+
+      // Nothing found
+      console.error('No content found for slug:', slug);
     } catch (error) {
       console.error('Error fetching answer:', error);
     } finally {
