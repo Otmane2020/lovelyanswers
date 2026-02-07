@@ -1315,6 +1315,48 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          company_info: Json | null
+          created_at: string | null
+          id: string
+          kpi_tracking: Json | null
+          macro_analysis: Json | null
+          micro_analysis: Json | null
+          recommendations: Json | null
+          scores: Json | null
+          slug: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          company_info?: Json | null
+          created_at?: string | null
+          id?: string
+          kpi_tracking?: Json | null
+          macro_analysis?: Json | null
+          micro_analysis?: Json | null
+          recommendations?: Json | null
+          scores?: Json | null
+          slug: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          company_info?: Json | null
+          created_at?: string | null
+          id?: string
+          kpi_tracking?: Json | null
+          macro_analysis?: Json | null
+          micro_analysis?: Json | null
+          recommendations?: Json | null
+          scores?: Json | null
+          slug?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       site_audits: {
         Row: {
           created_at: string

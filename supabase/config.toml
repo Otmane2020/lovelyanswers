@@ -172,3 +172,6 @@ verify_jwt = false
 
 [functions.send-audit-email]
 verify_jwt = false
+
+[functions.analyze-aeo]
+verify_jwt = false
