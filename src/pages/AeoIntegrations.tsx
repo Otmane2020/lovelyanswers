@@ -454,24 +454,21 @@ export default function AeoIntegrations() {
                           {integration.config?.name || cms?.name || integration.platform}
                         </p>
                         <p className="text-sm text-muted-foreground truncate max-w-md">
-                          {/* Show siteUrl for Lovable/Bolt, otherwise endpoint domain */}
-                          {integration.config?.siteUrl 
-                            ? (() => {
-                                try {
-                                  return new URL(integration.config.siteUrl).hostname;
-                                } catch {
-                                  return integration.config.siteUrl;
-                                }
-                              })()
-                            : integration.config?.endpoint 
-                              ? (() => {
-                                  try {
-                                    return new URL(integration.config.endpoint).hostname;
-                                  } catch {
-                                    return integration.config.endpoint;
-                                  }
-                                })()
-                              : "Connected"}
+                          {(() => {
+                            // Try siteUrl first, then endpoint
+                            const url = integration.config?.siteUrl || integration.config?.endpoint;
+                            if (!url) return "Connected";
+                            try {
+                              const parsed = new URL(url);
+                              // Hide raw supabase URLs, show clean domain instead
+                              if (parsed.hostname.endsWith(".supabase.co")) {
+                                return project?.domain || project?.website_url || "Connected";
+                              }
+                              return parsed.hostname;
+                            } catch {
+                              return url;
+                            }
+                          })()}
                         </p>
                       </div>
                     </div>
