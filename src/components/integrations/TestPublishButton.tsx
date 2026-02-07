@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 interface TestPublishButtonProps {
   integrationId: string;
   platformName: string;
+  projectId?: string;
   size?: "sm" | "default";
 }
 
 export function TestPublishButton({ 
   integrationId, 
   platformName,
+  projectId,
   size = "sm" 
 }: TestPublishButtonProps) {
   const [isTesting, setIsTesting] = useState(false);
@@ -23,14 +25,35 @@ export function TestPublishButton({
     setTestResult(null);
 
     try {
+      // Try to fetch a real answer from the project
+      let title = "Test Article from AEO Reply";
+      let body = `<p>This is a test article published from AEO Reply on ${new Date().toLocaleString()}.</p>`;
+      let sourceId = "test";
+
+      if (projectId) {
+        const { data: answers } = await supabase
+          .from("answers")
+          .select("id, question, answer, slug")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (answers && answers.length > 0) {
+          const answer = answers[0];
+          title = answer.question;
+          body = answer.answer;
+          sourceId = answer.id;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("cms-publish", {
         body: {
           integrationId,
           content: {
-            title: "Test Article from AEO Reply",
-            body: `<p>This is a test article published from AEO Reply on ${new Date().toLocaleString()}.</p><p>If you see this content on your CMS, the integration is working correctly!</p>`,
+            title,
+            body,
             type: "article",
-            sourceId: "test",
+            sourceId,
           },
         },
       });
