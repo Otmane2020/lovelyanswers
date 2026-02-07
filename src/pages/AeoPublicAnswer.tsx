@@ -143,6 +143,85 @@ export default function AeoPublicAnswer() {
     );
   }
 
+  // Render published article (HTML blog article from published_articles table)
+  if (isPublishedArticle && articleHtml) {
+    const brand = "LovelyAnswers";
+    const brandUrl = "https://lovelyanswers.com";
+    
+    const articleStructuredData = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": articleTitle,
+      "description": articleMeta || (articleHtml.replace(/<[^>]*>/g, "").slice(0, 160)),
+      "datePublished": articleDate,
+      "publisher": {
+        "@type": "Organization",
+        "name": brand,
+        "url": brandUrl,
+        "logo": { "@type": "ImageObject", "url": `${brandUrl}/favicon.png` }
+      },
+      "author": { "@type": "Organization", "name": brand, "url": brandUrl }
+    };
+
+    return (
+      <>
+        <Helmet>
+          <title>{articleTitle} | {brand}</title>
+          <meta name="description" content={articleMeta || articleHtml.replace(/<[^>]*>/g, "").slice(0, 160)} />
+          <meta property="og:title" content={articleTitle || ""} />
+          <meta property="og:description" content={articleMeta || ""} />
+          <meta property="og:type" content="article" />
+          <meta name="robots" content="index, follow" />
+          <link rel="canonical" href={`${brandUrl}/blog/${slug}`} />
+          <script type="application/ld+json">{JSON.stringify(articleStructuredData)}</script>
+        </Helmet>
+
+        <div className="min-h-screen bg-background">
+          <header className="border-b bg-background/80 backdrop-blur-sm">
+            <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+              <a href={brandUrl} className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary via-violet-500 to-blue-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">L</span>
+                </div>
+                <span className="font-semibold">{brand}</span>
+              </a>
+              <Link to="/blog">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Blog
+                </Button>
+              </Link>
+            </div>
+          </header>
+
+          <main className="max-w-4xl mx-auto px-4 py-12">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{articleTitle}</h1>
+            {articleDate && (
+              <p className="text-muted-foreground text-sm mb-8">
+                Published on {new Date(articleDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+            <article 
+              className="prose prose-lg max-w-none"
+              dangerouslySetInnerHTML={{ __html: articleHtml }} 
+            />
+          </main>
+
+          <footer className="border-t bg-background/80 py-8">
+            <div className="max-w-4xl mx-auto px-4 text-center">
+              <p className="text-muted-foreground mb-4">AI-Optimized Answers for Maximum Visibility</p>
+              <a href={`${brandUrl}/auth?mode=signup`}>
+                <Button className="bg-gradient-to-r from-primary via-violet-500 to-blue-500 hover:opacity-90">
+                  Create your AEO answers
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                </Button>
+              </a>
+            </div>
+          </footer>
+        </div>
+      </>
+    );
+  }
+
   if (!answer) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background flex items-center justify-center">

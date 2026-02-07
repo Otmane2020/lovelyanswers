@@ -160,6 +160,8 @@ Deno.serve(async (req) => {
         const result = await response.json();
         const notifyTime = result.urlNotificationMetadata?.latestUpdate?.notifyTime;
 
+        console.log(`[bulk-index] Google response for ${article.slug}:`, JSON.stringify(result).slice(0, 500));
+
         if (response.ok && notifyTime) {
           await supabase
             .from("published_articles")
@@ -172,7 +174,9 @@ Deno.serve(async (req) => {
           indexedCount++;
           console.log(`[bulk-index] ✓ ${indexedCount}/${articles.length}: ${article.slug}`);
         } else {
-          const errorMsg = result.error?.message || "Google did not accept indexation request";
+          const errorMsg = result.error?.message || 
+            (result.error?.status ? `${result.error.status}: ${result.error.code}` : null) ||
+            "Google did not accept indexation request";
           await supabase
             .from("published_articles")
             .update({
@@ -182,7 +186,7 @@ Deno.serve(async (req) => {
             .eq("id", article.id);
           errorCount++;
           errors.push({ slug: article.slug, error: errorMsg });
-          console.error(`[bulk-index] ✗ ${article.slug}: ${errorMsg}`);
+          console.error(`[bulk-index] ✗ ${article.slug}: ${errorMsg} (status: ${response.status})`);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Network error";
