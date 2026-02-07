@@ -353,17 +353,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Priority: custom key > connector key (for when connector credits are exhausted)
-    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY_CUSTOM') || Deno.env.get('FIRECRAWL_API_KEY');
-    
-    if (!firecrawlApiKey) {
-      console.error('FIRECRAWL_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Firecrawl connector not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    console.log('[FAST] Using API key:', Deno.env.get('FIRECRAWL_API_KEY_CUSTOM') ? 'CUSTOM' : 'CONNECTOR');
+    // Try both keys in order: custom first, then connector
+    const customKey = Deno.env.get('FIRECRAWL_API_KEY_CUSTOM');
+    const connectorKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const keysToTry = [
+      ...(customKey ? [{ key: customKey, label: 'CUSTOM' }] : []),
+      ...(connectorKey ? [{ key: connectorKey, label: 'CONNECTOR' }] : []),
+    ];
 
     // Format URL
     let formattedUrl = url.trim();
@@ -374,39 +370,109 @@ Deno.serve(async (req) => {
     console.log('[FAST] Scraping URL:', formattedUrl);
     const startTime = Date.now();
 
-    // Single Firecrawl request - NO AI processing, reduced timeout for speed
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: formattedUrl,
-        formats: ['markdown', 'html'], // Include HTML for CMS detection
-        onlyMainContent: false, // Full HTML needed for CMS detection
-        timeout: 8000, // REDUCED: 8 second timeout (was 15s)
-      }),
-    });
+    let firecrawlData: any = null;
+    let firecrawlSuccess = false;
 
-    const data = await response.json();
-    const scrapeTime = Date.now() - startTime;
-    console.log(`[FAST] Scrape completed in ${scrapeTime}ms`);
+    // Try each Firecrawl key
+    for (const { key, label } of keysToTry) {
+      console.log(`[FAST] Trying API key: ${label}`);
+      try {
+        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            formats: ['markdown', 'html'],
+            onlyMainContent: false,
+            timeout: 8000,
+          }),
+        });
 
-    if (!response.ok || !data.success) {
-      console.error('[FAST] Firecrawl error:', data);
+        const data = await response.json();
+        const scrapeTime = Date.now() - startTime;
+        console.log(`[FAST] Scrape with ${label} completed in ${scrapeTime}ms, status: ${response.status}`);
+
+        if (response.ok && data.success) {
+          firecrawlData = data;
+          firecrawlSuccess = true;
+          console.log(`[FAST] Success with ${label} key`);
+          break;
+        }
+
+        // If insufficient credits, try next key
+        if (response.status === 402 || (data.error && data.error.includes('Insufficient credits'))) {
+          console.warn(`[FAST] ${label} key has insufficient credits, trying next...`);
+          continue;
+        }
+
+        // Other error - still try next key
+        console.warn(`[FAST] ${label} key failed: ${data.error}`);
+      } catch (e) {
+        console.warn(`[FAST] ${label} key threw error:`, e);
+      }
+    }
+
+    // Fallback: basic fetch if all Firecrawl keys failed
+    if (!firecrawlSuccess) {
+      console.log('[FAST] All Firecrawl keys failed, falling back to basic fetch');
+      try {
+        const fetchResponse = await fetch(formattedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; LovelyBot/1.0)',
+            'Accept': 'text/html',
+          },
+          redirect: 'follow',
+        });
+        
+        if (fetchResponse.ok) {
+          const html = await fetchResponse.text();
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                            html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+          const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
+          
+          const title = titleMatch ? titleMatch[1].trim() : '';
+          const metaDescription = descMatch ? descMatch[1].trim() : '';
+          const metaLanguage = langMatch ? langMatch[1].substring(0, 2).toLowerCase() : '';
+          
+          const language = detectLanguageFromContent(html, metaLanguage);
+          const brandName = extractBrandName(formattedUrl, title);
+          const description = extractDescriptionFast('', metaDescription, brandName);
+          const cms = detectCMSFromContent(html, '');
+          
+          const totalTime = Date.now() - startTime;
+          console.log(`[FAST] Fallback fetch complete: ${totalTime}ms, lang=${language}, brand=${brandName}`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: { brandName, description, language, cms, sourceUrl: formattedUrl }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (fetchErr) {
+        console.error('[FAST] Fallback fetch also failed:', fetchErr);
+      }
+      
+      // Ultimate fallback - return basic data from URL parsing
+      const brandName = extractBrandName(formattedUrl, '');
+      console.log('[FAST] Using URL-only fallback, brand:', brandName);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: data.error || 'Failed to scrape website' 
+        JSON.stringify({
+          success: true,
+          data: { brandName, description: '', language: 'en', cms: '', sourceUrl: formattedUrl }
         }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const markdown = data.data?.markdown || '';
-    const rawHtml = data.data?.html || data.data?.rawHtml || '';
-    const metadata = data.data?.metadata || {};
+    const markdown = firecrawlData.data?.markdown || '';
+    const rawHtml = firecrawlData.data?.html || firecrawlData.data?.rawHtml || '';
+    const metadata = firecrawlData.data?.metadata || {};
     const title = metadata.title || '';
     const metaDescription = metadata.description || '';
     const metaLanguage = metadata.language || '';
