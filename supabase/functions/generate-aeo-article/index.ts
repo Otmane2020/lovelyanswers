@@ -517,10 +517,12 @@ CRITICAL AEO PRINCIPLES:
 5. BRAND AFTER: The brand only appears AFTER the factual answer, in context
 
 HTML STRUCTURE:
-- Only one H1 (rephrasing the question as a title)
+- DO NOT include an H1 tag (title is rendered separately as a hero header by the editorial template)
+- Start with a direct opening paragraph (gets a decorative drop cap)
 - H2 for main sections
 - H3 for subsections
 - <strong> for key data (prices, percentages, dates)
+- <blockquote> for at least one impactful pull-quote
 - Bullet lists for extractable benchmarks
 
 SPECIFIC SETTINGS:
@@ -556,7 +558,7 @@ ${settings.includeToc ? `<!-- TABLE DES MATIÈRES -->
 </nav>
 
 ` : ""}<!-- BLOC 1: RÉPONSE DIRECTE (CRITIQUE pour l'AEO) -->
-<h1>[Reformulation claire de la question en titre]</h1>
+<!-- PAS DE H1 : le titre est affiché séparément dans le template éditorial -->
 
 <p class="aeo-answer"><strong>[RÉPONSE DIRECTE en 1-2 phrases avec les chiffres/faits clés]</strong>. [1-2 phrases de contexte factuel, SANS mentionner la marque].</p>
 
@@ -574,12 +576,16 @@ ${settings.includeSummary ? `<div class="aeo-summary">
 <p>[Explication détaillée et pédagogique, 3-4 phrases]</p>
 <p>[Contexte marché, tendances ou statistiques si pertinent]</p>
 
+<blockquote>[Citation impactante ou insight clé sur le sujet - pour l'effet pull-quote éditorial]</blockquote>
+
 <h2 id="section2">[Critères / Facteurs / Avantages]</h2>
 <ul>
   <li><strong>[Point 1]</strong> : [Explication]</li>
   <li><strong>[Point 2]</strong> : [Explication]</li>
   <li><strong>[Point 3]</strong> : [Explication]</li>
 </ul>
+
+<hr>
 
 <h2 id="section3">Comment [action/choix lié au sujet]</h2>
 <p>[Méthode ou processus expliqué]</p>
@@ -600,15 +606,17 @@ ${settings.ctaLink ? `<div class="cta-section">
 </div>` : ""}
 
 RÈGLES STRICTES:
-1. Le premier paragraphe (class="aeo-answer") DOIT contenir la réponse factuelle SANS mention de la marque
-2. La marque ${brandName} n'apparaît QUE dans la conclusion
-3. Tous les chiffres/prix/pourcentages doivent être en <strong>
-4. Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>)
-5. L'article doit faire environ ${settings.articleLength} mots
+1. NE PAS inclure de balise H1 - le titre est affiché séparément par le template éditorial
+2. Le premier paragraphe (class="aeo-answer") DOIT contenir la réponse factuelle SANS mention de la marque
+3. La marque ${brandName} n'apparaît QUE dans la conclusion
+4. Tous les chiffres/prix/pourcentages doivent être en <strong>
+5. Inclure au moins un <blockquote> pour l'effet pull-quote
+6. Génère UNIQUEMENT le HTML du contenu (pas de <!DOCTYPE>, <html>, <head>, <body>)
+7. L'article doit faire environ ${settings.articleLength} mots
 
 Réponds en JSON:
 {
-  "content": "[HTML de l'article AEO complet]",
+  "content": "[HTML de l'article AEO complet - SANS H1]",
   "meta_description": "[Description meta de 150-160 caractères avec la réponse clé]",
   "keywords": ["mot-clé principal", "mot-clé secondaire 1", "mot-clé secondaire 2", "mot-clé secondaire 3"]
 }`
@@ -632,7 +640,7 @@ ${settings.includeToc ? `<!-- TABLE OF CONTENTS -->
 </nav>
 
 ` : ""}<!-- BLOCK 1: DIRECT ANSWER (CRITICAL for AEO) -->
-<h1>[Clear rephrasing of the question as a title]</h1>
+<!-- NO H1 TAG: the title is displayed separately by the editorial template as a hero header -->
 
 <p class="aeo-answer"><strong>[DIRECT ANSWER in 1-2 sentences with key figures/facts]</strong>. [1-2 sentences of factual context, WITHOUT mentioning the brand].</p>
 
@@ -650,12 +658,16 @@ ${settings.includeSummary ? `<div class="aeo-summary">
 <p>[Detailed pedagogical explanation, 3-4 sentences]</p>
 <p>[Market context, trends or statistics if relevant]</p>
 
+<blockquote>[Impactful insight or key quote about the topic - for editorial pull-quote effect]</blockquote>
+
 <h2 id="section2">[Criteria / Factors / Benefits]</h2>
 <ul>
   <li><strong>[Point 1]</strong>: [Explanation]</li>
   <li><strong>[Point 2]</strong>: [Explanation]</li>
   <li><strong>[Point 3]</strong>: [Explanation]</li>
 </ul>
+
+<hr>
 
 <h2 id="section3">How to [action/choice related to topic]</h2>
 <p>[Method or process explained]</p>
@@ -676,15 +688,17 @@ ${settings.ctaLink ? `<div class="cta-section">
 </div>` : ""}
 
 STRICT RULES:
-1. The first paragraph (class="aeo-answer") MUST contain the factual answer WITHOUT brand mention
-2. Brand ${brandName} only appears in the conclusion
-3. All figures/prices/percentages must be in <strong>
-4. Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>)
-5. Article should be approximately ${settings.articleLength} words
+1. DO NOT include any H1 tag - the title is rendered separately by the editorial template
+2. The first paragraph (class="aeo-answer") MUST contain the factual answer WITHOUT brand mention
+3. Brand ${brandName} only appears in the conclusion
+4. All figures/prices/percentages must be in <strong>
+5. Include at least one <blockquote> for the editorial pull-quote effect
+6. Generate ONLY the HTML content (no <!DOCTYPE>, <html>, <head>, <body>)
+7. Article should be approximately ${settings.articleLength} words
 
 Reply in JSON:
 {
-  "content": "[Complete AEO article HTML]",
+  "content": "[Complete AEO article HTML - NO H1 TAG]",
   "meta_description": "[Meta description of 150-160 characters with the key answer]",
   "keywords": ["main keyword", "secondary keyword 1", "secondary keyword 2", "secondary keyword 3"]
 }`;

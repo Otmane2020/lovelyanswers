@@ -954,8 +954,43 @@ async function publishToLovable(
     const siteUrl = config.siteUrl?.replace(/\/+$/, '') || "https://lovelyanswers.com";
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
     
+    // === EDITORIAL TEMPLATE COMPATIBILITY ===
+    // Strip <h1> from body since ArticleTemplate renders the title as a hero header
+    // Also strip full HTML document wrappers (<!DOCTYPE>, <html>, <head>, <body>) if present
+    let cleanBody = content.body;
+    
+    // If body is a full HTML document, extract just the article content
+    if (cleanBody.includes('<!DOCTYPE') || cleanBody.includes('<html')) {
+      // Try to extract content from <main> or <article> or <body>
+      const mainMatch = cleanBody.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+      const articleMatch = cleanBody.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+      const bodyMatch = cleanBody.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      
+      if (mainMatch) {
+        cleanBody = mainMatch[1];
+      } else if (articleMatch) {
+        cleanBody = articleMatch[1];
+      } else if (bodyMatch) {
+        cleanBody = bodyMatch[1];
+      }
+      console.log(`[Lovable] Stripped full HTML document wrapper`);
+    }
+    
+    // Remove <h1> tags (title is rendered separately by ArticleTemplate)
+    cleanBody = cleanBody.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '').trim();
+    
+    // Remove header/footer/meta elements that ArticleTemplate provides
+    cleanBody = cleanBody.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+    cleanBody = cleanBody.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+    cleanBody = cleanBody.replace(/<meta[^>]*>/gi, '');
+    cleanBody = cleanBody.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    cleanBody = cleanBody.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    
+    // Clean up excessive whitespace
+    cleanBody = cleanBody.replace(/\n{3,}/g, '\n\n').trim();
+    
     // === CRITICAL: Insert into published_articles so the blog page can find it ===
-    const metaDescription = content.body
+    const metaDescription = cleanBody
       .replace(/<[^>]*>/g, "")
       .slice(0, 160)
       .trim();
@@ -965,7 +1000,7 @@ async function publishToLovable(
       .upsert({
         slug: contentSlug,
         title: content.title,
-        body: content.body,
+        body: cleanBody,
         meta_description: metaDescription,
         published_at: new Date().toISOString(),
         source_id: sourceId || null,

@@ -426,7 +426,20 @@ function convertToCleanHTML(content: string): string {
     }
     if (line.startsWith('# ')) {
       if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
-      html += `<h1>${line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h1>\n`;
+      // Skip H1 - title is rendered separately by editorial template
+      continue;
+    }
+    // Horizontal rule
+    if (/^[-*_]{3,}\s*$/.test(line)) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += '<hr>\n';
+      continue;
+    }
+    // Blockquote
+    if (line.startsWith('> ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      const quoteContent = line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html += `<blockquote>${quoteContent}</blockquote>\n`;
       continue;
     }
     
@@ -514,19 +527,22 @@ Contexte: ${description}
 - Paragraphes de plus de 4 phrases
 - "${brandName}" répété plus de 2 fois
 
-✅ FORMAT HTML OBLIGATOIRE:
+✅ FORMAT HTML OBLIGATOIRE (TEMPLATE EDITORIAL):
 - Contenu DIRECTEMENT en HTML propre (pas de markdown)
-- <h1> pour le titre principal
-- <h2> pour les sections
+- PAS de <h1> : le titre est affiche separement dans un template hero editorial
+- Commencer par un <p> d introduction directe (recoit un drop cap decoratif)
+- <h2> pour les sections principales
 - <h3> pour les sous-sections
 - <p> pour les paragraphes
-- <ul><li> pour les listes à puces
-- <ol><li> pour les listes numérotées
-- <strong> pour les données clés (prix, pourcentages, dates)
+- <ul><li> pour les listes a puces
+- <ol><li> pour les listes numerotees
+- <strong> pour les donnees cles (prix, pourcentages, dates)
+- <blockquote> pour au moins une citation impactante (pull-quote editorial)
+- <hr> entre les sections majeures
 - 500-700 mots max
 
 Retourne UNIQUEMENT ce JSON (pas de markdown dans le content, du HTML pur):
-{"title":"Titre clair avec question","content":"<h1>Titre</h1><p>Introduction factuelle...</p><h2>Section 1</h2><p>...</p><ul><li>...</li></ul><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`
+{"title":"Titre clair avec question","content":"<p>Introduction factuelle directe...</p><h2>Section 1</h2><p>...</p><blockquote>Citation impactante</blockquote><ul><li>...</li></ul><hr><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`
     : `You are an AEO expert. Write a PILLAR article citable by AI.
 
 Source question: ${question}
@@ -547,19 +563,22 @@ Context: ${description}
 - Paragraphs longer than 4 sentences
 - "${brandName}" repeated more than 2 times
 
-✅ MANDATORY HTML FORMAT:
+✅ MANDATORY HTML FORMAT (EDITORIAL TEMPLATE):
 - Content DIRECTLY in clean HTML (no markdown)
-- <h1> for the main title
-- <h2> for sections
+- NO <h1> tag: the title is displayed separately in an editorial hero template
+- Start with a <p> direct introduction (receives a decorative drop cap)
+- <h2> for main sections
 - <h3> for subsections
 - <p> for paragraphs
 - <ul><li> for bullet lists
 - <ol><li> for numbered lists
 - <strong> for key data (prices, percentages, dates)
+- <blockquote> for at least one impactful quote (editorial pull-quote)
+- <hr> between major sections for visual separation
 - 500-700 words max
 
 Return ONLY this JSON (no markdown in content, pure HTML):
-{"title":"Clear title with question","content":"<h1>Title</h1><p>Factual introduction...</p><h2>Section 1</h2><p>...</p><ul><li>...</li></ul><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`;
+{"title":"Clear title with question","content":"<p>Direct factual introduction...</p><h2>Section 1</h2><p>...</p><blockquote>Impactful insight</blockquote><ul><li>...</li></ul><hr><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
