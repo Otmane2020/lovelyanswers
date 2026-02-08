@@ -41,7 +41,20 @@ function convertToCleanHTML(content: string, title?: string): string {
     }
     if (line.startsWith('# ')) {
       if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
-      html += `<h1>${line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</h1>\n`;
+      // Skip H1 - title is rendered separately by editorial template
+      continue;
+    }
+    // Horizontal rule
+    if (/^[-*_]{3,}\s*$/.test(line)) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      html += '<hr>\n';
+      continue;
+    }
+    // Blockquote
+    if (line.startsWith('> ')) {
+      if (inList) { html += listType === 'ul' ? '</ul>\n' : '</ol>\n'; inList = false; }
+      const quoteContent = line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html += `<blockquote>${quoteContent}</blockquote>\n`;
       continue;
     }
     if (/^[-*•]\s+/.test(line)) {
@@ -258,21 +271,26 @@ CONTEXT:
 - LovelyAnswers (lovelyanswers.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
 - Target audience: entrepreneurs using AI builders who struggle with SEO/visibility
 
-REQUIREMENTS:
-1. Title as a clear question or statement
-2. Start with 2-3 sentence direct answer
-3. Write 1000-1500 words expert content
-4. Mention Lovable, Bolt, Replit naturally
-5. Position LovelyAnswers as the solution
-6. Add 3-4 FAQ at the end
-7. Use ## for section headings
+EDITORIAL TEMPLATE RULES (CRITICAL):
+1. DO NOT include an H1 tag - the title is rendered separately as a hero header
+2. Start immediately with a compelling opening paragraph (this paragraph gets a decorative drop cap on the first letter)
+3. Use ## (H2) for major sections with descriptive headings
+4. Use ### (H3) for subsections
+5. Include at least one blockquote (> quote) as a pull-quote for visual impact
+6. Use horizontal rules (---) between major sections for visual separation
+7. Bold key data with **strong** formatting
+8. Include bulleted and numbered lists for scannability
+9. Write 1000-1500 words expert content
+10. Mention Lovable, Bolt, Replit naturally
+11. Position LovelyAnswers as the solution
+12. Add 3-4 FAQ at the end
 
 CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes for any quotes inside strings.
 
 {
   "title": "Your H1 title here",
   "metaDescription": "Description under 160 chars",
-  "content": "Your article content here with ## headings. Escape all quotes.",
+  "content": "Your article content here with ## headings. Start with a paragraph, NO H1. Escape all quotes.",
   "faqs": [{"question": "FAQ 1?", "answer": "Answer 1"}],
   "keywords": ["keyword1", "keyword2"]
 }`;
@@ -409,14 +427,14 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
 
         // If autoPublish is enabled, publish immediately to blog
         if (autoPublish) {
-          // Convert content to proper HTML
-          let htmlContent = convertToCleanHTML(articleData.content, articleData.title);
+          // Convert content to proper HTML - NO title H1 (ArticleTemplate renders it as hero)
+          let htmlContent = convertToCleanHTML(articleData.content);
           
-          // Add FAQs
+          // Add FAQs as structured section
           if (articleData.faqs && articleData.faqs.length > 0) {
-            htmlContent += '<h2>Frequently Asked Questions</h2>';
+            htmlContent += '\n<hr>\n<h2>Frequently Asked Questions</h2>';
             for (const faq of articleData.faqs) {
-              htmlContent += `<h3>${faq.question}</h3><p>${faq.answer}</p>`;
+              htmlContent += `<h3>${faq.question}</h3>\n<p>${faq.answer}</p>`;
             }
           }
 
