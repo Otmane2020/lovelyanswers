@@ -240,6 +240,66 @@ export default function Index() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="LovelyAnswers – AEO Platform" />
         <meta name="twitter:description" content="Get recommended by ChatGPT, Perplexity AND Google" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "LovelyAnswers",
+          "url": "https://lovelyanswers.com",
+          "logo": "https://lovelyanswers.com/favicon.png",
+          "description": "Answer Engine Optimization platform. Get found and recommended by ChatGPT, Perplexity and Google.",
+          "foundingDate": "2025",
+          "sameAs": [],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "url": "https://lovelyanswers.com/support"
+          }
+        })}</script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "LovelyAnswers",
+          "url": "https://lovelyanswers.com",
+          "description": "AI-powered Answer Engine Optimization platform for businesses",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://lovelyanswers.com/blog?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        })}</script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "LovelyAnswers AEO Platform",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "All-in-one AI SEO platform: 30 articles/month, backlinks, keyword research, and Answer Engine Optimization for ChatGPT, Gemini, and Google.",
+          "offers": {
+            "@type": "Offer",
+            "price": "29",
+            "priceCurrency": "USD",
+            "priceValidUntil": "2027-12-31"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "527",
+            "bestRating": "5"
+          },
+          "featureList": "AEO Optimization, 30 Articles/Month, Automatic Backlinks, Keyword Research, WordPress Auto-Publishing, Multi-language Support"
+        })}</script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": faqs.map(faq => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": faq.answer
+            }
+          }))
+        })}</script>
       </Helmet>
     <div className="min-h-screen bg-background">
       {/* Google One Tap Popup */}

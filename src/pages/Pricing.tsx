@@ -30,7 +30,7 @@ const pricingStructuredData = {
   "@context": "https://schema.org",
   "@type": "Product",
   "name": "LovelyAnswers AEO Platform",
-  "description": "All-in-one AI SEO solution with 30 articles/month, backlinks, and AI optimization",
+  "description": "All-in-one AI SEO solution with 30 articles/month, automatic backlinks, keyword research, and AI Answer Engine Optimization for ChatGPT, Gemini, and Google.",
   "brand": {
     "@type": "Brand",
     "name": "LovelyAnswers"
@@ -46,40 +46,24 @@ const pricingStructuredData = {
   "aggregateRating": {
     "@type": "AggregateRating",
     "ratingValue": "4.9",
-    "reviewCount": "527"
+    "reviewCount": "527",
+    "bestRating": "5"
   }
 };
 
-const faqStructuredData = {
+// Will be populated dynamically from faqs array after it's defined
+const buildFaqStructuredData = (faqItems: { question: string; answer: string }[]) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "I am not an SEO expert?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Don't worry! LovelyAnswers is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization."
-      }
-    },
-    {
-      "@type": "Question", 
-      "name": "Will Google penalize AI written content?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "No, Google penalizes low quality content, regardless of whether it's AI or human written. Their official take confirms that quality AI content is welcome."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can AI content even rank on Google?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, absolutely. If executed correctly. We've proven multiple times that quality AI content can rank well on Google."
-      }
+  "mainEntity": faqItems.map(faq => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer
     }
-  ]
-};
+  }))
+});
 
 const features = [
   { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
@@ -143,7 +127,7 @@ export default function Pricing() {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
-        <script type="application/ld+json">{JSON.stringify(faqStructuredData)}</script>
+        <script type="application/ld+json">{JSON.stringify(buildFaqStructuredData(faqs))}</script>
       </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
