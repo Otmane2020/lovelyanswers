@@ -951,9 +951,49 @@ async function publishToLovable(
     }
     
     // Use the published site URL (configured in integration or default to lovelyanswers.com)
-    // Priority: config.siteUrl -> lovelyanswers.com (hardcoded for this project)
     const siteUrl = config.siteUrl?.replace(/\/+$/, '') || "https://lovelyanswers.com";
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
+    
+    // === CRITICAL: Insert into published_articles so the blog page can find it ===
+    const metaDescription = content.body
+      .replace(/<[^>]*>/g, "")
+      .slice(0, 160)
+      .trim();
+    
+    const { error: insertError } = await supabase
+      .from("published_articles")
+      .upsert({
+        slug: contentSlug,
+        title: content.title,
+        body: content.body,
+        meta_description: metaDescription,
+        published_at: new Date().toISOString(),
+        source_id: sourceId || null,
+      }, { onConflict: "slug" });
+    
+    if (insertError) {
+      console.error(`[Lovable] Error inserting into published_articles:`, insertError);
+    } else {
+      console.log(`[Lovable] Inserted into published_articles: ${contentSlug}`);
+    }
+    
+    // === Also mark the linked answer as public so AeoPublicAnswer can find it ===
+    if (sourceId) {
+      const { error: answerUpdateError } = await supabase
+        .from("answers")
+        .update({ 
+          is_public: true, 
+          published_at: new Date().toISOString(),
+          published_url: publishedUrl 
+        })
+        .eq("id", sourceId);
+      
+      if (answerUpdateError) {
+        console.error(`[Lovable] Error updating answer:`, answerUpdateError);
+      } else {
+        console.log(`[Lovable] Marked answer ${sourceId} as public`);
+      }
+    }
     
     console.log(`[Lovable] Content published at: ${publishedUrl}`);
     
