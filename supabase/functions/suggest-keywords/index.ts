@@ -12,14 +12,53 @@ interface KeywordSuggestion {
   intent: "informational" | "transactional" | "navigational" | "commercial";
 }
 
-async function fetchWebsiteContent(url: string): Promise<string> {
+async function fetchWebsiteContentViaFirecrawl(url: string, firecrawlApiKey: string): Promise<string> {
   try {
-    console.log("[suggest-keywords] Fetching website content:", url);
+    console.log("[suggest-keywords] Scraping website via Firecrawl:", url);
+    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${firecrawlApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        timeout: 15000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[suggest-keywords] Firecrawl error:", response.status);
+      return "";
+    }
+
+    const data = await response.json();
+    const markdown = data.data?.markdown || data.markdown || "";
+    const title = data.data?.metadata?.title || "";
+    const description = data.data?.metadata?.description || "";
+
+    let content = "";
+    if (title) content += `Title: ${title}\n`;
+    if (description) content += `Description: ${description}\n`;
+    if (markdown) content += `\n${markdown}`;
+
+    console.log("[suggest-keywords] Firecrawl scraped", content.length, "chars");
+    return content.substring(0, 8000);
+  } catch (e) {
+    console.error("[suggest-keywords] Firecrawl fetch error:", e);
+    return "";
+  }
+}
+
+async function fetchWebsiteContentFallback(url: string): Promise<string> {
+  try {
+    console.log("[suggest-keywords] Fallback: basic HTML fetch:", url);
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        Accept: "text/html,application/xhtml+xml",
       },
     });
 
@@ -28,21 +67,15 @@ async function fetchWebsiteContent(url: string): Promise<string> {
     const html = await res.text();
     let content = "";
 
-    // Extract title
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (titleMatch) content += `Titre: ${titleMatch[1].trim()}\n`;
+    if (titleMatch) content += `Title: ${titleMatch[1].trim()}\n`;
 
-    // Extract meta description
-    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
-                      html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+    const descMatch =
+      html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
     if (descMatch) content += `Description: ${descMatch[1].trim()}\n`;
 
-    // Extract headings
-    const headingRegexes = [
-      /<h1[^>]*>([\s\S]*?)<\/h1>/gi,
-      /<h2[^>]*>([\s\S]*?)<\/h2>/gi,
-      /<h3[^>]*>([\s\S]*?)<\/h3>/gi,
-    ];
+    const headingRegexes = [/<h1[^>]*>([\s\S]*?)<\/h1>/gi, /<h2[^>]*>([\s\S]*?)<\/h2>/gi];
     for (const regex of headingRegexes) {
       const matches = html.matchAll(regex);
       for (const match of matches) {
@@ -51,7 +84,6 @@ async function fetchWebsiteContent(url: string): Promise<string> {
       }
     }
 
-    // Extract paragraphs
     const pMatches = html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi);
     let pCount = 0;
     for (const match of pMatches) {
@@ -59,24 +91,14 @@ async function fetchWebsiteContent(url: string): Promise<string> {
       if (text && text.length > 20) {
         content += `${text}\n`;
         pCount++;
-        if (pCount >= 15) break;
+        if (pCount >= 10) break;
       }
     }
 
-    // Extract nav links text
-    const linkTexts: string[] = [];
-    const linkMatches = html.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi);
-    for (const match of linkMatches) {
-      const text = match[1].replace(/<[^>]+>/g, "").trim();
-      if (text && text.length > 2 && text.length < 40) linkTexts.push(text);
-    }
-    const uniqueLinks = [...new Set(linkTexts)].slice(0, 20);
-    if (uniqueLinks.length > 0) content += `\nNavigation: ${uniqueLinks.join(", ")}\n`;
-
-    console.log("[suggest-keywords] Scraped", content.length, "chars from website");
+    console.log("[suggest-keywords] Fallback scraped", content.length, "chars");
     return content.substring(0, 6000);
   } catch (e) {
-    console.error("[suggest-keywords] Error fetching website:", e);
+    console.error("[suggest-keywords] Fallback fetch error:", e);
     return "";
   }
 }
@@ -100,6 +122,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY") || Deno.env.get("FIRECRAWL_API_KEY_CUSTOM");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get project context
@@ -115,47 +138,73 @@ serve(async (req) => {
       .eq("project_id", projectId)
       .single();
 
+    // Get already crawled site_pages for richer context
+    const { data: sitePages } = await supabase
+      .from("site_pages")
+      .select("url, title, meta_description")
+      .eq("project_id", projectId)
+      .order("last_crawled_at", { ascending: false })
+      .limit(20);
+
     const businessContext = genSettings?.business_description || project?.business_description || "";
     const audiences = genSettings?.target_audiences || [];
     const language = genSettings?.language || project?.language || "en";
     const websiteUrl = project?.website_url || "";
 
-    // Fetch actual website content for better context
-    let websiteContent = "";
-    if (websiteUrl) {
-      websiteContent = await fetchWebsiteContent(websiteUrl);
+    // Build site pages context from DB (already crawled data)
+    let sitePagesContext = "";
+    if (sitePages && sitePages.length > 0) {
+      sitePagesContext = sitePages
+        .map((p) => `- ${p.title || p.url}${p.meta_description ? `: ${p.meta_description}` : ""}`)
+        .join("\n");
+      console.log(`[suggest-keywords] Using ${sitePages.length} cached site pages for context`);
     }
 
-    const prompt = `Tu es un expert SEO. Suggère 10-15 mots-clés longue traîne pertinents pour ce site.
+    // Fetch live website content via Firecrawl (or fallback)
+    let websiteContent = "";
+    if (websiteUrl) {
+      if (firecrawlApiKey) {
+        websiteContent = await fetchWebsiteContentViaFirecrawl(websiteUrl, firecrawlApiKey);
+      }
+      if (!websiteContent) {
+        websiteContent = await fetchWebsiteContentFallback(websiteUrl);
+      }
+    }
+
+    const prompt = `You are an expert SEO keyword researcher. Suggest 10-15 long-tail keywords for this website.
 
 Site: ${project?.name || "Unknown"}
 URL: ${websiteUrl}
 Description: ${businessContext}
-Audiences cibles: ${audiences.join(", ") || "Général"}
-Langue du contenu: ${language}
+Target audiences: ${audiences.join(", ") || "General"}
+Content language: ${language}
 
-${websiteContent ? `CONTENU RÉEL DU SITE WEB:
+${websiteContent ? `ACTUAL WEBSITE CONTENT (scraped via Firecrawl):
 ${websiteContent}` : ""}
 
-${existingKeywords?.length > 0 ? `Mots-clés déjà existants (NE PAS répéter): ${existingKeywords.slice(0, 30).join(", ")}` : ""}
+${sitePagesContext ? `CRAWLED SITE PAGES:
+${sitePagesContext}` : ""}
+
+${existingKeywords?.length > 0 ? `EXISTING KEYWORDS (DO NOT repeat these): ${existingKeywords.slice(0, 50).join(", ")}` : ""}
 
 INSTRUCTIONS:
-- Génère des mots-clés basés sur le CONTENU RÉEL du site web ci-dessus
-- Focus sur les produits, services et catégories réellement présents sur le site
-- Mots-clés en ${language === "fr" ? "français" : language === "en" ? "anglais" : language}
-- Focus sur des mots-clés longue traîne (3-6 mots) avec une intention de recherche claire
-- Inclus des questions que les utilisateurs poseraient réellement
+- Generate keywords based on the ACTUAL website content above
+- Focus on products, services, and categories actually present on the site
+- Keywords in ${language === "fr" ? "French" : language === "en" ? "English" : language}
+- Focus on long-tail keywords (3-6 words) with clear search intent
+- Include questions users would actually ask about this business
+- Include keywords that AI assistants (ChatGPT, Perplexity, Claude) would use to cite this content
 
-Pour chaque mot-clé, détermine l'intention:
-- informational: L'utilisateur veut apprendre (comment, qu'est-ce que, guide)
-- transactional: L'utilisateur veut acheter/s'inscrire (acheter, prix, pas cher)
-- commercial: L'utilisateur compare les options (meilleur, vs, avis, comparatif)
-- navigational: L'utilisateur cherche une page/marque spécifique
+For each keyword, determine intent:
+- informational: User wants to learn (how, what is, guide)
+- transactional: User wants to buy/sign up (buy, price, cheap)
+- commercial: User compares options (best, vs, review, comparison)
+- navigational: User looks for a specific page/brand
 
-Retourne UNIQUEMENT un JSON array:
+Return ONLY a JSON array:
 [
-  {"keyword": "mot clé pertinent", "intent": "informational"},
-  {"keyword": "autre mot clé", "intent": "transactional"}
+  {"keyword": "relevant keyword here", "intent": "informational"},
+  {"keyword": "another keyword", "intent": "transactional"}
 ]`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -167,7 +216,11 @@ Retourne UNIQUEMENT un JSON array:
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Tu es un expert en recherche de mots-clés SEO. Tu analyses le contenu réel des sites web pour proposer des mots-clés pertinents. Retourne uniquement du JSON valide." },
+          {
+            role: "system",
+            content:
+              "You are an expert SEO keyword researcher. You analyze real website content to suggest precise, relevant keywords. Return only valid JSON.",
+          },
           { role: "user", content: prompt },
         ],
         temperature: 0.3,
@@ -197,16 +250,13 @@ Retourne UNIQUEMENT un JSON array:
 
     // Filter out existing keywords
     const existingLower = (existingKeywords || []).map((k: string) => k.toLowerCase());
-    const newSuggestions = suggestions.filter(
-      (s) => !existingLower.includes(s.keyword.toLowerCase())
-    );
+    const newSuggestions = suggestions.filter((s) => !existingLower.includes(s.keyword.toLowerCase()));
 
-    console.log(`[suggest-keywords] Returning ${newSuggestions.length} suggestions`);
+    console.log(`[suggest-keywords] Returning ${newSuggestions.length} suggestions (Firecrawl: ${!!firecrawlApiKey})`);
 
-    return new Response(
-      JSON.stringify({ suggestions: newSuggestions }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ suggestions: newSuggestions }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[suggest-keywords] Error:", error);
     return new Response(
