@@ -240,37 +240,21 @@ export function KeywordsSettings() {
 
     setIsAutoFilling(true);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-website", {
-        body: { url: project.website_url },
+      const { data, error } = await supabase.functions.invoke("crawl-site-keywords", {
+        body: { projectId: project.id, maxPages: 30 },
       });
 
       if (error) throw error;
 
-      if (data?.keywords && Array.isArray(data.keywords) && data.keywords.length > 0) {
-        const existingLower = keywords.map((k) => k.keyword.toLowerCase());
-        const newKeywords = data.keywords
-          .map((k: any) => (typeof k === "string" ? { keyword: k, intent: "informational" } : k))
-          .filter((k: any) => !existingLower.includes(k.keyword.toLowerCase()));
-
-        if (newKeywords.length === 0) {
-          toast.info("No new keywords found from your website");
-          return;
-        }
-
-        const rows = newKeywords.map((k: any) => ({
-          project_id: project.id,
-          keyword: k.keyword,
-          intent: k.intent || "informational",
-          is_used: false,
-        }));
-
-        const { error: insertError } = await supabase.from("keywords").insert(rows);
-        if (insertError) throw insertError;
-
+      if (data?.success && data.newKeywordsAdded > 0) {
         await fetchKeywords();
-        toast.success(`${newKeywords.length} keywords extracted from your website`);
+        toast.success(`${data.newKeywordsAdded} keywords extracted from ${data.pagesScraped} pages`);
+      } else if (data?.success && data.newKeywordsAdded === 0) {
+        toast.info(data.keywordsExtracted > 0 
+          ? "All extracted keywords already exist" 
+          : "No keywords found on your website");
       } else {
-        toast.info("No keywords found on your website");
+        toast.error(data?.error || "Failed to extract keywords");
       }
     } catch (error) {
       console.error("Error auto-filling keywords:", error);
@@ -353,12 +337,12 @@ export function KeywordsSettings() {
               {isAutoFilling ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Extracting from website...
+                  Deep crawling website...
                 </>
               ) : (
                 <>
                   <Globe className="h-4 w-4" />
-                  Auto-fill from website
+                  Deep crawl keywords
                 </>
               )}
             </Button>
