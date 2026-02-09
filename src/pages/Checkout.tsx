@@ -20,7 +20,7 @@ import {
 } from "@stripe/react-stripe-js";
 
 // TODO: Replace with your actual Stripe publishable key
-const stripePromise = loadStripe("pk_live_51Ssm3vEfti9t9nN9JMgVg7zMlGJ2lZYMvWjrKpKWlXJ6oqP5rjJYNMEZlBRHeWlw06BKHiWBJfvqjM3oLxfPMqWb00dZZPLkUa");
+const stripePromise = loadStripe("pk_live_51OkmX3Efti9t9nN9Mlecdj4IgnmMGkECjdGaN85Qg6QJ1KoVOF3KQmX7Cj9aOQiTnolZG7MhJ2qSLS85QqEwJOpM00UBMNxh2H");
 
 const features = [
   { label: "AEO Answers", desc: "Rank #1 on ChatGPT, Gemini & Perplexity" },
