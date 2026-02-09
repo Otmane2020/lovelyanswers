@@ -23,26 +23,26 @@ serve(async (req) => {
   try {
     console.log("[CREATE-CHECKOUT] Starting checkout session creation");
 
-    // Get request body
     let plan = "monthly";
     let guestEmail: string | null = null;
     let isGuest = false;
+    let embedded = false;
 
     try {
       const body = await req.json();
       plan = body.plan || "monthly";
       guestEmail = body.email || null;
       isGuest = body.guest === true;
+      embedded = body.embedded === true;
     } catch {
-      // Default to monthly if no body
+      // Default values
     }
 
     const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_MONTHLY;
-    console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId, "Guest:", isGuest);
+    console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId, "Guest:", isGuest, "Embedded:", embedded);
 
     let userEmail: string | null = null;
 
-    // Try to get authenticated user first
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -53,13 +53,11 @@ serve(async (req) => {
       }
     }
 
-    // If no authenticated user but guest email provided, use that
     if (!userEmail && guestEmail && isGuest) {
       userEmail = guestEmail;
       console.log("[CREATE-CHECKOUT] Guest checkout with email:", userEmail);
     }
 
-    // If still no email, error
     if (!userEmail) {
       throw new Error("Email is required for checkout");
     }
@@ -68,7 +66,6 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if customer already exists
     const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
@@ -78,33 +75,47 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
 
-    // Determine success URL based on guest vs authenticated
-    const successUrl = isGuest 
-      ? `${origin}/auth?mode=signup&checkout=success`
-      : `${origin}/dashboard?subscription=success`;
+    if (embedded) {
+      // Embedded checkout mode - return client_secret
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : userEmail,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        allow_promotion_codes: true,
+        ui_mode: "embedded",
+        return_url: `${origin}/dashboard?subscription=success`,
+      });
 
-    // Create checkout session with 3-day trial and promo codes enabled
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : userEmail,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      allow_promotion_codes: true,
-      success_url: successUrl,
-      cancel_url: `${origin}/onboarding`,
-    });
+      console.log("[CREATE-CHECKOUT] Embedded session created:", session.id);
 
-    console.log("[CREATE-CHECKOUT] Session created:", session.id);
+      return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } else {
+      // Legacy redirect mode
+      const successUrl = isGuest
+        ? `${origin}/auth?mode=signup&checkout=success`
+        : `${origin}/dashboard?subscription=success`;
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : userEmail,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        allow_promotion_codes: true,
+        success_url: successUrl,
+        cancel_url: `${origin}/onboarding`,
+      });
+
+      console.log("[CREATE-CHECKOUT] Redirect session created:", session.id);
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
   } catch (error) {
     console.error("[CREATE-CHECKOUT] Error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
