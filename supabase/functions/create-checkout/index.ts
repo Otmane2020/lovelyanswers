@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20"; // $29/month
-const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI"; // $279/year
+const PRICE_MONTHLY = "price_1SsmqiEfti9t9nN9eDpXOiMg"; // 29€/month
+const PRICE_ANNUAL = "price_1SsmqmEfti9t9nN9z10qG5m3"; // 279€/year
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -84,7 +84,6 @@ serve(async (req) => {
         mode: "subscription",
         allow_promotion_codes: true,
         ui_mode: "embedded",
-        currency: "eur",
         return_url: `${origin}/dashboard?subscription=success`,
       });
 
