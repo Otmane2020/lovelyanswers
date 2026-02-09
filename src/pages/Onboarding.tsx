@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-  EmbeddedCheckoutProvider,
-  EmbeddedCheckout,
-} from "@stripe/react-stripe-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight,
@@ -32,8 +27,6 @@ import lovelyRobotMascot from "@/assets/lovely-robot-mascot.png";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-const stripePromise = loadStripe("pk_live_51OkmX3Efti9t9nN9Mlecdj4IgnmMGkECjdGaN85Qg6QJ1KoVOF3KQmX7Cj9aOQiTnolZG7MhJ2qSLS85QqEwJOpM00UBMNxh2H");
-
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnboardingSession } from "@/hooks/useOnboardingSession";
@@ -122,7 +115,7 @@ export default function Onboarding() {
   const languageAutoDetectRef = useRef<string | null>(null);
   const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
   const [isPreDetecting, setIsPreDetecting] = useState(false);
-  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
+  
   // Session tracking hook
   const { 
     trackStep, 
@@ -431,53 +424,54 @@ export default function Onboarding() {
     }
   };
 
-  const handleStartCheckout = async () => {
+  const handleCheckout = async () => {
     if (!isValidEmail(data.email)) return;
     
-    // Save data to localStorage for after payment
-    const onboardingData = {
-      websiteUrl: data.websiteUrl,
-      language: data.language,
-      businessDescription: data.businessDescription,
-      email: data.email,
-      keywords: data.keywords,
-      competitors: data.competitors.map(c => c.domain),
-    };
-    localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
-    localStorage.setItem('onboarding_email', data.email);
-
-    // Track checkout started with all data
-    await trackCheckoutStarted(data.email);
-    await updateSession({
-      brand_name: data.brandName,
-      business_description: data.businessDescription,
-      cms: data.cms,
-      competitors: data.competitors.map(c => c.domain),
-      keywords: data.keywords,
-      audiences: data.audiences,
-      traffic_potential: data.trafficPotential,
-    });
-
-    setShowEmbeddedCheckout(true);
-  };
-
-  const fetchClientSecret = useCallback(async () => {
-    const { data: checkoutData, error } = await supabase.functions.invoke('create-checkout', {
-      body: { 
-        plan: billingCycle,
+    setIsCheckingOut(true);
+    
+    try {
+      // Save data to localStorage for after payment
+      const onboardingData = {
+        websiteUrl: data.websiteUrl,
+        language: data.language,
+        businessDescription: data.businessDescription,
         email: data.email,
-        guest: true,
-        embedded: true,
+        keywords: data.keywords,
+        competitors: data.competitors.map(c => c.domain),
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(onboardingData));
+      localStorage.setItem('onboarding_email', data.email);
+
+      // Track checkout started with all data
+      await trackCheckoutStarted(data.email);
+      await updateSession({
+        brand_name: data.brandName,
+        business_description: data.businessDescription,
+        cms: data.cms,
+        competitors: data.competitors.map(c => c.domain),
+        keywords: data.keywords,
+        audiences: data.audiences,
+        traffic_potential: data.trafficPotential,
+      });
+
+      const { data: checkoutData, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          plan: billingCycle,
+          email: data.email,
+          guest: true,
+        }
+      });
+
+      if (error || !checkoutData?.url) {
+        throw new Error(error?.message || "Failed to create checkout");
       }
-    });
 
-    if (error || !checkoutData?.clientSecret) {
-      console.error('[ONBOARDING] Embedded checkout error:', error);
-      throw new Error("Failed to create checkout session");
+      window.location.href = checkoutData.url;
+    } catch (error) {
+      console.error('[ONBOARDING] Checkout error:', error);
+      setIsCheckingOut(false);
     }
-
-    return checkoutData.clientSecret as string;
-  }, [billingCycle, data.email]);
+  };
 
   const filteredLanguages = languages.filter(lang => 
     lang.name.toLowerCase().includes(languageSearch.toLowerCase())
@@ -977,7 +971,7 @@ export default function Onboarding() {
                     <div className="space-y-3">
                       {/* Annual - 2 months free */}
                       <button
-                        onClick={() => { setBillingCycle("annual"); setShowEmbeddedCheckout(false); }}
+                        onClick={() => setBillingCycle("annual")}
                         className={cn(
                           "w-full p-4 rounded-xl border-2 text-left transition-all relative",
                           billingCycle === "annual"
@@ -1010,7 +1004,7 @@ export default function Onboarding() {
 
                       {/* Monthly */}
                       <button
-                        onClick={() => { setBillingCycle("monthly"); setShowEmbeddedCheckout(false); }}
+                        onClick={() => setBillingCycle("monthly")}
                         className={cn(
                           "w-full p-4 rounded-xl border-2 text-left transition-all relative",
                           billingCycle === "monthly"
@@ -1049,50 +1043,32 @@ export default function Onboarding() {
                   );
                 })()}
 
-                {/* Embedded Stripe Checkout */}
-                {showEmbeddedCheckout && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="rounded-2xl overflow-hidden border border-border bg-card"
-                  >
-                    <EmbeddedCheckoutProvider
-                      stripe={stripePromise}
-                      options={{ fetchClientSecret }}
-                    >
-                      <EmbeddedCheckout className="rounded-2xl" />
-                    </EmbeddedCheckoutProvider>
-                  </motion.div>
-                )}
-
                 {/* Features */}
-                {!showEmbeddedCheckout && (
-                  <div className="pt-5 border-t border-border/50">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-                      Everything included
-                    </p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {features.map((feature, i) => {
-                        const Icon = feature.icon;
-                        return (
-                          <div key={i} className="flex items-start gap-3 group">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                              <Icon className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground leading-tight">
-                                {feature.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {feature.description}
-                              </p>
-                            </div>
+                <div className="pt-5 border-t border-border/50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+                    Everything included
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {features.map((feature, i) => {
+                      const Icon = feature.icon;
+                      return (
+                        <div key={i} className="flex items-start gap-3 group">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <Icon className="h-4 w-4 text-primary" />
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground leading-tight">
+                              {feature.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1100,7 +1076,7 @@ export default function Onboarding() {
       </div>
 
       {/* Sticky Bottom Button */}
-      {currentStep !== 4 && !(currentStep === 6 && showEmbeddedCheckout) && (
+      {currentStep !== 4 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border">
           <div className="max-w-lg mx-auto">
             {currentStep < 6 ? (
@@ -1131,12 +1107,21 @@ export default function Onboarding() {
               </Button>
             ) : (
               <Button
-                onClick={handleStartCheckout}
+                onClick={handleCheckout}
                 disabled={isCheckingOut}
                 className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
               >
-                Buy now for ${billingCycle === "monthly" ? "29" : "23"}/m
-                <ArrowRight className="w-5 h-5 ml-2" />
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Redirecting...
+                  </>
+                ) : (
+                  <>
+                    Buy now for ${billingCycle === "monthly" ? "29" : "23"}/m
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
               </Button>
             )}
           </div>
