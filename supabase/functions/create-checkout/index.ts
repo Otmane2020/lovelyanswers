@@ -84,6 +84,7 @@ serve(async (req) => {
         mode: "subscription",
         allow_promotion_codes: true,
         ui_mode: "embedded",
+        currency: "eur",
         return_url: `${origin}/dashboard?subscription=success`,
       });
 
