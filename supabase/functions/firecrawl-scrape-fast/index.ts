@@ -113,13 +113,38 @@ function detectCMSFromContent(html: string, markdown: string): string {
   return ''; // Unknown CMS
 }
 
-// IMPROVED: Fast language detection with weighted scoring to avoid FR/PT confusion
-function detectLanguageFromContent(content: string, metaLang: string): string {
+// IMPROVED: Fast language detection - prioritize meta lang + title, fallback to content analysis
+function detectLanguageFromContent(content: string, metaLang: string, title?: string): string {
+  // 1. Trust <html lang="xx"> if it's a valid 2-letter code
+  const validLangs = ['fr', 'en', 'de', 'es', 'it', 'pt', 'nl', 'pl', 'sv', 'da', 'no', 'fi', 'ja', 'ko', 'zh', 'ar', 'ru', 'tr', 'cs', 'ro', 'hu', 'el', 'th', 'vi', 'id', 'ms', 'uk', 'bg', 'hr', 'sk', 'sl', 'lt', 'lv', 'et'];
+  const cleanMeta = (metaLang || '').toLowerCase().substring(0, 2);
+  if (cleanMeta && validLangs.includes(cleanMeta)) {
+    console.log('[LANG-FAST] Using meta lang tag:', cleanMeta);
+    return cleanMeta;
+  }
+
+  // 2. Quick check on title (SEO title is very reliable for language)
+  const titleText = (title || '').toLowerCase();
+  if (titleText.length > 5) {
+    const frTitle = /[àâéèêëîïôùûüç]/.test(titleText) || /\b(le|la|les|du|des|pour|avec|votre|notre)\b/.test(titleText);
+    const deTitle = /[äöüß]/.test(titleText) || /\b(der|die|das|und|für|mit|ihr)\b/.test(titleText);
+    const esTitle = /[ñ¿¡]/.test(titleText) || /\b(el|los|las|para|con|nuestro)\b/.test(titleText);
+    const itTitle = /\b(il|della|delle|dei|nostro|questo)\b/.test(titleText);
+    const ptTitle = /\b(não|são|você|nosso|nossa)\b/.test(titleText);
+    
+    if (frTitle) { console.log('[LANG-FAST] French detected from title'); return 'fr'; }
+    if (deTitle) { console.log('[LANG-FAST] German detected from title'); return 'de'; }
+    if (esTitle) { console.log('[LANG-FAST] Spanish detected from title'); return 'es'; }
+    if (itTitle) { console.log('[LANG-FAST] Italian detected from title'); return 'it'; }
+    if (ptTitle) { console.log('[LANG-FAST] Portuguese detected from title'); return 'pt'; }
+  }
+
+  // 3. Fallback: content-based scoring (only if meta + title gave nothing)
   if (!content || content.length < 100) {
-    return metaLang || 'en';
+    return 'en';
   }
   
-  const sampleText = content.substring(0, 5000).toLowerCase();
+  const sampleText = content.substring(0, 3000).toLowerCase();
   
   // Language patterns with weights: [pattern, weight]
   // Higher weights for accented words and contractions (more reliable)
@@ -438,7 +463,7 @@ Deno.serve(async (req) => {
           const metaDescription = descMatch ? descMatch[1].trim() : '';
           const metaLanguage = langMatch ? langMatch[1].substring(0, 2).toLowerCase() : '';
           
-          const language = detectLanguageFromContent(html, metaLanguage);
+          const language = detectLanguageFromContent(html, metaLanguage, title);
           const brandName = extractBrandName(formattedUrl, title);
           const description = extractDescriptionFast('', metaDescription, brandName);
           const cms = detectCMSFromContent(html, '');
@@ -482,7 +507,7 @@ Deno.serve(async (req) => {
     console.log('[FAST] CMS detected:', cms || 'unknown');
 
     // Fast local processing - ALL INSTANT (no AI)
-    const language = detectLanguageFromContent(markdown, metaLanguage);
+    const language = detectLanguageFromContent(markdown, metaLanguage, title);
     const brandName = extractBrandName(formattedUrl, title);
     const description = extractDescriptionFast(markdown, metaDescription, brandName);
     
