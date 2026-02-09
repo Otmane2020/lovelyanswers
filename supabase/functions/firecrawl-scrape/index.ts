@@ -512,11 +512,21 @@ Deno.serve(async (req) => {
       console.log('[COMPETITORS] Using AI-powered Google Search fallback...');
       const googleCompetitors = await findCompetitorsViaGoogleSearch(enrichedDescription, brandName, ownDomain, language, apiKey, keywords, contentPreview, businessTypeQuery);
       
-      // Merge unique domains
       for (const c of googleCompetitors) {
         if (!rawCompetitors.includes(c)) rawCompetitors.push(c);
       }
       console.log('[COMPETITORS] Source 4 (Google Search):', googleCompetitors.length, 'new, total:', rawCompetitors.length);
+    }
+    
+    // SOURCE 5: Pure AI knowledge fallback (when ALL APIs fail)
+    if (rawCompetitors.length < 2 && lovableApiKey) {
+      console.log('[COMPETITORS] All APIs failed, using AI knowledge fallback...');
+      const aiCompetitors = await findCompetitorsViaAI(enrichedDescription, brandName, ownDomain, language, lovableApiKey, keywords);
+      
+      for (const c of aiCompetitors) {
+        if (!rawCompetitors.includes(c)) rawCompetitors.push(c);
+      }
+      console.log('[COMPETITORS] Source 5 (AI Knowledge):', aiCompetitors.length, 'new, total:', rawCompetitors.length);
     }
     
     // SCORING: Score competitors by business similarity
@@ -713,38 +723,40 @@ async function findCompetitorsViaGoogleSearch(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
-    // PRIORITY 1: Use transactional/commercial keywords DIRECTLY (like "meubles occasion")
-    // This simulates what a real user would search on Google
+    // Build diverse search queries for maximum coverage
     const transactionalKeywords = extractedKeywords
       .filter(k => k.intent === 'transactional' || k.intent === 'commercial')
       .slice(0, 3)
       .map(k => k.keyword);
     
-    let searchQuery = '';
+    const searchQueries: string[] = [];
     
-    if (transactionalKeywords.length > 0) {
-      // Use the BEST keyword directly - no need to add "alternatives" which pollutes results
-      // "meubles occasion" finds leboncoin, troc.com, selency directly
-      searchQuery = transactionalKeywords[0];
-      console.log('[COMPETITORS] Using direct keyword search:', searchQuery);
-    } else if (businessContext && businessContext.length > 5 && businessContext.length < 100) {
-      // PRIORITY 2: Use AI-detected business context
-      searchQuery = businessContext;
-      console.log('[COMPETITORS] Using business context:', searchQuery);
-    } else {
-      // PRIORITY 3: Ultimate fallback with brand
-      searchQuery = language === 'fr'
-        ? `sites comme ${brandName}`
-        : `sites like ${brandName}`;
-      console.log('[COMPETITORS] Using brand fallback:', searchQuery);
+    // PRIORITY 1: Use businessContext (AI-generated query like "sites audit visibilité IA")
+    // This is the MOST reliable because AI understands the business model
+    if (businessContext && businessContext.length > 5 && businessContext.length < 100) {
+      searchQueries.push(businessContext);
+      console.log('[COMPETITORS] Added business context query:', businessContext);
     }
-
-    // Run multiple searches in parallel for better coverage
-    const searchQueries = [searchQuery];
     
-    // Add second keyword if available (e.g., "vendre meubles occasion")
-    if (transactionalKeywords.length > 1 && transactionalKeywords[1] !== searchQuery) {
-      searchQueries.push(transactionalKeywords[1]);
+    // PRIORITY 2: "alternatives à [brand]" query - finds direct competitors
+    const cleanBrand = brandName.split('–')[0].split('-')[0].split('|')[0].trim();
+    if (cleanBrand && cleanBrand.length > 2 && cleanBrand.length < 40) {
+      const altQuery = language === 'fr'
+        ? `alternatives à ${cleanBrand}`
+        : `alternatives to ${cleanBrand}`;
+      searchQueries.push(altQuery);
+      console.log('[COMPETITORS] Added alternatives query:', altQuery);
+    }
+    
+    // PRIORITY 3: Transactional keywords
+    if (transactionalKeywords.length > 0 && !searchQueries.some(q => q === transactionalKeywords[0])) {
+      searchQueries.push(transactionalKeywords[0]);
+    }
+    
+    // Ensure at least one query
+    if (searchQueries.length === 0) {
+      const fallback = language === 'fr' ? `sites comme ${cleanBrand}` : `sites like ${cleanBrand}`;
+      searchQueries.push(fallback);
     }
     
     console.log('[COMPETITORS] Search queries:', searchQueries);
@@ -788,28 +800,32 @@ async function findCompetitorsViaGoogleSearch(
     const seenDomains = new Set<string>();
 
     // === SEO METADATA ANALYSIS ===
-    // Analyze title + description to identify e-commerce/marketplace vs media/blog
+    // Analyze title + description to identify competitors vs media/blog
+    const SERVICE_SIGNALS = [
+      // SaaS/service signals
+      'audit', 'tool', 'outil', 'plateforme', 'platform', 'solution', 'software', 'logiciel',
+      'saas', 'app', 'dashboard', 'api', 'service', 'agence', 'agency', 'consultant',
+      'optimize', 'optimiser', 'analyze', 'analyser', 'score', 'report', 'rapport',
+      'pricing', 'tarif', 'prix', 'plan', 'essai gratuit', 'free trial', 'demo', 'démo',
+      'sign up', 'inscription', 'commencer', 'get started', 'subscribe', 'abonnement',
+    ];
+    
     const ECOMMERCE_SIGNALS = [
-      // French
       'achat', 'acheter', 'vente', 'vendre', 'occasion', 'annonces', 'petites annonces',
       'dépôt-vente', 'depot-vente', 'seconde main', 'second hand', 'prix', 'gratuit',
       'livraison', 'boutique', 'magasin', 'marketplace', 'vendeur', 'particulier',
-      // English
       'buy', 'sell', 'sale', 'shop', 'store', 'marketplace', 'listing', 'classified',
       'deals', 'discount', 'price', 'shipping', 'delivery', 'seller', 'buyer',
-      // Platform indicators
       'annonce', 'offre', 'promo', 'soldes', 'destockage', 'occasion certifié',
     ];
     
     const MEDIA_SIGNALS = [
-      // French
       'article', 'blog', 'actualité', 'actualites', 'news', 'magazine', 'journal',
       'rédaction', 'redaction', 'info', 'infos', 'presse', 'média', 'medias',
       'reportage', 'édito', 'edito', 'chronique', 'interview', 'enquête',
-      'bons plans', 'bon plan', 'guide', 'conseils', 'astuces', 'top ', 'meilleurs',
+      'bons plans', 'bon plan', 'conseils', 'astuces', 'top ', 'meilleurs',
       'notre sélection', 'on vous dit', 'découvrez', 'voici', 'nos coups de coeur',
-      // English
-      'article', 'blog', 'news', 'magazine', 'editorial', 'report', 'review',
+      'blog', 'news', 'magazine', 'editorial', 'report', 'review',
       'best of', 'top picks', 'guide to', 'tips', 'tricks', 'how to',
     ];
     
@@ -821,47 +837,33 @@ async function findCompetitorsViaGoogleSearch(
         const urlObj = new URL(url);
         const resultDomain = urlObj.hostname.replace('www.', '').toLowerCase();
         
-        // Use global isBlockedDomain with business context for smart filtering
         if (isBlockedDomain(resultDomain, businessContext)) continue;
-        
-        // Skip own domain
         if (resultDomain.includes(ownDomainBase)) continue;
-        
-        // Skip already seen
         if (seenDomains.has(resultDomain)) continue;
+        if (resultDomain.endsWith('.gov') || resultDomain.endsWith('.edu')) continue;
         
-        // Skip generic TLDs that are likely not competitors
-        if (resultDomain.endsWith('.gov') || resultDomain.endsWith('.edu') || resultDomain.endsWith('.org')) continue;
-        
-        // Skip if result domain contains generic words suggesting it's a directory/blog
         const domainWords = resultDomain.split('.')[0].toLowerCase();
         if (['blog', 'news', 'review', 'compare', 'best', 'top', 'list'].some(w => domainWords.includes(w))) continue;
         
-        // === NEW: Analyze SEO title and description ===
         const title = (result.title || '').toLowerCase();
-        const description = (result.description || '').toLowerCase();
-        const seoText = `${title} ${description}`;
+        const desc = (result.description || '').toLowerCase();
+        const seoText = `${title} ${desc}`;
         
-        // Count e-commerce vs media signals
         const ecommerceScore = ECOMMERCE_SIGNALS.filter(signal => seoText.includes(signal)).length;
+        const serviceScore = SERVICE_SIGNALS.filter(signal => seoText.includes(signal)).length;
         const mediaScore = MEDIA_SIGNALS.filter(signal => seoText.includes(signal)).length;
+        const businessScore = ecommerceScore + serviceScore;
         
-        // Skip if more media signals than e-commerce signals
-        if (mediaScore > ecommerceScore && mediaScore >= 2) {
-          console.log(`[COMPETITORS] Skipping media site via SEO analysis: ${resultDomain} (media=${mediaScore}, ecom=${ecommerceScore})`);
-          console.log(`[COMPETITORS]   Title: "${title.substring(0, 80)}..."`);
+        // Only skip if CLEARLY media (high media signals AND low business signals)
+        if (mediaScore >= 3 && businessScore === 0) {
+          console.log(`[COMPETITORS] Skipping pure media: ${resultDomain} (media=${mediaScore}, biz=${businessScore})`);
           continue;
-        }
-        
-        // Bonus: Prioritize sites with strong e-commerce signals
-        if (ecommerceScore >= 2) {
-          console.log(`[COMPETITORS] Strong e-commerce signals for: ${resultDomain} (ecom=${ecommerceScore})`);
         }
         
         seenDomains.add(resultDomain);
         competitors.push(resultDomain);
         
-        if (competitors.length >= 10) break; // Get more candidates for scoring
+        if (competitors.length >= 10) break;
       } catch {
         // Invalid URL, skip
       }
@@ -1521,6 +1523,78 @@ Return ONLY JSON array:
     return results;
   } catch (e) {
     console.error('[AEO-QA] Error:', e);
+    return [];
+  }
+}
+
+// SOURCE 5: Pure AI knowledge - ask LLM to name competitors from its training data
+async function findCompetitorsViaAI(
+  description: string,
+  brandName: string,
+  domain: string,
+  language: string,
+  apiKey: string,
+  keywords: Array<{keyword: string, intent: string}> = []
+): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const topKw = keywords.slice(0, 5).map(k => k.keyword).join(', ');
+    const cleanBrand = brandName.split('–')[0].split('-')[0].split('|')[0].trim();
+    const langInstr = language === 'fr' ? 'Réponds en français.' : 'Respond in English.';
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{
+          role: 'user',
+          content: `List 4-6 DIRECT competitor websites for this business. ${langInstr}
+
+Business: ${cleanBrand} (${domain})
+Description: ${description}
+Keywords: ${topKw}
+
+Rules:
+- Return ONLY real, existing competitor DOMAINS (e.g., "semrush.com", "ahrefs.com")
+- Must be DIRECT competitors offering similar products/services
+- NO news sites, blogs, directories, or Wikipedia
+- NO generic platforms (google.com, youtube.com, facebook.com)
+- Return ONLY a JSON array of domain strings: ["competitor1.com", "competitor2.com"]`
+        }],
+        temperature: 0.3,
+        max_tokens: 200,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*?\]/);
+    
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) {
+        // Filter out own domain and clean
+        const cleaned = parsed
+          .filter((d: string) => typeof d === 'string')
+          .map((d: string) => d.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').toLowerCase())
+          .filter((d: string) => !d.includes(domain.split('.')[0]) && d.includes('.'));
+        console.log('[COMPETITORS] AI suggested:', cleaned);
+        return cleaned.slice(0, 6);
+      }
+    }
+    return [];
+  } catch (e) {
+    console.error('[COMPETITORS] AI knowledge fallback error:', e);
     return [];
   }
 }
