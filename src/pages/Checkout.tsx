@@ -60,8 +60,12 @@ export default function Checkout() {
   }, [isSubscribed, isTrial, subLoading, navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      // Ignore signOut errors (expired session)
+    }
+    navigate("/auth", { replace: true });
   };
 
   const handleSignupAndCheckout = async () => {
