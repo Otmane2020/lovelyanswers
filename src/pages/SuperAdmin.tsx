@@ -24,6 +24,7 @@ import { enUS } from "date-fns/locale";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
+import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 
 interface SupportTicket {
   id: string;
@@ -649,11 +650,20 @@ const SuperAdmin = () => {
               <UserX className="h-4 w-4" />
               Prospects
             </TabsTrigger>
+            <TabsTrigger value="active-articles" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Articles Actifs
+            </TabsTrigger>
           </TabsList>
 
           {/* Onboarding Tracking Tab */}
           <TabsContent value="onboarding">
             <OnboardingTracking />
+          </TabsContent>
+
+          {/* Active Articles Tab */}
+          <TabsContent value="active-articles">
+            <ActiveArticleUsers />
           </TabsContent>
 
           {/* Users Tab */}
