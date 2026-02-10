@@ -17,7 +17,8 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
@@ -46,8 +47,11 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data } = await supabaseClient.auth.getUser(token);
-      if (data.user?.email) {
+      const { data, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError) {
+        console.log("[CREATE-CHECKOUT] Auth error:", authError.message);
+      }
+      if (data?.user?.email) {
         userEmail = data.user.email;
         console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
       }
