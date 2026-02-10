@@ -575,11 +575,17 @@ serve(async (req) => {
     if (!auth) throw new Error("Missing auth header");
 
     const token = auth.replace("Bearer ", "");
-    const { data: userData, error: authError } =
-      await supabase.auth.getUser(token);
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const isServiceRole = token === serviceRoleKey;
 
-    if (authError || !userData?.user) {
-      throw new Error("Invalid token");
+    let userId: string | null = null;
+    if (!isServiceRole) {
+      const { data: userData, error: authError } =
+        await supabase.auth.getUser(token);
+      if (authError || !userData?.user) {
+        throw new Error("Invalid token");
+      }
+      userId = userData.user.id;
     }
 
     const body = await req.json();
@@ -587,12 +593,14 @@ serve(async (req) => {
 
     if (!projectId) throw new Error("Missing projectId");
 
-    const { data: project } = await supabase
+    let projectQuery = supabase
       .from("projects")
       .select("id, name, brand_name, business_description, language")
-      .eq("id", projectId)
-      .eq("user_id", userData.user.id)
-      .single();
+      .eq("id", projectId);
+    if (!isServiceRole) {
+      projectQuery = projectQuery.eq("user_id", userId!);
+    }
+    const { data: project } = await projectQuery.single();
 
     if (!project) throw new Error("Project not found");
 

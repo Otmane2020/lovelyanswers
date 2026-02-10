@@ -682,8 +682,15 @@ serve(async (req) => {
     if (!auth) throw new Error("Missing auth header");
 
     const token = auth.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !userData?.user) throw new Error("Invalid token");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const isServiceRole = token === serviceRoleKey;
+
+    let userId: string | null = null;
+    if (!isServiceRole) {
+      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !userData?.user) throw new Error("Invalid token");
+      userId = userData.user.id;
+    }
 
     const body = await req.json();
     // CHANGED: overwrite = false by default to prevent deleting existing content
@@ -692,51 +699,54 @@ serve(async (req) => {
     const { projectId, days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
     let language = body.language || null; // Will be overridden by project settings if not provided
 
-    console.log(`[generate-30-days] Request params: projectId=${projectId}, userId=${userData.user.id}, days=${days}`);
+    console.log(`[generate-30-days] Request params: projectId=${projectId}, userId=${userId}, days=${days}`);
 
     if (!projectId) throw new Error("Missing projectId");
 
-    // Get project - first try with user_id check
-    let { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .eq("user_id", userData.user.id)
-      .single();
-
-    // If not found with user_id, check if user is a team member
-    if (!project) {
-      console.log(`[generate-30-days] Project not found for owner, checking team membership...`);
-      
-      const { data: teamMember } = await supabase
-        .from("team_members")
-        .select("project_id, role")
-        .eq("project_id", projectId)
-        .eq("user_id", userData.user.id)
-        .eq("status", "accepted")
+    // Get project - service role bypasses user_id check
+    let project: any = null;
+    if (isServiceRole) {
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
         .single();
-      
-      if (teamMember) {
-        console.log(`[generate-30-days] User is team member with role: ${teamMember.role}`);
-        const { data: projectData } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", projectId)
+      project = projectData;
+    } else {
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .eq("user_id", userId!)
+        .single();
+      project = projectData;
+
+      // If not found with user_id, check if user is a team member
+      if (!project) {
+        console.log(`[generate-30-days] Project not found for owner, checking team membership...`);
+        
+        const { data: teamMember } = await supabase
+          .from("team_members")
+          .select("project_id, role")
+          .eq("project_id", projectId)
+          .eq("user_id", userId!)
+          .eq("status", "accepted")
           .single();
-        project = projectData;
+        
+        if (teamMember) {
+          console.log(`[generate-30-days] User is team member with role: ${teamMember.role}`);
+          const { data: pd } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
+          project = pd;
+        }
       }
     }
 
     if (!project) {
-      console.error(`[generate-30-days] Project not found: projectId=${projectId}, userId=${userData.user.id}`);
-      
-      // Log what projects this user has
-      const { data: userProjects } = await supabase
-        .from("projects")
-        .select("id, name")
-        .eq("user_id", userData.user.id);
-      console.log(`[generate-30-days] User's projects:`, userProjects);
-      
+      console.error(`[generate-30-days] Project not found: projectId=${projectId}`);
       throw new Error("Project not found");
     }
 
