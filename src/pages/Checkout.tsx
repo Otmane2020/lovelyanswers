@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   ArrowRight, 
   Loader2,
@@ -9,14 +8,11 @@ import {
   LogOut,
   Star,
   CheckCircle2,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 // Stripe price IDs
@@ -38,13 +34,8 @@ export default function Checkout() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
-  const { user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
 
   // Force light theme
   useEffect(() => {
@@ -60,58 +51,8 @@ export default function Checkout() {
   }, [isSubscribed, isTrial, subLoading, navigate]);
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (e) {
-      // Ignore signOut errors (expired session)
-    }
-    navigate("/auth", { replace: true });
-  };
-
-  const handleSignupAndCheckout = async () => {
-    if (!signupEmail || !signupPassword) {
-      toast({ title: "Please fill in email and password", variant: "destructive" });
-      return;
-    }
-    if (signupPassword.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
-      return;
-    }
-    setIsSigningUp(true);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: { data: {} },
-      });
-      if (error) {
-        // If user already exists, try to sign in
-        if (error.message.includes("already registered") || error.message.includes("already exists")) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: signupEmail,
-            password: signupPassword,
-          });
-          if (signInError) {
-            toast({ title: "Account exists. Wrong password?", description: signInError.message, variant: "destructive" });
-            setIsSigningUp(false);
-            return;
-          }
-        } else {
-          toast({ title: "Signup error", description: error.message, variant: "destructive" });
-          setIsSigningUp(false);
-          return;
-        }
-      }
-      // Wait briefly for auth state to propagate, then proceed to checkout
-      setTimeout(() => {
-        setIsSigningUp(false);
-        handleCheckout();
-      }, 500);
-    } catch (err) {
-      console.error("Signup failed:", err);
-      toast({ title: "Error", description: "Signup failed. Please try again.", variant: "destructive" });
-      setIsSigningUp(false);
-    }
+    await supabase.auth.signOut();
+    navigate("/auth");
   };
 
   const handleCheckout = async () => {
@@ -173,17 +114,15 @@ export default function Checkout() {
               Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
             </span>
           </Link>
-          {user && (
-            <Button
-              variant="ghost" 
-              size="sm" 
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          )}
+          <Button
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </header>
 
@@ -267,46 +206,16 @@ export default function Checkout() {
             </button>
           </div>
 
-          {/* Signup form for unauthenticated users */}
-          {!user && !authLoading && (
-            <div className="space-y-3 p-5 rounded-2xl border border-border bg-muted/30">
-              <p className="text-sm font-semibold text-foreground text-center">Create your account to continue</p>
-              <Input
-                type="email"
-                placeholder="Email address"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-                className="h-12"
-              />
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password (6+ characters)"
-                  value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
-                  className="h-12 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* CTA Button */}
           <Button 
-            onClick={user ? handleCheckout : handleSignupAndCheckout}
-            disabled={isLoading || isSigningUp}
+            onClick={handleCheckout}
+            disabled={isLoading}
             className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
           >
-            {isLoading || isSigningUp ? (
+            {isLoading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                {isSigningUp ? "Creating account..." : "Redirecting to checkout..."}
+                Redirecting to checkout...
               </>
             ) : (
               <>

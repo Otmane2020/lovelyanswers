@@ -17,8 +17,7 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
   );
 
   try {
@@ -47,21 +46,8 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data, error: authError } = await supabaseClient.auth.getUser(token);
-      if (authError) {
-        console.log("[CREATE-CHECKOUT] Auth error:", authError.message);
-        // Fallback: decode JWT to extract email
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          if (payload.email) {
-            userEmail = payload.email;
-            console.log("[CREATE-CHECKOUT] Email from JWT fallback:", userEmail);
-          }
-        } catch (e) {
-          console.log("[CREATE-CHECKOUT] JWT decode failed");
-        }
-      }
-      if (!userEmail && data?.user?.email) {
+      const { data } = await supabaseClient.auth.getUser(token);
+      if (data.user?.email) {
         userEmail = data.user.email;
         console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
       }
@@ -97,34 +83,21 @@ serve(async (req) => {
       ? `${origin}/auth?mode=signup&checkout=success`
       : `${origin}/dashboard?subscription=success`;
 
-    // Create checkout session - with currency mismatch fallback
-    let session;
-    try {
-      session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        customer_email: customerId ? undefined : userEmail,
-        line_items: [{ price: priceId, quantity: 1 }],
-        mode: "subscription",
-        allow_promotion_codes: true,
-        success_url: successUrl,
-        cancel_url: `${origin}/onboarding`,
-      });
-    } catch (stripeError: any) {
-      // If currency mismatch, retry without linking existing customer
-      if (stripeError?.message?.includes("combine currencies")) {
-        console.log("[CREATE-CHECKOUT] Currency mismatch, creating session without existing customer");
-        session = await stripe.checkout.sessions.create({
-          customer_email: userEmail,
-          line_items: [{ price: priceId, quantity: 1 }],
-          mode: "subscription",
-          allow_promotion_codes: true,
-          success_url: successUrl,
-          cancel_url: `${origin}/onboarding`,
-        });
-      } else {
-        throw stripeError;
-      }
-    }
+    // Create checkout session with 3-day trial and promo codes enabled
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      customer_email: customerId ? undefined : userEmail,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "subscription",
+      allow_promotion_codes: true,
+      success_url: successUrl,
+      cancel_url: `${origin}/onboarding`,
+    });
 
     console.log("[CREATE-CHECKOUT] Session created:", session.id);
 
