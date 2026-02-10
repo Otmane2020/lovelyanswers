@@ -50,8 +50,18 @@ serve(async (req) => {
       const { data, error: authError } = await supabaseClient.auth.getUser(token);
       if (authError) {
         console.log("[CREATE-CHECKOUT] Auth error:", authError.message);
+        // Fallback: decode JWT to extract email
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload.email) {
+            userEmail = payload.email;
+            console.log("[CREATE-CHECKOUT] Email from JWT fallback:", userEmail);
+          }
+        } catch (e) {
+          console.log("[CREATE-CHECKOUT] JWT decode failed");
+        }
       }
-      if (data?.user?.email) {
+      if (!userEmail && data?.user?.email) {
         userEmail = data.user.email;
         console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
       }
