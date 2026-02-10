@@ -13,6 +13,7 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 // Stripe price IDs
@@ -34,6 +35,7 @@ export default function Checkout() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
+  const { user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
 
@@ -42,6 +44,13 @@ export default function Checkout() {
     document.documentElement.classList.remove("dark");
     return () => {};
   }, []);
+
+  // Redirect unauthenticated users to auth
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   // Redirect subscribed users to dashboard
   useEffect(() => {
