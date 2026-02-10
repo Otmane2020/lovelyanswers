@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Eye, Clock, MousePointer, Globe, Monitor, Smartphone, Tablet,
   Facebook, Search, Share2, TrendingUp, Users, ArrowRight, RefreshCw,
   Bot, Sparkles, MessageSquare, Brain
 } from "lucide-react";
-import { format, subDays, subHours } from "date-fns";
+import { format, subDays, subHours, startOfDay, endOfDay, isToday, isYesterday } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
@@ -588,6 +589,88 @@ export const VisitorAnalytics = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Page Views Detail by Period */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Eye className="h-4 w-4 text-primary" />
+            Page Views Detail by Period
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="today">
+            <TabsList className="mb-4">
+              <TabsTrigger value="today">Today</TabsTrigger>
+              <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
+              <TabsTrigger value="7d">7 Days</TabsTrigger>
+              <TabsTrigger value="30d">30 Days</TabsTrigger>
+            </TabsList>
+            {["today", "yesterday", "7d", "30d"].map((period) => {
+              const now = new Date();
+              const filteredPVs = pageViews.filter((pv) => {
+                const pvDate = new Date(pv.created_at);
+                if (period === "today") return isToday(pvDate);
+                if (period === "yesterday") return isYesterday(pvDate);
+                if (period === "7d") return pvDate >= subDays(now, 7);
+                return pvDate >= subDays(now, 30);
+              });
+
+              const pageCounts = filteredPVs.reduce((acc, pv) => {
+                acc[pv.page_path] = (acc[pv.page_path] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+
+              const sorted = Object.entries(pageCounts)
+                .map(([page, views]) => ({ page, views }))
+                .sort((a, b) => b.views - a.views);
+
+              const totalViews = filteredPVs.length;
+
+              return (
+                <TabsContent key={period} value={period}>
+                  <div className="mb-3 flex items-center gap-3">
+                    <Badge variant="outline" className="text-base px-3 py-1">
+                      {totalViews} page views
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {sorted.length} unique pages
+                    </span>
+                  </div>
+                  {sorted.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No page views for this period.</p>
+                  ) : (
+                    <ScrollArea className="h-[400px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">#</TableHead>
+                            <TableHead>Page</TableHead>
+                            <TableHead className="text-right w-24">Views</TableHead>
+                            <TableHead className="text-right w-24">% Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sorted.map((item, index) => (
+                            <TableRow key={item.page}>
+                              <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                              <TableCell className="font-mono text-sm">{item.page}</TableCell>
+                              <TableCell className="text-right font-bold">{item.views}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {totalViews ? Math.round((item.views / totalViews) * 100) : 0}%
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
         </CardContent>
       </Card>
 
