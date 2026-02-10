@@ -18,6 +18,7 @@ interface UserWithDetails {
   credits_total: number | null;
   credits_used: number | null;
   project_count: number;
+  domains: string[];
 }
 
 export function AdminUsersList() {
@@ -66,14 +67,18 @@ export function AdminUsersList() {
         credits?.map((c) => [c.user_id, { total: c.credits_total, used: c.credits_used }]) || []
       );
 
-      // Load project counts
+      // Load project counts and domains
       const { data: projects } = await supabase
         .from("projects")
-        .select("user_id");
+        .select("user_id, domain");
 
       const projectCountMap = new Map<string, number>();
+      const domainsMap = new Map<string, string[]>();
       projects?.forEach((p) => {
         projectCountMap.set(p.user_id, (projectCountMap.get(p.user_id) || 0) + 1);
+        const domains = domainsMap.get(p.user_id) || [];
+        if (p.domain && !domains.includes(p.domain)) domains.push(p.domain);
+        domainsMap.set(p.user_id, domains);
       });
 
       const usersWithDetails: UserWithDetails[] = (profiles || []).map((p) => ({
@@ -84,6 +89,7 @@ export function AdminUsersList() {
         credits_total: creditsMap.get(p.id)?.total ?? null,
         credits_used: creditsMap.get(p.id)?.used ?? null,
         project_count: projectCountMap.get(p.id) || 0,
+        domains: domainsMap.get(p.id) || [],
       }));
 
       setUsers(usersWithDetails);
@@ -191,6 +197,7 @@ export function AdminUsersList() {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Nom</TableHead>
+                <TableHead>Domaines</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Crédits</TableHead>
                 <TableHead>Projets</TableHead>
@@ -203,6 +210,13 @@ export function AdminUsersList() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.email || "-"}</TableCell>
                   <TableCell>{user.full_name || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {user.domains.length > 0 ? user.domains.map((d, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">{d}</Badge>
+                      )) : <span className="text-muted-foreground text-sm">-</span>}
+                    </div>
+                  </TableCell>
                   <TableCell>{getSubscriptionBadge(user)}</TableCell>
                   <TableCell>
                     {user.credits_total !== null ? (
@@ -240,7 +254,7 @@ export function AdminUsersList() {
               ))}
               {filteredUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     {searchQuery ? "Aucun utilisateur trouvé" : "Aucun utilisateur"}
                   </TableCell>
                 </TableRow>
