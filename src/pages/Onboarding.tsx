@@ -518,25 +518,44 @@ export default function Onboarding() {
                   transition={{ delay: 0.1 }}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-violet-500/10 border border-primary/20"
                 >
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Free SEO Audit in 30 seconds</span>
+                  <Bot className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Free AI Visibility Audit — 30 seconds</span>
                 </motion.div>
 
                 {/* Main Title */}
                 <div className="space-y-3">
                   <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
-                    Get Your Website Ranked by{" "}
+                    Is ChatGPT Recommending{" "}
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">
-                      ChatGPT & Google
+                      Your Business?
                     </span>
                   </h1>
                   <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
-                    Discover how AI search engines see your business and unlock hidden traffic opportunities
+                    Find out how ChatGPT, Google & Perplexity see your website — and what you're missing.
                   </p>
                 </div>
 
+                {/* Concrete promises */}
+                <div className="flex flex-col items-start gap-2 max-w-xs mx-auto text-left">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    <span>See if ChatGPT mentions your business</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    <span>Discover hidden traffic opportunities</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    <span>Get a free AI visibility score</span>
+                  </div>
+                </div>
+
                 {/* URL Input */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Enter your website to get a free AI visibility audit
+                  </p>
                   <Input
                     type="url"
                     placeholder="yourwebsite.com"
@@ -554,70 +573,55 @@ export default function Onboarding() {
                   {urlError && <p className="text-sm text-destructive">{urlError}</p>}
                 </div>
 
-                {/* Trust Elements */}
-                <div className="pt-4 space-y-4">
-                  {/* Star Rating */}
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg key={star} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
+                {/* Social Proof near CTA */}
+                <div className="pt-2 space-y-3">
+                  {/* Star Rating + Stats */}
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <svg key={star} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold">4.9/5</span>
                     </div>
-                    <span className="text-sm font-semibold">4.9/5</span>
-                    <span className="text-sm text-muted-foreground">(527+ businesses)</span>
+                    <span className="text-xs text-muted-foreground">527+ businesses analyzed</span>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs font-medium text-emerald-600">Avg +216% traffic increase</span>
                   </div>
 
-                  {/* Mini Testimonials */}
-                  <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto">
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        M
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my clients."
-                        </p>
-                        <p className="text-xs font-medium mt-1">Mike — Roofing Company</p>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        A
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          "Went from page 3 to page 1 for 12+ keywords in 8 weeks."
-                        </p>
-                        <p className="text-xs font-medium mt-1">Amanda — E-commerce Owner</p>
-                      </div>
-                    </motion.div>
-                  </div>
+                  {/* One compact testimonial */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left max-w-sm mx-auto"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      M
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my clients."
+                      </p>
+                      <p className="text-xs font-medium mt-1">Mike — Roofing Company</p>
+                    </div>
+                  </motion.div>
 
                   {/* Trust Badges */}
-                  <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-green-500" />
-                      <span>Free audit</span>
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                      <span>100% free</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-green-500" />
-                      <span>No credit card</span>
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                      <span>No signup needed</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Shield className="w-4 h-4 text-green-500" />
+                      <Shield className="w-3.5 h-3.5 text-green-500" />
                       <span>Secure</span>
                     </div>
                   </div>
@@ -1092,7 +1096,12 @@ export default function Onboarding() {
                 {currentStep === 1 && isPreDetecting ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Loading {data.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').substring(0, 30)}...
+                    Analyzing {data.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').substring(0, 30)}...
+                  </>
+                ) : currentStep === 1 ? (
+                  <>
+                    <Search className="w-5 h-5 mr-2" />
+                    Get My Free Audit
                   </>
                 ) : currentStep === 3 ? (
                   <>
