@@ -97,21 +97,34 @@ serve(async (req) => {
       ? `${origin}/auth?mode=signup&checkout=success`
       : `${origin}/dashboard?subscription=success`;
 
-    // Create checkout session with 3-day trial and promo codes enabled
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : userEmail,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      allow_promotion_codes: true,
-      success_url: successUrl,
-      cancel_url: `${origin}/onboarding`,
-    });
+    // Create checkout session - with currency mismatch fallback
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : userEmail,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        allow_promotion_codes: true,
+        success_url: successUrl,
+        cancel_url: `${origin}/onboarding`,
+      });
+    } catch (stripeError: any) {
+      // If currency mismatch, retry without linking existing customer
+      if (stripeError?.message?.includes("combine currencies")) {
+        console.log("[CREATE-CHECKOUT] Currency mismatch, creating session without existing customer");
+        session = await stripe.checkout.sessions.create({
+          customer_email: userEmail,
+          line_items: [{ price: priceId, quantity: 1 }],
+          mode: "subscription",
+          allow_promotion_codes: true,
+          success_url: successUrl,
+          cancel_url: `${origin}/onboarding`,
+        });
+      } else {
+        throw stripeError;
+      }
+    }
 
     console.log("[CREATE-CHECKOUT] Session created:", session.id);
 
