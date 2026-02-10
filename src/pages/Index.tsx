@@ -291,6 +291,7 @@ export default function Index() {
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
+          "name": "LovelyAnswers FAQ",
           "mainEntity": faqs.map(faq => ({
             "@type": "Question",
             "name": faq.question,

@@ -51,19 +51,6 @@ const pricingStructuredData = {
   }
 };
 
-// Will be populated dynamically from faqs array after it's defined
-const buildFaqStructuredData = (faqItems: { question: string; answer: string }[]) => ({
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": faqItems.map(faq => ({
-    "@type": "Question",
-    "name": faq.question,
-    "acceptedAnswer": {
-      "@type": "Answer",
-      "text": faq.answer
-    }
-  }))
-});
 
 const features = [
   { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
@@ -127,7 +114,7 @@ export default function Pricing() {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
-        <script type="application/ld+json">{JSON.stringify(buildFaqStructuredData(faqs))}</script>
+        
       </Helmet>
     <div className="min-h-screen bg-background">
       {/* Navigation */}
