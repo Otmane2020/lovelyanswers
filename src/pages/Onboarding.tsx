@@ -199,7 +199,7 @@ export default function Onboarding() {
           }
           
           setIsPreDetecting(false);
-          setCurrentStep(2);
+          setCurrentStep(3); // Skip language step
         };
         autoAdvance();
       }
@@ -387,10 +387,11 @@ export default function Onboarding() {
       }
       
       setIsPreDetecting(false);
-      setCurrentStep(2);
+      setCurrentStep(3); // Skip language step, go directly to email
       
     } else if (currentStep === 2) {
-      // Track step 2 with language
+      // Skip language step - go directly to email (step 3)
+      // Language will be auto-detected during analysis
       await trackStep(2, { language: data.language });
       setCurrentStep(3);
       
