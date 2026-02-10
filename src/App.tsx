@@ -42,6 +42,7 @@ import SuperAdmin from "./pages/SuperAdmin";
 import Blog from "./pages/Blog";
 import LocalAeoArticle from "./pages/LocalAeoArticle";
 import AuditPremium from "./pages/AuditPremium";
+import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                   <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/signup" element={<Signup />} />
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
