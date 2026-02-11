@@ -488,13 +488,13 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[hsl(222,47%,11%)] flex flex-col">
       {/* Header */}
-      <header className="py-6 px-4 border-b border-border/50">
+      <header className="py-6 px-4 border-b border-white/10">
         <div className="flex items-center justify-center gap-2">
           <AnimatedLogo size="md" />
-          <span className="text-xl font-bold tracking-tight">
-            Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
+          <span className="text-xl font-bold tracking-tight text-white">
+            Lovely<span className="text-violet-400">Answers</span>
           </span>
         </div>
       </header>

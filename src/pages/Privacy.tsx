@@ -12,128 +12,99 @@ export default function Privacy() {
         <title>Privacy Policy - LovelyAnswers</title>
         <meta name="description" content="Learn how LovelyAnswers protects your data. Our privacy policy covers data collection, security, GDPR compliance, and your rights." />
         <link rel="canonical" href="https://lovelyanswers.com/privacy" />
-        <meta name="robots" content="index, follow" />
       </Helmet>
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <AnimatedLogo size="md" />
-            <span className="text-xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
-            </span>
-          </Link>
-          <Button variant="ghost" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
+
+      <div className="min-h-screen">
+        {/* Navigation */}
+        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+          <div className="container flex h-16 items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <AnimatedLogo size="md" />
+              <span className="text-xl font-bold tracking-tight text-white">
+                Lovely<span className="text-violet-400">Answers</span>
+              </span>
             </Link>
-          </Button>
+            <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" />Back to Home</Link>
+            </Button>
+          </div>
+        </nav>
+
+        {/* Hero bar */}
+        <div className="bg-[hsl(222,47%,11%)] pt-28 pb-12">
+          <div className="container max-w-3xl">
+            <h1 className="text-4xl font-bold text-white">Privacy Policy</h1>
+            <p className="text-white/40 mt-2">Last updated: January 2026</p>
+          </div>
         </div>
-      </nav>
 
-      {/* Content */}
-      <main className="container pt-32 pb-20 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-        
-        <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
-          <p className="text-muted-foreground">Last updated: January 2026</p>
+        {/* Content */}
+        <main className="bg-white py-16">
+          <div className="container max-w-3xl">
+            <div className="space-y-8 text-gray-500">
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">1. Information We Collect</h2>
+                <p>We collect information you provide directly to us, including:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Account information (email, name, password)</li>
+                  <li>Business information (website URL, business description)</li>
+                  <li>Payment information (processed securely by Stripe)</li>
+                  <li>Content you create using our services</li>
+                </ul>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">2. How We Use Your Information</h2>
+                <p>We use the information we collect to:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Provide and improve our services</li>
+                  <li>Generate personalized content for your business</li>
+                  <li>Process payments and manage subscriptions</li>
+                  <li>Send service updates and marketing communications</li>
+                  <li>Respond to your inquiries and support requests</li>
+                </ul>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">3. Data Security</h2>
+                <p>We implement industry-standard security measures to protect your data. All payment processing is handled by Stripe, a PCI-compliant payment processor. Your data is encrypted in transit and at rest.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">4. Data Sharing</h2>
+                <p>We do not sell your personal information. We may share data with:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Service providers who help us operate our platform</li>
+                  <li>Payment processors (Stripe) for transaction processing</li>
+                  <li>Legal authorities when required by law</li>
+                </ul>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">5. Your Rights</h2>
+                <p>You have the right to:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Access your personal data</li>
+                  <li>Correct inaccurate data</li>
+                  <li>Request deletion of your data</li>
+                  <li>Export your data</li>
+                  <li>Opt out of marketing communications</li>
+                </ul>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">6. Cookies</h2>
+                <p>We use cookies and similar technologies to enhance your experience, analyze site usage, and assist in our marketing efforts.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">7. Contact</h2>
+                <p>For privacy inquiries, contact us at <a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">support@lovelyanswers.io</a></p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">8. Company Information</h2>
+                <p>LovelyAnswers Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
+              </section>
+            </div>
+          </div>
+        </main>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">1. Information We Collect</h2>
-            <p className="text-muted-foreground">
-              We collect information you provide directly to us, including:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Account information (email, name, password)</li>
-              <li>Business information (website URL, business description)</li>
-              <li>Payment information (processed securely by Stripe)</li>
-              <li>Content you create using our services</li>
-            </ul>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">2. How We Use Your Information</h2>
-            <p className="text-muted-foreground">
-              We use the information we collect to:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Provide and improve our services</li>
-              <li>Generate personalized content for your business</li>
-              <li>Process payments and manage subscriptions</li>
-              <li>Send service updates and marketing communications</li>
-              <li>Respond to your inquiries and support requests</li>
-            </ul>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">3. Data Security</h2>
-            <p className="text-muted-foreground">
-              We implement industry-standard security measures to protect your data. 
-              All payment processing is handled by Stripe, a PCI-compliant payment processor. 
-              Your data is encrypted in transit and at rest.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">4. Data Sharing</h2>
-            <p className="text-muted-foreground">
-              We do not sell your personal information. We may share data with:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Service providers who help us operate our platform</li>
-              <li>Payment processors (Stripe) for transaction processing</li>
-              <li>Legal authorities when required by law</li>
-            </ul>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">5. Your Rights</h2>
-            <p className="text-muted-foreground">
-              You have the right to:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Access your personal data</li>
-              <li>Correct inaccurate data</li>
-              <li>Request deletion of your data</li>
-              <li>Export your data</li>
-              <li>Opt out of marketing communications</li>
-            </ul>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">6. Cookies</h2>
-            <p className="text-muted-foreground">
-              We use cookies and similar technologies to enhance your experience, 
-              analyze site usage, and assist in our marketing efforts.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">7. Contact</h2>
-            <p className="text-muted-foreground">
-              For privacy inquiries, contact us at{" "}
-              <a href="mailto:support@lovelyanswers.io" className="text-pink-600 hover:underline">
-                support@lovelyanswers.io
-              </a>
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">8. Company Information</h2>
-            <p className="text-muted-foreground">
-              LovelyAnswers Ltd<br />
-              Suite 4, Piccadilly House<br />
-              Manchester, M1 1AB<br />
-              United Kingdom
-            </p>
-          </section>
-        </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+        <PublicFooter />
+      </div>
     </>
   );
 }

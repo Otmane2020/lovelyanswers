@@ -311,21 +311,21 @@ export default function Audit() {
         <meta name="description" content="Get a free comprehensive SEO and AEO audit for your website. Find out how to rank on ChatGPT, Gemini, and Google." />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <div className="min-h-screen bg-white">
+        {/* Header - Dark */}
+        <header className="border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight">
-                Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
+              <span className="text-xl font-bold tracking-tight text-white">
+                Lovely<span className="text-violet-400">Answers</span>
               </span>
             </Link>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
                 <Link to="/auth">Login</Link>
               </Button>
-              <Button size="sm" className="bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
+              <Button size="sm" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
                 <Link to="/onboarding">
                   <Sparkles className="h-4 w-4 mr-1" />
                   Start Free
@@ -335,41 +335,41 @@ export default function Audit() {
           </div>
         </header>
 
-        {/* Main Content */}
-        <div className="container px-4 py-8 md:py-12 max-w-4xl mx-auto">
-          {/* Title & URL Input */}
-          <div className="text-center mb-8">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-              <BarChart3 className="mr-1 h-3 w-3" />
-              Free SEO + AEO Audit
-            </Badge>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-              How visible is your site on{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">AI & Google</span>?
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Get a comprehensive SEO + AEO audit in seconds. Discover what's holding you back.
-            </p>
-          </div>
+        {/* Hero - Dark */}
+        <div className="bg-[hsl(222,47%,11%)] pt-8 pb-12">
+          <div className="container px-4 max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <Badge className="mb-4 bg-white/10 text-white/70 border-white/20">
+                <BarChart3 className="mr-1 h-3 w-3" />
+                Free SEO + AEO Audit
+              </Badge>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-white">
+                How visible is your site on{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-blue-400">AI & Google</span>?
+              </h1>
+              <p className="text-white/50 text-lg max-w-2xl mx-auto">
+                Get a comprehensive SEO + AEO audit in seconds. Discover what's holding you back.
+              </p>
+            </div>
 
           {/* URL Input Form */}
           <form onSubmit={handleSubmit} className="mb-10">
             <div className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
               <div className="relative flex-1">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" />
                 <Input
                   type="url"
                   placeholder="https://yourwebsite.com"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
-                  className="pl-12 h-13 text-base border-2 border-primary/20 focus:border-primary"
+                  className="pl-12 h-13 text-base bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-violet-400"
                   disabled={isLoading}
                 />
               </div>
               <Button
                 type="submit"
                 disabled={isLoading || !websiteUrl.trim()}
-                className="h-13 px-6 gap-2 bg-gradient-to-r from-primary to-violet-500 text-white hover:opacity-90"
+                className="h-13 px-6 gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90"
               >
                 {isLoading ? (
                   <>
@@ -390,6 +390,7 @@ export default function Audit() {
               </Button>
             </div>
           </form>
+          </div>
 
           {/* Loading State */}
           <AnimatePresence>

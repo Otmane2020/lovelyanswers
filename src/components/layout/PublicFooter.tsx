@@ -4,20 +4,20 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-border bg-muted/30">
+    <footer className="bg-[hsl(222,47%,11%)] border-t border-white/10">
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           {/* Company Info */}
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
               <AnimatedLogo size="sm" />
-              <span className="font-bold">Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span></span>
+              <span className="font-bold text-white">Lovely<span className="text-violet-400">Answers</span></span>
             </Link>
-            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+            <p className="text-sm text-white/50 mb-4 max-w-xs">
               The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.
             </p>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">LovelyAnswers Ltd</p>
+            <div className="text-sm text-white/40 space-y-1">
+              <p className="font-medium text-white/60">LovelyAnswers Ltd</p>
               <p>Suite 4, Piccadilly House</p>
               <p>Manchester, M1 1AB</p>
               <p>United Kingdom</p>
@@ -26,69 +26,27 @@ export function PublicFooter() {
 
           {/* Product Links */}
           <div>
-            <h4 className="font-semibold mb-4">Product</h4>
+            <h4 className="font-semibold mb-4 text-white/80">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link to="/localAEO" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Local AEO
-                </Link>
-              </li>
-              <li>
-                <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link to="/onboarding" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Start Free Trial
-                </Link>
-              </li>
+              <li><Link to="/blog" className="text-white/40 hover:text-white transition-colors">Blog</Link></li>
+              <li><Link to="/localAEO" className="text-white/40 hover:text-white transition-colors">Local AEO</Link></li>
+              <li><Link to="/pricing" className="text-white/40 hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link to="/auth" className="text-white/40 hover:text-white transition-colors">Login</Link></li>
+              <li><Link to="/onboarding" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
             </ul>
           </div>
 
           {/* Legal Links */}
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
+            <h4 className="font-semibold mb-4 text-white/80">Company</h4>
             <ul className="space-y-2 text-sm">
+              <li><Link to="/about" className="text-white/40 hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/terms" className="text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><a href="mailto:support@lovelyanswers.io" className="text-white/40 hover:text-white transition-colors">Contact</a></li>
               <li>
-                <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <a href="mailto:support@lovelyanswers.io" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Contact
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://lovelyanswers.io" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-                >
-                  lovelyanswers.io
-                  <ExternalLink className="h-3 w-3" />
+                <a href="https://lovelyanswers.io" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">
+                  lovelyanswers.io <ExternalLink className="h-3 w-3" />
                 </a>
               </li>
             </ul>
@@ -96,44 +54,39 @@ export function PublicFooter() {
 
           {/* Trust Badges */}
           <div>
-            <h4 className="font-semibold mb-4">Trust & Security</h4>
+            <h4 className="font-semibold mb-4 text-white/80">Trust & Security</h4>
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield className="h-4 w-4 text-emerald-500" />
+              <div className="flex items-center gap-2 text-sm text-white/40">
+                <Shield className="h-4 w-4 text-emerald-400" />
                 <span>Secure Payment</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CreditCard className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 text-sm text-white/40">
+                <CreditCard className="h-4 w-4 text-violet-400" />
                 <span>Powered by Stripe</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Star className="h-4 w-4 text-yellow-500" />
+              <div className="flex items-center gap-2 text-sm text-white/40">
+                <Star className="h-4 w-4 text-yellow-400" />
                 <span>Trusted by 500+ businesses</span>
               </div>
             </div>
             
-            {/* SEO Internal Links */}
-            <div className="mt-6 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-2">Resources</p>
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <p className="text-xs text-white/30 mb-2">Resources</p>
               <div className="flex flex-wrap gap-2">
-                <Link to="/blog" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                  AEO Articles
-                </Link>
-                <span className="text-muted-foreground/50">•</span>
-                <Link to="/localAEO" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                  Local SEO
-                </Link>
+                <Link to="/blog" className="text-xs text-white/30 hover:text-violet-400 transition-colors">AEO Articles</Link>
+                <span className="text-white/20">•</span>
+                <Link to="/localAEO" className="text-xs text-white/30 hover:text-violet-400 transition-colors">Local SEO</Link>
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-8 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-white/30">
             © {new Date().getFullYear()} LovelyAnswers Ltd. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 text-sm text-white/30">
             <span>Answer Engine Optimization Platform</span>
             <span className="hidden md:inline">•</span>
             <span className="hidden md:inline">Made with ❤️ in Manchester</span>
