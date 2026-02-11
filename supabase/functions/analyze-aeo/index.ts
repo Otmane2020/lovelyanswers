@@ -228,8 +228,30 @@ serve(async (req) => {
       scrapedMetadata = scrapeData?.data?.metadata || scrapeData?.metadata || {};
       console.log(`[analyze-aeo] Scraped ${scrapedContent.length} chars, ${scrapedLinks.length} links`);
     } catch (scrapeError) {
-      console.error("[analyze-aeo] Firecrawl scrape failed:", scrapeError);
-      scrapedContent = `[Scraping failed — analyze based on the URL: ${formattedUrl}]`;
+      console.warn("[analyze-aeo] Firecrawl failed, trying internal-scraper...", scrapeError);
+      // Fallback to internal scraper
+      try {
+        const scraperRes = await fetch(`${SUPABASE_URL}/functions/v1/internal-scraper`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: formattedUrl, timeout: 12000 }),
+        });
+        if (scraperRes.ok) {
+          const scraperData = await scraperRes.json();
+          if (scraperData.success) {
+            scrapedContent = scraperData.data?.markdown || "";
+            scrapedLinks = scraperData.data?.links || [];
+            scrapedMetadata = scraperData.data?.metadata || {};
+            console.log(`[analyze-aeo] Internal scraper got ${scrapedContent.length} chars`);
+          }
+        }
+      } catch (internalErr) {
+        console.error("[analyze-aeo] Internal scraper also failed:", internalErr);
+        scrapedContent = `[Scraping failed — analyze based on the URL: ${formattedUrl}]`;
+      }
     }
 
     // Truncate to avoid token limits

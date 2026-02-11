@@ -184,3 +184,6 @@ verify_jwt = false
 
 [functions.bulk-index-articles]
 verify_jwt = false
+
+[functions.internal-scraper]
+verify_jwt = false

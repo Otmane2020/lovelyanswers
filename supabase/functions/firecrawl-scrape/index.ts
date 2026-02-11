@@ -325,52 +325,45 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: basic HTML fetch if Firecrawl failed (402 credits exhausted)
+    // Fallback: use internal scraper if Firecrawl failed (402 credits exhausted)
     if (!firecrawlSuccess) {
-      console.log('[SCRAPE] All Firecrawl keys exhausted, falling back to basic fetch...');
+      console.log('[SCRAPE] All Firecrawl keys exhausted, falling back to internal-scraper...');
       try {
-        const fetchRes = await fetch(formattedUrl, {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const scraperRes = await fetch(`${supabaseUrl}/functions/v1/internal-scraper`, {
+          method: 'POST',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml',
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ url: formattedUrl, timeout: 12000 }),
         });
-        if (fetchRes.ok) {
-          const html = await fetchRes.text();
-          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-          const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
 
-          // Strip tags for markdown-like text
-          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-          let textContent = '';
-          if (bodyMatch) {
-            textContent = bodyMatch[1]
-              .replace(/<script[\s\S]*?<\/script>/gi, '')
-              .replace(/<style[\s\S]*?<\/style>/gi, '')
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .substring(0, 10000);
-          }
-
-          data = {
-            data: {
-              markdown: textContent,
-              html: html.substring(0, 50000),
-              metadata: {
-                title: titleMatch?.[1]?.trim() || '',
-                description: descMatch?.[1]?.trim() || '',
-                language: langMatch?.[1]?.substring(0, 2) || '',
+        if (scraperRes.ok) {
+          const scraperData = await scraperRes.json();
+          if (scraperData.success) {
+            const d = scraperData.data;
+            data = {
+              data: {
+                markdown: d.markdown || '',
+                html: d.html || '',
+                metadata: {
+                  title: d.title || '',
+                  description: d.metaDescription || '',
+                  language: d.language || '',
+                  ogImage: d.ogImage || '',
+                },
+                links: d.links || [],
               },
-            },
-          };
-          console.log('[SCRAPE] Basic fetch successful, extracted', textContent.length, 'chars');
+            };
+            console.log('[SCRAPE] Internal scraper successful, extracted', (d.markdown || '').length, 'chars, favicon:', d.favicon);
+          }
         } else {
-          console.error('[SCRAPE] Basic fetch failed:', fetchRes.status);
+          console.error('[SCRAPE] Internal scraper failed:', scraperRes.status);
         }
-      } catch (fetchErr) {
-        console.error('[SCRAPE] Basic fetch error:', fetchErr);
+      } catch (scraperErr) {
+        console.error('[SCRAPE] Internal scraper error:', scraperErr);
       }
     }
 
