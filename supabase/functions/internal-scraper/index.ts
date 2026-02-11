@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    let formattedUrl = url.trim();
+    let formattedUrl = url.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = `https://${formattedUrl}`;
     }
