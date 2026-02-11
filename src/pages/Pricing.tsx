@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
+import { SocialProofToast } from "@/components/nudges/SocialProofToast";
+import { UrgencyBanner } from "@/components/nudges/UrgencyBanner";
+import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
 const pricingStructuredData = {
   "@context": "https://schema.org",
@@ -104,6 +107,13 @@ export default function Pricing() {
 
   return (
     <>
+      <SocialProofToast />
+      <ExitIntentPopup 
+        ctaUrl="/onboarding"
+        headline="🎁 Offre spéciale : 2 mois offerts !"
+        description="Rejoignez les 500+ sites qui boostent leur visibilité IA avec LovelyAnswers. Profitez de 2 mois gratuits maintenant."
+        ctaLabel="Commencer gratuitement"
+      />
       <Helmet>
         <title>Pricing - LovelyAnswers AEO Platform | $29/month AI SEO</title>
         <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
@@ -149,6 +159,7 @@ export default function Pricing() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full blur-[120px] opacity-30" />
         
         <div className="container relative">
+          <UrgencyBanner variant="spots" className="max-w-lg mx-auto mb-8" />
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-6 bg-pink-500/10 text-pink-600 border-pink-500/20">
               For smart entrepreneurs

@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnboardingSession } from "@/hooks/useOnboardingSession";
+import { ProgressBar } from "@/components/nudges/ProgressBar";
+import { UrgencyBanner } from "@/components/nudges/UrgencyBanner";
 
 interface OnboardingData {
   websiteUrl: string;
@@ -1125,7 +1127,19 @@ export default function Onboarding() {
       {/* Sticky Bottom Button */}
       {currentStep !== 4 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border">
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-lg mx-auto space-y-3">
+            {/* Progress nudge */}
+            <ProgressBar
+              currentStep={
+                currentStep === 1 ? 1 :
+                currentStep === 5 ? 2 :
+                currentStep === 3 ? 3 :
+                currentStep === 7 ? 4 :
+                currentStep === 6 ? 5 : currentStep
+              }
+              totalSteps={5}
+              labels={["URL", "Analyse", "Email", "Résultats", "Plan"]}
+            />
             {currentStep === 6 ? (
               <Button
                 onClick={handleCheckout}
