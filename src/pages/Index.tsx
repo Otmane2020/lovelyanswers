@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import {
   ArrowRight,
@@ -13,11 +11,14 @@ import {
   FileText,
   Star,
   TrendingUp,
-  X,
   Zap,
-  Clock,
-  ExternalLink,
+  BarChart3,
+  Search,
+  Eye,
+  Target,
+  MessageSquare,
   Sparkles,
+  ChevronRight,
 } from "lucide-react";
 import {
   Accordion,
@@ -26,141 +27,149 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
-import { TrustedByMarquee } from "@/components/TrustedByMarquee";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { InactivityPopup } from "@/components/InactivityPopup";
-import { AIDemoSection } from "@/components/landing/AIDemoSection";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
-import { UrgencyBanner } from "@/components/nudges/UrgencyBanner";
 
-// Integration logos
-import shopifyLogo from "@/assets/shopify-logo-new.png";
-import wordpressLogo from "@/assets/wordpress-logo-new.png";
-import wixLogo from "@/assets/wix-logo.png";
-import framerLogo from "@/assets/framer-logo.png";
-import boltLogo from "@/assets/bolt-logo.png";
-import lovableLogo from "@/assets/lovable-logo.svg";
-import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
-
-// AI Platform logos
 import geminiLogo from "@/assets/gemini-logo.png";
 import claudeLogo from "@/assets/claude-logo.png";
 import perplexityLogo from "@/assets/perplexity-logo.png";
+import chatgptIcon from "@/assets/chatgpt-icon.png";
 
-// Lovely mascot
-import lovelyMascot from "@/assets/lovely-mascot.png";
-
-const stats = [
-  { value: "216%", label: "Avg Traffic Increase" },
-  { value: "527+", label: "Businesses Growing" },
-  { value: "Zero", label: "Technical Skills Needed" },
+const heroStats = [
+  { value: "4.5", suffix: "x", label: "More AI visibility" },
+  { value: "9.7", suffix: "x", label: "More brand mentions" },
+  { value: "60", suffix: "%", label: "Traffic increase avg" },
+  { value: "1.5", suffix: "bn", label: "AI searches monthly" },
 ];
 
-const testimonialsTweets = [
+const aiPlatforms = [
+  { name: "ChatGPT", logo: chatgptIcon },
+  { name: "Gemini", logo: geminiLogo },
+  { name: "Perplexity", logo: perplexityLogo },
+  { name: "Claude", logo: claudeLogo },
+];
+
+const featureCards = [
   {
-    name: "Mike",
-    handle: "@MikeRoofingDFW",
-    role: "Roofing Company Owner",
-    date: "Oct 28, 2025",
-    text: "Honestly thought \"another SEO tool that won't deliver.\" Started in June anyway. Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
+    icon: <Eye className="h-5 w-5" />,
+    title: "AI Visibility Score",
+    description: "See exactly how AI platforms talk about your brand and where you rank against competitors.",
   },
   {
-    name: "David",
-    handle: "@davidmakees",
-    role: "SaaS Founder",
-    date: "Sep 15, 2025",
-    text: "I'm bootstrapping, so it's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
+    icon: <BarChart3 className="h-5 w-5" />,
+    title: "Brand Mention Tracking",
+    description: "Monitor every time AI recommends your business or your competitors in real-time.",
   },
   {
-    name: "Amanda",
-    handle: "@AmandaEcomLife",
-    role: "Online Store Owner",
-    date: "Aug 3, 2025",
-    text: "Was scared AI content would tank my rankings. Opposite happened. Went from page 3 to page 1 for 12+ keywords in 8 weeks.",
-  },
-  {
-    name: "Ryan",
-    handle: "@RyanGrowthCo",
-    role: "Agency Owner",
-    date: "Jul 12, 2025",
-    text: "Burned through $1,200/mo on Jasper + Surfer + SEMrush. Results were meh. Canceled all 3 tools, now paying $29/month and getting better rankings.",
-  },
-  {
-    name: "Jessica",
-    handle: "@JessicaWrites_",
-    role: "Blogger",
-    date: "Jun 21, 2025",
-    text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results! ⚡",
-  },
-  {
-    name: "Tom",
-    handle: "@TomLocalBiz",
-    role: "Local Business Owner",
-    date: "May 17, 2025",
-    text: "Set it up once with the WordPress plugin, and now articles just appear on my site every day. Like having a full-time content team for $29/month.",
+    icon: <Target className="h-5 w-5" />,
+    title: "Content Optimization",
+    description: "Get actionable insights to optimize your content for AI citation and recommendation.",
   },
 ];
 
-const comparisonWithout = [
-  "Your business: Not mentioned",
-  "AI doesn't know you exist",
-  "Lost customer to competitor",
-  "They click on someone else",
-];
-
-const comparisonWith = [
-  "Your business: Top recommendation",
-  "AI knows you're the expert",
-  "Customer clicks to YOUR site",
-  "They trust AI's top pick",
-];
-
-const aiStats = [
-  { value: "67%", label: "of people now start with AI search", source: "Gartner Research 2024" },
-  { value: "3x", label: "more clicks than position #2 on Google", source: "AI recommendations convert better" },
-  { value: "319%+", label: "traffic gains for first movers", source: "Early adopters winning big" },
-];
-
-const steps = [
+const showcaseFeatures = [
   {
-    number: "1",
-    title: "Deep Research on YOUR Business",
-    description: "Our AI studies your business, customers, and competitors",
-    badge: "Analyzes 500+ competitor keywords",
+    tag: "MONITOR YOUR AI PRESENCE",
+    title: "Track your visibility across all AI platforms",
+    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
+    color: "from-violet-600 to-indigo-600",
   },
   {
-    number: "2",
-    title: "Write 1 Expert Article Daily",
-    description: "High-quality content that solves real customer problems",
-    badge: "1,500-2,500 words avg",
+    tag: "OPTIMIZE YOUR CONTENT",
+    title: "AI-powered content that gets you cited",
+    description: "Generate expert articles designed to be recommended by AI search engines.",
+    color: "from-cyan-500 to-blue-600",
   },
   {
-    number: "3",
-    title: "Get Backlinks Monthly (Autopilot)",
-    description: "Other trusted sites mention and link to your articles",
-    badge: "Strict ZERO spam policy",
-  },
-  {
-    number: "4",
-    title: "Watch Traffic Explode",
-    description: "AI chatbots recommend you. Google ranks you higher.",
-    badge: "216% avg traffic increase",
+    tag: "GROW ON AUTOPILOT",
+    title: "Automated publishing & SEO",
+    description: "1 article per day, auto-published to your CMS with full SEO optimization.",
+    color: "from-fuchsia-500 to-violet-600",
   },
 ];
 
-const pricingFeatures = [
-  "30 AEO LovelyAnswers",
-  "30 AEO/SEO articles",
-  "Keyword research & competitor analysis",
-  "WordPress auto-publishing",
-  "Custom images & infographics",
+const testimonials = [
+  {
+    platform: "Trustpilot",
+    reviews: [
+      {
+        name: "Mike R.",
+        role: "Roofing Company Owner",
+        text: "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
+        rating: 5,
+      },
+      {
+        name: "Amanda K.",
+        role: "Online Store Owner",
+        text: "Went from page 3 to page 1 for 12+ keywords in 8 weeks. AI content actually works.",
+        rating: 5,
+      },
+      {
+        name: "Ryan G.",
+        role: "Agency Owner",
+        text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
+        rating: 5,
+      },
+    ],
+  },
+  {
+    platform: "G2",
+    reviews: [
+      {
+        name: "David M.",
+        role: "SaaS Founder",
+        text: "It's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
+        rating: 5,
+      },
+      {
+        name: "Jessica W.",
+        role: "Blogger",
+        text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results!",
+        rating: 5,
+      },
+      {
+        name: "Tom L.",
+        role: "Local Business Owner",
+        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $29/mo.",
+        rating: 5,
+      },
+    ],
+  },
+];
+
+const bottomFeatures = [
+  {
+    icon: <Search className="h-5 w-5" />,
+    title: "Keyword Research",
+    description: "AI-powered keyword discovery based on your competitors and market.",
+  },
+  {
+    icon: <FileText className="h-5 w-5" />,
+    title: "Content Generation",
+    description: "Expert-level articles optimized for both Google and AI engines.",
+  },
+  {
+    icon: <Globe className="h-5 w-5" />,
+    title: "Auto-Publishing",
+    description: "Direct integration with WordPress, Shopify, Wix, and more.",
+  },
+  {
+    icon: <TrendingUp className="h-5 w-5" />,
+    title: "Performance Analytics",
+    description: "Track your growth across Google Search Console and AI platforms.",
+  },
 ];
 
 const faqs = [
+  {
+    question: "How does AI search optimization work?",
+    answer: "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+  },
   {
     question: "Can I really cancel anytime?",
     answer: "Yes, 1-click cancellation. No questions asked, no hidden fees.",
@@ -174,51 +183,25 @@ const faqs = [
     answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
   },
   {
-    question: "Is the content actually good, or just AI spam?",
-    answer: "We're anti-robot. Every article: 1,500+ words, expert-level, with sources and infographics.",
+    question: "Is the content actually good?",
+    answer: "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
   },
-  {
-    question: "Will AI content hurt my Google rankings?",
-    answer: "Google cares about quality, not who wrote it. Our AI-assisted content follows E-E-A-T guidelines.",
-  },
-];
-
-const integrationLogos = [
-  { name: "WordPress", logo: wordpressLogo, invert: true },
-  { name: "Shopify", logo: shopifyLogo, invert: false },
-  { name: "Wix", logo: wixLogo, invert: true },
-  { name: "Framer", logo: framerLogo, invert: true },
-  { name: "Bolt", logo: boltLogo, invert: false },
-  { name: "Lovable", logo: lovableLogo, invert: false },
-  { name: "BigCommerce", logo: bigcommerceLogo, invert: true },
 ];
 
 export default function Index() {
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [showFloatingCTA, setShowFloatingCTA] = useState(false);
+  const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user) {
       navigate("/dashboard");
     }
   }, [user, navigate]);
 
-  // Force light theme on landing page
   useEffect(() => {
     document.documentElement.classList.remove("dark");
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Show floating CTA after scrolling past 500px (roughly past hero section)
-      setShowFloatingCTA(window.scrollY > 500);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleGetStarted = () => {
@@ -234,858 +217,557 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>LovelyAnswers – AEO AutoPost | Rank in ChatGPT, Gemini & Google</title>
-        <meta name="description" content="Generate AI-optimized AEO answers for ChatGPT, Gemini, Copilot and Google. Get 30 articles/month, backlinks, and 216% avg traffic increase." />
+        <title>LovelyAnswers – Get Discovered in AI Search | ChatGPT, Gemini & Google</title>
+        <meta name="description" content="Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered content, monitoring, and optimization for modern search." />
         <link rel="canonical" href="https://lovelyanswers.com/" />
-        <meta property="og:title" content="LovelyAnswers – Rank in ChatGPT, Gemini & Google with AI Answers" />
-        <meta property="og:description" content="The #1 AEO platform. Get cited by AI assistants and dominate Google search." />
+        <meta property="og:title" content="LovelyAnswers – Get Discovered in AI Search" />
+        <meta property="og:description" content="The #1 platform to get your brand recommended by AI search engines." />
         <meta property="og:url" content="https://lovelyanswers.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://lovelyanswers.com/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="LovelyAnswers – AEO Platform" />
-        <meta name="twitter:description" content="Get recommended by ChatGPT, Perplexity AND Google" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
           "name": "LovelyAnswers",
           "url": "https://lovelyanswers.com",
           "logo": "https://lovelyanswers.com/favicon.png",
-          "description": "Answer Engine Optimization platform. Get found and recommended by ChatGPT, Perplexity and Google.",
-          "foundingDate": "2025",
-          "sameAs": [],
-          "contactPoint": {
-            "@type": "ContactPoint",
-            "contactType": "customer support",
-            "url": "https://lovelyanswers.com/support"
-          }
-        })}</script>
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "LovelyAnswers",
-          "url": "https://lovelyanswers.com",
-          "description": "AI-powered Answer Engine Optimization platform for businesses",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://lovelyanswers.com/blog?q={search_term_string}",
-            "query-input": "required name=search_term_string"
-          }
+          "description": "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
         })}</script>
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          "name": "LovelyAnswers AEO Platform",
+          "name": "LovelyAnswers",
           "applicationCategory": "BusinessApplication",
           "operatingSystem": "Web",
-          "description": "All-in-one AI SEO platform: 30 articles/month, backlinks, keyword research, and Answer Engine Optimization for ChatGPT, Gemini, and Google.",
-          "offers": {
-            "@type": "Offer",
-            "price": "29",
-            "priceCurrency": "USD",
-            "priceValidUntil": "2027-12-31"
-          },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "527",
-            "bestRating": "5"
-          },
-          "featureList": "AEO Optimization, 30 Articles/Month, Automatic Backlinks, Keyword Research, WordPress Auto-Publishing, Multi-language Support"
+          "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD" },
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "527", "bestRating": "5" },
         })}</script>
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
-          "name": "LovelyAnswers FAQ",
           "mainEntity": faqs.map(faq => ({
             "@type": "Question",
             "name": faq.question,
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": faq.answer
-            }
-          }))
+            "acceptedAnswer": { "@type": "Answer", "text": faq.answer },
+          })),
         })}</script>
       </Helmet>
-    <div className="min-h-screen bg-background">
-      {/* Google One Tap Popup */}
-      <GoogleOneTap />
 
-      {/* Inactivity Popup - 2 months free */}
-      <InactivityPopup inactivityDelay={45} />
-      
-      {/* Announcement Bar */}
-      <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 text-white py-1.5 md:py-2 px-2 md:px-4 text-center text-xs md:text-sm font-medium">
-        <span className="inline-flex flex-wrap items-center justify-center gap-1 md:gap-2">
-          <span className="hidden md:inline">👉</span>
-          <span><span className="line-through opacity-75">$99</span> → <span className="font-bold">$29</span></span>
-          <span className="hidden sm:inline">•</span>
-          <span><span className="font-bold">70% OFF</span> Code</span>
-          <span className="bg-white/20 px-1.5 md:px-2 py-0.5 rounded font-bold">FLASHSALE</span>
-          <span className="hidden sm:inline text-white/90">forever</span>
-        </span>
-      </div>
-      
-      {/* Navigation */}
-      <nav className="fixed top-[36px] z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <AnimatedLogo size="md" />
-            <span className="text-lg md:text-xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-            </span>
-          </Link>
-           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link to="/audit">Free AEO Audit</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link to="/pricing">Pricing</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link to="/auth">Login</Link>
-            </Button>
-            <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg hover:opacity-90" asChild>
-              <Link to="/onboarding">
-                <Sparkles className="h-4 w-4" />
-                Start Free
-              </Link>
-            </Button>
-          </div>
-          <div className="flex md:hidden items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Login</Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <div className="min-h-screen bg-background">
+        <GoogleOneTap />
+        <InactivityPopup inactivityDelay={45} />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 md:pt-40 pb-12 md:pb-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/5 to-fuchsia-500/5" />
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-          <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] bg-gradient-to-br from-fuchsia-500/20 to-primary/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-        
-        <div className="container relative px-4">
-          <div className="mx-auto max-w-4xl text-center">
-            {/* Urgency Badge */}
-            <Badge className="mb-4 md:mb-6 bg-amber-500/10 text-amber-600 border-amber-500/30">
-              <Clock className="mr-1 h-3 w-3" />
-              ⏰ You're 2.5 years behind competitors who do SEO
-            </Badge>
-            
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 md:mb-6">
-              Get Found & Recommended by{" "}
-              <span className="inline-flex items-center gap-2">
-                <ChatGPTLogo className="h-8 w-8 md:h-10 md:w-10 text-[#10a37f]" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#10a37f] to-emerald-400">ChatGPT</span>
+        {/* Navigation */}
+        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <Link to="/" className="flex items-center gap-2">
+              <AnimatedLogo size="md" />
+              <span className="text-lg font-bold tracking-tight text-white">
+                Lovely<span className="text-violet-400">Answers</span>
               </span>
-              ,{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-500">Perplexity</span>
-              {" "}AND{" "}
-              <span className="inline-flex items-center gap-1">
-                <GoogleLogo className="h-7 w-7 md:h-9 md:w-9" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500">Google</span>
-              </span>
-            </h1>
-            
-            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8 px-4">
-              📚 We catch you up with 1 expert article daily + building trust (backlinks).
-              <br className="hidden md:block" />
-              Get more customers from ChatGPT & Google on autopilot 👇
-            </p>
-
-            {/* URL Input Section - Hidden on mobile, shown on desktop */}
-            <div className="hidden md:block max-w-xl mx-auto mb-6 md:mb-8">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    type="url"
-                    placeholder="https://yourwebsite.com"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    className="pl-12 h-14 text-base md:text-lg border-2 border-primary/20 focus:border-primary"
-                  />
-                </div>
-                <Button 
-                  size="lg" 
-                  className="h-14 px-6 md:px-8 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg whitespace-nowrap"
-                  onClick={handleGetStarted}
-                >
-                  🔍 Get Free AEO Audit
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Free instant analysis of your AI visibility •{" "}
-                <Link
-                  to={websiteUrl.trim() ? `/audit-premium?url=${encodeURIComponent(websiteUrl)}` : "/audit-premium"}
-                  className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  Or get Premium Audit
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </p>
+            </Link>
+            <div className="hidden md:flex items-center gap-1">
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+                <Link to="/audit">Free Audit</Link>
+              </Button>
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+                <Link to="/pricing">Pricing</Link>
+              </Button>
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+                <Link to="/blog">Blog</Link>
+              </Button>
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+                <Link to="/auth">Log in</Link>
+              </Button>
+              <Button className="ml-2 bg-violet-500 hover:bg-violet-600 text-white" asChild>
+                <Link to="/onboarding">Start Free</Link>
+              </Button>
             </div>
-
-            {/* Sticky Mobile CTA - Fixed at bottom on mobile */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-lg border-t border-border shadow-2xl">
-              <div className="flex flex-col gap-2 max-w-xl mx-auto">
-                <div className="relative">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    type="url"
-                    placeholder="https://yourwebsite.com"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    className="pl-12 h-12 text-base border-2 border-primary/20 focus:border-primary"
-                  />
-                </div>
-                <Button 
-                  size="lg" 
-                  className="w-full h-12 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-xl text-base font-semibold"
-                  onClick={handleGetStarted}
-                >
-                  🔍 Free AEO Audit
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Stats Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 mb-8 md:mb-12">
-              {stats.map((stat) => (
-                <div key={stat.label} className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full bg-muted/50 border border-border/50">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm md:text-base">
-                    <span className="font-bold text-foreground">{stat.value}</span>
-                    <span className="text-muted-foreground ml-1">{stat.label}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* AI Demo Section - Google & ChatGPT Simulation */}
-      <AIDemoSection />
-
-      {/* Free AEO Audit Section */}
-      <section className="py-16 md:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-violet-500/5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-emerald-500/15 to-cyan-500/15 rounded-full blur-[120px]" />
-        
-        <div className="container px-4 relative">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10 md:mb-14">
-              <Badge className="mb-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                <Zap className="mr-1 h-3 w-3" />
-                Free — No signup required
-              </Badge>
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                Is Your Website{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500">Visible to AI?</span>
-              </h2>
-              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-                Get your free AEO score in 30 seconds. Discover how ChatGPT, Gemini, and Perplexity see your business.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              {[
-                {
-                  icon: <Globe className="h-6 w-6" />,
-                  title: "AI Visibility Score",
-                  description: "See if AI assistants can find and recommend your business to potential customers.",
-                  gradient: "from-emerald-500 to-cyan-500",
-                },
-                {
-                  icon: <FileText className="h-6 w-6" />,
-                  title: "Content Gap Analysis",
-                  description: "Identify what's missing from your content that prevents AI from citing you.",
-                  gradient: "from-cyan-500 to-violet-500",
-                },
-                {
-                  icon: <TrendingUp className="h-6 w-6" />,
-                  title: "Actionable Recommendations",
-                  description: "Get a clear roadmap to improve your ranking in AI search results.",
-                  gradient: "from-violet-500 to-fuchsia-500",
-                },
-              ].map((item, i) => (
-                <GlassCard key={i} className="p-6 text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                  <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white mx-auto mb-4 shadow-lg`}>
-                    {item.icon}
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </GlassCard>
-              ))}
-            </div>
-
-            <div className="max-w-xl mx-auto">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    type="url"
-                    placeholder="https://yourwebsite.com"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    className="pl-12 h-14 text-base md:text-lg border-2 border-emerald-500/20 focus:border-emerald-500"
-                  />
-                </div>
-                <Button 
-                  size="lg" 
-                  className="h-14 px-8 gap-2 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-base md:text-lg whitespace-nowrap"
-                  onClick={() => {
-                    if (websiteUrl.trim()) {
-                      navigate(`/audit?url=${encodeURIComponent(websiteUrl)}`);
-                    } else {
-                      navigate("/audit");
-                    }
-                  }}
-                >
-                  🔍 Get Free Audit
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  30-second analysis
-                </span>
-                <span className="flex items-center gap-1">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  No signup needed
-                </span>
-                <span className="flex items-center gap-1">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  100% free
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Trusted By Marquee */}
-      <TrustedByMarquee />
-
-      {/* Hire Lovely Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-violet-50 via-background to-primary/5 dark:from-violet-950/30 dark:via-background dark:to-primary/10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-        <div className="container px-4 relative">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-              {/* Left: Text */}
-              <div className="space-y-6 text-center md:text-left order-2 md:order-1">
-                <Badge className="bg-gradient-to-r from-primary/10 to-violet-500/10 text-primary border-primary/20">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Meet Your AI Assistant
-                </Badge>
-                <h2 className="text-3xl md:text-5xl font-bold leading-tight">
-                  Hire <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500">Lovely</span> — Your 24/7 AI Marketing Agent
-                </h2>
-                <p className="text-lg text-muted-foreground">
-                  While you sleep, <strong>Lovely</strong> writes expert articles, answers customer questions, 
-                  and gets your brand recommended by ChatGPT, Gemini & Google. 
-                  <span className="text-primary font-semibold"> No hiring, no managing, no stress.</span>
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Check className="h-4 w-4 text-emerald-500" />
-                    </div>
-                    <span>Publishes 1 SEO article every day automatically</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Check className="h-4 w-4 text-emerald-500" />
-                    </div>
-                    <span>Gets you cited by AI assistants (ChatGPT, Gemini, Perplexity)</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Check className="h-4 w-4 text-emerald-500" />
-                    </div>
-                    <span>Costs less than a coffee a day — $29/month</span>
-                  </li>
-                </ul>
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <Button 
-                    size="lg" 
-                    className="gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white shadow-lg hover:shadow-xl"
-                    onClick={() => navigate("/onboarding")}
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    Hire Lovely Now
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-emerald-500" />
-                    3-day free trial • Cancel anytime
-                  </div>
-                </div>
-              </div>
-              
-              {/* Right: Mascot */}
-              <div className="relative order-1 md:order-2">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="relative"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[80px] scale-75" />
-                  <img 
-                    src={lovelyMascot} 
-                    alt="Lovely - Your AI Marketing Agent" 
-                    className="relative w-full max-w-md mx-auto drop-shadow-2xl"
-                  />
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* AI Comparison Section - WITHOUT vs WITH */}
-      <section className="py-12 md:py-20 bg-muted/30">
-        <div className="container px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              While You Read This, AI is Recommending Your Competitors
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {/* WITHOUT */}
-            <GlassCard className="p-6 border-red-500/20 bg-red-500/5">
-              <div className="flex items-center gap-3 mb-4">
-                <ChatGPTLogo className="h-8 w-8 text-[#10a37f]" />
-                <span className="text-sm font-medium text-muted-foreground">AI Assistant</span>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-muted-foreground mb-2">What's the best roofing company in Dallas?</p>
-                <div className="space-y-2">
-                  <p className="text-sm"><span className="font-bold">1. CompetitorRoof Pro</span> - Highly rated, 20+ years</p>
-                  <p className="text-sm"><span className="font-bold">2. RivalRoofing Solutions</span> - Excellent warranty</p>
-                  <p className="text-sm"><span className="font-bold">3. OtherCompany Roofing</span> - Fast response</p>
-                </div>
-              </div>
-              <div className="text-center mb-4">
-                <Badge className="bg-red-500/10 text-red-600 border-red-500/20">WITHOUT LovelyAnswers</Badge>
-              </div>
-              <ul className="space-y-2">
-                {comparisonWithout.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <X className="h-4 w-4 text-red-500 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </GlassCard>
-
-            {/* WITH */}
-            <GlassCard className="p-6 border-emerald-500/20 bg-emerald-500/5">
-              <div className="flex items-center gap-3 mb-4">
-                <ChatGPTLogo className="h-8 w-8 text-[#10a37f]" />
-                <span className="text-sm font-medium text-muted-foreground">AI Assistant</span>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-muted-foreground mb-2">What's the best roofing company in Dallas?</p>
-                <div className="space-y-2">
-                  <p className="text-sm"><span className="font-bold text-emerald-600">1. YOUR BUSINESS</span> - Top-rated, expert team</p>
-                  <p className="text-sm"><span className="font-bold">2. CompetitorRoof Pro</span> - Also well reviewed</p>
-                  <p className="text-sm"><span className="font-bold">3. RivalRoofing</span> - Good local option</p>
-                </div>
-              </div>
-              <div className="text-center mb-4">
-                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">WITH LovelyAnswers</Badge>
-              </div>
-              <ul className="space-y-2">
-                {comparisonWith.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-foreground">
-                    <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </GlassCard>
-          </div>
-
-          {/* AI Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
-            {aiStats.map((stat, i) => (
-              <div key={i} className="text-center p-6 rounded-xl bg-card border border-border">
-                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">{stat.value}</div>
-                <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                <p className="text-xs text-muted-foreground/60">{stat.source}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button 
-              size="lg" 
-              className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white"
-              onClick={() => navigate("/onboarding")}
-            >
-              Start Getting AI Traffic
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-16 md:py-24 relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-full blur-[80px]" />
-        
-        <div className="container relative px-4">
-          <div className="text-center mb-10 md:mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 text-emerald-600 border-emerald-500/30">
-              <TrendingUp className="mr-1 h-3 w-3" />
-              Proven Results
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500">Real Businesses.</span>{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500">Real Growth.</span>{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-red-500">Real Fast.</span>
-            </h2>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-              We used to grow enterprises like <span className="font-semibold text-foreground">Vodafone</span> (+62% conversion). Now we help small businesses grow.
-              <br />
-              Same <span className="text-muted-foreground/60 line-through">$10,000/month</span> expertise for <span className="text-emerald-500 font-bold text-xl">$29/month</span>
-            </p>
-          </div>
-
-          {/* Company Logos - Now in color with hover effects */}
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 mb-12 md:mb-16">
-            {integrationLogos.slice(0, 6).map((logo) => (
-              <div 
-                key={logo.name}
-                className="group relative p-3 rounded-xl transition-all duration-300 hover:bg-muted/50 hover:scale-110"
-              >
-                <img 
-                  src={logo.logo} 
-                  alt={logo.name}
-                  className={`h-8 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105 ${logo.invert ? 'dark:invert' : ''}`}
-                />
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {logo.name}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonials Grid with colorful accents */}
-          <div className="grid gap-5 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {testimonialsTweets.map((tweet, index) => {
-              const gradients = [
-                'from-emerald-500 to-cyan-500',
-                'from-violet-500 to-fuchsia-500',
-                'from-amber-500 to-orange-500',
-                'from-rose-500 to-pink-500',
-                'from-blue-500 to-indigo-500',
-                'from-teal-500 to-green-500',
-              ];
-              const borderColors = [
-                'hover:border-emerald-500/40',
-                'hover:border-violet-500/40',
-                'hover:border-amber-500/40',
-                'hover:border-rose-500/40',
-                'hover:border-blue-500/40',
-                'hover:border-teal-500/40',
-              ];
-              return (
-                <GlassCard 
-                  key={index} 
-                  className={`p-5 md:p-6 bg-gradient-to-br from-background to-muted/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${borderColors[index % borderColors.length]}`}
-                >
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className={`h-11 w-11 rounded-full bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center text-white font-bold shadow-lg`}>
-                      {tweet.name[0]}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">{tweet.name}</span>
-                        <span className="text-xs text-primary/70">{tweet.handle}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-medium">{tweet.role}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-foreground/80 leading-relaxed">{tweet.text}</p>
-                </GlassCard>
-              );
-            })}
-          </div>
-
-          <div className="text-center mt-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-              <div className="flex -space-x-2">
-                {['M', 'D', 'A', 'R'].map((letter, i) => (
-                  <div key={i} className={`h-6 w-6 rounded-full bg-gradient-to-br ${['from-emerald-500 to-cyan-500', 'from-violet-500 to-fuchsia-500', 'from-amber-500 to-orange-500', 'from-rose-500 to-pink-500'][i]} flex items-center justify-center text-white text-xs font-bold border-2 border-background`}>
-                    {letter}
-                  </div>
-                ))}
-              </div>
-              <span className="text-sm font-medium text-emerald-600">527+ businesses growing on autopilot</span>
-            </div>
-            <div>
-              <Button 
-                size="lg"
-                className="gap-2 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-xl hover:shadow-emerald-500/25 hover:scale-105 transition-all h-14 px-8 text-lg"
-                onClick={() => navigate("/onboarding")}
-              >
-                Start Growing Like They Did
-                <ArrowRight className="h-5 w-5" />
+            <div className="flex md:hidden items-center gap-2">
+              <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" asChild>
+                <Link to="/auth">Log in</Link>
+              </Button>
+              <Button size="sm" className="bg-violet-500 hover:bg-violet-600 text-white" asChild>
+                <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
           </div>
-        </div>
-      </section>
+        </nav>
 
-      {/* How It Works */}
-      <section className="py-16 md:py-24 bg-gradient-to-b from-muted/50 via-muted/30 to-background relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
-        
-        <div className="container px-4 relative">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-600 border-violet-500/30">
-              <Zap className="mr-1 h-3 w-3" />
-              Simple 4-Step Process
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Your{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500">Growth Engine</span>
-              : From Research to Revenue
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Set it up once, watch your traffic grow on autopilot
-            </p>
-          </div>
+        {/* ═══════ HERO — Dark Navy ═══════ */}
+        <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] pt-28 md:pt-36 pb-20 md:pb-32">
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+          {/* Glow orbs */}
+          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/15 rounded-full blur-[120px]" />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {steps.map((step, i) => {
-              const stepGradients = [
-                { bg: 'from-blue-500 to-cyan-500', border: 'hover:border-blue-500/40', shadow: 'hover:shadow-blue-500/20' },
-                { bg: 'from-violet-500 to-purple-500', border: 'hover:border-violet-500/40', shadow: 'hover:shadow-violet-500/20' },
-                { bg: 'from-amber-500 to-orange-500', border: 'hover:border-amber-500/40', shadow: 'hover:shadow-amber-500/20' },
-                { bg: 'from-emerald-500 to-green-500', border: 'hover:border-emerald-500/40', shadow: 'hover:shadow-emerald-500/20' },
-              ];
-              const stepIcons = [
-                <FileText key={0} className="h-5 w-5" />,
-                <Sparkles key={1} className="h-5 w-5" />,
-                <ExternalLink key={2} className="h-5 w-5" />,
-                <TrendingUp key={3} className="h-5 w-5" />,
-              ];
-              return (
-                <div key={i} className="relative group">
-                  {/* Connector line */}
-                  {i < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-8 left-[calc(100%+0.5rem)] w-[calc(100%-2rem)] h-0.5 bg-gradient-to-r from-border via-primary/30 to-border" />
-                  )}
-                  <div className={`bg-card rounded-2xl p-6 border border-border h-full transition-all duration-300 ${stepGradients[i].border} ${stepGradients[i].shadow} hover:shadow-xl hover:-translate-y-1`}>
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${stepGradients[i].bg} flex items-center justify-center text-white font-bold shadow-lg`}>
-                        {stepIcons[i]}
-                      </div>
-                      <span className="text-3xl font-bold text-muted-foreground/30">0{step.number}</span>
-                    </div>
-                    <h3 className="font-bold text-lg mb-2">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{step.description}</p>
-                    <Badge className={`text-xs bg-gradient-to-r ${stepGradients[i].bg} text-white border-0`}>{step.badge}</Badge>
-                  </div>
+          <div className="container relative px-4">
+            <div className="mx-auto max-w-4xl text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70 mb-6">
+                  <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                  AI search optimization platform
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+              </motion.div>
 
-      {/* Pricing Section */}
-      <section className="py-16 md:py-24 relative overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-violet-500/5 to-background" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-full blur-[120px]" />
-        
-        <div className="container px-4 relative">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Simple, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">Transparent</span> Pricing
-            </h2>
-          </div>
-          
-          <div className="max-w-lg mx-auto">
-            <div className="relative">
-              {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500 rounded-3xl blur opacity-30" />
-              
-              <GlassCard className="relative p-8 md:p-10 text-center border-2 border-violet-500/30 bg-card/95">
-                <Badge className="mb-4 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-600 border-violet-500/30">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Most Popular
-                </Badge>
-                
-                <h2 className="text-2xl font-bold mb-2">Monthly Plan</h2>
-                <p className="text-muted-foreground mb-6">Best for serious growth</p>
-                
-                <div className="flex items-baseline justify-center gap-2 mb-8">
-                  <span className="text-2xl text-muted-foreground line-through">$99</span>
-                  <span className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">$29</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
+              >
+                Get discovered in{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400">
+                  AI search
+                </span>
+              </motion.h1>
 
-                <ul className="space-y-4 text-left mb-8">
-                  {pricingFeatures.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shrink-0">
-                        <Check className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="font-medium">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-8"
+              >
+                Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. Monitor, optimize, and grow your AI search presence.
+              </motion.p>
 
-                <Button 
-                  size="lg" 
-                  className="w-full h-14 gap-2 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500 text-white hover:opacity-90 text-lg font-semibold shadow-xl hover:shadow-violet-500/30 transition-all"
+              {/* CTA Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-3 justify-center mb-8"
+              >
+                <Button
+                  size="lg"
+                  className="h-12 px-8 bg-violet-500 hover:bg-violet-600 text-white text-base font-semibold gap-2"
                   onClick={() => navigate("/onboarding")}
                 >
-                  Start Growing
-                  <ArrowRight className="h-5 w-5" />
+                  Start for free
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 px-8 border-white/20 text-white bg-white/5 hover:bg-white/10 text-base"
+                  onClick={() => {
+                    const el = document.getElementById("features");
+                    el?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  See how it works
+                </Button>
+              </motion.div>
 
-                <div className="flex items-center justify-center gap-4 mt-6 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Check className="h-4 w-4 text-emerald-500" />
-                    3-day free trial
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Check className="h-4 w-4 text-emerald-500" />
-                    Cancel anytime
-                  </span>
+              {/* URL Input */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="max-w-lg mx-auto mb-10"
+              >
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                    <Input
+                      type="url"
+                      placeholder="yourwebsite.com"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-violet-400"
+                    />
+                  </div>
+                  <Button
+                    className="h-11 px-5 bg-white/10 hover:bg-white/20 text-white border border-white/10"
+                    onClick={handleGetStarted}
+                  >
+                    Free Audit
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
                 </div>
-              </GlassCard>
+              </motion.div>
+
+              {/* Dashboard mockup placeholder */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.5 }}
+                className="relative mx-auto max-w-3xl"
+              >
+                <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-1.5 shadow-2xl">
+                  <div className="rounded-lg bg-[hsl(222,47%,14%)] p-4 md:p-6">
+                    {/* Mock dashboard header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-400/60" />
+                        <div className="w-3 h-3 rounded-full bg-yellow-400/60" />
+                        <div className="w-3 h-3 rounded-full bg-green-400/60" />
+                      </div>
+                      <div className="flex-1 h-6 bg-white/5 rounded-md" />
+                    </div>
+                    {/* Mock chart area */}
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="rounded-lg bg-white/5 p-3">
+                        <div className="text-xs text-white/40 mb-1">AI Score</div>
+                        <div className="text-2xl font-bold text-violet-400">87</div>
+                      </div>
+                      <div className="rounded-lg bg-white/5 p-3">
+                        <div className="text-xs text-white/40 mb-1">Mentions</div>
+                        <div className="text-2xl font-bold text-cyan-400">142</div>
+                      </div>
+                      <div className="rounded-lg bg-white/5 p-3">
+                        <div className="text-xs text-white/40 mb-1">Growth</div>
+                        <div className="text-2xl font-bold text-emerald-400">+67%</div>
+                      </div>
+                    </div>
+                    {/* Mock graph lines */}
+                    <div className="h-24 md:h-32 rounded-lg bg-white/5 flex items-end p-3 gap-1">
+                      {[30, 45, 35, 55, 50, 65, 60, 75, 70, 85, 80, 90].map((h, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-t bg-gradient-to-t from-violet-500/60 to-violet-400/30"
+                          style={{ height: `${h}%` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Bottom gradient fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[hsl(222,47%,11%)] to-transparent" />
+              </motion.div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FAQs */}
-      <section className="py-16 md:py-24 bg-gradient-to-b from-muted/30 to-background">
-        <div className="container px-4">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
-              Got Questions?
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Frequently Asked <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Questions</span>
-            </h2>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-2xl border border-border px-6 transition-all duration-300 hover:border-primary/30 hover:shadow-md data-[state=open]:border-primary/40 data-[state=open]:shadow-lg">
-                  <AccordionTrigger className="text-left font-semibold py-5 hover:no-underline">
-                    <span className="flex items-center gap-3">
-                      <span className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                        {i + 1}
-                      </span>
-                      {faq.question}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground pb-5 pl-11">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-20 md:py-32 relative overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-violet-500/10 to-fuchsia-500/10" />
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-emerald-500/30 to-cyan-500/30 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-        
-        <div className="container px-4 relative">
-          <div className="max-w-3xl mx-auto text-center">
-            <Badge className="mb-6 bg-gradient-to-r from-rose-500/10 to-orange-500/10 text-rose-600 border-rose-500/30 text-sm px-4 py-1">
-              🔥 Early adopters are already winning
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Your Only Risk is{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500">NOT Trying</span>
-            </h2>
-            <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-              While you're reading this, your competitors are getting AI traffic. Don't be left behind.
+        {/* ═══════ AI Platform Logos ═══════ */}
+        <section className="py-8 md:py-12 border-b border-border">
+          <div className="container px-4">
+            <p className="text-center text-sm text-muted-foreground mb-6">
+              Optimize your presence across all major AI platforms
             </p>
-            <Button 
-              size="lg" 
-              className="h-16 px-10 gap-3 bg-gradient-to-r from-emerald-500 via-cyan-500 to-violet-500 text-white shadow-2xl hover:shadow-emerald-500/30 text-xl font-semibold hover:scale-105 transition-all"
+            <div className="flex items-center justify-center gap-8 md:gap-14">
+              {aiPlatforms.map((platform) => (
+                <div key={platform.name} className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                  <img src={platform.logo} alt={platform.name} className="h-6 md:h-8 w-auto object-contain" />
+                  <span className="hidden md:inline text-sm font-medium text-muted-foreground">{platform.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Stats Section ═══════ */}
+        <section className="py-16 md:py-24">
+          <div className="container px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                AI search is the new{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-blue-500">
+                  growth channel
+                </span>
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              {heroStats.map((stat, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="text-center"
+                >
+                  <div className="text-4xl md:text-5xl font-extrabold text-foreground">
+                    {stat.value}
+                    <span className="text-violet-500">{stat.suffix}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Features — "Understand how AI talks about your brand" ═══════ */}
+        <section id="features" className="py-16 md:py-24 bg-muted/30">
+          <div className="container px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Understand how AI talks about{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-cyan-500">
+                  your brand
+                </span>
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Monitor and optimize your brand's presence across every major AI platform.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {featureCards.map((card, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-2xl border border-border bg-card p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                >
+                  <div className="h-12 w-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500 mb-4">
+                    {card.icon}
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
+                  {/* Mock card visual */}
+                  <div className="mt-4 rounded-lg bg-muted/50 border border-border p-3 h-32 flex items-end gap-1">
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <div
+                        key={j}
+                        className="flex-1 rounded-t bg-gradient-to-t from-violet-500/40 to-violet-400/10"
+                        style={{ height: `${30 + Math.random() * 60}%` }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Testimonials ═══════ */}
+        <section className="py-16 md:py-24">
+          <div className="container px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                What people say about{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
+                  LovelyAnswers
+                </span>
+              </h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                Join 500+ businesses already growing with AI search optimization.
+              </p>
+            </div>
+
+            {/* Platform Tabs */}
+            <div className="flex justify-center gap-2 mb-10">
+              {testimonials.map((t, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveTestimonialPlatform(i)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                    activeTestimonialPlatform === i
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {t.platform}
+                </button>
+              ))}
+            </div>
+
+            {/* Reviews Grid */}
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {testimonials[activeTestimonialPlatform].reviews.map((review, i) => (
+                <motion.div
+                  key={`${activeTestimonialPlatform}-${i}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-2xl border border-border bg-card p-6"
+                >
+                  <div className="flex items-center gap-1 mb-3">
+                    {Array.from({ length: review.rating }).map((_, j) => (
+                      <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-foreground/80 leading-relaxed mb-4">"{review.text}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                      {review.name[0]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{review.name}</p>
+                      <p className="text-xs text-muted-foreground">{review.role}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Showcase — "Turn AI search into a growth channel" ═══════ */}
+        <section className="py-16 md:py-24 bg-muted/30">
+          <div className="container px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Turn AI search into a{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-violet-500">
+                  growth channel
+                </span>
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Track, optimize, and grow your presence in AI-powered search results.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+              {showcaseFeatures.map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-2xl overflow-hidden border border-border bg-card"
+                >
+                  {/* Colored top */}
+                  <div className={`h-40 bg-gradient-to-br ${feature.color} p-5 flex items-end`}>
+                    <div className="rounded-lg bg-white/20 backdrop-blur-sm p-3 w-full">
+                      <div className="h-2 bg-white/30 rounded w-3/4 mb-1.5" />
+                      <div className="h-2 bg-white/20 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <span className="text-[10px] font-bold tracking-wider text-violet-500 uppercase">
+                      {feature.tag}
+                    </span>
+                    <h3 className="font-semibold mt-1 mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Bottom features row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+              {bottomFeatures.map((f, i) => (
+                <div key={i} className="rounded-xl border border-border bg-card p-4 text-center">
+                  <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 mx-auto mb-3">
+                    {f.icon}
+                  </div>
+                  <h4 className="font-medium text-sm mb-1">{f.title}</h4>
+                  <p className="text-xs text-muted-foreground">{f.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ FAQ ═══════ */}
+        <section className="py-16 md:py-24">
+          <div className="container px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold">
+                Frequently Asked Questions
+              </h2>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <Accordion type="single" collapsible className="space-y-3">
+                {faqs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`faq-${i}`}
+                    className="rounded-xl border border-border bg-card px-5 transition-all hover:border-violet-500/30"
+                  >
+                    <AccordionTrigger className="text-left font-medium py-4 hover:no-underline text-sm md:text-base">
+                      {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground text-sm pb-4">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Dark CTA — "Buyers ask AI which brand to choose" ═══════ */}
+        <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] py-20 md:py-32">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[150px]" />
+          
+          <div className="container relative px-4">
+            <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6">
+                  Buyers ask AI which brand to choose.
+                </h2>
+                <p className="text-white/60 text-lg mb-8">
+                  Make sure it's yours. Get discovered in ChatGPT, Gemini, Perplexity and Google today.
+                </p>
+                <Button
+                  size="lg"
+                  className="h-12 px-8 bg-violet-500 hover:bg-violet-600 text-white text-base font-semibold gap-2"
+                  onClick={() => navigate("/onboarding")}
+                >
+                  Start for free
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <MessageSquare className="h-5 w-5 text-violet-400" />
+                  <span className="text-white/60 text-sm">AI Assistant</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-end">
+                    <div className="px-4 py-2 rounded-xl bg-violet-500/20 text-white text-sm max-w-[80%]">
+                      What's the best SEO tool for small businesses?
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="px-4 py-2 rounded-xl bg-white/10 text-white/80 text-sm max-w-[90%]">
+                      Based on recent data, I'd recommend <span className="text-violet-400 font-semibold">your-brand.com</span> — they specialize in AI-optimized content and have strong results for small businesses.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ Final CTA banner ═══════ */}
+        <section className="bg-gradient-to-r from-violet-600 to-blue-600 py-12 md:py-16">
+          <div className="container px-4 text-center">
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
+              Be visible, today.
+            </h2>
+            <p className="text-white/70 mb-8 max-w-xl mx-auto">
+              Start your free trial and get your brand recommended by AI search engines.
+            </p>
+            <Button
+              size="lg"
+              className="h-12 px-8 bg-white text-violet-700 hover:bg-white/90 text-base font-semibold gap-2"
               onClick={() => navigate("/onboarding")}
             >
-              Start Your Free Trial Now
-              <ArrowRight className="h-6 w-6" />
+              Get started — it's free
+              <ArrowRight className="h-4 w-4" />
             </Button>
-            <div className="flex items-center justify-center gap-6 mt-8 text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-emerald-500" />
-                3-day free trial
-              </span>
-              <span className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-emerald-500" />
-                No credit card required
-              </span>
-              <span className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-emerald-500" />
-                Cancel anytime
-              </span>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <PublicFooter />
+        {/* Footer */}
+        <PublicFooter />
 
-      {/* TrustAvis Floating Widget - Minimal Mobile First */}
-      <a
-        href="https://trust-avis.com/entreprise/lovelyanswers"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-[140px] md:bottom-6 right-2 md:right-4 z-40 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 p-1.5 md:px-3 md:py-2 md:rounded-lg flex items-center gap-1.5 hover:shadow-lg transition-all"
-      >
-        {/* Compact: just star + rating on mobile */}
-        <div className="flex items-center gap-1">
-          <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          <span className="text-xs font-bold text-gray-800">4.9</span>
+        {/* Sticky Mobile CTA */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border shadow-2xl">
+          <Button
+            className="w-full h-11 bg-violet-500 hover:bg-violet-600 text-white font-semibold gap-2"
+            onClick={() => navigate("/onboarding")}
+          >
+            Start Free
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
-        {/* Extended info on desktop */}
-        <span className="hidden md:inline text-xs text-gray-500">• 289 reviews</span>
-      </a>
-    </div>
+      </div>
     </>
   );
 }
