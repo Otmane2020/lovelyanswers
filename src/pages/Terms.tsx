@@ -10,107 +10,77 @@ export default function Terms() {
     <>
       <Helmet>
         <title>Terms of Service - LovelyAnswers</title>
-        <meta name="description" content="Read the Terms of Service for LovelyAnswers AEO platform. Understand your rights, subscription terms, and usage policies." />
+        <meta name="description" content="Read the Terms of Service for LovelyAnswers AEO platform." />
         <link rel="canonical" href="https://lovelyanswers.com/terms" />
-        <meta name="robots" content="index, follow" />
       </Helmet>
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <AnimatedLogo size="md" />
-            <span className="text-xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">Answers</span>
-            </span>
-          </Link>
-          <Button variant="ghost" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
+
+      <div className="min-h-screen">
+        {/* Navigation */}
+        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+          <div className="container flex h-16 items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <AnimatedLogo size="md" />
+              <span className="text-xl font-bold tracking-tight text-white">
+                Lovely<span className="text-violet-400">Answers</span>
+              </span>
             </Link>
-          </Button>
+            <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" />Back to Home</Link>
+            </Button>
+          </div>
+        </nav>
+
+        {/* Hero bar */}
+        <div className="bg-[hsl(222,47%,11%)] pt-28 pb-12">
+          <div className="container max-w-3xl">
+            <h1 className="text-4xl font-bold text-white">Terms of Service</h1>
+            <p className="text-white/40 mt-2">Last updated: January 2026</p>
+          </div>
         </div>
-      </nav>
 
-      {/* Content */}
-      <main className="container pt-32 pb-20 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-        
-        <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
-          <p className="text-muted-foreground">Last updated: January 2026</p>
+        {/* Content */}
+        <main className="bg-white py-16">
+          <div className="container max-w-3xl">
+            <div className="space-y-8 text-gray-500">
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">1. Agreement to Terms</h2>
+                <p>By accessing or using LovelyAnswers's services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">2. Description of Service</h2>
+                <p>LovelyAnswers provides Answer Engine Optimization (AEO) services, including AI-generated content, SEO optimization, and content publishing tools.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">3. Subscription and Payment</h2>
+                <p>We offer a 3-day free trial for new users. After the trial period, you will be charged according to the subscription plan you selected.</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Subscriptions are billed monthly</li>
+                  <li>You may cancel your subscription at any time</li>
+                  <li>No refunds are provided after the trial period due to API and AI service costs</li>
+                </ul>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">4. Content Ownership</h2>
+                <p>All content generated through our platform belongs to you. You retain full rights to use, modify, and distribute the content as you see fit.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">5. Acceptable Use</h2>
+                <p>You agree not to use our services to generate content that is illegal, harmful, or violates third-party rights.</p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">6. Contact</h2>
+                <p>For any questions regarding these terms, please contact us at <a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">support@lovelyanswers.io</a></p>
+              </section>
+              <section className="space-y-3">
+                <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">7. Company Information</h2>
+                <p>LovelyAnswers Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
+              </section>
+            </div>
+          </div>
+        </main>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">1. Agreement to Terms</h2>
-            <p className="text-muted-foreground">
-              By accessing or using LovelyAnswers's services, you agree to be bound by these Terms of Service. 
-              If you do not agree to these terms, please do not use our services.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">2. Description of Service</h2>
-            <p className="text-muted-foreground">
-              LovelyAnswers provides Answer Engine Optimization (AEO) services, including AI-generated content, 
-              SEO optimization, and content publishing tools. Our services are designed to help businesses 
-              improve their visibility in AI-powered search and recommendation systems.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">3. Subscription and Payment</h2>
-            <p className="text-muted-foreground">
-              We offer a 3-day free trial for new users. After the trial period, you will be charged 
-              according to the subscription plan you selected. All payments are processed securely through Stripe.
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Subscriptions are billed monthly</li>
-              <li>You may cancel your subscription at any time</li>
-              <li>No refunds are provided after the trial period due to API and AI service costs</li>
-            </ul>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">4. Content Ownership</h2>
-            <p className="text-muted-foreground">
-              All content generated through our platform belongs to you. You retain full rights to use, 
-              modify, and distribute the content as you see fit. LovelyAnswers does not claim any ownership 
-              over content created using our services.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">5. Acceptable Use</h2>
-            <p className="text-muted-foreground">
-              You agree not to use our services to generate content that is illegal, harmful, or violates 
-              third-party rights. We reserve the right to terminate accounts that violate these terms.
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">6. Contact</h2>
-            <p className="text-muted-foreground">
-              For any questions regarding these terms, please contact us at{" "}
-              <a href="mailto:support@lovelyanswers.io" className="text-pink-600 hover:underline">
-                support@lovelyanswers.io
-              </a>
-            </p>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold">7. Company Information</h2>
-            <p className="text-muted-foreground">
-              LovelyAnswers Ltd<br />
-              Suite 4, Piccadilly House<br />
-              Manchester, M1 1AB<br />
-              United Kingdom
-            </p>
-          </section>
-        </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+        <PublicFooter />
+      </div>
     </>
   );
 }

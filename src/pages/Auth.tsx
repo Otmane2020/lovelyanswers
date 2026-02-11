@@ -722,64 +722,30 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Right Panel - Testimonial */}
-      <div className="hidden lg:flex w-1/2 bg-muted/30 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0">
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="1" fill="hsl(var(--muted-foreground))" opacity="0.1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          {/* Connection lines */}
-          <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
-            <line x1="20%" y1="30%" x2="80%" y2="70%" stroke="hsl(var(--primary))" strokeWidth="1" />
-            <line x1="30%" y1="80%" x2="70%" y2="20%" stroke="hsl(var(--primary))" strokeWidth="1" />
-            <line x1="50%" y1="10%" x2="50%" y2="90%" stroke="hsl(var(--primary))" strokeWidth="1" />
-            <circle cx="20%" cy="30%" r="4" fill="hsl(var(--primary))" />
-            <circle cx="80%" cy="70%" r="4" fill="hsl(var(--primary))" />
-            <circle cx="30%" cy="80%" r="3" fill="hsl(var(--primary))" />
-            <circle cx="70%" cy="20%" r="3" fill="hsl(var(--primary))" />
-          </svg>
-        </div>
-
-        {/* Testimonial Card */}
-        <div className="relative z-10 flex items-center justify-center w-full p-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-background rounded-2xl shadow-2xl p-8 max-w-md"
-          >
-            {/* User Info */}
+      {/* Right Panel - Dark Navy */}
+      <div className="hidden lg:flex w-1/2 bg-[hsl(222,47%,11%)] relative overflow-hidden items-center justify-center">
+        <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[150px]" />
+        
+        <div className="relative z-10 p-12 max-w-md">
+          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8">
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white font-bold text-xl">
                 MK
               </div>
               <div>
-                <h3 className="font-bold text-lg">Marcus Klein</h3>
-                <p className="text-primary text-sm font-medium">Head of Content @TechFlow</p>
+                <h3 className="font-bold text-lg text-white">Marcus Klein</h3>
+                <p className="text-violet-400 text-sm font-medium">Head of Content @TechFlow</p>
               </div>
             </div>
-
-            {/* Quote */}
             <blockquote className="space-y-4">
-              <p className="text-primary font-medium text-lg leading-relaxed">
-                "AeoRocket transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently. The ROI has been incredible."
+              <p className="text-white/80 font-medium text-lg leading-relaxed">
+                "AeoRocket transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently."
               </p>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Within 3 months, we saw a 340% increase in AI-driven traffic. The auto-generated answers are perfectly optimized for LLM citation.
+              <p className="text-white/40 text-sm leading-relaxed">
+                Within 3 months, we saw a 340% increase in AI-driven traffic.
               </p>
             </blockquote>
-          </motion.div>
-        </div>
-
-        {/* Decorative elements */}
-        <div className="absolute bottom-8 right-8">
-          <div className="h-12 w-12 rounded-full gradient-bg opacity-60 blur-sm" />
+          </div>
         </div>
       </div>
     </div>
