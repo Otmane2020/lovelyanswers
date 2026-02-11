@@ -24,6 +24,8 @@ import {
   Send,
   CheckCheck,
 } from "lucide-react";
+import { SocialProofToast } from "@/components/nudges/SocialProofToast";
+import { UrgencyBanner } from "@/components/nudges/UrgencyBanner";
 
 interface AuditResult {
   category: string;
@@ -303,6 +305,7 @@ export default function Audit() {
 
   return (
     <>
+      <SocialProofToast />
       <Helmet>
         <title>Free AEO & SEO Audit | LovelyAnswers</title>
         <meta name="description" content="Get a free comprehensive SEO and AEO audit for your website. Find out how to rank on ChatGPT, Gemini, and Google." />

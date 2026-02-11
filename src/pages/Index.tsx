@@ -33,6 +33,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { InactivityPopup } from "@/components/InactivityPopup";
 import { AIDemoSection } from "@/components/landing/AIDemoSection";
+import { SocialProofToast } from "@/components/nudges/SocialProofToast";
+import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
+import { UrgencyBanner } from "@/components/nudges/UrgencyBanner";
 
 // Integration logos
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -228,6 +231,8 @@ export default function Index() {
 
   return (
     <>
+      <SocialProofToast />
+      <ExitIntentPopup />
       <Helmet>
         <title>LovelyAnswers – AEO AutoPost | Rank in ChatGPT, Gemini & Google</title>
         <meta name="description" content="Generate AI-optimized AEO answers for ChatGPT, Gemini, Copilot and Google. Get 30 articles/month, backlinks, and 216% avg traffic increase." />
