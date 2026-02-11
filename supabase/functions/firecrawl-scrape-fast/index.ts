@@ -415,49 +415,46 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback: basic fetch if all Firecrawl keys failed
+    // Fallback: use internal scraper if all Firecrawl keys failed
     if (!firecrawlSuccess) {
-      console.log('[FAST] All Firecrawl keys failed, falling back to basic fetch');
+      console.log('[FAST] All Firecrawl keys failed, falling back to internal-scraper');
       try {
-        const fetchResponse = await fetch(formattedUrl, {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const scraperRes = await fetch(`${supabaseUrl}/functions/v1/internal-scraper`, {
+          method: 'POST',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; LovelyBot/1.0)',
-            'Accept': 'text/html',
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
           },
-          redirect: 'follow',
+          body: JSON.stringify({ url: formattedUrl, timeout: 8000 }),
         });
-        
-        if (fetchResponse.ok) {
-          const html = await fetchResponse.text();
-          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
-                            html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
-          const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
-          
-          const title = titleMatch ? titleMatch[1].trim() : '';
-          const metaDescription = descMatch ? descMatch[1].trim() : '';
-          const metaLanguage = langMatch ? langMatch[1].substring(0, 2).toLowerCase() : '';
-          
-          const language = detectLanguageFromContent(html, metaLanguage);
-          const brandName = extractBrandName(formattedUrl, title);
-          const description = extractDescriptionFast('', metaDescription, brandName);
-          const cms = detectCMSFromContent(html, '');
-          
-          const totalTime = Date.now() - startTime;
-          console.log(`[FAST] Fallback fetch complete: ${totalTime}ms, lang=${language}, brand=${brandName}`);
-          
-          return new Response(
-            JSON.stringify({
-              success: true,
-              data: { brandName, description, language, cms, sourceUrl: formattedUrl }
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+
+        if (scraperRes.ok) {
+          const scraperData = await scraperRes.json();
+          if (scraperData.success) {
+            const d = scraperData.data;
+            const language = detectLanguageFromContent(d.markdown || '', d.language || '');
+            const brandName = d.brandName || extractBrandName(formattedUrl, d.title || '');
+            const description = extractDescriptionFast(d.markdown || '', d.metaDescription || '', brandName);
+            const cms = d.cms || detectCMSFromContent(d.html || '', d.markdown || '');
+
+            const totalTime = Date.now() - startTime;
+            console.log(`[FAST] Internal scraper fallback complete: ${totalTime}ms, lang=${language}, brand=${brandName}, cms=${cms}`);
+
+            return new Response(
+              JSON.stringify({
+                success: true,
+                data: { brandName, description, language, cms, sourceUrl: formattedUrl, favicon: d.favicon || '', ogImage: d.ogImage || '' }
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
         }
-      } catch (fetchErr) {
-        console.error('[FAST] Fallback fetch also failed:', fetchErr);
+      } catch (scraperErr) {
+        console.error('[FAST] Internal scraper fallback failed:', scraperErr);
       }
-      
+
       // Ultimate fallback - return basic data from URL parsing
       const brandName = extractBrandName(formattedUrl, '');
       console.log('[FAST] Using URL-only fallback, brand:', brandName);
