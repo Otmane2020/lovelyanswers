@@ -198,7 +198,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const formattedUrl = url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`;
+    const formattedUrl = (url.trim().startsWith("http") ? url.trim() : `https://${url.trim()}`).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const slug = extractSlug(formattedUrl);
 
     console.log("[analyze-aeo] Analyzing URL:", formattedUrl, "slug:", slug);

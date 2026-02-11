@@ -31,8 +31,10 @@ serve(async (req) => {
       );
     }
 
-    // Clean URL
+    // Clean URL - normalize accented characters
     let cleanUrl = url.trim();
+    // Remove accents from URL (é→e, à→a, etc.) for domains with special chars
+    cleanUrl = cleanUrl.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!cleanUrl.startsWith("http")) {
       cleanUrl = `https://${cleanUrl}`;
     }
@@ -86,7 +88,38 @@ serve(async (req) => {
       }
     }
 
-    // Fallback: direct fetch if Firecrawl failed
+    // Fallback: internal scraper if Firecrawl failed
+    if (!pageContent) {
+      try {
+        console.log("[free-audit] Fallback: internal-scraper...");
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+        const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+          const scraperRes = await fetch(`${SUPABASE_URL}/functions/v1/internal-scraper`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: cleanUrl, timeout: 15000 }),
+          });
+          if (scraperRes.ok) {
+            const scraperData = await scraperRes.json();
+          if (scraperData.success) {
+              pageContent = scraperData.data?.markdown || "";
+              htmlContent = scraperData.data?.html || "";
+              pageTitle = scraperData.data?.title || scraperData.data?.metadata?.title || "";
+              metaDescription = scraperData.data?.metaDescription || scraperData.data?.metadata?.description || "";
+              console.log(`[free-audit] Internal scraper: ${pageContent.length} chars, title="${pageTitle?.substring(0, 50)}"`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[free-audit] Internal scraper error:", e);
+      }
+    }
+
+    // Fallback 2: direct fetch
     if (!pageContent) {
       try {
         console.log("[free-audit] Fallback: direct fetch...");
@@ -102,8 +135,6 @@ serve(async (req) => {
           pageTitle = titleMatch?.[1]?.trim() || "";
           const descMatch = htmlContent.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
           metaDescription = descMatch?.[1]?.trim() || "";
-          
-          // Extract text content
           const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
           if (bodyMatch) {
             pageContent = bodyMatch[1].replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -205,18 +236,42 @@ Rules:
     let auditResults: AuditResult[] = [];
     try {
       // Try to extract JSON from response
-      const jsonMatch = auditContent.match(/```json\s*([\s\S]*?)\s*```/) ||
-                        auditContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                        [null, auditContent];
-      const jsonStr = (jsonMatch[1] || auditContent).trim();
+      let jsonStr = auditContent;
+      // Remove markdown code blocks
+      const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch) jsonStr = codeBlockMatch[1];
+      jsonStr = jsonStr.trim();
+      // Find the JSON array
+      const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+      if (arrayMatch) jsonStr = arrayMatch[0];
+      // Fix common JSON issues: trailing commas, smart quotes
+      jsonStr = jsonStr
+        .replace(/,\s*([}\]])/g, '$1')
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'");
       auditResults = JSON.parse(jsonStr);
       console.log(`[free-audit] Parsed ${auditResults.length} audit results`);
     } catch (parseError) {
       console.error("[free-audit] Parse error:", parseError);
-      // Fallback results
-      auditResults = [
-        { category: "Technical", status: "warning", title: "Audit partially completed", description: "Some checks could not be processed. Please try again.", impact: "medium", recommendation: "Run the audit again" },
-      ];
+      // Try line-by-line recovery
+      try {
+        const arrayMatch = auditContent.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          // Remove problematic trailing content and force-close
+          let fixed = arrayMatch[0].replace(/,\s*([}\]])/g, '$1');
+          // Try truncating at last complete object
+          const lastBrace = fixed.lastIndexOf('}');
+          if (lastBrace > 0) {
+            fixed = fixed.substring(0, lastBrace + 1) + ']';
+          }
+          auditResults = JSON.parse(fixed);
+          console.log(`[free-audit] Recovered ${auditResults.length} audit results`);
+        }
+      } catch {
+        auditResults = [
+          { category: "Technical", status: "warning", title: "Audit partially completed", description: "Some checks could not be processed. Please try again.", impact: "medium", recommendation: "Run the audit again" },
+        ];
+      }
     }
 
     // Calculate scores
