@@ -70,9 +70,9 @@ export default function Pricing() {
       <SocialProofToast />
       <ExitIntentPopup 
         ctaUrl="/onboarding"
-        headline="🎁 Offre spéciale : 2 mois offerts !"
-        description="Rejoignez les 500+ sites qui boostent leur visibilité IA avec LovelyAnswers. Profitez de 2 mois gratuits maintenant."
-        ctaLabel="Commencer gratuitement"
+        headline="🎁 Special offer: 2 months free!"
+        description="Join the 500+ sites boosting their AI visibility with LovelyAnswers. Get 2 months free now."
+        ctaLabel="Start for free"
       />
       <Helmet>
         <title>Pricing - LovelyAnswers AEO Platform | $29/month AI SEO</title>

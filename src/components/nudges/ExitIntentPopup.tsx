@@ -17,9 +17,9 @@ interface ExitIntentPopupProps {
 
 export const ExitIntentPopup = ({
   ctaUrl = "/audit",
-  headline = "Attendez ! Ne partez pas les mains vides 🎁",
-  description = "Obtenez votre audit AEO gratuit en 30 secondes et découvrez comment apparaître dans ChatGPT et Google AI.",
-  ctaLabel = "Obtenir mon audit gratuit",
+  headline = "Wait! Don't leave empty-handed 🎁",
+  description = "Get your free AEO audit in 30 seconds and discover how to appear in ChatGPT and Google AI.",
+  ctaLabel = "Get my free audit",
 }: ExitIntentPopupProps) => {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
@@ -114,7 +114,7 @@ export const ExitIntentPopup = ({
                   onClick={() => setShow(false)}
                   className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Non merci, je préfère passer à côté
+                  No thanks, I'll pass
                 </button>
               </div>
             </div>

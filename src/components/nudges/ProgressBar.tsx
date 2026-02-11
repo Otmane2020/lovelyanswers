@@ -58,10 +58,10 @@ export const ProgressBar = ({ currentStep, totalSteps, labels, className = "" }:
       {/* Encouragement text */}
       <p className="text-xs text-muted-foreground mt-1.5 text-center">
         {progress < 50
-          ? "🚀 Vous êtes sur la bonne voie !"
+          ? "🚀 You're on the right track!"
           : progress < 100
-          ? "⚡ Presque terminé !"
-          : "✅ Terminé !"}
+          ? "⚡ Almost done!"
+          : "✅ Complete!"}
       </p>
     </div>
   );

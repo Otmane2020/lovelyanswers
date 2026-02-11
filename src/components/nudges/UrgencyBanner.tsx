@@ -48,7 +48,7 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
       >
         <Clock className="h-4 w-4 text-destructive" />
         <span className="text-sm font-medium text-destructive">
-          Offre expire dans{" "}
+          Offer expires in{" "}
           <span className="font-mono font-bold">
             {String(timeLeft.hours).padStart(2, "0")}:{String(timeLeft.minutes).padStart(2, "0")}:{String(timeLeft.seconds).padStart(2, "0")}
           </span>
@@ -71,7 +71,7 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
           <Flame className="h-4 w-4 text-amber-500" />
         </motion.div>
         <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          🔥 Plus que <span className="font-bold">{spotsLeft} places</span> au tarif de lancement
+          🔥 Only <span className="font-bold">{spotsLeft} spots</span> left at launch price
         </span>
       </motion.div>
     );
@@ -86,7 +86,7 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
     >
       <AlertTriangle className="h-4 w-4 text-green-600" />
       <span className="text-sm font-medium text-green-700 dark:text-green-400">
-        🎉 <span className="font-bold">-50%</span> pour les 100 premiers inscrits — Code: <span className="font-mono font-bold">WELCOME50</span>
+        🎉 <span className="font-bold">-50%</span> for the first 100 sign-ups — Code: <span className="font-mono font-bold">WELCOME50</span>
       </span>
     </motion.div>
   );
