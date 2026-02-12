@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
-  Download, CheckCircle, AlertCircle, Building2
+  Download, CheckCircle, AlertCircle, Building2, Brain, Zap, TrendingUp, BarChart3, Lightbulb
 } from "lucide-react";
 
 interface GoogleAdsAccount {
@@ -92,6 +92,11 @@ export function GoogleAdsManager() {
   const [campaignAds, setCampaignAds] = useState<SyncedAd[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
+  // AI Analysis
+  const [analysisText, setAnalysisText] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisFocus, setAnalysisFocus] = useState<string | null>(null);
+  const analysisRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     loadConnectionAndData();
     
@@ -275,6 +280,101 @@ export function GoogleAdsManager() {
     if (!micros) return "0.00";
     return (micros / 1000000).toFixed(2);
   };
+
+  const handleAnalyze = async (focus: string, campaignId?: string) => {
+    setIsAnalyzing(true);
+    setAnalysisFocus(focus);
+    setAnalysisText("");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-google-ads`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ focus, campaign_id: campaignId }),
+        }
+      );
+
+      if (!resp.ok || !resp.body) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              setAnalysisText(fullText);
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      // Flush remaining
+      if (buffer.trim()) {
+        for (let raw of buffer.split("\n")) {
+          if (!raw || !raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              setAnalysisText(fullText);
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
+      setTimeout(() => {
+        analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (err: any) {
+      toast({ title: "Erreur analyse", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const focusOptions = [
+    { key: "all", label: "Audit complet", icon: Brain, desc: "Analyse globale" },
+    { key: "keywords", label: "Mots-clés", icon: Key, desc: "QS, bids, négatifs" },
+    { key: "ad_groups", label: "Ad Groups", icon: Target, desc: "Structure & pertinence" },
+    { key: "roas", label: "ROAS", icon: TrendingUp, desc: "Revenue & rentabilité" },
+    { key: "strategy", label: "Stratégie", icon: Lightbulb, desc: "Vision macro" },
+  ];
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -663,6 +763,65 @@ export function GoogleAdsManager() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Optimization Panel */}
+      {hasAccount && syncedCampaigns.length > 0 && (
+        <Card ref={analysisRef}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              Optimisation IA
+            </CardTitle>
+            <CardDescription>Analyse intelligente de vos campagnes par focus</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {focusOptions.map((opt) => {
+                const Icon = opt.icon;
+                const isActive = analysisFocus === opt.key;
+                return (
+                  <Button
+                    key={opt.key}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    className="flex flex-col items-center gap-1 h-auto py-3"
+                    disabled={isAnalyzing}
+                    onClick={() => handleAnalyze(opt.key)}
+                  >
+                    {isAnalyzing && isActive ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
+                    <span className="text-xs font-medium">{opt.label}</span>
+                    <span className="text-[10px] opacity-60">{opt.desc}</span>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {(analysisText || isAnalyzing) && (
+              <>
+                <Separator />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">
+                      Analyse: {focusOptions.find(o => o.key === analysisFocus)?.label}
+                    </span>
+                    {isAnalyzing && <Loader2 className="h-3 w-3 animate-spin" />}
+                  </div>
+                  <ScrollArea className="max-h-[600px]">
+                    <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                      {analysisText || "Analyse en cours..."}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

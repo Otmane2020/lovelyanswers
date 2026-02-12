@@ -199,3 +199,6 @@ verify_jwt = false
 
 [functions.sync-google-ads]
 verify_jwt = false
+
+[functions.analyze-google-ads]
+verify_jwt = false
