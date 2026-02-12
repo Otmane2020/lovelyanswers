@@ -70,6 +70,7 @@ serve(async (req) => {
     let brandName = domain.split(".")[0];
     let targetAudiences: string[] = [];
     let keywords: string[] = [];
+    let detectedLanguage = "en";
 
     // Step 1: Fetch and analyze FULL website content
     console.log("[ANALYZE-WEBSITE] 📄 Fetching full website content...");
@@ -89,6 +90,28 @@ serve(async (req) => {
       if (siteResponse.ok) {
         const html = await siteResponse.text();
         console.log("[ANALYZE-WEBSITE] 📄 Fetched HTML:", html.length, "chars");
+
+        // Detect language from <html lang="...">
+        const langMatch = html.match(/<html[^>]*\slang=["']([a-zA-Z]{2})(?:[-_][a-zA-Z]+)?["']/i);
+        if (langMatch) {
+          detectedLanguage = langMatch[1].toLowerCase();
+          console.log("[ANALYZE-WEBSITE] 🌐 Detected language from HTML:", detectedLanguage);
+        } else {
+          // Fallback: check content-language meta
+          const contentLangMatch = html.match(/<meta[^>]*http-equiv=["']content-language["'][^>]*content=["']([a-zA-Z]{2})/i);
+          if (contentLangMatch) {
+            detectedLanguage = contentLangMatch[1].toLowerCase();
+          }
+          // Fallback: TLD-based detection
+          const tld = domain.split('.').pop();
+          if (tld === 'fr') detectedLanguage = 'fr';
+          else if (tld === 'de') detectedLanguage = 'de';
+          else if (tld === 'es') detectedLanguage = 'es';
+          else if (tld === 'it') detectedLanguage = 'it';
+          else if (tld === 'nl') detectedLanguage = 'nl';
+          else if (tld === 'pt') detectedLanguage = 'pt';
+          console.log("[ANALYZE-WEBSITE] 🌐 Language fallback:", detectedLanguage);
+        }
         
         // Extract meta description
         const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
@@ -200,46 +223,51 @@ serve(async (req) => {
         // Truncate content if too long
         const contentForAI = pageContent.substring(0, 8000);
         
-        const analysisPrompt = `Analyse ce contenu de page d'accueil et extrais les informations suivantes:
+        const langName = { fr: "French", en: "English", de: "German", es: "Spanish", it: "Italian", nl: "Dutch", pt: "Portuguese" }[detectedLanguage] || "English";
+        
+        const analysisPrompt = `Analyze this homepage content and extract the following information.
+IMPORTANT: ALL text output (description, audiences, keywords) MUST be written in ${langName} (detected language: ${detectedLanguage}).
 
-CONTENU DU SITE (${domain}):
+WEBSITE CONTENT (${domain}):
 ${contentForAI}
 
 ${description ? `META DESCRIPTION: ${description}` : ''}
 
-TÂCHES:
-1. CONCURRENTS: Identifie 5 sites web concurrents directs qui:
-   - Offrent des produits/services similaires
-   - Ciblent la même audience
-   - Sont des acteurs majeurs sur le même marché
+TASKS:
+1. COMPETITORS: Find 5 direct competitor websites that:
+   - Offer similar products/services
+   - Target the same audience
+   - Are major players in the same market
 
-2. KEYWORDS: Extrais 15-20 mots-clés SEO pertinents basés sur:
-   - Les titres et headings de la page
-   - Les services/produits mentionnés
-   - Les termes métier utilisés
-   - Les questions que les utilisateurs pourraient poser
+2. KEYWORDS: Extract 15-20 relevant SEO keywords in ${langName} based on:
+   - Page titles and headings
+   - Products/services mentioned
+   - Industry-specific terms
+   - Questions users would ask
 
-3. DESCRIPTION: Rédige une description professionnelle et engageante du site en 3-4 phrases.
-   - Commence par le nom de la marque et son positionnement
-   - Décris les principaux produits/services offerts
-   - Mentionne ce qui différencie cette entreprise (spécialisation, valeurs, expertise)
-   - Utilise un ton professionnel mais accessible
-   - NE copie PAS simplement la meta description, crée une vraie description enrichie
+3. DESCRIPTION: Write a professional, engaging description of this site in 3-4 sentences IN ${langName}.
+   - Start with the brand name and positioning
+   - Describe main products/services offered
+   - Mention what differentiates this business (specialization, values, expertise)
+   - Use a professional but accessible tone
+   - DO NOT simply copy the meta description, create an enriched description
 
-4. AUDIENCES: Identifie 3 audiences cibles principales.
+4. AUDIENCES: Identify 3 main target audiences IN ${langName}.
 
 IMPORTANT:
-- Pour les concurrents: retourne UNIQUEMENT des domaines réels (ex: leboncoin.fr, vinted.fr)
-- Pour les keywords: focus sur des termes de recherche que les gens utiliseraient vraiment
-- NE retourne PAS le site analysé lui-même dans les concurrents
-- La description doit être MEILLEURE et PLUS COMPLÈTE que la simple meta description
+- Competitors: return ONLY real domains (e.g., amazon.com, ebay.com)
+- Keywords: focus on real search terms people actually use, in ${langName}
+- DO NOT include the analyzed site itself in competitors
+- Description MUST be richer and more complete than the meta description
+- ALL output text MUST be in ${langName}
 
-Réponds UNIQUEMENT avec ce JSON (pas d'explication):
+Respond ONLY with this JSON (no explanation):
 {
-  "competitors": ["domaine1.fr", "domaine2.com"],
-  "keywords": [{"keyword": "mot clé 1", "intent": "informational"}, {"keyword": "mot clé 2", "intent": "transactional"}],
-  "description": "Description professionnelle enrichie du site...",
-  "audiences": ["audience 1", "audience 2", "audience 3"]
+  "competitors": ["domain1.com", "domain2.com"],
+  "keywords": [{"keyword": "keyword in ${langName}", "intent": "informational"}],
+  "description": "Professional enriched description in ${langName}...",
+  "audiences": ["audience 1 in ${langName}", "audience 2", "audience 3"],
+  "language": "${detectedLanguage}"
 }`;
 
         const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -424,6 +452,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
         competitors,
         targetAudiences,
         keywords,
+        language: detectedLanguage,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
