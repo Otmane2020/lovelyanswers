@@ -19,16 +19,17 @@ const pricingStructuredData = {
 };
 
 const features = [
-  { icon: FileText, text: "30 SEO/LLM optimized articles automatically generated and published" },
+  { icon: Bot, text: "AEO: Get cited by ChatGPT, Gemini, Perplexity & AI search engines" },
+  { icon: FileText, text: "30 SEO & AEO optimized articles auto-generated and published monthly" },
+  { icon: Globe, text: "Local AEO: Dominate AI answers for your city, neighborhood & niche" },
+  { icon: Search, text: "AI Shopping Assistant: Optimize your product feed for AI-powered shopping" },
   { icon: Sparkles, text: "Articles with citations, internal links and branded infographics" },
-  { icon: LinkIcon, text: "Automatic quality backlinks (valued at $800+ per month) through our exclusive network" },
+  { icon: LinkIcon, text: "Automatic quality backlinks (valued at $800+/month) through our network" },
   { icon: Wrench, text: "Technical SEO audit - find issues blocking Google and ChatGPT" },
-  { icon: Search, text: "Articles backed by real-time research and expert insights" },
   { icon: Bot, text: "Automated keyword research and SERP-based clustering" },
   { icon: MessageSquare, text: "Reddit agent that builds your brand visibility and authority" },
-  { icon: Globe, text: "Integrates with WordPress, Webflow, Shopify, Wix, API and more" },
-  { icon: FileText, text: "JSON-LD schema markup for featured snippets" },
-  { icon: Languages, text: "Articles available in 20+ languages" },
+  { icon: Globe, text: "Integrates with WordPress, Shopify, Wix, BigCommerce & more" },
+  { icon: Languages, text: "Content available in 20+ languages" },
 ];
 
 const faqs = [
