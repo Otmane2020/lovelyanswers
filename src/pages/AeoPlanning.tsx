@@ -148,10 +148,10 @@ export default function AeoPlanning() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Content Planning</h1>
-            <p className="text-muted-foreground mt-1">Rolling window (today + 30 days)</p>
+            <h1 className="text-xl sm:text-3xl font-bold">Content Planning</h1>
+            <p className="text-sm text-muted-foreground mt-1">Today + 30 days</p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             {isGenerating && (
@@ -164,68 +164,49 @@ export default function AeoPlanning() {
           </div>
         </div>
 
-        <Card className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-6">
-              <span className="text-sm font-medium text-muted-foreground">Legend:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-[hsl(222,47%,30%)]" />
-                <span className="flex items-center gap-1 text-sm">
-                  <MessageSquare className="h-3.5 w-3.5 text-[hsl(222,47%,30%)]" /> AEO Answers
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-emerald-500" />
-                <span className="flex items-center gap-1 text-sm">
-                  <FileText className="h-3.5 w-3.5 text-emerald-600" /> Blog Articles
-                </span>
-              </div>
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
+              <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium text-primary">{totalAnswers} Answers</span>
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
-                <MessageSquare className="h-4 w-4 text-primary" />
-                <span className="font-medium text-primary">{totalAnswers} Answers</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10">
-                <FileText className="h-4 w-4 text-emerald-600" />
-                <span className="font-medium text-emerald-700 dark:text-emerald-400">{totalArticles} Articles</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span className="font-medium text-primary">{publishedItems} Published</span>
-              </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10">
+              <FileText className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="text-xs sm:text-sm font-medium text-emerald-700">{totalArticles} Articles</span>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs sm:text-sm font-medium text-primary">{publishedItems} Published</span>
             </div>
           </div>
         </Card>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Content Calendar</h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(visibleStart, "d MMM yyyy", { locale: enUS })} – {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
-                  </p>
-                </div>
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+          <Card className="lg:col-span-2 p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+              <div>
+                <h2 className="text-base sm:text-xl font-semibold">Content Calendar</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {format(visibleStart, "d MMM", { locale: enUS })} – {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex border rounded-lg overflow-hidden">
-                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(Math.max(0, weekOffset - 4))} disabled={weekOffset === 0} className="rounded-none">
+                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(Math.max(0, weekOffset - 4))} disabled={weekOffset === 0} className="rounded-none h-8 w-8 p-0">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0} className="rounded-none text-xs px-2">
+                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0} className="rounded-none text-xs px-2 h-8">
                     Today
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(weekOffset + 4)} className="rounded-none">
+                  <Button variant="ghost" size="sm" onClick={() => setWeekOffset(weekOffset + 4)} className="rounded-none h-8 w-8 p-0">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="flex border rounded-lg overflow-hidden">
-                  <Button variant={monthViewMode === "calendar" ? "default" : "ghost"} size="sm" onClick={() => setMonthViewMode("calendar")} className="rounded-none">
+                  <Button variant={monthViewMode === "calendar" ? "default" : "ghost"} size="sm" onClick={() => setMonthViewMode("calendar")} className="rounded-none h-8 w-8 p-0">
                     <LayoutGrid className="h-4 w-4" />
                   </Button>
-                  <Button variant={monthViewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setMonthViewMode("list")} className="rounded-none">
+                  <Button variant={monthViewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setMonthViewMode("list")} className="rounded-none h-8 w-8 p-0">
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
@@ -234,16 +215,17 @@ export default function AeoPlanning() {
 
             {monthViewMode === "calendar" ? (
               <>
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                    <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-                      {day}
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+                  {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
+                    <div key={i} className="text-center text-[10px] sm:text-sm font-medium text-muted-foreground py-1 sm:py-2">
+                      <span className="hidden sm:inline">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}</span>
+                      <span className="sm:hidden">{day}</span>
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                   {Array.from({ length: (visibleStart.getDay() + 6) % 7 }).map((_, i) => (
-                    <div key={`empty-${i}`} className="h-24 p-1" />
+                    <div key={`empty-${i}`} className="h-16 sm:h-24 p-0.5" />
                   ))}
                   {visibleDays.map((day) => {
                     const items = getItemsForDate(day);
@@ -254,36 +236,36 @@ export default function AeoPlanning() {
                         key={day.toISOString()}
                         onClick={() => handleDayClick(day)}
                         className={cn(
-                          "h-28 p-2 rounded-lg border transition-all text-left hover:bg-muted/50 flex flex-col",
+                          "h-16 sm:h-28 p-1 sm:p-2 rounded-md sm:rounded-lg border transition-all text-left hover:bg-muted/50 flex flex-col",
                           isToday(day) && "border-primary ring-1 ring-primary/20",
                           isSelected && "bg-primary/10 border-primary",
                           hasItems && "hover:shadow-md cursor-pointer"
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <span className={cn("text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full", isToday(day) && "bg-primary text-primary-foreground")}>
+                          <span className={cn("text-[10px] sm:text-sm font-semibold w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full", isToday(day) && "bg-primary text-primary-foreground")}>
                             {format(day, "d")}
                           </span>
                           {hasItems && (
-                            <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                            <Badge variant="secondary" className="text-[8px] sm:text-[9px] h-3.5 sm:h-4 px-1">
                               {items.length}
                             </Badge>
                           )}
                         </div>
-                        <div className="mt-1 flex-1 overflow-hidden space-y-0.5">
-                          {items.slice(0, 2).map((item) => (
+                        <div className="mt-0.5 sm:mt-1 flex-1 overflow-hidden space-y-0.5">
+                          {items.slice(0, window.innerWidth < 640 ? 1 : 2).map((item) => (
                             <div
                               key={item.id}
                               className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-1",
-                                item.type === "answer" ? "bg-[hsl(222,47%,11%)]/10 text-[hsl(222,47%,30%)]" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-0.5 sm:gap-1",
+                                item.type === "answer" ? "bg-[hsl(222,47%,11%)]/10 text-[hsl(222,47%,30%)]" : "bg-emerald-500/20 text-emerald-700"
                               )}
                             >
-                              {item.type === "answer" ? <MessageSquare className="h-2.5 w-2.5 shrink-0" /> : <FileText className="h-2.5 w-2.5 shrink-0" />}
-                              <span className="truncate">{item.title.slice(0, 20)}...</span>
+                              {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
+                              <span className="truncate hidden sm:inline">{item.title.slice(0, 20)}...</span>
                             </div>
                           ))}
-                          {items.length > 2 && <span className="text-[10px] text-muted-foreground font-medium">+{items.length - 2} more</span>}
+                          {items.length > 2 && <span className="text-[8px] sm:text-[10px] text-muted-foreground font-medium hidden sm:block">+{items.length - 2}</span>}
                         </div>
                       </button>
                     );

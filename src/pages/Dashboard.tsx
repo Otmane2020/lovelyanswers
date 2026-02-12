@@ -264,29 +264,29 @@ export default function Dashboard() {
 
         {/* Welcome Header */}
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
             Welcome back, {userName}!
           </h1>
         </div>
 
         {/* Potential Traffic Reach Chart */}
-        <Card className="p-6 border border-border/50">
-          <div className="flex items-start justify-between mb-4">
+        <Card className="p-4 sm:p-6 border border-border/50">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Potential Traffic Reach</h2>
-              <p className="text-sm text-muted-foreground">
-                Estimated monthly impressions based on your published content
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">Potential Traffic Reach</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Estimated monthly impressions
               </p>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg self-start">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary font-medium">
-                +{Math.round(realStats.answersCount * 150)} impressions/month potential
+              <span className="text-xs sm:text-sm text-primary font-medium">
+                +{Math.round(realStats.answersCount * 150)}/mo
               </span>
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[
                 { month: "Now", current: realStats.answersCount * 50, projected: realStats.answersCount * 50 },
@@ -343,40 +343,40 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className="flex items-center gap-6 mt-4">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-0.5 bg-primary rounded" />
-              <span className="text-sm text-muted-foreground">Current trajectory</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">Current</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-0.5 bg-muted-foreground rounded opacity-50" />
-              <span className="text-sm text-muted-foreground">Projected (with daily publishing)</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">Projected</span>
             </div>
           </div>
         </Card>
 
         {/* Content Activity Chart */}
-        <Card className="p-6 border border-border/50">
-          <div className="flex items-start justify-between mb-4">
+        <Card className="p-4 sm:p-6 border border-border/50">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Content Activity</h2>
-              <p className="text-sm text-muted-foreground">
-                Answers and articles created over the last 8 weeks
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">Content Activity</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Last 8 weeks
               </p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-primary" />
-                <span className="text-sm text-muted-foreground">Answers</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">Answers</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-violet-500" />
-                <span className="text-sm text-muted-foreground">Articles</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">Articles</span>
               </div>
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={activityData}>
                 <defs>
@@ -431,8 +431,8 @@ export default function Dashboard() {
 
         {/* Your Overview Section */}
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Your Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4">Your Overview</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Answers Generated Card */}
             <Card className="p-5 border border-border/50">
               <div className="flex items-start justify-between">
