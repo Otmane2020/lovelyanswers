@@ -12,29 +12,29 @@
     --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
-    --primary: 262 83% 58%;
+    --primary: 222 47% 30%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 15%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
-    --accent: 262 30% 96%;
-    --accent-foreground: 262 83% 45%;
+    --accent: 222 20% 96%;
+    --accent-foreground: 222 47% 25%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 262 83% 58%;
+    --ring: 222 47% 30%;
     --radius: 0.75rem;
     
     /* Custom LovelyAnswers tokens - Light */
-    --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(262, 70%, 50%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(262, 70%, 50%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(222, 47%, 30%) 0%, hsl(222, 47%, 20%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(222, 47%, 30%) 0%, hsl(222, 47%, 20%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(240, 20%, 98%) 100%);
     --glass-bg: hsla(0, 0%, 100%, 0.85);
     --glass-border: hsla(240, 10%, 85%, 0.6);
-    --shadow-soft: 0 4px 24px -4px hsla(262, 83%, 58%, 0.12);
-    --shadow-glow: 0 0 40px hsla(262, 83%, 58%, 0.15);
+    --shadow-soft: 0 4px 24px -4px hsla(222, 47%, 30%, 0.12);
+    --shadow-glow: 0 0 40px hsla(222, 47%, 30%, 0.15);
     --sidebar-bg: 240 10% 98%;
   }
 
@@ -45,7 +45,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 6%;
     --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 58%;
+    --primary: 222 47% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 98%;
@@ -57,16 +57,16 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5% 16%;
     --input: 240 5% 16%;
-    --ring: 262 83% 58%;
+    --ring: 222 47% 55%;
     
     /* Custom LovelyAnswers tokens - Dark */
-    --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(262, 70%, 50%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(262, 70%, 50%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(222, 47%, 45%) 0%, hsl(222, 47%, 35%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(222, 47%, 45%) 0%, hsl(222, 47%, 35%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(240, 10%, 6%) 0%, hsl(240, 10%, 4%) 100%);
     --glass-bg: hsla(240, 10%, 8%, 0.8);
     --glass-border: hsla(240, 5%, 20%, 0.5);
-    --shadow-soft: 0 4px 24px -4px hsla(262, 83%, 58%, 0.25);
-    --shadow-glow: 0 0 60px hsla(262, 83%, 58%, 0.3);
+    --shadow-soft: 0 4px 24px -4px hsla(222, 47%, 30%, 0.25);
+    --shadow-glow: 0 0 60px hsla(222, 47%, 30%, 0.3);
     --sidebar-bg: 240 10% 6%;
   }
 }
@@ -147,6 +147,7 @@
 }
 
 /* ─── Editorial Article Template ─── */
+/* ... keep existing code (editorial styles from line 149 to end) */
 .editorial-hero {
   background: linear-gradient(180deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%);
 }

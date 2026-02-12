@@ -58,17 +58,20 @@ const featureCards = [
   {
     icon: <Eye className="h-5 w-5" />,
     title: "AI Visibility Score",
-    description: "See exactly how AI platforms talk about your brand and where you rank against competitors.",
+    description:
+      "See exactly how AI platforms talk about your brand and where you rank against competitors.",
   },
   {
     icon: <BarChart3 className="h-5 w-5" />,
     title: "Brand Mention Tracking",
-    description: "Monitor every time AI recommends your business or your competitors in real-time.",
+    description:
+      "Monitor every time AI recommends your business or your competitors in real-time.",
   },
   {
     icon: <Target className="h-5 w-5" />,
     title: "Content Optimization",
-    description: "Get actionable insights to optimize your content for AI citation and recommendation.",
+    description:
+      "Get actionable insights to optimize your content for AI citation and recommendation.",
   },
 ];
 
@@ -76,20 +79,20 @@ const showcaseFeatures = [
   {
     tag: "MONITOR YOUR AI PRESENCE",
     title: "Track your visibility across all AI platforms",
-    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
-    color: "from-violet-600 to-violet-500",
+    description:
+      "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
   },
   {
     tag: "OPTIMIZE YOUR CONTENT",
     title: "AI-powered content that gets you cited",
-    description: "Generate expert articles designed to be recommended by AI search engines.",
-    color: "from-violet-500 to-violet-400",
+    description:
+      "Generate expert articles designed to be recommended by AI search engines.",
   },
   {
     tag: "GROW ON AUTOPILOT",
     title: "Automated publishing & SEO",
-    description: "1 article per day, auto-published to your CMS with full SEO optimization.",
-    color: "from-violet-600 to-violet-500",
+    description:
+      "1 article per day, auto-published to your CMS with full SEO optimization.",
   },
 ];
 
@@ -168,7 +171,8 @@ const bottomFeatures = [
 const faqs = [
   {
     question: "How does AI search optimization work?",
-    answer: "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+    answer:
+      "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
   },
   {
     question: "Can I really cancel anytime?",
@@ -180,11 +184,13 @@ const faqs = [
   },
   {
     question: "Will this work for my industry?",
-    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
+    answer:
+      "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
   },
   {
     question: "Is the content actually good?",
-    answer: "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
+    answer:
+      "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
   },
 ];
 
@@ -218,40 +224,61 @@ export default function Index() {
       <ExitIntentPopup />
       <Helmet>
         <title>LovelyAnswers – Get Discovered in AI Search | ChatGPT, Gemini & Google</title>
-        <meta name="description" content="Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered content, monitoring, and optimization for modern search." />
+        <meta
+          name="description"
+          content="Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered content, monitoring, and optimization for modern search."
+        />
         <link rel="canonical" href="https://lovelyanswers.com/" />
         <meta property="og:title" content="LovelyAnswers – Get Discovered in AI Search" />
-        <meta property="og:description" content="The #1 platform to get your brand recommended by AI search engines." />
+        <meta
+          property="og:description"
+          content="The #1 platform to get your brand recommended by AI search engines."
+        />
         <meta property="og:url" content="https://lovelyanswers.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://lovelyanswers.com/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "LovelyAnswers",
-          "url": "https://lovelyanswers.com",
-          "logo": "https://lovelyanswers.com/favicon.png",
-          "description": "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
-        })}</script>
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          "name": "LovelyAnswers",
-          "applicationCategory": "BusinessApplication",
-          "operatingSystem": "Web",
-          "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD" },
-          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "527", "bestRating": "5" },
-        })}</script>
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          "mainEntity": faqs.map(faq => ({
-            "@type": "Question",
-            "name": faq.question,
-            "acceptedAnswer": { "@type": "Answer", "text": faq.answer },
-          })),
-        })}</script>
+        <script
+          type="application/ld+json"
+          children={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "LovelyAnswers",
+            url: "https://lovelyanswers.com",
+            logo: "https://lovelyanswers.com/favicon.png",
+            description:
+              "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
+          })}
+        />
+        <script
+          type="application/ld+json"
+          children={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "LovelyAnswers",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: "4.9",
+              reviewCount: "527",
+              bestRating: "5",
+            },
+          })}
+        />
+        <script
+          type="application/ld+json"
+          children={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: { "@type": "Answer", text: faq.answer },
+            })),
+          })}
+        />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -263,32 +290,51 @@ export default function Index() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
-              </span>
+              <span className="text-lg font-bold tracking-tight text-white">LovelyAnswers</span>
             </Link>
             <div className="hidden md:flex items-center gap-1">
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Button
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                asChild
+              >
                 <Link to="/audit">Free Audit</Link>
               </Button>
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Button
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                asChild
+              >
                 <Link to="/pricing">Pricing</Link>
               </Button>
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Button
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                asChild
+              >
                 <Link to="/blog">Blog</Link>
               </Button>
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
+              <Button
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                asChild
+              >
                 <Link to="/auth">Log in</Link>
               </Button>
-              <Button className="ml-2 bg-violet-500 hover:bg-violet-600 text-white" asChild>
+              <Button className="ml-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
                 <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
-              <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/70 hover:text-white"
+                asChild
+              >
                 <Link to="/auth">Log in</Link>
               </Button>
-              <Button size="sm" className="bg-violet-500 hover:bg-violet-600 text-white" asChild>
+              <Button size="sm" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
                 <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
@@ -297,11 +343,15 @@ export default function Index() {
 
         {/* ═══════ HERO — Dark Navy ═══════ */}
         <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] pt-28 md:pt-36 pb-20 md:pb-32">
-          {/* Subtle grid pattern */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-          {/* Glow orbs */}
-          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/15 rounded-full blur-[120px]" />
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+            }}
+          />
+          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/8 rounded-full blur-[120px]" />
 
           <div className="container relative px-4">
             <div className="mx-auto max-w-4xl text-center">
@@ -311,7 +361,7 @@ export default function Index() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70 mb-6">
-                  <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                  <Sparkles className="h-3.5 w-3.5 text-white/60" />
                   AI search optimization platform
                 </div>
               </motion.div>
@@ -323,9 +373,7 @@ export default function Index() {
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
               >
                 Get discovered in{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-300">
-                  AI search
-                </span>
+                <span className="text-white">AI search</span>
               </motion.h1>
 
               <motion.p
@@ -337,7 +385,6 @@ export default function Index() {
                 Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. Monitor, optimize, and grow your AI search presence.
               </motion.p>
 
-              {/* CTA Buttons */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -346,7 +393,7 @@ export default function Index() {
               >
                 <Button
                   size="lg"
-                  className="h-12 px-8 bg-violet-500 hover:bg-violet-600 text-white text-base font-semibold gap-2"
+                  className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
                   onClick={() => navigate("/onboarding")}
                 >
                   Start for free
@@ -365,7 +412,6 @@ export default function Index() {
                 </Button>
               </motion.div>
 
-              {/* URL Input */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -380,7 +426,7 @@ export default function Index() {
                       placeholder="yourwebsite.com"
                       value={websiteUrl}
                       onChange={(e) => setWebsiteUrl(e.target.value)}
-                      className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-violet-400"
+                      className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/30"
                     />
                   </div>
                   <Button
@@ -393,7 +439,7 @@ export default function Index() {
                 </div>
               </motion.div>
 
-              {/* Dashboard mockup placeholder */}
+              {/* Dashboard mockup */}
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -402,7 +448,6 @@ export default function Index() {
               >
                 <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-1.5 shadow-2xl">
                   <div className="rounded-lg bg-[hsl(222,47%,14%)] p-4 md:p-6">
-                    {/* Mock dashboard header */}
                     <div className="flex items-center gap-3 mb-4">
                       <div className="flex gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-red-400/60" />
@@ -411,34 +456,31 @@ export default function Index() {
                       </div>
                       <div className="flex-1 h-6 bg-white/5 rounded-md" />
                     </div>
-                    {/* Mock chart area */}
                     <div className="grid grid-cols-3 gap-3 mb-4">
                       <div className="rounded-lg bg-white/5 p-3">
                         <div className="text-xs text-white/40 mb-1">AI Score</div>
-                        <div className="text-2xl font-bold text-violet-400">87</div>
+                        <div className="text-2xl font-bold text-white">87</div>
                       </div>
                       <div className="rounded-lg bg-white/5 p-3">
                         <div className="text-xs text-white/40 mb-1">Mentions</div>
-                        <div className="text-2xl font-bold text-violet-300">142</div>
+                        <div className="text-2xl font-bold text-white/80">142</div>
                       </div>
                       <div className="rounded-lg bg-white/5 p-3">
                         <div className="text-xs text-white/40 mb-1">Growth</div>
                         <div className="text-2xl font-bold text-white/70">+67%</div>
                       </div>
                     </div>
-                    {/* Mock graph lines */}
                     <div className="h-24 md:h-32 rounded-lg bg-white/5 flex items-end p-3 gap-1">
                       {[30, 45, 35, 55, 50, 65, 60, 75, 70, 85, 80, 90].map((h, i) => (
                         <div
                           key={i}
-                          className="flex-1 rounded-t bg-gradient-to-t from-violet-500/60 to-violet-400/30"
+                          className="flex-1 rounded-t bg-gradient-to-t from-blue-400/40 to-blue-300/10"
                           style={{ height: `${h}%` }}
                         />
                       ))}
                     </div>
                   </div>
                 </div>
-                {/* Bottom gradient fade */}
                 <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[hsl(222,47%,11%)] to-transparent" />
               </motion.div>
             </div>
@@ -453,24 +495,30 @@ export default function Index() {
             </p>
             <div className="flex items-center justify-center gap-8 md:gap-14">
               {aiPlatforms.map((platform) => (
-                <div key={platform.name} className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
-                  <img src={platform.logo} alt={platform.name} className="h-6 md:h-8 w-auto object-contain" />
-                  <span className="hidden md:inline text-sm font-medium text-muted-foreground">{platform.name}</span>
+                <div
+                  key={platform.name}
+                  className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <img
+                    src={platform.logo}
+                    alt={platform.name}
+                    className="h-6 md:h-8 w-auto object-contain"
+                  />
+                  <span className="hidden md:inline text-sm font-medium text-muted-foreground">
+                    {platform.name}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ═══════ Stats Section ═══════ */}
+        {/* ═══════ Stats ═══════ */}
         <section className="py-16 md:py-24">
           <div className="container px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                AI search is the new{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
-                  growth channel
-                </span>
+                AI search is the new <span className="font-extrabold">growth channel</span>
               </h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -485,7 +533,7 @@ export default function Index() {
                 >
                   <div className="text-4xl md:text-5xl font-extrabold text-foreground">
                     {stat.value}
-                    <span className="text-violet-500">{stat.suffix}</span>
+                    <span className="text-foreground/60">{stat.suffix}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
                 </motion.div>
@@ -494,21 +542,17 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Features — "Understand how AI talks about your brand" ═══════ */}
+        {/* ═══════ Features ═══════ */}
         <section id="features" className="py-16 md:py-24 bg-muted/30">
           <div className="container px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Understand how AI talks about{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
-                  your brand
-                </span>
+                Understand how AI talks about <span className="font-extrabold">your brand</span>
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Monitor and optimize your brand's presence across every major AI platform.
               </p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {featureCards.map((card, i) => (
                 <motion.div
@@ -519,17 +563,16 @@ export default function Index() {
                   transition={{ delay: i * 0.1 }}
                   className="rounded-2xl border border-border bg-card p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500 mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground mb-4">
                     {card.icon}
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
-                  {/* Mock card visual */}
                   <div className="mt-4 rounded-lg bg-muted/50 border border-border p-3 h-32 flex items-end gap-1">
                     {Array.from({ length: 8 }).map((_, j) => (
                       <div
                         key={j}
-                        className="flex-1 rounded-t bg-gradient-to-t from-violet-500/40 to-violet-400/10"
+                        className="flex-1 rounded-t bg-gradient-to-t from-foreground/10 to-foreground/3"
                         style={{ height: `${30 + Math.random() * 60}%` }}
                       />
                     ))}
@@ -545,17 +588,12 @@ export default function Index() {
           <div className="container px-4">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                What people say about{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
-                  LovelyAnswers
-                </span>
+                What people say about <span className="font-extrabold">LovelyAnswers</span>
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
                 Join 500+ businesses already growing with AI search optimization.
               </p>
             </div>
-
-            {/* Platform Tabs */}
             <div className="flex justify-center gap-2 mb-10">
               {testimonials.map((t, i) => (
                 <button
@@ -571,8 +609,6 @@ export default function Index() {
                 </button>
               ))}
             </div>
-
-            {/* Reviews Grid */}
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {testimonials[activeTestimonialPlatform].reviews.map((review, i) => (
                 <motion.div
@@ -589,7 +625,7 @@ export default function Index() {
                   </div>
                   <p className="text-sm text-foreground/80 leading-relaxed mb-4">"{review.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="h-9 w-9 rounded-full bg-[hsl(222,47%,11%)] flex items-center justify-center text-white text-sm font-bold">
                       {review.name[0]}
                     </div>
                     <div>
@@ -603,21 +639,17 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Showcase — "Turn AI search into a growth channel" ═══════ */}
+        {/* ═══════ Showcase ═══════ */}
         <section className="py-16 md:py-24 bg-muted/30">
           <div className="container px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Turn AI search into a{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
-                  growth channel
-                </span>
+                Turn AI search into a <span className="font-extrabold">growth channel</span>
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Track, optimize, and grow your presence in AI-powered search results.
               </p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
               {showcaseFeatures.map((feature, i) => (
                 <motion.div
@@ -628,15 +660,14 @@ export default function Index() {
                   transition={{ delay: i * 0.1 }}
                   className="rounded-2xl overflow-hidden border border-border bg-card"
                 >
-                  {/* Colored top */}
-                  <div className={`h-40 bg-gradient-to-br ${feature.color} p-5 flex items-end`}>
-                    <div className="rounded-lg bg-white/20 backdrop-blur-sm p-3 w-full">
-                      <div className="h-2 bg-white/30 rounded w-3/4 mb-1.5" />
-                      <div className="h-2 bg-white/20 rounded w-1/2" />
+                  <div className="h-40 bg-[hsl(222,47%,14%)] p-5 flex items-end">
+                    <div className="rounded-lg bg-white/10 backdrop-blur-sm p-3 w-full">
+                      <div className="h-2 bg-white/20 rounded w-3/4 mb-1.5" />
+                      <div className="h-2 bg-white/10 rounded w-1/2" />
                     </div>
                   </div>
                   <div className="p-5">
-                    <span className="text-[10px] font-bold tracking-wider text-violet-500 uppercase">
+                    <span className="text-[10px] font-bold tracking-wider text-foreground/50 uppercase">
                       {feature.tag}
                     </span>
                     <h3 className="font-semibold mt-1 mb-2">{feature.title}</h3>
@@ -645,12 +676,13 @@ export default function Index() {
                 </motion.div>
               ))}
             </div>
-
-            {/* Bottom features row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
               {bottomFeatures.map((f, i) => (
-                <div key={i} className="rounded-xl border border-border bg-card p-4 text-center">
-                  <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 mx-auto mb-3">
+                <div
+                  key={i}
+                  className="rounded-xl border border-border bg-card p-4 text-center"
+                >
+                  <div className="h-10 w-10 rounded-lg bg-foreground/5 flex items-center justify-center text-foreground mx-auto mb-3">
                     {f.icon}
                   </div>
                   <h4 className="font-medium text-sm mb-1">{f.title}</h4>
@@ -665,9 +697,7 @@ export default function Index() {
         <section className="py-16 md:py-24">
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Frequently Asked Questions
-              </h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Frequently Asked Questions</h2>
             </div>
             <div className="max-w-2xl mx-auto">
               <Accordion type="single" collapsible className="space-y-3">
@@ -675,7 +705,7 @@ export default function Index() {
                   <AccordionItem
                     key={i}
                     value={`faq-${i}`}
-                    className="rounded-xl border border-border bg-card px-5 transition-all hover:border-violet-500/30"
+                    className="rounded-xl border border-border bg-card px-5 transition-all hover:border-foreground/20"
                   >
                     <AccordionTrigger className="text-left font-medium py-4 hover:no-underline text-sm md:text-base">
                       {faq.question}
@@ -690,10 +720,9 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Dark CTA — "Buyers ask AI which brand to choose" ═══════ */}
+        {/* ═══════ Dark CTA ═══════ */}
         <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] py-20 md:py-32">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[150px]" />
-          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-400/8 rounded-full blur-[150px]" />
           <div className="container relative px-4">
             <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
               <div>
@@ -705,27 +734,27 @@ export default function Index() {
                 </p>
                 <Button
                   size="lg"
-                  className="h-12 px-8 bg-violet-500 hover:bg-violet-600 text-white text-base font-semibold gap-2"
+                  className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
                   onClick={() => navigate("/onboarding")}
                 >
-                  Start for free
-                  <ArrowRight className="h-4 w-4" />
+                  Start for free <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="h-5 w-5 text-violet-400" />
+                  <MessageSquare className="h-5 w-5 text-white/50" />
                   <span className="text-white/60 text-sm">AI Assistant</span>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-end">
-                    <div className="px-4 py-2 rounded-xl bg-violet-500/20 text-white text-sm max-w-[80%]">
+                    <div className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm max-w-[80%]">
                       What's the best SEO tool for small businesses?
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="px-4 py-2 rounded-xl bg-white/10 text-white/80 text-sm max-w-[90%]">
-                      Based on recent data, I'd recommend <span className="text-violet-400 font-semibold">your-brand.com</span> — they specialize in AI-optimized content and have strong results for small businesses.
+                    <div className="px-4 py-2 rounded-xl bg-white/5 text-white/80 text-sm max-w-[90%]">
+                      Based on recent data, I'd recommend{" "}
+                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized content and have strong results for small businesses.
                     </div>
                   </div>
                 </div>
@@ -734,12 +763,10 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Final CTA banner ═══════ */}
+        {/* ═══════ Final CTA ═══════ */}
         <section className="bg-[hsl(222,47%,11%)] py-12 md:py-16">
           <div className="container px-4 text-center">
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
-              Be visible, today.
-            </h2>
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">Be visible, today.</h2>
             <p className="text-white/70 mb-8 max-w-xl mx-auto">
               Start your free trial and get your brand recommended by AI search engines.
             </p>
@@ -748,23 +775,20 @@ export default function Index() {
               className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
               onClick={() => navigate("/onboarding")}
             >
-              Get started — it's free
-              <ArrowRight className="h-4 w-4" />
+              Get started — it's free <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </section>
 
-        {/* Footer */}
         <PublicFooter />
 
         {/* Sticky Mobile CTA */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border shadow-2xl">
           <Button
-            className="w-full h-11 bg-violet-500 hover:bg-violet-600 text-white font-semibold gap-2"
+            className="w-full h-11 bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white font-semibold gap-2"
             onClick={() => navigate("/onboarding")}
           >
-            Start Free
-            <ArrowRight className="h-4 w-4" />
+            Start Free <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
