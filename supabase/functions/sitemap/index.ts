@@ -16,32 +16,34 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // 1. Fetch all public Q&A answers for lovelyanswers.com
-    const { data: answers, error: answersError } = await supabase
-      .from('answers')
-      .select(`
-        slug, published_at, updated_at,
-        projects!inner(domain, website_url)
-      `)
-      .eq('is_public', true)
-      .not('published_at', 'is', null)
-      .order('published_at', { ascending: false })
-
-    if (answersError) {
-      console.error('Error fetching answers:', answersError)
-      throw answersError
+    // Helper: paginated fetch to bypass 1000-row limit
+    async function fetchAll(table: string, select: string, filters?: (q: any) => any) {
+      const all: any[] = []
+      let offset = 0
+      const batchSize = 1000
+      while (true) {
+        let query = supabase.from(table).select(select).order('published_at', { ascending: false }).range(offset, offset + batchSize - 1)
+        if (filters) query = filters(query)
+        const { data, error } = await query
+        if (error) { console.error(`Error fetching ${table}:`, error); throw error }
+        if (data && data.length > 0) {
+          all.push(...data)
+          offset += batchSize
+          if (data.length < batchSize) break
+        } else break
+      }
+      return all
     }
+
+    // 1. Fetch all public Q&A answers
+    const answers = await fetchAll(
+      'answers',
+      'slug, published_at, updated_at, projects!inner(domain, website_url)',
+      (q: any) => q.eq('is_public', true).not('published_at', 'is', null)
+    )
 
     // 2. Fetch all published blog articles
-    const { data: articles, error: articlesError } = await supabase
-      .from('published_articles')
-      .select('slug, published_at, updated_at')
-      .order('published_at', { ascending: false })
-
-    if (articlesError) {
-      console.error('Error fetching published_articles:', articlesError)
-      throw articlesError
-    }
+    const articles = await fetchAll('published_articles', 'slug, published_at, updated_at')
 
     // Filter only lovelyanswers.com Q&A answers
     const lovelyanswersAnswers = (answers || []).filter((answer: any) => {
