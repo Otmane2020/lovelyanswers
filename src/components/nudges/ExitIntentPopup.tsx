@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 interface ExitIntentPopupProps { ctaUrl?: string; headline?: string; description?: string; ctaLabel?: string; }
 
-export const ExitIntentPopup = ({ ctaUrl = "/audit", headline = "Wait! Don't leave empty-handed 🎁", description = "Get your free AEO audit in 30 seconds and discover how to appear in ChatGPT and Google AI.", ctaLabel = "Get my free audit", }: ExitIntentPopupProps) => {
+export const ExitIntentPopup = ({ ctaUrl = "/onboarding", headline = "Wait! Don't leave empty-handed 🎁", description = "Get your free AEO audit in 30 seconds and discover how to appear in ChatGPT and Google AI.", ctaLabel = "Get my free audit", }: ExitIntentPopupProps) => {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
   const handleMouseLeave = useCallback((e: MouseEvent) => { if (e.clientY <= 5 && !sessionStorage.getItem("exit_intent_shown")) { setShow(true); sessionStorage.setItem("exit_intent_shown", "true"); } }, []);
