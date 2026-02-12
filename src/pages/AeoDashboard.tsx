@@ -71,28 +71,28 @@ export default function AeoDashboard() {
       sublabel: `${answersStats.total} generated`,
       value: `${answersStats.published}`, 
       icon: MessageSquare,
-      color: "from-primary to-purple-500"
+      color: "from-violet-500 to-violet-600"
     },
     { 
       label: "High Citation",
       sublabel: "Score ≥ 80%",
       value: answersStats.highCitation.toString(), 
       icon: Target,
-      color: "from-emerald-500 to-teal-500"
+      color: "from-violet-500 to-violet-600"
     },
     { 
       label: "Avg AEO Score",
       sublabel: "Citation potential",
       value: answersStats.avgScore > 0 ? `${answersStats.avgScore}%` : "—", 
       icon: TrendingUp,
-      color: "from-blue-500 to-cyan-500"
+      color: "from-violet-500 to-violet-600"
     },
     { 
       label: "AI Platforms Targeted",
       sublabel: AI_PLATFORMS.slice(0, 3).join(' · '),
       value: AI_PLATFORMS.length.toString(), 
       icon: Globe,
-      color: "from-orange-500 to-amber-500"
+      color: "from-violet-500 to-violet-600"
     },
   ];
 
@@ -102,28 +102,28 @@ export default function AeoDashboard() {
       description: "Generate citation opportunities",
       icon: Lightbulb,
       url: "/wizard",
-      color: "from-primary to-purple-500"
+      color: "from-violet-500 to-violet-600"
     },
     {
       title: "Opportunities",
       description: "View your AEO opportunities",
       icon: Sparkles,
       url: "/opportunities",
-      color: "from-blue-500 to-cyan-500"
+      color: "from-violet-500 to-violet-600"
     },
     {
       title: "Integrations",
       description: "Connect your platforms",
       icon: Link,
       url: "/integrations",
-      color: "from-emerald-500 to-teal-500"
+      color: "from-violet-500 to-violet-600"
     },
     {
       title: "Settings",
       description: "Configure LLMs.txt",
       icon: Settings,
       url: "/settings",
-      color: "from-orange-500 to-amber-500"
+      color: "from-violet-500 to-violet-600"
     },
   ];
 
@@ -144,10 +144,10 @@ export default function AeoDashboard() {
       </div>
 
       {/* Subscription Banner */}
-      <Card className={`p-6 ${subscribed ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20' : 'bg-gradient-to-r from-primary/10 to-blue-500/10 border-primary/20'}`}>
+      <Card className={`p-6 ${subscribed ? 'bg-violet-500/10 border-violet-500/20' : 'bg-violet-500/10 border-violet-500/20'}`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${subscribed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-primary to-blue-500'}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${subscribed ? 'bg-violet-500' : 'bg-violet-500'}`}>
               {subscribed ? (
                 <Check className="w-6 h-6 text-white" />
               ) : (
@@ -169,7 +169,7 @@ export default function AeoDashboard() {
           {subscribed ? (
             <div className="flex flex-wrap gap-2">
               {planFeatures.map((feature, index) => (
-                <span key={index} className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">
+                <span key={index} className="inline-flex items-center gap-1 text-xs bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-full">
                   <Check className="w-3 h-3" />
                   {feature}
                 </span>
@@ -179,8 +179,8 @@ export default function AeoDashboard() {
             <Button 
               onClick={startCheckout}
               disabled={isLoading}
-              className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 text-primary-foreground"
-            >
+               className="bg-violet-500 hover:bg-violet-600 text-white"
+             >
               Start 3-Day Free Trial
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -238,7 +238,7 @@ export default function AeoDashboard() {
       </div>
 
       {/* Getting Started */}
-      <Card className="bg-gradient-to-br from-primary/10 to-blue-500/10 border-primary/20 p-8">
+      <Card className="bg-violet-500/10 border-violet-500/20 p-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl font-bold mb-2">Ready to be cited by AI?</h2>
@@ -248,7 +248,7 @@ export default function AeoDashboard() {
           </div>
           <Button 
             size="lg"
-            className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600 text-primary-foreground shadow-lg shadow-primary/25"
+            className="bg-violet-500 hover:bg-violet-600 text-white shadow-lg shadow-violet-500/25"
             onClick={() => navigate('/wizard')}
           >
             Start wizard

@@ -68,10 +68,10 @@ export default function AeoArticles() {
 
   const getStatusColor = (status: string | null) => {
     const colors: Record<string, string> = {
-      draft: "bg-muted text-muted-foreground",
-      published: "bg-emerald-500/20 text-emerald-600",
-      scheduled: "bg-blue-500/20 text-blue-600",
-    };
+       draft: "bg-muted text-muted-foreground",
+       published: "bg-violet-500/20 text-violet-600",
+       scheduled: "bg-violet-400/20 text-violet-500",
+     };
     return colors[status || 'draft'] || colors.draft;
   };
 
@@ -90,8 +90,8 @@ export default function AeoArticles() {
           </div>
           <Button 
             onClick={() => navigate("/aeo/answers")}
-            className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground"
-          >
+             className="bg-violet-500 hover:bg-violet-600 text-white"
+           >
             <Plus className="w-4 h-4 mr-2" />
             Create article
           </Button>
@@ -127,7 +127,7 @@ export default function AeoArticles() {
             </p>
             <Button 
               onClick={() => navigate("/aeo/answers")}
-              className="bg-gradient-to-r from-primary to-blue-500"
+              className="bg-violet-500 hover:bg-violet-600 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create article

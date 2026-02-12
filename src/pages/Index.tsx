@@ -77,19 +77,19 @@ const showcaseFeatures = [
     tag: "MONITOR YOUR AI PRESENCE",
     title: "Track your visibility across all AI platforms",
     description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
-    color: "from-violet-600 to-indigo-600",
+    color: "from-violet-600 to-violet-500",
   },
   {
     tag: "OPTIMIZE YOUR CONTENT",
     title: "AI-powered content that gets you cited",
     description: "Generate expert articles designed to be recommended by AI search engines.",
-    color: "from-cyan-500 to-blue-600",
+    color: "from-violet-500 to-violet-400",
   },
   {
     tag: "GROW ON AUTOPILOT",
     title: "Automated publishing & SEO",
     description: "1 article per day, auto-published to your CMS with full SEO optimization.",
-    color: "from-fuchsia-500 to-violet-600",
+    color: "from-violet-600 to-violet-500",
   },
 ];
 
@@ -323,7 +323,7 @@ export default function Index() {
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
               >
                 Get discovered in{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-300">
                   AI search
                 </span>
               </motion.h1>
@@ -419,11 +419,11 @@ export default function Index() {
                       </div>
                       <div className="rounded-lg bg-white/5 p-3">
                         <div className="text-xs text-white/40 mb-1">Mentions</div>
-                        <div className="text-2xl font-bold text-cyan-400">142</div>
+                        <div className="text-2xl font-bold text-violet-300">142</div>
                       </div>
                       <div className="rounded-lg bg-white/5 p-3">
                         <div className="text-xs text-white/40 mb-1">Growth</div>
-                        <div className="text-2xl font-bold text-emerald-400">+67%</div>
+                        <div className="text-2xl font-bold text-white/70">+67%</div>
                       </div>
                     </div>
                     {/* Mock graph lines */}
@@ -468,7 +468,7 @@ export default function Index() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 AI search is the new{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-blue-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
                   growth channel
                 </span>
               </h2>
@@ -500,7 +500,7 @@ export default function Index() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Understand how AI talks about{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-cyan-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
                   your brand
                 </span>
               </h2>
@@ -546,7 +546,7 @@ export default function Index() {
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 What people say about{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
                   LovelyAnswers
                 </span>
               </h2>
@@ -589,7 +589,7 @@ export default function Index() {
                   </div>
                   <p className="text-sm text-foreground/80 leading-relaxed mb-4">"{review.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="h-9 w-9 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-bold">
                       {review.name[0]}
                     </div>
                     <div>
@@ -609,7 +609,7 @@ export default function Index() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Turn AI search into a{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-violet-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-violet-400">
                   growth channel
                 </span>
               </h2>
@@ -735,7 +735,7 @@ export default function Index() {
         </section>
 
         {/* ═══════ Final CTA banner ═══════ */}
-        <section className="bg-gradient-to-r from-violet-600 to-blue-600 py-12 md:py-16">
+        <section className="bg-[hsl(222,47%,11%)] py-12 md:py-16">
           <div className="container px-4 text-center">
             <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
               Be visible, today.
@@ -745,7 +745,7 @@ export default function Index() {
             </p>
             <Button
               size="lg"
-              className="h-12 px-8 bg-white text-violet-700 hover:bg-white/90 text-base font-semibold gap-2"
+              className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
               onClick={() => navigate("/onboarding")}
             >
               Get started — it's free

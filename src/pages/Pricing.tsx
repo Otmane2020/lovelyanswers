@@ -117,8 +117,8 @@ export default function Pricing() {
                 For smart entrepreneurs
               </Badge>
               
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
-                Invest in <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-blue-400">Long-Term Growth</span>
+               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
+                 Invest in <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-300">Long-Term Growth</span>
               </h1>
               
               <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">
@@ -130,9 +130,9 @@ export default function Pricing() {
             <div className="mt-16 max-w-xl mx-auto">
               <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 relative overflow-hidden">
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-orange-500 text-white border-0">
-                    Only 34 spots left in February
-                  </Badge>
+                   <Badge className="bg-white/10 text-white/70 border-white/20">
+                     Only 34 spots left in February
+                   </Badge>
                 </div>
                 
                 <div className="text-center mb-8">
@@ -145,7 +145,7 @@ export default function Pricing() {
                     <span className="text-6xl font-bold text-white">$29</span>
                     <span className="text-white/40">/month</span>
                   </div>
-                  <p className="text-sm text-emerald-400 font-medium mt-2">
+                  <p className="text-sm text-violet-400 font-medium mt-2">
                     Or $23/month billed annually
                   </p>
                 </div>
@@ -163,8 +163,8 @@ export default function Pricing() {
                   <ul className="space-y-3">
                     {features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
-                          <Check className="h-3 w-3 text-emerald-400" />
+                         <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/20">
+                           <Check className="h-3 w-3 text-violet-400" />
                         </div>
                         <span className="text-sm text-white/70">{feature.text}</span>
                       </li>

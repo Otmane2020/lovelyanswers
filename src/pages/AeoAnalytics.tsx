@@ -470,7 +470,7 @@ export default function AeoAnalytics() {
           </div>
           <div className="flex items-center gap-2">
             {isConnected && googleEmail && (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+              <Badge className="bg-violet-500/10 text-violet-600 border-violet-500/20">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 {googleEmail}
               </Badge>
@@ -480,10 +480,10 @@ export default function AeoAnalytics() {
 
         {/* Google Search Console Connection */}
         {!isConnected ? (
-          <Card className="p-8 border-dashed border-2 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
-            <div className="flex flex-col items-center text-center max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
-                <Search className="w-8 h-8 text-white" />
+           <Card className="p-8 border-dashed border-2 bg-violet-500/5">
+             <div className="flex flex-col items-center text-center max-w-md mx-auto">
+               <div className="w-16 h-16 rounded-2xl bg-violet-500 flex items-center justify-center mb-4">
+                 <Search className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-xl font-semibold mb-2">Connect Google Search Console</h2>
               <p className="text-muted-foreground mb-6">
@@ -492,7 +492,7 @@ export default function AeoAnalytics() {
               </p>
               <Button 
                 onClick={connectGSC} 
-                className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                className="gap-2 bg-violet-500 hover:bg-violet-600"
                 disabled={isLoading}
               >
                 {isLoading ? (
