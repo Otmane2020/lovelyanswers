@@ -89,7 +89,7 @@ serve(async (req) => {
       googleEmail = userInfo.email;
     }
 
-    // Store in google_ads_accounts
+    // Store in both google_ads_accounts and user_connections
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -97,6 +97,7 @@ serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
+    // Store in google_ads_accounts (legacy)
     const { error: insertError } = await adminClient.from("google_ads_accounts").insert({
       user_id: userId,
       customer_id: customerId || googleEmail || "pending",
@@ -108,11 +109,23 @@ serve(async (req) => {
     });
 
     if (insertError) {
-      console.error("Insert error:", insertError);
-      return new Response(JSON.stringify({ error: "Failed to save account" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Insert error (google_ads_accounts):", insertError);
+    }
+
+    // Also store in user_connections for sync function
+    const { error: connError } = await adminClient.from("user_connections").upsert({
+      user_id: userId,
+      connection_type: "google_ads",
+      status: "connected",
+      account_id: customerId || "pending",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      token_expires_at: expiresAt,
+      metadata: { email: googleEmail },
+    }, { onConflict: "user_id,connection_type" });
+
+    if (connError) {
+      console.error("Insert error (user_connections):", connError);
     }
 
     return new Response(JSON.stringify({ success: true, email: googleEmail }), {
