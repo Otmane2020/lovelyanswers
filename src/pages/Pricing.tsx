@@ -67,7 +67,7 @@ export default function Pricing() {
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link to="/">Home</Link></Button>
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link to="/auth">Sign In</Link></Button>
               <Button className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
-                <Link to="/auth">Try 3-day trial <ArrowRight className="h-4 w-4 ml-1" /></Link>
+                <Link to="/signup">Start Free <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             </div>
           </div>
