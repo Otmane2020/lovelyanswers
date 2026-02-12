@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -182,6 +183,7 @@ export default function AeoReddit() {
 
   return (
     <DashboardLayout>
+      <SubscriptionGate title="Unlock Reddit Engagement" description="Find high-value Reddit threads and generate human-like replies that drive traffic to your brand.">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div><h1 className="text-3xl font-bold text-foreground">Reddit Engagement</h1><p className="text-muted-foreground mt-1">Generate human-like replies for {activeProject?.brand_name || "your brand"}</p></div>
@@ -247,6 +249,7 @@ export default function AeoReddit() {
           </div>
         </Card>
       </div>
+      </SubscriptionGate>
     </DashboardLayout>
   );
 }

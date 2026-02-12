@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
+import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { TestPublishButton } from "@/components/integrations/TestPublishButton";
 import { toast } from "sonner";
 import {
@@ -418,6 +419,7 @@ export default function AeoIntegrations() {
 
   return (
     <DashboardLayout>
+      <SubscriptionGate title="Unlock Integrations" description="Connect WordPress, Shopify, Wix, and more to auto-publish your AI-optimized content directly to your site.">
       <div className="space-y-6 max-w-4xl">
         {/* Hero Header */}
         <Card className="p-6 bg-gradient-to-br from-primary/10 via-purple-500/10 to-blue-500/10 border-primary/20">
@@ -1128,6 +1130,7 @@ export default function AeoIntegrations() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </SubscriptionGate>
     </DashboardLayout>
   );
 }

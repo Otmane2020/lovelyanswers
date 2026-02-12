@@ -7,6 +7,7 @@ import { useShoppingProducts, useShoppingFeeds, useImportFeed, useGenerateAllPro
 import { useActiveProject } from "@/hooks/useProjects";
 import { ShoppingCart, Upload, Sparkles, Package, ArrowRight, Trash2, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 
 export default function ShoppingDashboard() {
   const { project } = useActiveProject();
@@ -48,6 +49,7 @@ export default function ShoppingDashboard() {
     : 0;
 
   return (
+    <SubscriptionGate title="Unlock AI Shopping" description="Optimize your product listings for ChatGPT, Gemini, and AI-powered search engines.">
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -189,5 +191,6 @@ export default function ShoppingDashboard() {
         )}
       </div>
     </div>
+    </SubscriptionGate>
   );
 }
