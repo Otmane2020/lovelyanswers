@@ -21,9 +21,9 @@ export const ProgressBar = ({ currentStep, totalSteps, labels, className = "" }:
           const isCurrent = stepNum === currentStep;
           
           return (
-            <div key={i} className="flex flex-col items-center gap-1">
+            <div key={i} className="flex flex-col items-center gap-0.5 sm:gap-1">
               <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                className={`h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                   isCompleted
                     ? "bg-primary text-primary-foreground"
                     : isCurrent
@@ -31,10 +31,10 @@ export const ProgressBar = ({ currentStep, totalSteps, labels, className = "" }:
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isCompleted ? <Check className="h-3.5 w-3.5" /> : stepNum}
+                {isCompleted ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : stepNum}
               </div>
               {labels?.[i] && (
-                <span className={`text-[10px] font-medium hidden sm:block ${
+                <span className={`text-[9px] sm:text-[10px] font-medium hidden sm:block ${
                   isCurrent ? "text-primary" : "text-muted-foreground"
                 }`}>
                   {labels[i]}
@@ -46,7 +46,7 @@ export const ProgressBar = ({ currentStep, totalSteps, labels, className = "" }:
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className="h-1 sm:h-1.5 bg-muted rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
@@ -56,7 +56,7 @@ export const ProgressBar = ({ currentStep, totalSteps, labels, className = "" }:
       </div>
 
       {/* Encouragement text */}
-      <p className="text-xs text-muted-foreground mt-1.5 text-center">
+      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-1.5 text-center">
         {progress < 50
           ? "🚀 You're on the right track!"
           : progress < 100
