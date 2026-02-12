@@ -32,6 +32,11 @@ export default function AeoWizard() {
     businessDescription: "",
   });
 
+  // Force light theme
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   // Check if user already has a project - redirect to dashboard
   useEffect(() => {
     const checkExistingProject = async () => {
