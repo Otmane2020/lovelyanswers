@@ -5,7 +5,8 @@ import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Menu } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
+import { NavLink } from "react-router-dom";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,13 +26,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="min-h-screen flex w-full">
           <AeoSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <header className="h-12 flex items-center px-4 bg-background border-b border-border/30">
-              <SidebarTrigger className="mr-4 hover:bg-muted/50 transition-colors">
-                <Menu className="h-5 w-5" />
+            {/* Mobile-first app header */}
+            <header className="h-14 flex items-center justify-between px-4 bg-background border-b border-border/30 sticky top-0 z-30">
+              <NavLink to="/dashboard" className="flex items-center gap-2.5">
+                <AnimatedLogo size="sm" />
+                <span className="font-bold text-lg text-foreground tracking-tight">Answers</span>
+              </NavLink>
+              <SidebarTrigger className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted/60 active:scale-95 transition-all duration-150">
+                <Menu className="h-5 w-5 text-foreground" />
               </SidebarTrigger>
             </header>
             
-            {/* Global Progress Bar - Persists across route changes */}
+            {/* Global Progress Bar */}
             {isGenerating && (
               <div className="border-b bg-background/95 backdrop-blur-sm px-4 py-3">
                 <div className="container">
