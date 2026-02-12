@@ -44,6 +44,9 @@ import LocalAeoArticle from "./pages/LocalAeoArticle";
 import AuditPremium from "./pages/AuditPremium";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import ShoppingDashboard from "./pages/ShoppingDashboard";
+import ShoppingProduct from "./pages/ShoppingProduct";
+import ShoppingPlanning from "./pages/ShoppingPlanning";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +97,9 @@ const App = () => (
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/shopping" element={<ProtectedRoute><ShoppingDashboard /></ProtectedRoute>} />
+                  <Route path="/shopping/product/:productId" element={<ProtectedRoute><ShoppingProduct /></ProtectedRoute>} />
+                  <Route path="/shopping/planning" element={<ProtectedRoute><ShoppingPlanning /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
