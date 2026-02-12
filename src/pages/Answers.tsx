@@ -4,7 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, ChevronLeft, ChevronRight, MessageSquare, FileText, Loader2, Search, Eye } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, MessageSquare, FileText, Loader2, Search, Eye, Lock, Crown } from "lucide-react";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
@@ -30,6 +32,8 @@ interface ScheduledArticle {
 
 export default function Answers() {
   const { project } = useActiveProject();
+  const { isSubscribed } = useSubscriptionContext();
+  const navigate = useNavigate();
   const [answers, setAnswers] = useState<ScheduledAnswer[]>([]);
   const [articles, setArticles] = useState<ScheduledArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -356,6 +360,24 @@ export default function Answers() {
                   </div>
                 </Card>
               ))}
+
+              {!isSubscribed && (
+                <Card className="p-4 bg-muted/50 border-dashed border-primary/20">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Subscribe to view full content</p>
+                      <p className="text-xs text-muted-foreground mt-1">Unlock all answers, articles and publishing features</p>
+                    </div>
+                    <Button size="sm" className="gap-2 mt-1" onClick={() => navigate("/subscription")}>
+                      <Crown className="h-4 w-4" />
+                      Upgrade Now
+                    </Button>
+                  </div>
+                </Card>
+              )}
             </div>
           )}
         </DialogContent>
