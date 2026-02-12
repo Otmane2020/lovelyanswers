@@ -80,9 +80,7 @@ export function GoogleAdsManager() {
   const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(new Set());
   const [expandedAdGroups, setExpandedAdGroups] = useState<Set<string>>(new Set());
 
-  // New account form
-  const [showAddAccount, setShowAddAccount] = useState(false);
-  const [newAccount, setNewAccount] = useState({ customer_id: "", account_name: "" });
+  const [connectingOAuth, setConnectingOAuth] = useState(false);
 
   // AI generation form
   const [showGenerate, setShowGenerate] = useState(false);
@@ -95,8 +93,27 @@ export function GoogleAdsManager() {
     budget: "10",
   });
 
+  // Handle OAuth callback on mount
   useEffect(() => {
     loadAll();
+
+    // Check for OAuth callback code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const stateParam = urlParams.get("state");
+
+    if (code && stateParam) {
+      try {
+        const state = JSON.parse(atob(stateParam));
+        if (state.type === "google-ads") {
+          handleOAuthCallback(code);
+          // Clean URL
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      } catch (e) {
+        // Not a Google Ads callback
+      }
+    }
   }, []);
 
   const loadAll = async () => {
@@ -122,31 +139,46 @@ export function GoogleAdsManager() {
     }
   };
 
-  const handleAddAccount = async () => {
-    if (!newAccount.customer_id.trim()) {
-      toast({ title: "Customer ID requis", variant: "destructive" });
-      return;
+  const handleConnectGoogleAds = async () => {
+    setConnectingOAuth(true);
+    try {
+      const redirectUri = window.location.origin + window.location.pathname;
+      const { data, error } = await supabase.functions.invoke("google-ads-oauth-url", {
+        body: { redirectUri },
+      });
+      if (error || !data?.url) throw new Error(data?.error || "Failed to get OAuth URL");
+      window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Erreur OAuth", description: err.message, variant: "destructive" });
+      setConnectingOAuth(false);
     }
+  };
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const handleOAuthCallback = async (code: string) => {
+    try {
+      const redirectUri = window.location.origin + window.location.pathname;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-    const { error } = await supabase.from("google_ads_accounts").insert({
-      customer_id: newAccount.customer_id.trim(),
-      account_name: newAccount.account_name.trim() || null,
-      user_id: user.id,
-      is_active: true,
-    });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-ads-oauth-token`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ code, redirectUri }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Token exchange failed");
 
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-      return;
+      toast({ title: "Compte Google Ads connecté", description: result.email || "Succès" });
+      loadAll();
+    } catch (err: any) {
+      toast({ title: "Erreur connexion", description: err.message, variant: "destructive" });
     }
-
-    toast({ title: "Compte ajouté" });
-    setNewAccount({ customer_id: "", account_name: "" });
-    setShowAddAccount(false);
-    loadAll();
   };
 
   const handleGenerate = async () => {
@@ -235,38 +267,10 @@ export function GoogleAdsManager() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Rafraîchir
           </Button>
-          <Dialog open={showAddAccount} onOpenChange={setShowAddAccount}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter Compte
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Ajouter un compte Google Ads</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Customer ID *</Label>
-                  <Input
-                    placeholder="123-456-7890"
-                    value={newAccount.customer_id}
-                    onChange={e => setNewAccount({ ...newAccount, customer_id: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nom du compte</Label>
-                  <Input
-                    placeholder="Mon compte Ads"
-                    value={newAccount.account_name}
-                    onChange={e => setNewAccount({ ...newAccount, account_name: e.target.value })}
-                  />
-                </div>
-                <Button onClick={handleAddAccount} className="w-full">Ajouter</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" size="sm" onClick={handleConnectGoogleAds} disabled={connectingOAuth}>
+            {connectingOAuth ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Connecter Google Ads
+          </Button>
           <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
             <DialogTrigger asChild>
               <Button size="sm">
