@@ -45,7 +45,7 @@ export function AeoSidebar() {
   const handleSignOut = async () => { await signOut(); navigate('/'); };
 
   return (
-    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} className="border-r border-border/50">
+    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} className="border-r border-border/50 bg-background">
       <div className="p-4 pb-6">
         <NavLink to="/dashboard" onClick={handleNavClick} className="flex items-center gap-2.5 group">
           <AnimatedLogo size="sm" />
