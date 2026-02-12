@@ -78,7 +78,7 @@ export default function Answers() {
   const handleTogglePublish = async (id: string, currentState: boolean) => {
     if (!project) return;
     try {
-      await togglePublic.mutateAsync({ answerId: id, projectId: project.id, isPublic: !currentState });
+      await togglePublic.mutateAsync({ id, isPublic: !currentState });
       refetch();
       toast.success(`Answer ${currentState ? 'unpublished' : 'published'}!`);
     } catch (error: any) { toast.error(error.message || "Error toggling publish"); }
@@ -151,7 +151,7 @@ export default function Answers() {
 
           <TabsContent value="answers" className="mt-4 space-y-4">
             {filteredAnswers.map((answer, index) => (
-              <GlassCard key={answer.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` as React.CSSProperties}>
+              <GlassCard key={answer.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}>
                 <div className="flex gap-6">
                   <div className="flex-shrink-0"><ScoreRing score={answer.score} size="lg" /></div>
                   <div className="flex-1 min-w-0 space-y-3">
@@ -185,7 +185,7 @@ export default function Answers() {
           
           <TabsContent value="articles" className="mt-4 space-y-4">
             {filteredArticles.map((article, index) => (
-              <GlassCard key={article.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` as React.CSSProperties}>
+              <GlassCard key={article.id} hover className="p-6 animate-fade-in" style={{ animationDelay: `${index * 50}ms` } as React.CSSProperties}>
                 <div className="flex gap-6">
                   <div className="flex-shrink-0"><ScoreRing score={article.aeo_score} size="lg" /></div>
                   <div className="flex-1 min-w-0 space-y-3">
