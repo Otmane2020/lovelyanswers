@@ -419,7 +419,7 @@ export default function AeoIntegrations() {
 
   return (
     <DashboardLayout>
-      <SubscriptionGate title="Unlock Integrations" description="Connect WordPress, Shopify, Wix, and more to auto-publish your AI-optimized content directly to your site.">
+      
       <div className="space-y-6 max-w-4xl">
         {/* Hero Header */}
         <Card className="p-6 bg-gradient-to-br from-primary/10 via-purple-500/10 to-blue-500/10 border-primary/20">
@@ -1130,7 +1130,7 @@ export default function AeoIntegrations() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      </SubscriptionGate>
+      
     </DashboardLayout>
   );
 }
