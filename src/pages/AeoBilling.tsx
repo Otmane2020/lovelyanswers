@@ -133,9 +133,11 @@ export default function AeoBilling() {
             <Button onClick={openCustomerPortal}>
               Manage Subscription
             </Button>
-            <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-              Cancel Subscription
-            </Button>
+            {subscribed && (
+              <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                Cancel Subscription
+              </Button>
+            )}
           </div>
         </Card>
 
