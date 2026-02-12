@@ -78,10 +78,10 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute requireSubscription={false}><Dashboard /></ProtectedRoute>} />
                   <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
                   <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
-                  <Route path="/articles" element={<ProtectedRoute><AeoArticles /></ProtectedRoute>} />
-                  <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
-                  <Route path="/autoseo" element={<ProtectedRoute><AutoSeo /></ProtectedRoute>} />
-                  <Route path="/planning" element={<ProtectedRoute><AeoPlanning /></ProtectedRoute>} />
+                  <Route path="/articles" element={<ProtectedRoute requireSubscription={false}><AeoArticles /></ProtectedRoute>} />
+                  <Route path="/answers" element={<ProtectedRoute requireSubscription={false}><Answers /></ProtectedRoute>} />
+                  <Route path="/autoseo" element={<ProtectedRoute requireSubscription={false}><AutoSeo /></ProtectedRoute>} />
+                  <Route path="/planning" element={<ProtectedRoute requireSubscription={false}><AeoPlanning /></ProtectedRoute>} />
                   <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
                   <Route path="/local" element={<ProtectedRoute><AeoLocal /></ProtectedRoute>} />
                   <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />

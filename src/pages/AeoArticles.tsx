@@ -57,10 +57,10 @@ export default function AeoArticles() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">AEO Articles</h1>
-            <p className="text-muted-foreground mt-1">Your articles optimized for AI citation</p>
+            <h1 className="text-xl sm:text-3xl font-bold">AEO Articles</h1>
+            <p className="text-sm text-muted-foreground mt-1">Articles optimized for AI citation</p>
           </div>
           <Button onClick={() => navigate("/aeo/answers")} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
             <Plus className="w-4 h-4 mr-2" />Create article
@@ -73,32 +73,32 @@ export default function AeoArticles() {
         </div>
 
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (<Card key={i} className="p-6 animate-pulse"><div className="h-4 bg-muted rounded w-3/4 mb-4" /><div className="h-3 bg-muted rounded w-1/2" /></Card>))}
+          <div className="grid gap-3">
+            {[1, 2, 3].map((i) => (<Card key={i} className="p-4 animate-pulse"><div className="h-4 bg-muted rounded w-3/4 mb-3" /><div className="h-3 bg-muted rounded w-1/2" /></Card>))}
           </div>
         ) : filteredArticles.length === 0 ? (
-          <Card className="p-12 text-center">
-            <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No articles found</h3>
-            <p className="text-muted-foreground mb-4">Create your first AI-optimized article</p>
+          <Card className="p-8 sm:p-12 text-center">
+            <FileText className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">No articles found</h3>
+            <p className="text-sm text-muted-foreground mb-4">Create your first AI-optimized article</p>
             <Button onClick={() => navigate("/aeo/answers")} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
               <Plus className="w-4 h-4 mr-2" />Create article
             </Button>
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-3">
             {filteredArticles.map((article) => (
-              <Card key={article.id} className="p-6 hover:border-foreground/20 transition-all group">
-                <div className="flex items-start justify-between mb-4">
+              <Card key={article.id} className="p-4 hover:border-foreground/20 transition-all group">
+                <div className="flex items-start justify-between mb-2">
                   <Badge className={getStatusColor(article.status)}>{article.status || 'draft'}</Badge>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-8 w-8"><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
-                <h3 className="font-semibold mb-2 line-clamp-2">{article.title}</h3>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4">
+                <h3 className="font-medium text-sm sm:text-base mb-2 line-clamp-2">{article.title}</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1"><Calendar className="h-3 w-3" />{article.created_at ? format(new Date(article.created_at), 'PP', { locale: enUS }) : '-'}</div>
                   {article.word_count && <div className="flex items-center gap-1"><FileText className="h-3 w-3" />{article.word_count} words</div>}
                 </div>
