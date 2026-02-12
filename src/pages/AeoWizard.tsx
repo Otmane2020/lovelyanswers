@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket } from "lucide-react";
+import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket, Search, Users, Swords, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateProject } from "@/hooks/useProjects";
@@ -244,25 +244,75 @@ export default function AeoWizard() {
 
               {/* Show detected data */}
               {(analyzedKeywords.length > 0 || analyzedCompetitors.length > 0 || analyzedAudiences.length > 0) && (
-                <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="space-y-4">
+                  {/* Keywords */}
                   {analyzedKeywords.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-muted-foreground">{analyzedKeywords.length} keywords detected</span>
+                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Search className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{analyzedKeywords.length} keywords detected</p>
+                          <p className="text-xs text-muted-foreground">Ready for content generation</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {analyzedKeywords.slice(0, 8).map((kw, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-background border border-border text-xs text-foreground">
+                            <TrendingUp className="w-3 h-3 text-primary" />
+                            {kw.keyword}
+                          </span>
+                        ))}
+                        {analyzedKeywords.length > 8 && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-xs text-primary font-medium">
+                            +{analyzedKeywords.length - 8} more
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
-                  {analyzedCompetitors.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-muted-foreground">{analyzedCompetitors.length} competitors found</span>
-                    </div>
-                  )}
-                  {analyzedAudiences.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-muted-foreground">{analyzedAudiences.length} target audiences identified</span>
-                    </div>
-                  )}
+
+                  {/* Competitors & Audiences row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {analyzedCompetitors.length > 0 && (
+                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <Swords className="w-4 h-4 text-orange-600" />
+                          </div>
+                          <p className="text-sm font-medium">{analyzedCompetitors.length} competitors</p>
+                        </div>
+                        <div className="space-y-1">
+                          {analyzedCompetitors.slice(0, 3).map((comp, i) => (
+                            <p key={i} className="text-xs text-muted-foreground truncate">• {comp}</p>
+                          ))}
+                          {analyzedCompetitors.length > 3 && (
+                            <p className="text-xs text-primary">+{analyzedCompetitors.length - 3} more</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {analyzedAudiences.length > 0 && (
+                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                            <Users className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <p className="text-sm font-medium">{analyzedAudiences.length} audiences</p>
+                        </div>
+                        <div className="space-y-1">
+                          {analyzedAudiences.slice(0, 3).map((aud, i) => (
+                            <p key={i} className="text-xs text-muted-foreground truncate">• {aud}</p>
+                          ))}
+                          {analyzedAudiences.length > 3 && (
+                            <p className="text-xs text-primary">+{analyzedAudiences.length - 3} more</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
