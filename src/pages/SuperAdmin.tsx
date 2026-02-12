@@ -568,98 +568,76 @@ const SuperAdmin = () => {
         </div>
       </header>
 
-      {/* Stats */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-yellow-500/10">
-                  <MessageCircle className="h-6 w-6 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{tickets.filter(t => t.status === "open").length}</p>
-                  <p className="text-sm text-muted-foreground">Open Tickets</p>
-                </div>
+      {/* Main layout with sidebar */}
+      <Tabs defaultValue="onboarding" className="flex min-h-[calc(100vh-65px)]">
+        {/* Sidebar */}
+        <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
+          {/* Stats summary */}
+          <div className="p-4 space-y-3 border-b">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 rounded-lg bg-yellow-500/10 text-center">
+                <p className="text-lg font-bold text-yellow-600">{tickets.filter(t => t.status === "open").length}</p>
+                <p className="text-[10px] text-muted-foreground">Open</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-500/10">
-                  <Clock className="h-6 w-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{tickets.filter(t => t.status === "in_progress").length}</p>
-                  <p className="text-sm text-muted-foreground">In Progress</p>
-                </div>
+              <div className="p-2 rounded-lg bg-blue-500/10 text-center">
+                <p className="text-lg font-bold text-blue-600">{tickets.filter(t => t.status === "in_progress").length}</p>
+                <p className="text-[10px] text-muted-foreground">In Progress</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-500/10">
-                  <CreditCard className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{subscribers.length}</p>
-                  <p className="text-sm text-muted-foreground">Subscribers</p>
-                </div>
+              <div className="p-2 rounded-lg bg-green-500/10 text-center">
+                <p className="text-lg font-bold text-green-600">{subscribers.length}</p>
+                <p className="text-[10px] text-muted-foreground">Subscribers</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-orange-500/10">
-                  <UserX className="h-6 w-6 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{prospects.length}</p>
-                  <p className="text-sm text-muted-foreground">Prospects</p>
-                </div>
+              <div className="p-2 rounded-lg bg-orange-500/10 text-center">
+                <p className="text-lg font-bold text-orange-600">{prospects.length}</p>
+                <p className="text-[10px] text-muted-foreground">Prospects</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        <Tabs defaultValue="onboarding" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="onboarding" className="flex items-center gap-2">
+          {/* Navigation */}
+          <TabsList className="flex flex-col items-stretch h-auto bg-transparent p-2 gap-1">
+            <TabsTrigger value="onboarding" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <Rocket className="h-4 w-4" />
               Onboarding
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-2">
+            <TabsTrigger value="support" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <MessageCircle className="h-4 w-4" />
               Support
+              {tickets.filter(t => t.status === "open").length > 0 && (
+                <Badge variant="destructive" className="ml-auto text-[10px] h-5 min-w-5 px-1.5">
+                  {tickets.filter(t => t.status === "open").length}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="subscribers" className="flex items-center gap-2">
+            <TabsTrigger value="subscribers" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <CreditCard className="h-4 w-4" />
               Subscribers
             </TabsTrigger>
-            <TabsTrigger value="prospects" className="flex items-center gap-2">
+            <TabsTrigger value="prospects" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <UserX className="h-4 w-4" />
               Prospects
             </TabsTrigger>
-            <TabsTrigger value="active-articles" className="flex items-center gap-2">
+            <TabsTrigger value="active-articles" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <Globe className="h-4 w-4" />
               Articles Actifs
             </TabsTrigger>
-            <TabsTrigger value="google-ads" className="flex items-center gap-2">
+            <TabsTrigger value="google-ads" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <Megaphone className="h-4 w-4" />
               Google Ads
             </TabsTrigger>
           </TabsList>
+        </aside>
+
+        {/* Content area */}
+        <div className="flex-1 overflow-auto p-6">
 
           {/* Onboarding Tracking Tab */}
           <TabsContent value="onboarding">
@@ -1145,8 +1123,8 @@ const SuperAdmin = () => {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
 };
