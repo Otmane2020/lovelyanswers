@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket, Search, Users, Swords, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 interface AnalyzedKeyword {
   keyword: string;
@@ -41,18 +41,15 @@ export default function AeoWizard() {
   useEffect(() => {
     const checkExistingProject = async () => {
       if (!user) return;
-      
       const { data: projects } = await supabase
         .from("projects")
         .select("id")
         .eq("user_id", user.id)
         .limit(1);
-      
       if (projects && projects.length > 0) {
         navigate("/dashboard", { replace: true });
       }
     };
-    
     checkExistingProject();
   }, [user, navigate]);
 
@@ -71,36 +68,21 @@ export default function AeoWizard() {
       toast.error("Please enter a valid URL");
       return;
     }
-
     setIsAnalyzing(true);
-    
     try {
-      const urlToAnalyze = data.websiteUrl.startsWith("http") 
-        ? data.websiteUrl 
-        : `https://${data.websiteUrl}`;
-
+      const urlToAnalyze = data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`;
       const { data: result, error } = await supabase.functions.invoke("analyze-website", {
         body: { url: urlToAnalyze },
       });
-
       if (error) throw error;
-
       if (result?.description) {
-        setData(prev => ({
-          ...prev,
-          businessDescription: result.description,
-          language: result.language || "en",
-        }));
+        setData(prev => ({ ...prev, businessDescription: result.description, language: result.language || "en" }));
       }
-      
       if (result?.keywords && Array.isArray(result.keywords)) {
-        setAnalyzedKeywords(result.keywords.map((k: any) => 
-          typeof k === "string" ? { keyword: k, intent: "informational" } : k
-        ));
+        setAnalyzedKeywords(result.keywords.map((k: any) => typeof k === "string" ? { keyword: k, intent: "informational" } : k));
       }
       if (result?.competitors) setAnalyzedCompetitors(result.competitors);
       if (result?.targetAudiences) setAnalyzedAudiences(result.targetAudiences);
-      
       setStep(2);
     } catch (error) {
       console.error("Analysis error:", error);
@@ -112,16 +94,10 @@ export default function AeoWizard() {
 
   const handleComplete = async () => {
     if (!user) return;
-    
     setIsCreating(true);
-    
     try {
-      const urlToSave = data.websiteUrl.startsWith("http") 
-        ? data.websiteUrl 
-        : `https://${data.websiteUrl}`;
-      
+      const urlToSave = data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`;
       const domain = new URL(urlToSave).hostname.replace("www.", "");
-
       const project = await createProject.mutateAsync({
         name: domain,
         website_url: urlToSave,
@@ -130,8 +106,6 @@ export default function AeoWizard() {
         competitors: analyzedCompetitors.length > 0 ? analyzedCompetitors : undefined,
         audience: analyzedAudiences.length > 0 ? analyzedAudiences.join(", ") : undefined,
       });
-
-      // Auto-insert keywords extracted from website analysis
       if (analyzedKeywords.length > 0 && project?.id) {
         const keywordRows = analyzedKeywords.map((k) => ({
           project_id: project.id,
@@ -139,23 +113,13 @@ export default function AeoWizard() {
           intent: k.intent || "informational",
           is_used: false,
         }));
-        
         await supabase.from("keywords").insert(keywordRows);
       }
-
-      // Generate 30 days of TITLES ONLY (no content) - fast, no AI content generation
       if (project?.id) {
         supabase.functions.invoke('generate-30-days-content', {
-          body: { 
-            projectId: project.id,
-            language: data.language,
-            days: 30,
-            questionsPerDay: 1,
-            titlesOnly: true,
-          }
+          body: { projectId: project.id, language: data.language, days: 30, questionsPerDay: 1, titlesOnly: true }
         }).catch(err => console.error('[WIZARD] Title generation error:', err));
       }
-
       toast.success("Project created! Your 30-day content plan is generating 💜");
       navigate("/dashboard");
     } catch (error) {
@@ -168,204 +132,207 @@ export default function AeoWizard() {
 
   const canProceedStep1 = data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);
   const canProceedStep2 = data.businessDescription.length > 10;
+  const hasDetectedData = analyzedKeywords.length > 0 || analyzedCompetitors.length > 0 || analyzedAudiences.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-            LovelyAnswers
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Set up your project</p>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-center gap-2 pt-6 pb-2 px-4">
+        <AnimatedLogo size="sm" />
+        <span className="text-lg font-bold tracking-tight text-foreground">
+          Lovely<span className="text-primary">Answers</span>
+        </span>
+      </div>
 
-        {/* Progress */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className={`w-3 h-3 rounded-full ${step >= 1 ? "bg-primary" : "bg-muted"}`} />
-          <div className={`w-16 h-1 rounded ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
-          <div className={`w-3 h-3 rounded-full ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
+      {/* Progress bar */}
+      <div className="px-6 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full bg-primary" />
+          <div className={`flex-1 h-1.5 rounded-full transition-colors ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
         </div>
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Step {step} of 2
+        </p>
+      </div>
 
-        <Card className="p-8 border-primary/20 shadow-xl">
-          {step === 1 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center mx-auto mb-4">
-                  <Globe className="w-7 h-7 text-primary-foreground" />
-                </div>
-                <h2 className="text-xl font-semibold mb-2">What's your website?</h2>
-                <p className="text-muted-foreground text-sm">
-                  We'll analyze it to detect keywords, audiences & competitors
-                </p>
+      {/* Content */}
+      <div className="flex-1 flex flex-col px-5 sm:px-8 pb-6 max-w-lg mx-auto w-full">
+        {step === 1 && (
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                <Globe className="w-6 h-6 text-primary" />
               </div>
+              <h2 className="text-xl font-semibold text-foreground">What's your website?</h2>
+              <p className="text-sm text-muted-foreground">
+                We'll analyze it to detect keywords, audiences & competitors
+              </p>
+            </div>
 
-              <div className="space-y-4">
-                <Input
-                  placeholder="example.com"
-                  value={data.websiteUrl}
-                  onChange={(e) => setData({ ...data, websiteUrl: e.target.value })}
-                  className="text-center text-lg h-12"
-                  onKeyDown={(e) => e.key === "Enter" && canProceedStep1 && analyzeWebsite()}
-                />
+            <div className="space-y-3">
+              <Input
+                placeholder="example.com"
+                value={data.websiteUrl}
+                onChange={(e) => setData({ ...data, websiteUrl: e.target.value })}
+                className="text-center text-base h-12 rounded-xl"
+                onKeyDown={(e) => e.key === "Enter" && canProceedStep1 && analyzeWebsite()}
+              />
 
-                <Button
-                  onClick={analyzeWebsite}
-                  disabled={!canProceedStep1 || isAnalyzing}
-                  className="w-full h-12 bg-gradient-to-r from-primary to-blue-500"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Analyzing your site...
-                    </>
-                  ) : (
-                    <>
-                      Continue
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </>
-                  )}
-                </Button>
+              <Button
+                onClick={analyzeWebsite}
+                disabled={!canProceedStep1 || isAnalyzing}
+                className="w-full h-12 rounded-xl text-base"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Trust badges */}
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-green-500" />
+                <span>Free to start</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Check className="w-3.5 h-3.5 text-green-500" />
+                <span>No card required</span>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {step === 2 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-7 h-7 text-primary-foreground" />
-                </div>
-                <h2 className="text-xl font-semibold mb-2">Confirm your business</h2>
-                <p className="text-muted-foreground text-sm">
-                  We'll generate 30 days of content titles for you
-                </p>
+        {step === 2 && (
+          <div className="flex-1 flex flex-col space-y-5 pt-2">
+            <div className="text-center space-y-1.5">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6 text-primary" />
               </div>
+              <h2 className="text-xl font-semibold text-foreground">Confirm your business</h2>
+              <p className="text-sm text-muted-foreground">
+                We'll generate 30 days of content for you
+              </p>
+            </div>
 
-              {/* Show detected data */}
-              {(analyzedKeywords.length > 0 || analyzedCompetitors.length > 0 || analyzedAudiences.length > 0) && (
-                <div className="space-y-4">
-                  {/* Keywords */}
-                  {analyzedKeywords.length > 0 && (
-                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Search className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{analyzedKeywords.length} keywords detected</p>
-                          <p className="text-xs text-muted-foreground">Ready for content generation</p>
-                        </div>
+            {/* Detected data */}
+            {hasDetectedData && (
+              <div className="space-y-3">
+                {/* Keywords */}
+                {analyzedKeywords.length > 0 && (
+                  <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Search className="w-3.5 h-3.5 text-primary" />
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {analyzedKeywords.slice(0, 8).map((kw, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-background border border-border text-xs text-foreground">
-                            <TrendingUp className="w-3 h-3 text-primary" />
-                            {kw.keyword}
-                          </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{analyzedKeywords.length} keywords</p>
+                        <p className="text-[11px] text-muted-foreground">Ready for content generation</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {analyzedKeywords.slice(0, 6).map((kw, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-border text-[11px] text-foreground">
+                          <TrendingUp className="w-2.5 h-2.5 text-primary flex-shrink-0" />
+                          <span className="truncate max-w-[120px]">{kw.keyword}</span>
+                        </span>
+                      ))}
+                      {analyzedKeywords.length > 6 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-[11px] text-primary font-medium">
+                          +{analyzedKeywords.length - 6}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Competitors & Audiences */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {analyzedCompetitors.length > 0 && (
+                    <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                          <Swords className="w-3.5 h-3.5 text-orange-600" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">{analyzedCompetitors.length}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        {analyzedCompetitors.slice(0, 3).map((comp, i) => (
+                          <p key={i} className="text-[11px] text-muted-foreground truncate">• {comp}</p>
                         ))}
-                        {analyzedKeywords.length > 8 && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-xs text-primary font-medium">
-                            +{analyzedKeywords.length - 8} more
-                          </span>
+                        {analyzedCompetitors.length > 3 && (
+                          <p className="text-[11px] text-primary font-medium">+{analyzedCompetitors.length - 3} more</p>
                         )}
                       </div>
                     </div>
                   )}
-
-                  {/* Competitors & Audiences row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {analyzedCompetitors.length > 0 && (
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                            <Swords className="w-4 h-4 text-orange-600" />
-                          </div>
-                          <p className="text-sm font-medium">{analyzedCompetitors.length} competitors</p>
+                  {analyzedAudiences.length > 0 && (
+                    <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                          <Users className="w-3.5 h-3.5 text-emerald-600" />
                         </div>
-                        <div className="space-y-1">
-                          {analyzedCompetitors.slice(0, 3).map((comp, i) => (
-                            <p key={i} className="text-xs text-muted-foreground truncate">• {comp}</p>
-                          ))}
-                          {analyzedCompetitors.length > 3 && (
-                            <p className="text-xs text-primary">+{analyzedCompetitors.length - 3} more</p>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium text-foreground">{analyzedAudiences.length}</p>
                       </div>
-                    )}
-
-                    {analyzedAudiences.length > 0 && (
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                            <Users className="w-4 h-4 text-emerald-600" />
-                          </div>
-                          <p className="text-sm font-medium">{analyzedAudiences.length} audiences</p>
-                        </div>
-                        <div className="space-y-1">
-                          {analyzedAudiences.slice(0, 3).map((aud, i) => (
-                            <p key={i} className="text-xs text-muted-foreground truncate">• {aud}</p>
-                          ))}
-                          {analyzedAudiences.length > 3 && (
-                            <p className="text-xs text-primary">+{analyzedAudiences.length - 3} more</p>
-                          )}
-                        </div>
+                      <div className="space-y-0.5">
+                        {analyzedAudiences.slice(0, 3).map((aud, i) => (
+                          <p key={i} className="text-[11px] text-muted-foreground truncate">• {aud}</p>
+                        ))}
+                        {analyzedAudiences.length > 3 && (
+                          <p className="text-[11px] text-primary font-medium">+{analyzedAudiences.length - 3} more</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <Textarea
-                  placeholder="We help businesses grow their online presence through..."
-                  value={data.businessDescription}
-                  onChange={(e) => setData({ ...data, businessDescription: e.target.value })}
-                  className="min-h-[120px] resize-none"
-                />
-
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="flex-1"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleComplete}
-                    disabled={!canProceedStep2 || isCreating}
-                    className="flex-1 bg-gradient-to-r from-primary to-blue-500"
-                  >
-                    {isCreating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5 mr-2" />
-                        Launch my project
-                      </>
-                    )}
-                  </Button>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-        </Card>
+            )}
 
-        {/* Trust badges */}
-        <div className="flex items-center justify-center gap-6 mt-8 text-muted-foreground text-sm">
-          <div className="flex items-center gap-1.5">
-            <Check className="w-4 h-4 text-green-500" />
-            <span>Free to start</span>
+            {/* Business description */}
+            <Textarea
+              placeholder="We help businesses grow their online presence through..."
+              value={data.businessDescription}
+              onChange={(e) => setData({ ...data, businessDescription: e.target.value })}
+              className="min-h-[100px] resize-none rounded-xl text-sm"
+            />
+
+            {/* Actions - sticky bottom on mobile */}
+            <div className="flex gap-2.5 mt-auto pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                className="flex-1 h-12 rounded-xl"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleComplete}
+                disabled={!canProceedStep2 || isCreating}
+                className="flex-1 h-12 rounded-xl"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4 mr-2" />
+                    Launch
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Check className="w-4 h-4 text-green-500" />
-            <span>No credit card required</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
