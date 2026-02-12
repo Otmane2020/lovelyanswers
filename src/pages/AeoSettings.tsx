@@ -1,4 +1,5 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSettings } from "./settings/UserSettings";
 import { BusinessSettings } from "./settings/BusinessSettings";
@@ -21,6 +22,7 @@ export default function AeoSettings() {
 
   return (
     <DashboardLayout>
+      <SubscriptionGate title="Unlock Advanced Settings" description="Fine-tune your AI content strategy, manage team members, and configure publishing preferences.">
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
@@ -138,6 +140,7 @@ export default function AeoSettings() {
           </div>
         </Tabs>
       </div>
+      </SubscriptionGate>
     </DashboardLayout>
   );
 }
