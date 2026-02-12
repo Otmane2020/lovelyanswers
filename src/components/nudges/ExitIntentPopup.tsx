@@ -28,14 +28,14 @@ export const ExitIntentPopup = ({ ctaUrl = "/audit", headline = "Wait! Don't lea
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" onClick={() => setShow(false)} />
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: "spring", damping: 20, stiffness: 300 }} className="fixed inset-0 z-[61] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="relative w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl overflow-hidden">
-              <div className="bg-[hsl(222,47%,11%)] px-4 py-6 sm:px-6 sm:py-8 text-center">
-                <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.3 }}><Gift className="h-10 w-10 sm:h-12 sm:w-12 text-white mx-auto mb-2 sm:mb-3" /></motion.div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">{headline}</h3>
+              <div className="bg-primary px-4 py-6 sm:px-6 sm:py-8 text-center">
+                <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.3 }}><Gift className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground mx-auto mb-2 sm:mb-3" /></motion.div>
+                <h3 className="text-lg sm:text-xl font-bold text-primary-foreground">{headline}</h3>
               </div>
-              <button onClick={() => setShow(false)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"><X className="h-4 w-4 text-white" /></button>
+              <button onClick={() => setShow(false)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 flex items-center justify-center transition-colors"><X className="h-4 w-4 text-primary-foreground" /></button>
               <div className="px-4 py-5 sm:px-6 sm:py-6 text-center">
                 <p className="text-sm sm:text-base text-muted-foreground mb-5 sm:mb-6 leading-relaxed">{description}</p>
-                <Button onClick={handleCta} size="lg" className="w-full gap-2 text-sm sm:text-base font-semibold bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">{ctaLabel}<ArrowRight className="h-4 w-4" /></Button>
+                <Button onClick={handleCta} size="lg" className="w-full gap-2 text-sm sm:text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground">{ctaLabel}<ArrowRight className="h-4 w-4" /></Button>
                 <button onClick={() => setShow(false)} className="mt-3 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">No thanks, I'll pass</button>
               </div>
             </div>

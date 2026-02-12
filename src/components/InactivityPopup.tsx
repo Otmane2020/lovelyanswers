@@ -83,17 +83,17 @@ export function InactivityPopup({ inactivityDelay = 45, oncePerSession = true }:
               </button>
 
               {/* Gradient header */}
-              <div className="bg-gradient-to-br from-primary via-violet-500 to-fuchsia-500 px-6 pt-8 pb-10 text-center text-white">
+              <div className="bg-primary px-6 pt-8 pb-10 text-center text-primary-foreground">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4"
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm mb-4"
                 >
                   <Gift className="h-8 w-8" />
                 </motion.div>
                 <h2 className="text-2xl font-bold mb-1">Wait — Don't Leave!</h2>
-                <p className="text-white/80 text-sm">We have a special offer just for you</p>
+                <p className="text-primary-foreground/80 text-sm">We have a special offer just for you</p>
               </div>
 
               {/* Content */}
@@ -104,7 +104,7 @@ export function InactivityPopup({ inactivityDelay = 45, oncePerSession = true }:
                     <span className="text-sm font-semibold text-primary uppercase tracking-wide">Limited Time Offer</span>
                   </div>
                   <h3 className="text-3xl font-extrabold mb-1">
-                    2 Months <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">FREE</span>
+                    2 Months <span className="text-primary font-extrabold">FREE</span>
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Start your annual plan and get 2 months free — that's <span className="font-semibold text-foreground">$58 saved</span>
@@ -116,7 +116,7 @@ export function InactivityPopup({ inactivityDelay = 45, oncePerSession = true }:
               <div className="px-6 pt-5 pb-6 space-y-3">
                 <Button
                   onClick={handleCTA}
-                  className="w-full h-12 gap-2 bg-gradient-to-r from-primary via-violet-500 to-fuchsia-500 text-white text-base font-semibold shadow-xl hover:opacity-90"
+                  className="w-full h-12 gap-2 bg-primary text-primary-foreground text-base font-semibold shadow-xl hover:bg-primary/90"
                 >
                   Claim My 2 Free Months
                   <ArrowRight className="h-5 w-5" />
