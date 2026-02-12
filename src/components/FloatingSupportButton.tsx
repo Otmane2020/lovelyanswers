@@ -8,7 +8,7 @@ const FloatingSupportButton = () => {
   const location = useLocation();
 
   // Don't show on support page or public pages
-  if (location.pathname === "/support" || location.pathname === "/" || location.pathname === "/auth") {
+  if (location.pathname === "/support" || location.pathname === "/" || location.pathname === "/auth" || location.pathname === "/wizard") {
     return null;
   }
 
