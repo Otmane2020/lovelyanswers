@@ -46,20 +46,20 @@ export const SocialProofToast = () => {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -100, opacity: 0 }}
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 80, opacity: 0 }}
           transition={{ type: "spring", damping: 20, stiffness: 300 }}
-          className="fixed bottom-4 left-4 z-50 max-w-xs"
+          className="fixed bottom-3 left-3 right-3 sm:left-4 sm:right-auto sm:max-w-xs z-50"
           onClick={() => setVisible(false)}
         >
-          <div className="flex items-center gap-3 rounded-xl bg-background/95 border border-border/50 shadow-lg backdrop-blur-md px-4 py-3 cursor-pointer hover:shadow-xl transition-shadow">
-            <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <Icon className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-background/95 border border-border/50 shadow-lg backdrop-blur-md px-3 py-2.5 sm:px-4 sm:py-3 cursor-pointer hover:shadow-xl transition-shadow">
+            <div className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground leading-tight">{msg.text}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-foreground leading-tight">{msg.text}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                 {Math.floor(Math.random() * 5) + 1} min ago
               </p>
             </div>

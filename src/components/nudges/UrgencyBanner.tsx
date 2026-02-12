@@ -28,7 +28,6 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
     return () => clearInterval(interval);
   }, [variant]);
 
-  // Randomly decrease spots every 30-60s
   useEffect(() => {
     if (variant !== "spots") return;
 
@@ -44,10 +43,10 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center justify-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5 ${className}`}
+        className={`flex items-center justify-center gap-1.5 sm:gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 ${className}`}
       >
-        <Clock className="h-4 w-4 text-destructive" />
-        <span className="text-sm font-medium text-destructive">
+        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
+        <span className="text-xs sm:text-sm font-medium text-destructive">
           Offer expires in{" "}
           <span className="font-mono font-bold">
             {String(timeLeft.hours).padStart(2, "0")}:{String(timeLeft.minutes).padStart(2, "0")}:{String(timeLeft.seconds).padStart(2, "0")}
@@ -62,15 +61,16 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`flex items-center justify-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2.5 ${className}`}
+        className={`flex items-center justify-center gap-1.5 sm:gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 ${className}`}
       >
         <motion.div
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 1.5, repeat: Infinity }}
+          className="flex-shrink-0"
         >
-          <Flame className="h-4 w-4 text-amber-500" />
+          <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500" />
         </motion.div>
-        <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+        <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">
           🔥 Only <span className="font-bold">{spotsLeft} spots</span> left at launch price
         </span>
       </motion.div>
@@ -82,10 +82,10 @@ export const UrgencyBanner = ({ variant = "spots", className = "" }: UrgencyBann
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2.5 ${className}`}
+      className={`flex items-center justify-center gap-1.5 sm:gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-center ${className}`}
     >
-      <AlertTriangle className="h-4 w-4 text-green-600" />
-      <span className="text-sm font-medium text-green-700 dark:text-green-400">
+      <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+      <span className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">
         🎉 <span className="font-bold">-50%</span> for the first 100 sign-ups — Code: <span className="font-mono font-bold">WELCOME50</span>
       </span>
     </motion.div>
