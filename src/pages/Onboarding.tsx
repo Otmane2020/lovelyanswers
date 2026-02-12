@@ -500,7 +500,7 @@ export default function Onboarding() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 pb-32">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 pb-44">
         <div className="w-full max-w-lg">
           <AnimatePresence mode="wait">
             {/* Step 1: URL Input - Landing Page Style */}
