@@ -645,15 +645,35 @@ export default function Onboarding() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5 }}
-                  className="relative mx-auto w-32 h-32"
+                  className="relative mx-auto w-28 h-28 flex items-center justify-center"
                 >
-                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-[40px]" />
-                  <img 
-                    src={lovelyMascot} 
-                    alt="Lovely analyzing your site" 
-                    className="relative w-full h-full object-contain drop-shadow-lg animate-bounce"
-                    style={{ animationDuration: '2s' }}
-                  />
+                  {/* Radar pulse rings */}
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute inset-0 rounded-full border-2 border-primary/30"
+                      initial={{ scale: 0.5, opacity: 0.8 }}
+                      animate={{ scale: 1.8, opacity: 0 }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: i * 0.6,
+                        ease: "easeOut",
+                      }}
+                    />
+                  ))}
+                  {/* Rotating sweep line */}
+                  <motion.div
+                    className="absolute w-full h-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                  >
+                    <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 origin-left bg-gradient-to-r from-primary/60 to-transparent" />
+                  </motion.div>
+                  {/* Center icon */}
+                  <div className="relative z-10 w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+                    <Globe className="w-6 h-6 text-primary" />
+                  </div>
                 </motion.div>
 
                 <div className="space-y-2">
