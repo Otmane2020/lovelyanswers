@@ -376,8 +376,138 @@ serve(async (req) => {
     const metadata = connection.metadata as Record<string, unknown> || {};
     const managerCustomerId = metadata.manager_customer_id as string | undefined;
 
-    if (!customerId) {
-      return new Response(JSON.stringify({ error: "No Google Ads account selected.", code: "NO_ACCOUNT" }), {
+    // =============================================
+    // ACTION: List accessible Google Ads accounts
+    // =============================================
+    if (action === "list_accounts") {
+      console.log(`[SYNC] Listing accessible accounts for user ${userId}`);
+      try {
+        // Use customerService to list accessible customers
+        const listResponse = await fetch(
+          `${GOOGLE_ADS_API_BASE}/customers:listAccessibleCustomers`,
+          {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN || "",
+            },
+          }
+        );
+
+        if (!listResponse.ok) {
+          const errorText = await listResponse.text();
+          console.error("[SYNC] listAccessibleCustomers failed:", errorText);
+          return new Response(JSON.stringify({ error: "Failed to list accounts", details: errorText }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const listData = await listResponse.json();
+        const resourceNames = listData.resourceNames || [];
+        
+        // Extract customer IDs from resource names (format: "customers/1234567890")
+        const customerIds = resourceNames.map((rn: string) => rn.replace("customers/", ""));
+        
+        // Get details for each customer
+        const accountDetails: { customerId: string; name: string; isManager: boolean; currencyCode: string; timeZone: string }[] = [];
+        
+        for (const custId of customerIds) {
+          try {
+            const detailResponse = await fetch(
+              `${GOOGLE_ADS_API_BASE}/customers/${custId}`,
+              {
+                method: "GET",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN || "",
+                  "login-customer-id": custId,
+                },
+              }
+            );
+            
+            if (detailResponse.ok) {
+              const detail = await detailResponse.json();
+              accountDetails.push({
+                customerId: custId,
+                name: detail.descriptiveName || `Account ${custId}`,
+                isManager: detail.manager || false,
+                currencyCode: detail.currencyCode || "",
+                timeZone: detail.timeZone || "",
+              });
+            } else {
+              // May not have access to read details, still list it
+              accountDetails.push({
+                customerId: custId,
+                name: `Account ${custId}`,
+                isManager: false,
+                currencyCode: "",
+                timeZone: "",
+              });
+            }
+          } catch (e) {
+            console.warn(`[SYNC] Failed to get details for ${custId}:`, e);
+            accountDetails.push({
+              customerId: custId,
+              name: `Account ${custId}`,
+              isManager: false,
+              currencyCode: "",
+              timeZone: "",
+            });
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true, accounts: accountDetails }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("[SYNC] List accounts error:", error);
+        return new Response(JSON.stringify({ error: String(error) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // =============================================
+    // ACTION: Select account (save chosen customer ID)
+    // =============================================
+    if (action === "select_account") {
+      const selectedCustomerId = body.customer_id as string;
+      const selectedManagerId = body.manager_customer_id as string | undefined;
+      const accountName = body.account_name as string | undefined;
+      
+      if (!selectedCustomerId) {
+        return new Response(JSON.stringify({ error: "customer_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`[SYNC] Selecting account ${selectedCustomerId} for user ${userId}`);
+
+      const { error: updateError } = await supabase
+        .from("user_connections")
+        .update({
+          account_id: selectedCustomerId,
+          metadata: { 
+            ...metadata,
+            manager_customer_id: selectedManagerId || null,
+            account_name: accountName || null,
+          },
+        })
+        .eq("id", connection.id);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, message: `Account ${selectedCustomerId} selected` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!customerId || customerId === "pending") {
+      return new Response(JSON.stringify({ error: "No Google Ads account selected. Please select an account first.", code: "NO_ACCOUNT" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
