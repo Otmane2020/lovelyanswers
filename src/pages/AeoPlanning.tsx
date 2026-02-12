@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useGeneration } from "@/contexts/GenerationContext";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 
@@ -41,6 +42,7 @@ export default function AeoPlanning() {
   const { project } = useActiveProject();
   const publishAnswer = usePublishAnswer();
   const { startGeneration, stopGeneration, setGenerationProgress, setGenerationMessage, isGenerating } = useGeneration();
+  const { isSubscribed } = useSubscriptionContext();
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -384,7 +386,7 @@ export default function AeoPlanning() {
                   </div>
                   <div className="flex flex-col gap-2">
                     {item.status !== "published" && (
-                      <Button size="sm" onClick={() => handlePublishNow(item)} disabled={publishingId === item.id} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+                      <Button size="sm" onClick={() => isSubscribed ? handlePublishNow(item) : toast.error("Upgrade your plan to publish content")} disabled={publishingId === item.id || !isSubscribed} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
                         {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
                         Publish
                       </Button>
