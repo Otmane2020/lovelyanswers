@@ -4,7 +4,8 @@ import { AeoSidebar } from "./AeoSidebar";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,8 +25,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="min-h-screen flex w-full">
           <AeoSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <header className="h-12 flex items-center px-4 bg-background/50 backdrop-blur-sm">
-              <SidebarTrigger className="mr-4 hover:bg-muted/50 transition-colors" />
+            <header className="h-12 flex items-center px-4 bg-background border-b border-border/30">
+              <SidebarTrigger className="mr-4 hover:bg-muted/50 transition-colors">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
             </header>
             
             {/* Global Progress Bar - Persists across route changes */}
