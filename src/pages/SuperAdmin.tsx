@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
-  Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket
+  Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
+import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
 
 interface SupportTicket {
   id: string;
@@ -654,6 +655,10 @@ const SuperAdmin = () => {
               <Globe className="h-4 w-4" />
               Articles Actifs
             </TabsTrigger>
+            <TabsTrigger value="google-ads" className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />
+              Google Ads
+            </TabsTrigger>
           </TabsList>
 
           {/* Onboarding Tracking Tab */}
@@ -664,6 +669,11 @@ const SuperAdmin = () => {
           {/* Active Articles Tab */}
           <TabsContent value="active-articles">
             <ActiveArticleUsers />
+          </TabsContent>
+
+          {/* Google Ads Tab */}
+          <TabsContent value="google-ads">
+            <GoogleAdsManager />
           </TabsContent>
 
           {/* Users Tab */}
