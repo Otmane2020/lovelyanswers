@@ -183,8 +183,8 @@ export default function AeoPlanning() {
           </div>
         </Card>
 
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="lg:col-span-2 p-3 sm:p-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
+          <Card className="lg:col-span-2 p-2 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
               <div>
                 <h2 className="text-base sm:text-xl font-semibold">Content Calendar</h2>
@@ -316,7 +316,7 @@ export default function AeoPlanning() {
             )}
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-3 sm:p-6 hidden lg:block">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Next 30 Days ({getUpcomingItems().length})
@@ -352,7 +352,7 @@ export default function AeoPlanning() {
       </div>
 
       <Dialog open={showDayPopup} onOpenChange={setShowDayPopup}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
