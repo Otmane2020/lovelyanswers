@@ -190,3 +190,9 @@ verify_jwt = false
 
 [functions.generate-google-ads]
 verify_jwt = false
+
+[functions.google-ads-oauth-url]
+verify_jwt = false
+
+[functions.google-ads-oauth-token]
+verify_jwt = false
