@@ -84,7 +84,7 @@ export default function AeoPlanning() {
     setIsLoading(true);
     try {
       const { data: answers } = await supabase.from("answers").select("id, question, scheduled_date, published_url, published_at, answer, score, high_citation, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
-      const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, published_url, aeo_score, word_count, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
+      const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, aeo_score, word_count, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const items: ScheduledItem[] = [];
       if (answers) {
         answers.forEach((a) => {
@@ -96,7 +96,7 @@ export default function AeoPlanning() {
       if (articles) {
         articles.forEach((art) => {
           if (art.scheduled_date) {
-            items.push({ id: art.id, title: art.title, type: "article", date: new Date(art.scheduled_date), status: getPublishStatus(art), publishedUrl: art.published_url || undefined, aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
+            items.push({ id: art.id, title: art.title, type: "article", date: new Date(art.scheduled_date), status: "scheduled", aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
           }
         });
       }
