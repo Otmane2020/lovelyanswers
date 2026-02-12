@@ -687,9 +687,15 @@ serve(async (req) => {
 
     let userId: string | null = null;
     if (!isServiceRole) {
-      const { data: userData, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !userData?.user) throw new Error("Invalid token");
-      userId = userData.user.id;
+      // Use anon-key client for JWT validation to avoid service-role auth issues
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) throw new Error("Invalid token");
+      userId = claimsData.claims.sub as string;
     }
 
     const body = await req.json();

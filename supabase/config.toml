@@ -187,3 +187,6 @@ verify_jwt = false
 
 [functions.internal-scraper]
 verify_jwt = false
+
+[functions.generate-google-ads]
+verify_jwt = false
