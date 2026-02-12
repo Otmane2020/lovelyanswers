@@ -208,7 +208,7 @@ ${contentForAI}
 ${description ? `META DESCRIPTION: ${description}` : ''}
 
 TÂCHES:
-1. CONCURRENTS: Identifie 5 sites web concurrents directs français qui:
+1. CONCURRENTS: Identifie 5 sites web concurrents directs qui:
    - Offrent des produits/services similaires
    - Ciblent la même audience
    - Sont des acteurs majeurs sur le même marché
@@ -219,7 +219,12 @@ TÂCHES:
    - Les termes métier utilisés
    - Les questions que les utilisateurs pourraient poser
 
-3. DESCRIPTION: Résume l'activité de ce site en 2-3 phrases.
+3. DESCRIPTION: Rédige une description professionnelle et engageante du site en 3-4 phrases.
+   - Commence par le nom de la marque et son positionnement
+   - Décris les principaux produits/services offerts
+   - Mentionne ce qui différencie cette entreprise (spécialisation, valeurs, expertise)
+   - Utilise un ton professionnel mais accessible
+   - NE copie PAS simplement la meta description, crée une vraie description enrichie
 
 4. AUDIENCES: Identifie 3 audiences cibles principales.
 
@@ -227,12 +232,13 @@ IMPORTANT:
 - Pour les concurrents: retourne UNIQUEMENT des domaines réels (ex: leboncoin.fr, vinted.fr)
 - Pour les keywords: focus sur des termes de recherche que les gens utiliseraient vraiment
 - NE retourne PAS le site analysé lui-même dans les concurrents
+- La description doit être MEILLEURE et PLUS COMPLÈTE que la simple meta description
 
 Réponds UNIQUEMENT avec ce JSON (pas d'explication):
 {
   "competitors": ["domaine1.fr", "domaine2.com"],
   "keywords": [{"keyword": "mot clé 1", "intent": "informational"}, {"keyword": "mot clé 2", "intent": "transactional"}],
-  "description": "Description du site...",
+  "description": "Description professionnelle enrichie du site...",
   "audiences": ["audience 1", "audience 2", "audience 3"]
 }`;
 
@@ -280,10 +286,10 @@ Réponds UNIQUEMENT avec ce JSON (pas d'explication):
                 console.log("[ANALYZE-WEBSITE] ✅ AI found", keywords.length, "keywords");
               }
               
-              // Extract description if better than meta
-              if (parsed.description && (!description || description.length < 50)) {
+              // Always prefer AI-generated description over basic meta description
+              if (parsed.description && parsed.description.length > 20) {
                 description = parsed.description;
-                console.log("[ANALYZE-WEBSITE] ✅ AI generated description");
+                console.log("[ANALYZE-WEBSITE] ✅ AI generated rich description");
               }
               
               // Extract audiences
