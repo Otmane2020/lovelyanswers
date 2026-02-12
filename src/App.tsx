@@ -47,6 +47,7 @@ import NotFound from "./pages/NotFound";
 import ShoppingDashboard from "./pages/ShoppingDashboard";
 import ShoppingProduct from "./pages/ShoppingProduct";
 import ShoppingPlanning from "./pages/ShoppingPlanning";
+import AiShoppingAssistant from "./pages/AiShoppingAssistant";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/localAEO" element={<LocalAeoArticle />} />
+                  <Route path="/ai-shopping-assistant" element={<AiShoppingAssistant />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
