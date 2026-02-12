@@ -298,7 +298,7 @@ export default function AeoWizard() {
 
             {/* Business description */}
             <Textarea
-              placeholder="We help businesses grow their online presence through..."
+              placeholder="Décrivez votre entreprise et votre site web..."
               value={data.businessDescription}
               onChange={(e) => setData({ ...data, businessDescription: e.target.value })}
               className="min-h-[100px] resize-none rounded-xl text-sm"
