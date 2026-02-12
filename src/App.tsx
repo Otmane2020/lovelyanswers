@@ -10,6 +10,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import FloatingSupportButton from "@/components/FloatingSupportButton";
 import { VisitorTracker } from "@/components/VisitorTracker";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -61,6 +62,7 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <VisitorTracker />
+                <ScrollToTop />
                 <FloatingSupportButton />
                 <Routes>
                   <Route path="/" element={<Index />} />

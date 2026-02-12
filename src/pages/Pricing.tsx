@@ -123,7 +123,7 @@ export default function Pricing() {
                 <h3 className="font-bold mb-2 text-white">For agencies</h3>
                 <p className="text-sm text-white/40 mb-4">For businesses which want to resell our services to their clients.</p>
                 <div className="flex gap-3 justify-center">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild><Link to="/auth">Learn More</Link></Button>
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild><Link to="/signup">Learn More</Link></Button>
                 </div>
               </div>
             </div>
