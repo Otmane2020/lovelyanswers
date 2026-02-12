@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut, Clock, Calendar } from "lucide-react";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut, Clock, Calendar, Lock, Crown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
 import { TestPublishButton } from "@/components/integrations/TestPublishButton";
@@ -54,6 +56,10 @@ export default function AeoIntegrations() {
   const { data: integrations = [], isLoading, refetch } = useIntegrations();
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
+  const { isSubscribed } = useSubscriptionContext();
+  const navigate = useNavigate();
+
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const [autoPublish, setAutoPublish] = useState(true);
   const [publishAnswers, setPublishAnswers] = useState(true);
@@ -374,6 +380,10 @@ export default function AeoIntegrations() {
   };
 
   const handleCMSClick = (platformId: string) => {
+    if (!isSubscribed) {
+      setShowPaywall(true);
+      return;
+    }
     const existing = getConnectedIntegration(platformId);
     if (existing) {
       setEditingIntegration(existing);
@@ -580,7 +590,13 @@ export default function AeoIntegrations() {
               </div>
             ) : (
               <Button
-                onClick={connectGSC}
+                onClick={() => {
+                  if (!isSubscribed) {
+                    setShowPaywall(true);
+                    return;
+                  }
+                  connectGSC();
+                }}
                 disabled={connectingGsc || gscLoading}
                 className="gap-2"
               >
@@ -1084,6 +1100,30 @@ export default function AeoIntegrations() {
               >
                 Disconnect
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Subscription Paywall Dialog */}
+        <AlertDialog open={showPaywall} onOpenChange={setShowPaywall}>
+          <AlertDialogContent className="max-w-sm">
+            <AlertDialogHeader>
+              <div className="flex justify-center mb-3">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Crown className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+              <AlertDialogTitle className="text-center">Upgrade to Connect</AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                Integrations are available on paid plans. Subscribe to connect your CMS and auto-publish content.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button onClick={() => { setShowPaywall(false); navigate("/subscription"); }} className="w-full gap-2">
+                <Lock className="h-4 w-4" />
+                Upgrade Now
+              </Button>
+              <AlertDialogCancel className="w-full mt-0">Maybe Later</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
