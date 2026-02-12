@@ -76,21 +76,21 @@ const App = () => (
                   <Route path="/onboarding" element={<Signup />} />
                   <Route path="/wizard" element={<ProtectedRoute requireSubscription={false}><AeoWizard /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute requireSubscription={false}><Dashboard /></ProtectedRoute>} />
-                  <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
-                  <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />
+                  <Route path="/seo-audit" element={<ProtectedRoute requireSubscription={false}><AeoSeoAudit /></ProtectedRoute>} />
+                  <Route path="/keywords" element={<ProtectedRoute requireSubscription={false}><AeoKeywords /></ProtectedRoute>} />
                   <Route path="/articles" element={<ProtectedRoute requireSubscription={false}><AeoArticles /></ProtectedRoute>} />
                   <Route path="/answers" element={<ProtectedRoute requireSubscription={false}><Answers /></ProtectedRoute>} />
                   <Route path="/autoseo" element={<ProtectedRoute requireSubscription={false}><AutoSeo /></ProtectedRoute>} />
                   <Route path="/planning" element={<ProtectedRoute requireSubscription={false}><AeoPlanning /></ProtectedRoute>} />
-                  <Route path="/reddit" element={<ProtectedRoute><AeoReddit /></ProtectedRoute>} />
-                  <Route path="/local" element={<ProtectedRoute><AeoLocal /></ProtectedRoute>} />
-                  <Route path="/history" element={<ProtectedRoute><AeoHistory /></ProtectedRoute>} />
-                  <Route path="/analytics" element={<ProtectedRoute><AeoAnalytics /></ProtectedRoute>} />
-                  <Route path="/integrations" element={<ProtectedRoute><AeoIntegrations /></ProtectedRoute>} />
-                  <Route path="/subscription" element={<ProtectedRoute><AeoSubscription /></ProtectedRoute>} />
-                  <Route path="/billing" element={<ProtectedRoute><AeoBilling /></ProtectedRoute>} />
-                  <Route path="/support" element={<ProtectedRoute><AeoSupport /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><AeoSettings /></ProtectedRoute>} />
+                  <Route path="/reddit" element={<ProtectedRoute requireSubscription={false}><AeoReddit /></ProtectedRoute>} />
+                  <Route path="/local" element={<ProtectedRoute requireSubscription={false}><AeoLocal /></ProtectedRoute>} />
+                  <Route path="/history" element={<ProtectedRoute requireSubscription={false}><AeoHistory /></ProtectedRoute>} />
+                  <Route path="/analytics" element={<ProtectedRoute requireSubscription={false}><AeoAnalytics /></ProtectedRoute>} />
+                  <Route path="/integrations" element={<ProtectedRoute requireSubscription={false}><AeoIntegrations /></ProtectedRoute>} />
+                  <Route path="/subscription" element={<ProtectedRoute requireSubscription={false}><AeoSubscription /></ProtectedRoute>} />
+                  <Route path="/billing" element={<ProtectedRoute requireSubscription={false}><AeoBilling /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute requireSubscription={false}><AeoSupport /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><AeoSettings /></ProtectedRoute>} />
                   <Route path="/superadmin" element={<SuperAdmin />} />
                   <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/blog" element={<Blog />} />
@@ -100,9 +100,9 @@ const App = () => (
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/shopping" element={<ProtectedRoute><ShoppingDashboard /></ProtectedRoute>} />
-                  <Route path="/shopping/product/:productId" element={<ProtectedRoute><ShoppingProduct /></ProtectedRoute>} />
-                  <Route path="/shopping/planning" element={<ProtectedRoute><ShoppingPlanning /></ProtectedRoute>} />
+                  <Route path="/shopping" element={<ProtectedRoute requireSubscription={false}><ShoppingDashboard /></ProtectedRoute>} />
+                  <Route path="/shopping/product/:productId" element={<ProtectedRoute requireSubscription={false}><ShoppingProduct /></ProtectedRoute>} />
+                  <Route path="/shopping/planning" element={<ProtectedRoute requireSubscription={false}><ShoppingPlanning /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
