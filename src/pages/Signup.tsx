@@ -68,13 +68,17 @@ export default function Signup() {
   };
 
   const handleGoogleSignIn = async () => {
-    try { await lovable.auth.signInWithOAuth("google"); }
-    catch (error) { console.error("Google sign-in error:", error); toast({ title: "Error", description: "Google sign-in failed.", variant: "destructive" }); }
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/auth`,
+    });
+    if (error) toast({ title: "Error", description: "Google sign-in failed.", variant: "destructive" });
   };
 
   const handleAppleSignIn = async () => {
-    try { await lovable.auth.signInWithOAuth("apple"); }
-    catch (error) { console.error("Apple sign-in error:", error); toast({ title: "Error", description: "Apple sign-in failed.", variant: "destructive" }); }
+    const { error } = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: `${window.location.origin}/auth`,
+    });
+    if (error) toast({ title: "Error", description: "Apple sign-in failed.", variant: "destructive" });
   };
 
   if (authLoading) {
