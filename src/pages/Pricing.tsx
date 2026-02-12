@@ -3,34 +3,15 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowRight, 
-  Check, 
-  Sparkles,
-  FileText,
-  Link as LinkIcon,
-  Search,
-  Languages,
-  Bot,
-  Globe,
-  Wrench,
-  MessageSquare,
-} from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { ArrowRight, Check, Sparkles, FileText, Link as LinkIcon, Search, Languages, Bot, Globe, Wrench, MessageSquare } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
 const pricingStructuredData = {
-  "@context": "https://schema.org",
-  "@type": "Product",
-  "name": "LovelyAnswers AEO Platform",
+  "@context": "https://schema.org", "@type": "Product", "name": "LovelyAnswers AEO Platform",
   "description": "All-in-one AI SEO solution with 30 articles/month, automatic backlinks, keyword research, and AI Answer Engine Optimization for ChatGPT, Gemini, and Google.",
   "brand": { "@type": "Brand", "name": "LovelyAnswers" },
   "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD", "priceValidUntil": "2027-12-31", "availability": "https://schema.org/InStock", "url": "https://lovelyanswers.com/pricing" },
@@ -61,19 +42,12 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  useEffect(() => {
-    document.documentElement.classList.remove("dark");
-  }, []);
+  useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
 
   return (
     <>
       <SocialProofToast />
-      <ExitIntentPopup 
-        ctaUrl="/onboarding"
-        headline="🎁 Special offer: 2 months free!"
-        description="Join the 500+ sites boosting their AI visibility with LovelyAnswers. Get 2 months free now."
-        ctaLabel="Start for free"
-      />
+      <ExitIntentPopup ctaUrl="/onboarding" headline="🎁 Special offer: 2 months free!" description="Join the 500+ sites boosting their AI visibility with LovelyAnswers. Get 2 months free now." ctaLabel="Start for free" />
       <Helmet>
         <title>Pricing - LovelyAnswers AEO Platform | $29/month AI SEO</title>
         <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
@@ -82,89 +56,58 @@ export default function Pricing() {
       </Helmet>
 
       <div className="min-h-screen bg-[hsl(222,47%,11%)]">
-        {/* Navigation */}
         <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
-              </span>
+              <span className="text-xl font-bold tracking-tight text-white">LovelyAnswers</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
-                <Link to="/">Home</Link>
-              </Button>
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link to="/">Home</Link></Button>
+              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link to="/auth">Sign In</Link></Button>
               <Button className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
-                <Link to="/auth">
-                  Try 3-day trial <ArrowRight className="h-4 w-4 ml-1" />
-                </Link>
+                <Link to="/auth">Try 3-day trial <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             </div>
           </div>
         </nav>
 
-        {/* Hero */}
         <section className="relative overflow-hidden pt-32 pb-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-[150px]" />
-          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/8 rounded-full blur-[150px]" />
           <div className="container relative">
             <div className="mx-auto max-w-3xl text-center">
-              <Badge className="mb-6 bg-white/10 text-white/70 border-white/20">
-                For smart entrepreneurs
-              </Badge>
-              
-               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
-                 Invest in <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-300">Long-Term Growth</span>
+              <Badge className="mb-6 bg-white/10 text-white/70 border-white/20">For smart entrepreneurs</Badge>
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
+                Invest in <span className="font-extrabold">Long-Term Growth</span>
               </h1>
-              
-              <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">
-                All-in-one AI SEO solution to dominate search rankings and get cited by AI assistants.
-              </p>
+              <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">All-in-one AI SEO solution to dominate search rankings and get cited by AI assistants.</p>
             </div>
 
-            {/* Pricing Card */}
             <div className="mt-16 max-w-xl mx-auto">
               <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 relative overflow-hidden">
                 <div className="absolute top-4 right-4">
-                   <Badge className="bg-white/10 text-white/70 border-white/20">
-                     Only 34 spots left in February
-                   </Badge>
+                  <Badge className="bg-white/10 text-white/70 border-white/20">Only 34 spots left in February</Badge>
                 </div>
-                
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold mb-2 text-white">All-In-One</h2>
-                  <p className="text-sm text-white/40 mb-4">
-                    We limit monthly admissions to maintain backlink quality and network balance.
-                  </p>
+                  <p className="text-sm text-white/40 mb-4">We limit monthly admissions to maintain backlink quality and network balance.</p>
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-2xl text-white/30 line-through">$58</span>
                     <span className="text-6xl font-bold text-white">$29</span>
                     <span className="text-white/40">/month</span>
                   </div>
-                  <p className="text-sm text-violet-400 font-medium mt-2">
-                    Or $23/month billed annually
-                  </p>
+                  <p className="text-sm text-white/50 font-medium mt-2">Or $23/month billed annually</p>
                 </div>
-
                 <Button className="w-full gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 mb-8" size="lg" asChild>
-                  <Link to="/auth">
-                    Start 3-Day Free Trial <ArrowRight className="h-5 w-5" />
-                  </Link>
+                  <Link to="/auth">Start 3-Day Free Trial <ArrowRight className="h-5 w-5" /></Link>
                 </Button>
-
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-sm text-white/40 uppercase tracking-wider">
-                    What's included:
-                  </h3>
+                  <h3 className="font-semibold text-sm text-white/40 uppercase tracking-wider">What's included:</h3>
                   <ul className="space-y-3">
                     {features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
-                         <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/20">
-                           <Check className="h-3 w-3 text-violet-400" />
+                        <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white/10">
+                          <Check className="h-3 w-3 text-white/70" />
                         </div>
                         <span className="text-sm text-white/70">{feature.text}</span>
                       </li>
@@ -174,51 +117,37 @@ export default function Pricing() {
               </div>
             </div>
 
-            {/* Agency CTA */}
             <div className="mt-12 max-w-xl mx-auto">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
                 <h3 className="font-bold mb-2 text-white">For agencies</h3>
-                <p className="text-sm text-white/40 mb-4">
-                  For businesses which want to resell our services to their clients.
-                </p>
+                <p className="text-sm text-white/40 mb-4">For businesses which want to resell our services to their clients.</p>
                 <div className="flex gap-3 justify-center">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
-                    <Link to="/auth">Learn More</Link>
-                  </Button>
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild><Link to="/auth">Learn More</Link></Button>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* FAQs - White section */}
         <section className="py-20 bg-white">
           <div className="container max-w-3xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4 text-[hsl(222,47%,11%)]">FAQs</h2>
               <p className="text-gray-500">
                 Haven't found what you are looking for?{" "}
-                <a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">
-                  Send us an email
-                </a>
+                <a href="mailto:support@lovelyanswers.io" className="text-[hsl(222,47%,30%)] hover:underline">Send us an email</a>
               </p>
             </div>
-
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, i) => (
                 <AccordionItem key={i} value={`item-${i}`} className="border rounded-lg px-4 bg-gray-50">
-                  <AccordionTrigger className="text-left hover:no-underline text-[hsl(222,47%,11%)]">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-gray-500">
-                    {faq.answer}
-                  </AccordionContent>
+                  <AccordionTrigger className="text-left hover:no-underline text-[hsl(222,47%,11%)]">{faq.question}</AccordionTrigger>
+                  <AccordionContent className="text-gray-500">{faq.answer}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
           </div>
         </section>
-
         <PublicFooter />
       </div>
     </>

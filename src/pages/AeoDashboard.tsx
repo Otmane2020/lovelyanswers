@@ -6,19 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useRedditPreload } from "@/hooks/useRedditPreload";
 import { useActiveProject } from "@/hooks/useProjects";
-import {
-  MessageSquare,
-  TrendingUp,
-  Globe,
-  ArrowRight,
-  Sparkles,
-  Lightbulb,
-  Link,
-  Settings,
-  Crown,
-  Target,
-  Check,
-} from "lucide-react";
+import { MessageSquare, TrendingUp, Globe, ArrowRight, Sparkles, Lightbulb, Link, Settings, Crown, Target, Check } from "lucide-react";
 
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
@@ -26,186 +14,86 @@ export default function AeoDashboard() {
   const navigate = useNavigate();
   const { project } = useActiveProject();
   const { subscribed, startCheckout, isLoading } = useSubscription();
-  
-  // Preload Reddit posts in background on first dashboard visit
   useRedditPreload();
   
-  const [answersStats, setAnswersStats] = useState({
-    total: 0,
-    published: 0,
-    highCitation: 0,
-    avgScore: 0,
-  });
+  const [answersStats, setAnswersStats] = useState({ total: 0, published: 0, highCitation: 0, avgScore: 0 });
 
   useEffect(() => {
     const fetchAnswersStats = async () => {
       if (!project) return;
-
       try {
-        const { data: answers } = await supabase
-          .from('answers')
-          .select('id, score')
-          .eq('project_id', project.id);
-
+        const { data: answers } = await supabase.from('answers').select('id, score').eq('project_id', project.id);
         if (answers) {
           const total = answers.length;
-          const published = answers.length;
           const highCitation = answers.filter(a => (a.score || 0) >= 80).length;
-          const avgScore = total > 0 
-            ? Math.round(answers.reduce((sum, a) => sum + (a.score || 0), 0) / total)
-            : 0;
-
-          setAnswersStats({ total, published, highCitation, avgScore });
+          const avgScore = total > 0 ? Math.round(answers.reduce((sum, a) => sum + (a.score || 0), 0) / total) : 0;
+          setAnswersStats({ total, published: total, highCitation, avgScore });
         }
-      } catch (error) {
-        console.error('Error fetching answers stats:', error);
-      }
+      } catch (error) { console.error('Error fetching answers stats:', error); }
     };
-
     fetchAnswersStats();
   }, [project]);
 
   const stats = [
-    { 
-      label: "Active AEO Answers",
-      sublabel: `${answersStats.total} generated`,
-      value: `${answersStats.published}`, 
-      icon: MessageSquare,
-      color: "from-violet-500 to-violet-600"
-    },
-    { 
-      label: "High Citation",
-      sublabel: "Score ≥ 80%",
-      value: answersStats.highCitation.toString(), 
-      icon: Target,
-      color: "from-violet-500 to-violet-600"
-    },
-    { 
-      label: "Avg AEO Score",
-      sublabel: "Citation potential",
-      value: answersStats.avgScore > 0 ? `${answersStats.avgScore}%` : "—", 
-      icon: TrendingUp,
-      color: "from-violet-500 to-violet-600"
-    },
-    { 
-      label: "AI Platforms Targeted",
-      sublabel: AI_PLATFORMS.slice(0, 3).join(' · '),
-      value: AI_PLATFORMS.length.toString(), 
-      icon: Globe,
-      color: "from-violet-500 to-violet-600"
-    },
+    { label: "Active AEO Answers", sublabel: `${answersStats.total} generated`, value: `${answersStats.published}`, icon: MessageSquare },
+    { label: "High Citation", sublabel: "Score ≥ 80%", value: answersStats.highCitation.toString(), icon: Target },
+    { label: "Avg AEO Score", sublabel: "Citation potential", value: answersStats.avgScore > 0 ? `${answersStats.avgScore}%` : "—", icon: TrendingUp },
+    { label: "AI Platforms Targeted", sublabel: AI_PLATFORMS.slice(0, 3).join(' · '), value: AI_PLATFORMS.length.toString(), icon: Globe },
   ];
 
   const quickActions = [
-    {
-      title: "AEO Wizard",
-      description: "Generate citation opportunities",
-      icon: Lightbulb,
-      url: "/wizard",
-      color: "from-violet-500 to-violet-600"
-    },
-    {
-      title: "Opportunities",
-      description: "View your AEO opportunities",
-      icon: Sparkles,
-      url: "/opportunities",
-      color: "from-violet-500 to-violet-600"
-    },
-    {
-      title: "Integrations",
-      description: "Connect your platforms",
-      icon: Link,
-      url: "/integrations",
-      color: "from-violet-500 to-violet-600"
-    },
-    {
-      title: "Settings",
-      description: "Configure LLMs.txt",
-      icon: Settings,
-      url: "/settings",
-      color: "from-violet-500 to-violet-600"
-    },
+    { title: "AEO Wizard", description: "Generate citation opportunities", icon: Lightbulb, url: "/wizard" },
+    { title: "Opportunities", description: "View your AEO opportunities", icon: Sparkles, url: "/opportunities" },
+    { title: "Integrations", description: "Connect your platforms", icon: Link, url: "/integrations" },
+    { title: "Settings", description: "Configure LLMs.txt", icon: Settings, url: "/settings" },
   ];
 
-  const planFeatures = [
-    "30 SEO/LLM optimized articles",
-    "Automatic quality backlinks",
-    "Technical SEO audits",
-    "Reddit agent branding",
-    "20+ languages support",
-  ];
+  const planFeatures = ["30 SEO/LLM optimized articles", "Automatic quality backlinks", "Technical SEO audits", "Reddit agent branding", "20+ languages support"];
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">AEO Dashboard</h1>
         <p className="text-muted-foreground mt-1">Optimize your visibility on AI answer engines</p>
       </div>
 
-      {/* Subscription Banner */}
-      <Card className={`p-6 ${subscribed ? 'bg-violet-500/10 border-violet-500/20' : 'bg-violet-500/10 border-violet-500/20'}`}>
+      <Card className={`p-6 ${subscribed ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'}`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${subscribed ? 'bg-violet-500' : 'bg-violet-500'}`}>
-              {subscribed ? (
-                <Check className="w-6 h-6 text-white" />
-              ) : (
-                <Crown className="w-6 h-6 text-white" />
-              )}
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[hsl(222,47%,11%)]">
+              {subscribed ? <Check className="w-6 h-6 text-white" /> : <Crown className="w-6 h-6 text-white" />}
             </div>
             <div>
-              <h3 className="font-semibold">
-                {subscribed ? "All-in-One Plan Active" : "Start Your Free Trial"}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {subscribed 
-                  ? "Full access to all features"
-                  : "3 days free, then $99/month"}
-              </p>
+              <h3 className="font-semibold">{subscribed ? "All-in-One Plan Active" : "Start Your Free Trial"}</h3>
+              <p className="text-sm text-muted-foreground">{subscribed ? "Full access to all features" : "3 days free, then $99/month"}</p>
             </div>
           </div>
-          
           {subscribed ? (
             <div className="flex flex-wrap gap-2">
               {planFeatures.map((feature, index) => (
-                <span key={index} className="inline-flex items-center gap-1 text-xs bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-full">
-                  <Check className="w-3 h-3" />
-                  {feature}
+                <span key={index} className="inline-flex items-center gap-1 text-xs bg-foreground/5 text-foreground/70 px-2 py-1 rounded-full">
+                  <Check className="w-3 h-3" />{feature}
                 </span>
               ))}
             </div>
           ) : (
-            <Button 
-              onClick={startCheckout}
-              disabled={isLoading}
-               className="bg-violet-500 hover:bg-violet-600 text-white"
-             >
-              Start 3-Day Free Trial
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button onClick={startCheckout} disabled={isLoading} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+              Start 3-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
         </div>
       </Card>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <Card 
-            key={index} 
-            className="p-6 hover:border-primary/40 transition-all"
-          >
+          <Card key={index} className="p-6 hover:border-foreground/20 transition-all">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-3xl font-bold mt-2">
-                  {stat.value}
-                </p>
-                {stat.sublabel && (
-                  <p className="text-xs text-muted-foreground mt-1">{stat.sublabel}</p>
-                )}
+                <p className="text-3xl font-bold mt-2">{stat.value}</p>
+                {stat.sublabel && <p className="text-xs text-muted-foreground mt-1">{stat.sublabel}</p>}
               </div>
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+              <div className="w-10 h-10 rounded-xl bg-[hsl(222,47%,11%)] flex items-center justify-center">
                 <stat.icon className="w-5 h-5 text-white" />
               </div>
             </div>
@@ -213,46 +101,32 @@ export default function AeoDashboard() {
         ))}
       </div>
 
-      {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold mb-4">Quick actions</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
-            <Card 
-              key={index}
-              className="p-6 hover:border-primary/40 transition-all cursor-pointer group"
-              onClick={() => navigate(action.url)}
-            >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+            <Card key={index} className="p-6 hover:border-foreground/20 transition-all cursor-pointer group" onClick={() => navigate(action.url)}>
+              <div className="w-12 h-12 rounded-xl bg-[hsl(222,47%,11%)] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <action.icon className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold mb-1">{action.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
-              <div className="flex items-center text-primary text-sm font-medium">
-                Go
-                <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-center text-foreground text-sm font-medium">
+                Go <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
             </Card>
           ))}
         </div>
       </div>
 
-      {/* Getting Started */}
-      <Card className="bg-violet-500/10 border-violet-500/20 p-8">
+      <Card className="bg-[hsl(222,47%,11%)] border-white/10 p-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Ready to be cited by AI?</h2>
-            <p className="text-muted-foreground">
-              Start by generating your first AEO opportunities with the wizard.
-            </p>
+            <h2 className="text-2xl font-bold mb-2 text-white">Ready to be cited by AI?</h2>
+            <p className="text-white/60">Start by generating your first AEO opportunities with the wizard.</p>
           </div>
-          <Button 
-            size="lg"
-            className="bg-violet-500 hover:bg-violet-600 text-white shadow-lg shadow-violet-500/25"
-            onClick={() => navigate('/wizard')}
-          >
-            Start wizard
-            <ArrowRight className="w-5 h-5 ml-2" />
+          <Button size="lg" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" onClick={() => navigate('/wizard')}>
+            Start wizard <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
       </Card>

@@ -7,15 +7,12 @@ export function PublicFooter() {
     <footer className="bg-[hsl(222,47%,11%)] border-t border-white/10">
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
-          {/* Company Info */}
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-white">Lovely<span className="text-violet-400">Answers</span></span>
+              <span className="font-bold text-white">LovelyAnswers</span>
             </Link>
-            <p className="text-sm text-white/50 mb-4 max-w-xs">
-              The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.
-            </p>
+            <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
             <div className="text-sm text-white/40 space-y-1">
               <p className="font-medium text-white/60">LovelyAnswers Ltd</p>
               <p>Suite 4, Piccadilly House</p>
@@ -23,8 +20,6 @@ export function PublicFooter() {
               <p>United Kingdom</p>
             </div>
           </div>
-
-          {/* Product Links */}
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Product</h4>
             <ul className="space-y-2 text-sm">
@@ -35,8 +30,6 @@ export function PublicFooter() {
               <li><Link to="/onboarding" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
             </ul>
           </div>
-
-          {/* Legal Links */}
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Company</h4>
             <ul className="space-y-2 text-sm">
@@ -44,48 +37,28 @@ export function PublicFooter() {
               <li><Link to="/terms" className="text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
               <li><Link to="/privacy" className="text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><a href="mailto:support@lovelyanswers.io" className="text-white/40 hover:text-white transition-colors">Contact</a></li>
-              <li>
-                <a href="https://lovelyanswers.io" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">
-                  lovelyanswers.io <ExternalLink className="h-3 w-3" />
-                </a>
-              </li>
+              <li><a href="https://lovelyanswers.io" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">lovelyanswers.io <ExternalLink className="h-3 w-3" /></a></li>
             </ul>
           </div>
-
-          {/* Trust Badges */}
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Trust & Security</h4>
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-white/40">
-                <Shield className="h-4 w-4 text-violet-400" />
-                <span>Secure Payment</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-white/40">
-                <CreditCard className="h-4 w-4 text-violet-400" />
-                <span>Powered by Stripe</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-white/40">
-                <Star className="h-4 w-4 text-yellow-400" />
-                <span>Trusted by 500+ businesses</span>
-              </div>
+              <div className="flex items-center gap-2 text-sm text-white/40"><Shield className="h-4 w-4 text-white/50" /><span>Secure Payment</span></div>
+              <div className="flex items-center gap-2 text-sm text-white/40"><CreditCard className="h-4 w-4 text-white/50" /><span>Powered by Stripe</span></div>
+              <div className="flex items-center gap-2 text-sm text-white/40"><Star className="h-4 w-4 text-yellow-400" /><span>Trusted by 500+ businesses</span></div>
             </div>
-            
             <div className="mt-6 pt-4 border-t border-white/10">
               <p className="text-xs text-white/30 mb-2">Resources</p>
               <div className="flex flex-wrap gap-2">
-                <Link to="/blog" className="text-xs text-white/30 hover:text-violet-400 transition-colors">AEO Articles</Link>
+                <Link to="/blog" className="text-xs text-white/30 hover:text-white transition-colors">AEO Articles</Link>
                 <span className="text-white/20">•</span>
-                <Link to="/localAEO" className="text-xs text-white/30 hover:text-violet-400 transition-colors">Local SEO</Link>
+                <Link to="/localAEO" className="text-xs text-white/30 hover:text-white transition-colors">Local SEO</Link>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/30">
-            © {new Date().getFullYear()} LovelyAnswers Ltd. All rights reserved.
-          </p>
+          <p className="text-sm text-white/30">© {new Date().getFullYear()} LovelyAnswers Ltd. All rights reserved.</p>
           <div className="flex items-center gap-4 text-sm text-white/30">
             <span>Answer Engine Optimization Platform</span>
             <span className="hidden md:inline">•</span>

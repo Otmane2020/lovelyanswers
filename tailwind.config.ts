@@ -50,20 +50,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Aeoreply custom colors
-        violet: {
-          50: "#f5f3ff",
-          100: "#ede9fe",
-          200: "#ddd6fe",
-          300: "#c4b5fd",
-          400: "#a78bfa",
-          500: "#8b5cf6",
-          600: "#7c3aed",
-          700: "#6d28d9",
-          800: "#5b21b6",
-          900: "#4c1d95",
-          950: "#2e1065",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -74,9 +60,9 @@ export default {
         "3xl": "2rem",
       },
       boxShadow: {
-        'glow': '0 0 40px hsla(262, 83%, 58%, 0.3)',
-        'glow-sm': '0 0 20px hsla(262, 83%, 58%, 0.2)',
-        'soft': '0 4px 24px -4px hsla(262, 83%, 58%, 0.15)',
+        'glow': '0 0 40px hsla(222, 47%, 30%, 0.3)',
+        'glow-sm': '0 0 20px hsla(222, 47%, 30%, 0.2)',
+        'soft': '0 4px 24px -4px hsla(222, 47%, 30%, 0.15)',
         'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         'card-hover': '0 10px 40px -10px rgb(0 0 0 / 0.2)',
       },
