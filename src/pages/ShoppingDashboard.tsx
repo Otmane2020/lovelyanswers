@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ export default function ShoppingDashboard() {
     : 0;
 
   return (
+    <DashboardLayout>
     <SubscriptionGate title="Unlock AI Shopping" description="Optimize your product listings for ChatGPT, Gemini, and AI-powered search engines.">
     <div className="space-y-8">
       <div>
@@ -192,5 +194,6 @@ export default function ShoppingDashboard() {
       </div>
     </div>
     </SubscriptionGate>
+    </DashboardLayout>
   );
 }
