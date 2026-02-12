@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,7 @@ export default function ShoppingPlanning() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -127,5 +129,6 @@ export default function ShoppingPlanning() {
         )}
       </div>
     </div>
+    </DashboardLayout>
   );
 }
