@@ -488,13 +488,13 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(222,47%,11%)] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="py-6 px-4 border-b border-white/10">
+      <header className="py-6 px-4 border-b border-border">
         <div className="flex items-center justify-center gap-2">
           <AnimatedLogo size="md" />
-          <span className="text-xl font-bold tracking-tight text-white">
-            Lovely<span className="text-violet-400">Answers</span>
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            Lovely<span className="text-primary">Answers</span>
           </span>
         </div>
       </header>
@@ -517,7 +517,7 @@ export default function Onboarding() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-violet-500/10 border border-primary/20"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border"
                 >
                   <Bot className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-primary">Free AI Visibility Audit — 30 seconds</span>
@@ -527,7 +527,7 @@ export default function Onboarding() {
                 <div className="space-y-3">
                   <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
                     Is ChatGPT Recommending{" "}
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">
+                    <span className="text-primary">
                       Your Business?
                     </span>
                   </h1>
@@ -600,7 +600,7 @@ export default function Onboarding() {
                     transition={{ delay: 0.3 }}
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left max-w-sm mx-auto"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
                       M
                     </div>
                     <div>
@@ -647,7 +647,7 @@ export default function Onboarding() {
                   transition={{ duration: 0.5 }}
                   className="relative mx-auto w-32 h-32"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-violet-500/30 rounded-full blur-[40px]" />
+                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-[40px]" />
                   <img 
                     src={lovelyMascot} 
                     alt="Lovely analyzing your site" 
@@ -841,7 +841,7 @@ export default function Onboarding() {
                 className="space-y-6 text-center"
               >
                 <div className="space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <Sparkles className="w-8 h-8 text-primary" />
                   </div>
                   <h1 className="text-2xl font-bold tracking-tight">Your report is ready!</h1>
@@ -969,7 +969,7 @@ export default function Onboarding() {
                 </div>
 
                 {/* Solution teaser */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/30 flex items-center gap-4">
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-4">
                   <img 
                     src={lovelyRobotMascot} 
                     alt="Lovely AI Agent" 
@@ -1144,7 +1144,7 @@ export default function Onboarding() {
               <Button
                 onClick={handleCheckout}
                 disabled={isCheckingOut}
-                className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+                className="w-full h-14 text-lg font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity rounded-xl"
               >
                 {isCheckingOut ? (
                   <>
@@ -1167,9 +1167,7 @@ export default function Onboarding() {
                 }
                 className={cn(
                   "w-full h-14 text-lg font-medium hover:opacity-90 transition-opacity rounded-xl",
-                  currentStep === 7
-                    ? "bg-gradient-to-r from-primary to-violet-500"
-                    : "bg-gradient-to-r from-primary to-violet-500"
+                  "bg-primary text-primary-foreground"
                 )}
               >
                 {currentStep === 1 ? (
