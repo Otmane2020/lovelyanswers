@@ -30,7 +30,6 @@ import AeoReddit from "./pages/AeoReddit";
 import AeoPlanning from "./pages/AeoPlanning";
 import AeoWizard from "./pages/AeoWizard";
 import AeoHistory from "./pages/AeoHistory";
-import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
 
@@ -72,8 +71,8 @@ const App = () => (
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/signup" element={<Signup />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/wizard" element={<ProtectedRoute><AeoWizard /></ProtectedRoute>} />
+                  <Route path="/onboarding" element={<Signup />} />
+                  <Route path="/wizard" element={<ProtectedRoute requireSubscription={false}><AeoWizard /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/seo-audit" element={<ProtectedRoute><AeoSeoAudit /></ProtectedRoute>} />
                   <Route path="/keywords" element={<ProtectedRoute><AeoKeywords /></ProtectedRoute>} />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check } from "lucide-react";
+import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateProject } from "@/hooks/useProjects";
@@ -74,7 +74,6 @@ export default function AeoWizard() {
         ? data.websiteUrl 
         : `https://${data.websiteUrl}`;
 
-      // Use analyze-website which extracts keywords, competitors, audiences
       const { data: result, error } = await supabase.functions.invoke("analyze-website", {
         body: { url: urlToAnalyze },
       });
@@ -89,7 +88,6 @@ export default function AeoWizard() {
         }));
       }
       
-      // Store extracted keywords, competitors, audiences for later
       if (result?.keywords && Array.isArray(result.keywords)) {
         setAnalyzedKeywords(result.keywords.map((k: any) => 
           typeof k === "string" ? { keyword: k, intent: "informational" } : k
@@ -101,7 +99,6 @@ export default function AeoWizard() {
       setStep(2);
     } catch (error) {
       console.error("Analysis error:", error);
-      // Continue to step 2 even if analysis fails
       setStep(2);
     } finally {
       setIsAnalyzing(false);
@@ -138,18 +135,23 @@ export default function AeoWizard() {
           is_used: false,
         }));
         
-        const { error: kwError } = await supabase
-          .from("keywords")
-          .insert(keywordRows);
-        
-        if (kwError) {
-          console.error("Failed to insert keywords:", kwError);
-        } else {
-          console.log(`Auto-inserted ${keywordRows.length} keywords`);
-        }
+        await supabase.from("keywords").insert(keywordRows);
       }
 
-      toast.success("Project created! Welcome to LovelyAnswers 💜");
+      // Generate 30 days of TITLES ONLY (no content) - fast, no AI content generation
+      if (project?.id) {
+        supabase.functions.invoke('generate-30-days-content', {
+          body: { 
+            projectId: project.id,
+            language: data.language,
+            days: 30,
+            questionsPerDay: 1,
+            titlesOnly: true,
+          }
+        }).catch(err => console.error('[WIZARD] Title generation error:', err));
+      }
+
+      toast.success("Project created! Your 30-day content plan is generating 💜");
       navigate("/dashboard");
     } catch (error) {
       console.error("Error creating project:", error);
@@ -170,6 +172,7 @@ export default function AeoWizard() {
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
             LovelyAnswers
           </h1>
+          <p className="text-muted-foreground text-sm mt-1">Set up your project</p>
         </div>
 
         {/* Progress */}
@@ -188,7 +191,7 @@ export default function AeoWizard() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2">What's your website?</h2>
                 <p className="text-muted-foreground text-sm">
-                  We'll analyze it to personalize your AEO strategy
+                  We'll analyze it to detect keywords, audiences & competitors
                 </p>
               </div>
 
@@ -209,7 +212,7 @@ export default function AeoWizard() {
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Analyzing...
+                      Analyzing your site...
                     </>
                   ) : (
                     <>
@@ -228,11 +231,35 @@ export default function AeoWizard() {
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center mx-auto mb-4">
                   <FileText className="w-7 h-7 text-primary-foreground" />
                 </div>
-                <h2 className="text-xl font-semibold mb-2">Describe your business</h2>
+                <h2 className="text-xl font-semibold mb-2">Confirm your business</h2>
                 <p className="text-muted-foreground text-sm">
-                  This helps us generate relevant AI answers
+                  We'll generate 30 days of content titles for you
                 </p>
               </div>
+
+              {/* Show detected data */}
+              {(analyzedKeywords.length > 0 || analyzedCompetitors.length > 0 || analyzedAudiences.length > 0) && (
+                <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  {analyzedKeywords.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-muted-foreground">{analyzedKeywords.length} keywords detected</span>
+                    </div>
+                  )}
+                  {analyzedCompetitors.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-muted-foreground">{analyzedCompetitors.length} competitors found</span>
+                    </div>
+                  )}
+                  {analyzedAudiences.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-muted-foreground">{analyzedAudiences.length} target audiences identified</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-4">
                 <Textarea
@@ -262,8 +289,8 @@ export default function AeoWizard() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Launch AEO
+                        <Rocket className="w-5 h-5 mr-2" />
+                        Launch my project
                       </>
                     )}
                   </Button>
@@ -277,11 +304,11 @@ export default function AeoWizard() {
         <div className="flex items-center justify-center gap-6 mt-8 text-muted-foreground text-sm">
           <div className="flex items-center gap-1.5">
             <Check className="w-4 h-4 text-green-500" />
-            <span>3-day free trial</span>
+            <span>Free to start</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Check className="w-4 h-4 text-green-500" />
-            <span>Cancel anytime</span>
+            <span>No credit card required</span>
           </div>
         </div>
       </div>

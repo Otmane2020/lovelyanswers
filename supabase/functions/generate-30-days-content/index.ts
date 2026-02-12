@@ -696,7 +696,7 @@ serve(async (req) => {
     // CHANGED: overwrite = false by default to prevent deleting existing content
     // questionsPerDay = 1 means 1 question generates 1 answer + 1 article = 2 items per day
     // Language is now fetched from project/generation_settings, not body - default is "en"
-    const { projectId, days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1 } = body;
+    const { projectId, days = 5, overwrite = false, startOffset = 0, questionsPerDay = 1, titlesOnly = false } = body;
     let language = body.language || null; // Will be overridden by project settings if not provided
 
     console.log(`[generate-30-days] Request params: projectId=${projectId}, userId=${userId}, days=${days}`);
@@ -992,8 +992,21 @@ serve(async (req) => {
         }
 
         // Otherwise: generate a NEW answer (and article)
-        const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
-        const score = computeScore(answerData.answer, brandName);
+        let answerData: { answer: string; bullets: string[]; faq: { q: string; a: string }[] };
+        let score: number;
+
+        if (titlesOnly) {
+          // TITLES-ONLY MODE: create placeholder entries without AI content generation
+          answerData = {
+            answer: "",
+            bullets: [],
+            faq: [],
+          };
+          score = 0;
+        } else {
+          answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
+          score = computeScore(answerData.answer, brandName);
+        }
 
         // Insert answer
         const { data: insertedAnswer, error: answerError } = await supabase
@@ -1001,7 +1014,7 @@ serve(async (req) => {
           .insert({
             project_id: projectId,
             question: q.question,
-            answer: answerData.answer,
+            answer: answerData.answer || "Content locked — subscribe to unlock.",
             slug: generateSlug(q.question),
             intent: q.intent,
             score,
@@ -1023,11 +1036,25 @@ serve(async (req) => {
         answersCreated.push(insertedAnswer);
         console.log(`[generate-30-days] Answer created: ${insertedAnswer.id}`);
 
-        // Generate article
-        const articleData = await generateArticle(
-          q.question, answerData.answer, answerData.bullets, answerData.faq,
-          brandName, description, language, apiKey
-        );
+        // Generate article (or placeholder in titlesOnly mode)
+        let articleData: { title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number };
+
+        if (titlesOnly) {
+          // Create title from question
+          const titleFromQuestion = q.question.replace(/\?$/, "").trim();
+          articleData = {
+            title: titleFromQuestion,
+            content: "",
+            htmlContent: "",
+            metaDescription: "",
+            wordCount: 0,
+          };
+        } else {
+          articleData = await generateArticle(
+            q.question, answerData.answer, answerData.bullets, answerData.faq,
+            brandName, description, language, apiKey
+          );
+        }
 
         // Insert article
         const { data: insertedArticle, error: articleError } = await supabase
@@ -1036,12 +1063,12 @@ serve(async (req) => {
             project_id: projectId,
             linked_answer_id: insertedAnswer.id,
             title: articleData.title,
-            content: articleData.content,
-            html_content: articleData.htmlContent,
-            meta_description: articleData.metaDescription,
+            content: articleData.content || null,
+            html_content: articleData.htmlContent || null,
+            meta_description: articleData.metaDescription || null,
             word_count: articleData.wordCount,
             slug: generateSlug(articleData.title),
-            status: "scheduled",
+            status: titlesOnly ? "locked" : "scheduled",
             scheduled_date: scheduledDateStr,
             aeo_score: score,
           })
