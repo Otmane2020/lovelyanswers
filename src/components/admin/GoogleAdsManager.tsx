@@ -116,16 +116,7 @@ export function GoogleAdsManager() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Load synced data
-      const { data, error } = await supabase.functions.invoke("sync-google-ads", {
-        body: { action: "get_synced_data" },
-      });
-      if (!error && data) {
-        setSyncedCampaigns(data.campaigns || []);
-        setSyncStatus(data.syncStatus || null);
-      }
-
-      // Check connection status
+      // Check connection status FIRST
       const { data: conn } = await supabase
         .from("user_connections")
         .select("status, account_id, metadata")
@@ -134,6 +125,18 @@ export function GoogleAdsManager() {
         .maybeSingle();
 
       setConnectionInfo(conn as ConnectionInfo | null);
+
+      // Only load synced data if an account is actually selected
+      const hasValidAccount = conn?.account_id && conn.account_id !== "pending";
+      if (hasValidAccount) {
+        const { data, error } = await supabase.functions.invoke("sync-google-ads", {
+          body: { action: "get_synced_data" },
+        });
+        if (!error && data) {
+          setSyncedCampaigns(data.campaigns || []);
+          setSyncStatus(data.syncStatus || null);
+        }
+      }
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
