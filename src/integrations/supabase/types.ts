@@ -388,6 +388,257 @@ export type Database = {
           },
         ]
       }
+      google_ads_accounts: {
+        Row: {
+          access_token: string | null
+          account_name: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          is_active: boolean | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_name?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_active?: boolean | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_name?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_active?: boolean | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_ads_ad_groups: {
+        Row: {
+          ai_generated: boolean | null
+          campaign_id: string
+          cpc_bid: number | null
+          created_at: string
+          google_ad_group_id: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          campaign_id: string
+          cpc_bid?: number | null
+          created_at?: string
+          google_ad_group_id?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          campaign_id?: string
+          cpc_bid?: number | null
+          created_at?: string
+          google_ad_group_id?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_ad_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_ads: {
+        Row: {
+          ad_group_id: string
+          ai_generated: boolean | null
+          created_at: string
+          descriptions: string[]
+          final_urls: string[]
+          google_ad_id: string | null
+          headlines: string[]
+          id: string
+          path1: string | null
+          path2: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_group_id: string
+          ai_generated?: boolean | null
+          created_at?: string
+          descriptions?: string[]
+          final_urls?: string[]
+          google_ad_id?: string | null
+          headlines?: string[]
+          id?: string
+          path1?: string | null
+          path2?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_group_id?: string
+          ai_generated?: boolean | null
+          created_at?: string
+          descriptions?: string[]
+          final_urls?: string[]
+          google_ad_id?: string | null
+          headlines?: string[]
+          id?: string
+          path1?: string | null
+          path2?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_ads_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_ad_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_campaigns: {
+        Row: {
+          account_id: string
+          ai_generated: boolean | null
+          ai_prompt: string | null
+          bidding_strategy: string | null
+          budget_amount: number | null
+          budget_currency: string | null
+          campaign_type: string | null
+          created_at: string
+          end_date: string | null
+          google_campaign_id: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string | null
+          target_languages: string[] | null
+          target_locations: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          ai_generated?: boolean | null
+          ai_prompt?: string | null
+          bidding_strategy?: string | null
+          budget_amount?: number | null
+          budget_currency?: string | null
+          campaign_type?: string | null
+          created_at?: string
+          end_date?: string | null
+          google_campaign_id?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string | null
+          target_languages?: string[] | null
+          target_locations?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          ai_generated?: boolean | null
+          ai_prompt?: string | null
+          bidding_strategy?: string | null
+          budget_amount?: number | null
+          budget_currency?: string | null
+          campaign_type?: string | null
+          created_at?: string
+          end_date?: string | null
+          google_campaign_id?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string | null
+          target_languages?: string[] | null
+          target_locations?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_keywords: {
+        Row: {
+          ad_group_id: string
+          ai_generated: boolean | null
+          cpc_bid: number | null
+          created_at: string
+          id: string
+          is_negative: boolean | null
+          keyword: string
+          match_type: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_group_id: string
+          ai_generated?: boolean | null
+          cpc_bid?: number | null
+          created_at?: string
+          id?: string
+          is_negative?: boolean | null
+          keyword: string
+          match_type?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_group_id?: string
+          ai_generated?: boolean | null
+          cpc_bid?: number | null
+          created_at?: string
+          id?: string
+          is_negative?: boolean | null
+          keyword?: string
+          match_type?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_keywords_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_ad_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_search_console_data: {
         Row: {
           clicks: number | null
