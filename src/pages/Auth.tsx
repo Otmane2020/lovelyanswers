@@ -155,124 +155,23 @@ export default function Auth() {
 
       // If user already has projects, clear any stale onboarding data and go to dashboard
       if (existingProjects && existingProjects.length > 0) {
-        // Clear stale onboarding data to prevent accidental project creation
         localStorage.removeItem('onboarding_data');
         localStorage.removeItem('onboarding_email');
         
         console.log("[AUTH] Existing user with project, redirecting to dashboard...");
-        navigate("/dashboard", { replace: true });
+        if (checkoutSuccess) {
+          navigate("/dashboard?subscription=success", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
         return;
       }
 
-      // ONLY create project from onboarding data if user has NO existing projects
-      const savedOnboardingData = localStorage.getItem('onboarding_data');
-      
-      if (savedOnboardingData) {
-        console.log("[AUTH] New user with saved onboarding data, creating project...");
-        try {
-          const onboardingData = JSON.parse(savedOnboardingData);
-          
-          let domain = "";
-          try {
-            const urlObj = new URL(onboardingData.websiteUrl.startsWith("http") ? onboardingData.websiteUrl : `https://${onboardingData.websiteUrl}`);
-            domain = urlObj.hostname.replace("www.", "");
-          } catch { domain = onboardingData.websiteUrl; }
-          
-          const brandName = domain.split(".")[0].replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
-          
-          // Create the project
-          const { data: newProject, error: projectError } = await supabase
-            .from("projects")
-            .insert({
-              user_id: user.id,
-              name: brandName,
-              website_url: onboardingData.websiteUrl,
-              domain: domain,
-              language: onboardingData.language || "en",
-              business_description: onboardingData.businessDescription,
-              business_type: "service",
-              audience: Array.isArray(onboardingData.targetAudiences) ? onboardingData.targetAudiences.join(", ") : "",
-              brand_name: brandName,
-              example_url: onboardingData.exampleUrl || null,
-              competitors: Array.isArray(onboardingData.competitors) ? onboardingData.competitors : [],
-            })
-            .select()
-            .single();
-          
-          if (projectError) {
-            console.error("[AUTH] Project creation error:", projectError);
-          } else if (newProject) {
-            console.log("[AUTH] Project created:", newProject.id);
-            
-            // Save keywords if any
-            if (onboardingData.keywords && onboardingData.keywords.length > 0) {
-              const keywordsToInsert = onboardingData.keywords.map((k: any) => ({
-                project_id: newProject.id,
-                keyword: typeof k === 'string' ? k : k.keyword,
-                intent: k.intent || 'informational',
-                source_url: onboardingData.websiteUrl,
-                is_used: false,
-              }));
-              
-              await supabase.from('keywords').insert(keywordsToInsert);
-            }
-            
-            // Fire-and-forget: Start AEO answer generation in background
-            supabase.functions.invoke('auto-generate-aeo', {
-              body: { 
-                projectId: newProject.id,
-                language: onboardingData.language || "en"
-              }
-            }).catch(err => console.error('[AUTH] AEO generation error:', err));
-            
-            // Fire-and-forget: Start 30-day content generation (answers + articles)
-            supabase.functions.invoke('generate-30-days-content', {
-              body: { 
-                projectId: newProject.id,
-                language: onboardingData.language || "en",
-                days: 30,
-                questionsPerDay: 1
-              }
-            }).catch(err => console.error('[AUTH] 30-day content generation error:', err));
-            
-            // Fire-and-forget: Send audit report by email
-            if (user.email && onboardingData.websiteUrl) {
-              supabase.functions.invoke('send-audit-email', {
-                body: { 
-                  url: onboardingData.websiteUrl,
-                  email: user.email,
-                }
-              }).then(res => {
-                if (res.data?.auditId) {
-                  console.log('[AUTH] Audit email sent, ID:', res.data.auditId);
-                }
-              }).catch(err => console.error('[AUTH] Audit email error:', err));
-            }
-            
-            // Clear onboarding data and email
-            localStorage.removeItem('onboarding_data');
-            localStorage.removeItem('onboarding_email');
-            
-            // If coming from checkout success, go to dashboard directly
-            if (checkoutSuccess) {
-              console.log("[AUTH] Checkout success, redirecting to dashboard...");
-              navigate("/dashboard?subscription=success", { replace: true });
-            } else {
-              // Otherwise go to checkout
-              navigate("/checkout", { replace: true });
-            }
-            return;
-          }
-        } catch (parseError) {
-          console.error("[AUTH] Error parsing onboarding data:", parseError);
-          localStorage.removeItem('onboarding_data');
-          localStorage.removeItem('onboarding_email');
-        }
-      }
-
-      // New user without project and without onboarding data → Onboarding
-      console.log("[AUTH] No projects, redirecting to onboarding...");
-      navigate("/onboarding", { replace: true });
+      // New user without project → Wizard (project creation happens there)
+      localStorage.removeItem('onboarding_data');
+      localStorage.removeItem('onboarding_email');
+      console.log("[AUTH] No projects, redirecting to wizard...");
+      navigate("/wizard", { replace: true });
     };
 
     checkUserAndRedirect();
@@ -451,7 +350,7 @@ export default function Auth() {
                     {isLogin ? "Don't have an account? " : "Already have an account? "}
                     {isLogin ? (
                       <button
-                        onClick={() => navigate("/onboarding")}
+                        onClick={() => navigate("/signup")}
                         className="text-primary font-medium hover:underline"
                       >
                         Sign up

@@ -212,9 +212,9 @@ export default function Index() {
 
   const handleGetStarted = () => {
     if (websiteUrl.trim()) {
-      navigate(`/onboarding?url=${encodeURIComponent(websiteUrl)}`);
+      navigate(`/signup`);
     } else {
-      navigate(`/onboarding`);
+      navigate(`/signup`);
     }
   };
 
@@ -298,7 +298,7 @@ export default function Index() {
                 className="text-white/70 hover:text-white hover:bg-white/10"
                 asChild
               >
-                <Link to="/onboarding">Free Audit</Link>
+                <Link to="/signup">Get Started Free</Link>
               </Button>
               <Button
                 variant="ghost"

@@ -36,7 +36,7 @@ export default function Signup() {
     const checkProject = async () => {
       const { data } = await supabase.from("projects").select("id").eq("user_id", user.id).limit(1);
       if (data && data.length > 0) navigate("/dashboard", { replace: true });
-      else navigate("/onboarding", { replace: true });
+      else navigate("/wizard", { replace: true });
     };
     checkProject();
   }, [user, navigate]);
