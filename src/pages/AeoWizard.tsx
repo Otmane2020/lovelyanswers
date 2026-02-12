@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket, Search, Users, Swords, TrendingUp } from "lucide-react";
+import { Sparkles, ArrowRight, Globe, FileText, Loader2, Check, Rocket, Search, Users, Swords, TrendingUp, Shield, Bot, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
-
+import { cn } from "@/lib/utils";
 interface AnalyzedKeyword {
   keyword: string;
   intent: string;
@@ -23,6 +24,7 @@ export default function AeoWizard() {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState(0);
   const [analyzedKeywords, setAnalyzedKeywords] = useState<AnalyzedKeyword[]>([]);
   const [analyzedCompetitors, setAnalyzedCompetitors] = useState<string[]>([]);
   const [analyzedAudiences, setAnalyzedAudiences] = useState<string[]>([]);
@@ -63,12 +65,34 @@ export default function AeoWizard() {
     }
   };
 
+  const getDomainFromUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url.startsWith("http") ? url : `https://${url}`);
+      return urlObj.hostname.replace("www.", "");
+    } catch {
+      return url.replace(/^(https?:\/\/)?(www\.)?/, "").split("/")[0];
+    }
+  };
+
   const analyzeWebsite = async () => {
     if (!isValidUrl(data.websiteUrl)) {
       toast.error("Please enter a valid URL");
       return;
     }
     setIsAnalyzing(true);
+    setAnalysisPhase(0);
+    setStep(3); // Go to analysis screen
+
+    // Progressive phases for visual feedback
+    const phaseTimers = [
+      setTimeout(() => setAnalysisPhase(1), 800),
+      setTimeout(() => setAnalysisPhase(2), 2200),
+      setTimeout(() => setAnalysisPhase(3), 4000),
+      setTimeout(() => setAnalysisPhase(4), 6000),
+    ];
+
+    const analysisStart = Date.now();
+
     try {
       const urlToAnalyze = data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`;
       const { data: result, error } = await supabase.functions.invoke("analyze-website", {
@@ -83,9 +107,17 @@ export default function AeoWizard() {
       }
       if (result?.competitors) setAnalyzedCompetitors(result.competitors);
       if (result?.targetAudiences) setAnalyzedAudiences(result.targetAudiences);
+
+      // Ensure minimum 5s so user sees all phases
+      const elapsed = Date.now() - analysisStart;
+      const remaining = Math.max(0, 5500 - elapsed);
+      await new Promise(resolve => setTimeout(resolve, remaining));
+
+      phaseTimers.forEach(clearTimeout);
       setStep(2);
     } catch (error) {
       console.error("Analysis error:", error);
+      phaseTimers.forEach(clearTimeout);
       setStep(2);
     } finally {
       setIsAnalyzing(false);
@@ -149,6 +181,7 @@ export default function AeoWizard() {
         <div className="flex items-center gap-2">
           <div className="flex-1 h-1.5 rounded-full bg-primary" />
           <div className={`flex-1 h-1.5 rounded-full transition-colors ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
+          <div className={`flex-1 h-1.5 rounded-full transition-colors ${step >= 3 ? "bg-primary" : "bg-muted"}`} />
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           Step {step} of 2
@@ -157,8 +190,15 @@ export default function AeoWizard() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col px-5 sm:px-8 pb-6 max-w-lg mx-auto w-full">
+        <AnimatePresence mode="wait">
         {step === 1 && (
-          <div className="flex-1 flex flex-col justify-center space-y-6">
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 flex flex-col justify-center space-y-6"
+          >
             <div className="text-center space-y-2">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                 <Globe className="w-6 h-6 text-primary" />
@@ -180,39 +220,134 @@ export default function AeoWizard() {
 
               <Button
                 onClick={analyzeWebsite}
-                disabled={!canProceedStep1 || isAnalyzing}
+                disabled={!canProceedStep1}
                 className="w-full h-12 rounded-xl text-base"
               >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
+                Continue
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
 
             {/* Trust badges */}
             <div className="flex items-center justify-center gap-4 pt-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Check className="w-3.5 h-3.5 text-green-500" />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Free to start</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Check className="w-3.5 h-3.5 text-green-500" />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
                 <span>No card required</span>
               </div>
             </div>
-          </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Radar Analysis Animation */}
+        {step === 3 && (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 flex flex-col justify-center space-y-6"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative mx-auto w-28 h-28 flex items-center justify-center"
+            >
+              {/* Radar pulse rings */}
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="absolute inset-0 rounded-full border-2 border-primary/30"
+                  initial={{ scale: 0.5, opacity: 0.8 }}
+                  animate={{ scale: 1.8, opacity: 0 }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: i * 0.6,
+                    ease: "easeOut",
+                  }}
+                />
+              ))}
+              {/* Rotating sweep line */}
+              <motion.div
+                className="absolute w-full h-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+              >
+                <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 origin-left bg-gradient-to-r from-primary/60 to-transparent" />
+              </motion.div>
+              {/* Center icon */}
+              <div className="relative z-10 w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+                <Globe className="w-6 h-6 text-primary" />
+              </div>
+            </motion.div>
+
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight">Scanning {getDomainFromUrl(data.websiteUrl)}</h2>
+              <p className="text-sm text-muted-foreground">AI-powered analysis in progress…</p>
+            </div>
+
+            <div className="space-y-2.5">
+              {[
+                { label: "Detecting pages & sitemap…", phase: 0, icon: Globe },
+                { label: "Reading your content…", phase: 1, icon: FileText },
+                { label: "Checking AI mentions…", phase: 2, icon: Bot },
+                { label: "Analyzing competitors…", phase: 3, icon: Target },
+                { label: "Calculating visibility score…", phase: 4, icon: TrendingUp },
+              ].map((item, i) => {
+                const Icon = item.icon;
+                const isActive = analysisPhase >= item.phase;
+                const isDone = analysisPhase > item.phase;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: isActive ? 1 : 0.35, x: 0 }}
+                    transition={{ delay: i * 0.15, duration: 0.3 }}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl bg-card border transition-all",
+                      isActive ? "border-primary/30" : "border-border"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+                      isDone ? "bg-emerald-500/20" : isActive ? "bg-primary/20" : "bg-muted"
+                    )}>
+                      {isDone ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : isActive ? (
+                        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className={cn("text-sm", isActive ? "text-foreground" : "text-muted-foreground")}>
+                      {item.label}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 text-center">
+              <Shield className="inline w-3 h-3 mr-1 text-emerald-500" />
+              Your content plan will be ready in seconds
+            </p>
+          </motion.div>
         )}
 
         {step === 2 && (
-          <div className="flex-1 flex flex-col space-y-5 pt-2">
+          <motion.div
+            key="step2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 flex flex-col space-y-5 pt-2"
+          >
             <div className="text-center space-y-1.5">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6 text-primary" />
@@ -331,8 +466,9 @@ export default function AeoWizard() {
                 )}
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );
