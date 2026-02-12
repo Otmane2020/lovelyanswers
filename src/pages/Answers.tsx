@@ -457,10 +457,10 @@ export default function Answers() {
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
-      case 'published': return 'bg-emerald-500/20 text-emerald-500';
-      case 'draft': return 'bg-amber-500/20 text-amber-500';
-      default: return 'bg-muted text-muted-foreground';
-    }
+       case 'published': return 'bg-violet-500/20 text-violet-500';
+       case 'draft': return 'bg-amber-500/20 text-amber-500';
+       default: return 'bg-muted text-muted-foreground';
+     }
   };
 
   return (
@@ -469,13 +469,13 @@ export default function Answers() {
         {/* ChatGPT Logo + Badge - Separate Line */}
         <div className="flex items-center gap-3">
           <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
-          <Badge className="bg-gradient-to-r from-primary to-blue-500 text-white border-0 font-bold text-sm px-3 py-1">
-            Rank First!
+           <Badge className="bg-violet-500 text-white border-0 font-bold text-sm px-3 py-1">
+             Rank First!
           </Badge>
         </div>
 
         {/* Hero Header */}
-        <div className="rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/10 to-emerald-500/10 p-6 border border-border/50">
+        <div className="rounded-xl bg-violet-500/10 p-6 border border-violet-500/20">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex items-center gap-3">

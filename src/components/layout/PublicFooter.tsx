@@ -57,7 +57,7 @@ export function PublicFooter() {
             <h4 className="font-semibold mb-4 text-white/80">Trust & Security</h4>
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-white/40">
-                <Shield className="h-4 w-4 text-emerald-400" />
+                <Shield className="h-4 w-4 text-violet-400" />
                 <span>Secure Payment</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-white/40">

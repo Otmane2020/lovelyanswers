@@ -19,7 +19,7 @@ export default function AeoLocal() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white">
+          <div className="p-2 rounded-xl bg-violet-500 text-white">
             <MapPin className="h-6 w-6" />
           </div>
           <div>

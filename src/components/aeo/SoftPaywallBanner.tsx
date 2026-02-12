@@ -9,10 +9,10 @@ interface SoftPaywallBannerProps {
 
 export function SoftPaywallBanner({ answersCount, onUpgrade }: SoftPaywallBannerProps) {
   return (
-    <Card className="p-6 bg-gradient-to-r from-violet-500/20 to-blue-500/20 border-violet-500/30">
+    <Card className="p-6 bg-violet-500/10 border-violet-500/30">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-violet-500 flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -26,7 +26,7 @@ export function SoftPaywallBanner({ answersCount, onUpgrade }: SoftPaywallBanner
         </div>
         <Button
           onClick={onUpgrade}
-          className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white"
+          className="bg-violet-500 hover:bg-violet-600 text-white"
         >
           Upgrade
           <ArrowRight className="w-4 h-4 ml-2" />

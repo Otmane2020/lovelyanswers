@@ -517,9 +517,9 @@ export default function AeoReddit() {
     
     if (trendScore >= 70) {
       return (
-        <Badge className="bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-600 border-orange-500/30">
-          🔥 Hot ({trendScore})
-        </Badge>
+       <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30">
+           🔥 Hot ({trendScore})
+         </Badge>
       );
     }
     if (trendScore >= 50) {
@@ -576,7 +576,7 @@ export default function AeoReddit() {
             <Button 
               onClick={generateAllReplies}
               disabled={loading}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+              className="bg-violet-500 hover:bg-violet-600 text-white"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Generate All
@@ -655,7 +655,7 @@ export default function AeoReddit() {
           {/* Local AEO */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center">
                 <MapPin className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -667,7 +667,7 @@ export default function AeoReddit() {
           {/* SEO */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -679,7 +679,7 @@ export default function AeoReddit() {
           {/* Reddit Opportunities */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center">
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -691,7 +691,7 @@ export default function AeoReddit() {
           {/* Replies Ready */}
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div>

@@ -74,17 +74,17 @@ const getSourceBadge = (source: SourceType) => {
       );
     case "local":
       return (
-        <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 gap-1">
-          <MapPin className="h-3 w-3" />
-          Local AEO
-        </Badge>
+       <Badge className="bg-violet-400/20 text-violet-500 border-violet-400/30 gap-1">
+           <MapPin className="h-3 w-3" />
+           Local AEO
+         </Badge>
       );
     case "seo":
       return (
-        <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 gap-1">
-          <Search className="h-3 w-3" />
-          SEO
-        </Badge>
+       <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30 gap-1">
+           <Search className="h-3 w-3" />
+           SEO
+         </Badge>
       );
   }
 };
@@ -185,18 +185,18 @@ export default function AeoHistory() {
   const getStatusBadge = (item: { is_public?: boolean; published_at?: string | null; published_url?: string | null }) => {
     if (item.published_url) {
       return (
-        <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 gap-1">
-          <CheckCircle className="h-3 w-3" />
-          Published
-        </Badge>
+       <Badge className="bg-violet-500/20 text-violet-600 border-violet-500/30 gap-1">
+           <CheckCircle className="h-3 w-3" />
+           Published
+         </Badge>
       );
     }
     if (item.is_public) {
       return (
-        <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 gap-1">
-          <Globe className="h-3 w-3" />
-          Public
-        </Badge>
+       <Badge className="bg-violet-400/20 text-violet-500 border-violet-400/30 gap-1">
+           <Globe className="h-3 w-3" />
+           Public
+         </Badge>
       );
     }
     return (
@@ -329,7 +329,7 @@ export default function AeoHistory() {
                           {item.score !== null ? (
                             <Badge 
                               variant="outline" 
-                              className={item.score >= 80 ? "border-emerald-500 text-emerald-600" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}
+                              className={item.score >= 80 ? "border-violet-500 text-violet-600" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}
                             >
                               {item.score}%
                             </Badge>
@@ -377,7 +377,7 @@ export default function AeoHistory() {
                                 onClick={() => window.open(item.published_url!, "_blank")}
                                 title="View on Site"
                               >
-                                <ExternalLink className="h-4 w-4 text-emerald-600" />
+                                 <ExternalLink className="h-4 w-4 text-violet-600" />
                               </Button>
                             )}
                             {item.slug && (
@@ -436,7 +436,7 @@ export default function AeoHistory() {
                         <TableCell>
                           <Badge 
                             variant="outline" 
-                            className={answer.score >= 80 ? "border-emerald-500 text-emerald-600" : answer.score >= 60 ? "border-amber-500 text-amber-600" : ""}
+                             className={answer.score >= 80 ? "border-violet-500 text-violet-600" : answer.score >= 60 ? "border-amber-500 text-amber-600" : ""}
                           >
                             {answer.score}%
                           </Badge>
