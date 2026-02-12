@@ -1,5 +1,5 @@
 import {
-  Home, FileText, BarChart3, Link2, MessageSquareText, Settings, CreditCard, LogOut, CalendarDays, History, HelpCircle, Newspaper, MapPin,
+  Home, FileText, BarChart3, Link2, MessageSquareText, Settings, CreditCard, LogOut, CalendarDays, History, HelpCircle, Newspaper, MapPin, ShoppingCart, Package,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -29,6 +29,11 @@ export function AeoSidebar() {
     { title: "Reddit", url: "/reddit", icon: MessageSquareText },
   ];
 
+  const shoppingMenuItems = [
+    { title: "Products", url: "/shopping", icon: ShoppingCart, badge: "New" },
+    { title: "Product Detail", url: "/shopping/planning", icon: CalendarDays },
+  ];
+
   const otherMenuItems = [
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Billing", url: "/billing", icon: CreditCard },
@@ -55,6 +60,29 @@ export function AeoSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {mainMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} className="h-10 rounded-lg transition-all duration-200 hover:bg-muted data-[active=true]:bg-foreground/5 data-[active=true]:text-foreground data-[active=true]:border-l-2 data-[active=true]:border-foreground data-[active=true]:font-medium">
+                    <NavLink to={item.url} onClick={handleNavClick} className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </div>
+                      {item.badge && state === "expanded" && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-foreground/10 text-foreground/70 border-0">{item.badge}</Badge>
+                      )}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">Shopping</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {shoppingMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} className="h-10 rounded-lg transition-all duration-200 hover:bg-muted data-[active=true]:bg-foreground/5 data-[active=true]:text-foreground data-[active=true]:border-l-2 data-[active=true]:border-foreground data-[active=true]:font-medium">
                     <NavLink to={item.url} onClick={handleNavClick} className="flex items-center justify-between w-full">

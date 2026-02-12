@@ -1366,6 +1366,148 @@ export type Database = {
         }
         Relationships: []
       }
+      shopping_feeds: {
+        Row: {
+          created_at: string
+          feed_type: string | null
+          feed_url: string | null
+          id: string
+          last_synced_at: string | null
+          product_count: number | null
+          project_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feed_type?: string | null
+          feed_url?: string | null
+          id?: string
+          last_synced_at?: string | null
+          product_count?: number | null
+          project_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feed_type?: string | null
+          feed_url?: string | null
+          id?: string
+          last_synced_at?: string | null
+          product_count?: number | null
+          project_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_feeds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_products: {
+        Row: {
+          ai_description: string | null
+          ai_faq: Json | null
+          ai_schema_markup: Json | null
+          ai_score: number | null
+          ai_title: string | null
+          availability: string | null
+          brand: string | null
+          category: string | null
+          condition: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          feed_item_id: string | null
+          gtin: string | null
+          id: string
+          image_url: string | null
+          language: string | null
+          mpn: string | null
+          price: number | null
+          product_url: string | null
+          project_id: string
+          published_at: string | null
+          published_url: string | null
+          scheduled_date: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_description?: string | null
+          ai_faq?: Json | null
+          ai_schema_markup?: Json | null
+          ai_score?: number | null
+          ai_title?: string | null
+          availability?: string | null
+          brand?: string | null
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          feed_item_id?: string | null
+          gtin?: string | null
+          id?: string
+          image_url?: string | null
+          language?: string | null
+          mpn?: string | null
+          price?: number | null
+          product_url?: string | null
+          project_id: string
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_description?: string | null
+          ai_faq?: Json | null
+          ai_schema_markup?: Json | null
+          ai_score?: number | null
+          ai_title?: string | null
+          availability?: string | null
+          brand?: string | null
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          feed_item_id?: string | null
+          gtin?: string | null
+          id?: string
+          image_url?: string | null
+          language?: string | null
+          mpn?: string | null
+          price?: number | null
+          product_url?: string | null
+          project_id?: string
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_products_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_audits: {
         Row: {
           created_at: string
