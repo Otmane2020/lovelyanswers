@@ -196,3 +196,6 @@ verify_jwt = false
 
 [functions.google-ads-oauth-token]
 verify_jwt = false
+
+[functions.sync-google-ads]
+verify_jwt = false

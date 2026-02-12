@@ -74,6 +74,95 @@ export type Database = {
         }
         Relationships: []
       }
+      ads_sync: {
+        Row: {
+          ad_group_name: string | null
+          ad_strength: string | null
+          ad_strength_reasons: Json | null
+          ad_type: string | null
+          campaign_sync_id: string | null
+          clicks: number | null
+          conversions: number | null
+          conversions_value: number | null
+          cost_micros: number | null
+          created_at: string
+          descriptions: Json | null
+          final_urls: string[] | null
+          google_ad_group_id: string | null
+          google_ad_id: string
+          headlines: Json | null
+          id: string
+          impressions: number | null
+          last_synced_at: string | null
+          path1: string | null
+          path2: string | null
+          policy_summary: Json | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_group_name?: string | null
+          ad_strength?: string | null
+          ad_strength_reasons?: Json | null
+          ad_type?: string | null
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          conversions_value?: number | null
+          cost_micros?: number | null
+          created_at?: string
+          descriptions?: Json | null
+          final_urls?: string[] | null
+          google_ad_group_id?: string | null
+          google_ad_id: string
+          headlines?: Json | null
+          id?: string
+          impressions?: number | null
+          last_synced_at?: string | null
+          path1?: string | null
+          path2?: string | null
+          policy_summary?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_group_name?: string | null
+          ad_strength?: string | null
+          ad_strength_reasons?: Json | null
+          ad_type?: string | null
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          conversions_value?: number | null
+          cost_micros?: number | null
+          created_at?: string
+          descriptions?: Json | null
+          final_urls?: string[] | null
+          google_ad_group_id?: string | null
+          google_ad_id?: string
+          headlines?: Json | null
+          id?: string
+          impressions?: number | null
+          last_synced_at?: string | null
+          path1?: string | null
+          path2?: string | null
+          policy_summary?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_sync_campaign_sync_id_fkey"
+            columns: ["campaign_sync_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_sync"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           answer: string
@@ -232,6 +321,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      campaigns_sync: {
+        Row: {
+          advertising_channel_type: string | null
+          bidding_strategy_type: string | null
+          budget_amount_micros: number | null
+          budget_resource_name: string | null
+          clicks_7d: number | null
+          conversions_7d: number | null
+          cpc_7d: number | null
+          created_at: string
+          ctr_7d: number | null
+          google_campaign_id: string
+          google_customer_id: string | null
+          id: string
+          impressions_7d: number | null
+          last_synced_at: string | null
+          name: string
+          network_settings: Json | null
+          primary_status: string | null
+          primary_status_reasons: string[] | null
+          revenue_7d: number | null
+          roas_7d: number | null
+          spend_7d: number | null
+          status: string | null
+          sync_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advertising_channel_type?: string | null
+          bidding_strategy_type?: string | null
+          budget_amount_micros?: number | null
+          budget_resource_name?: string | null
+          clicks_7d?: number | null
+          conversions_7d?: number | null
+          cpc_7d?: number | null
+          created_at?: string
+          ctr_7d?: number | null
+          google_campaign_id: string
+          google_customer_id?: string | null
+          id?: string
+          impressions_7d?: number | null
+          last_synced_at?: string | null
+          name?: string
+          network_settings?: Json | null
+          primary_status?: string | null
+          primary_status_reasons?: string[] | null
+          revenue_7d?: number | null
+          roas_7d?: number | null
+          spend_7d?: number | null
+          status?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advertising_channel_type?: string | null
+          bidding_strategy_type?: string | null
+          budget_amount_micros?: number | null
+          budget_resource_name?: string | null
+          clicks_7d?: number | null
+          conversions_7d?: number | null
+          cpc_7d?: number | null
+          created_at?: string
+          ctr_7d?: number | null
+          google_campaign_id?: string
+          google_customer_id?: string | null
+          id?: string
+          impressions_7d?: number | null
+          last_synced_at?: string | null
+          name?: string
+          network_settings?: Json | null
+          primary_status?: string | null
+          primary_status_reasons?: string[] | null
+          revenue_7d?: number | null
+          roas_7d?: number | null
+          spend_7d?: number | null
+          status?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       carts: {
         Row: {
@@ -904,6 +1077,104 @@ export type Database = {
           },
         ]
       }
+      keywords_sync: {
+        Row: {
+          ad_group_name: string | null
+          approval_status: string | null
+          campaign_sync_id: string | null
+          clicks: number | null
+          conversions: number | null
+          conversions_value: number | null
+          cost_micros: number | null
+          cpc_bid_micros: number | null
+          created_at: string
+          effective_cpc_bid_micros: number | null
+          first_page_cpc_micros: number | null
+          google_ad_group_id: string | null
+          google_keyword_id: string
+          id: string
+          impressions: number | null
+          keyword_text: string
+          last_synced_at: string | null
+          match_type: string | null
+          quality_score: number | null
+          quality_score_creative: string | null
+          quality_score_expected_ctr: string | null
+          quality_score_landing: string | null
+          status: string | null
+          system_serving_status: string | null
+          top_of_page_cpc_micros: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_group_name?: string | null
+          approval_status?: string | null
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          conversions_value?: number | null
+          cost_micros?: number | null
+          cpc_bid_micros?: number | null
+          created_at?: string
+          effective_cpc_bid_micros?: number | null
+          first_page_cpc_micros?: number | null
+          google_ad_group_id?: string | null
+          google_keyword_id: string
+          id?: string
+          impressions?: number | null
+          keyword_text?: string
+          last_synced_at?: string | null
+          match_type?: string | null
+          quality_score?: number | null
+          quality_score_creative?: string | null
+          quality_score_expected_ctr?: string | null
+          quality_score_landing?: string | null
+          status?: string | null
+          system_serving_status?: string | null
+          top_of_page_cpc_micros?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_group_name?: string | null
+          approval_status?: string | null
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          conversions_value?: number | null
+          cost_micros?: number | null
+          cpc_bid_micros?: number | null
+          created_at?: string
+          effective_cpc_bid_micros?: number | null
+          first_page_cpc_micros?: number | null
+          google_ad_group_id?: string | null
+          google_keyword_id?: string
+          id?: string
+          impressions?: number | null
+          keyword_text?: string
+          last_synced_at?: string | null
+          match_type?: string | null
+          quality_score?: number | null
+          quality_score_creative?: string | null
+          quality_score_expected_ctr?: string | null
+          quality_score_landing?: string | null
+          status?: string | null
+          system_serving_status?: string | null
+          top_of_page_cpc_micros?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keywords_sync_campaign_sync_id_fkey"
+            columns: ["campaign_sync_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_sync"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       local_answers: {
         Row: {
           answer: string
@@ -1147,6 +1418,65 @@ export type Database = {
           visitor_id?: string
         }
         Relationships: []
+      }
+      performance_history: {
+        Row: {
+          campaign_sync_id: string | null
+          clicks: number | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number | null
+          revenue: number | null
+          roas: number | null
+          spend: number | null
+          user_id: string
+        }
+        Insert: {
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          roas?: number | null
+          spend?: number | null
+          user_id: string
+        }
+        Update: {
+          campaign_sync_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number | null
+          revenue?: number | null
+          roas?: number | null
+          spend?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_history_campaign_sync_id_fkey"
+            columns: ["campaign_sync_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_sync"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planning: {
         Row: {
@@ -1913,6 +2243,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_status: {
+        Row: {
+          auto_sync_enabled: boolean | null
+          created_at: string
+          id: string
+          last_full_sync_at: string | null
+          last_full_sync_error: string | null
+          last_full_sync_status: string | null
+          total_ads: number | null
+          total_campaigns: number | null
+          total_keywords: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          last_full_sync_at?: string | null
+          last_full_sync_error?: string | null
+          last_full_sync_status?: string | null
+          total_ads?: number | null
+          total_campaigns?: number | null
+          total_keywords?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          last_full_sync_at?: string | null
+          last_full_sync_error?: string | null
+          last_full_sync_status?: string | null
+          total_ads?: number | null
+          total_campaigns?: number | null
+          total_keywords?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string | null
@@ -1957,6 +2329,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_connections: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          connection_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          refresh_token: string | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          connection_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          refresh_token?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          connection_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          refresh_token?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       visitor_sessions: {
         Row: {
