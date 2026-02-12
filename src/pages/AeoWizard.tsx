@@ -219,7 +219,7 @@ export default function AeoWizard() {
               </div>
               <h2 className="text-xl font-semibold text-foreground">Confirm your business</h2>
               <p className="text-sm text-muted-foreground">
-                We'll generate 30 days of content for you
+                We'll boost your AI assistant recommendations 🚀
               </p>
             </div>
 
