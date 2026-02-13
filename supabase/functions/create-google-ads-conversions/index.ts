@@ -9,7 +9,7 @@ const corsHeaders = {
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
 const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v19";
+const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v22";
 
 const CONVERSIONS_TO_CREATE = [
   {
@@ -23,7 +23,7 @@ const CONVERSIONS_TO_CREATE = [
   },
   {
     name: "Onboarding Complete",
-    category: "LEAD",
+    category: "SUBMIT_LEAD_FORM",
     type: "WEBPAGE",
     countingType: "ONE_PER_CLICK",
     defaultValue: 10.0,
