@@ -149,8 +149,7 @@ export function AdGroupsTab() {
           <CardDescription>Cliquez sur le bouton d'action pour activer/désactiver dans Google Ads</CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="max-h-[800px]">
-            <div className="space-y-3">
+          <div className="space-y-3">
               {adGroups.map((g, idx) => {
                 const rec = getRecommendation(g);
                 const RecIcon = rec.icon;
@@ -203,7 +202,6 @@ export function AdGroupsTab() {
                 );
               })}
             </div>
-          </ScrollArea>
         </CardContent>
       </Card>
 
