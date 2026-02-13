@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
-import { Textarea } from "@/components/ui/textarea";
+import { KeywordsTab } from "@/components/admin/ads/KeywordsTab";
+import { AdGroupsTab } from "@/components/admin/ads/AdGroupsTab";
+import { RoasTab } from "@/components/admin/ads/RoasTab";
+import { StrategyTab } from "@/components/admin/ads/StrategyTab";
+import { ConversionsTab } from "@/components/admin/ads/ConversionsTab";
+import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
@@ -76,12 +81,7 @@ interface ConnectionInfo {
   metadata: any;
 }
 
-interface ConversionGoal {
-  name: string;
-  type: string;
-  value: number | null;
-  tag: string;
-}
+
 
 interface GoogleAdsManagerProps {
   activeTab?: string;
@@ -107,15 +107,8 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   const [campaignAds, setCampaignAds] = useState<SyncedAd[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  // AI Analysis
-  const [analysisText, setAnalysisText] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisFocus, setAnalysisFocus] = useState<string | null>(null);
-  const analysisRef = useRef<HTMLDivElement>(null);
-
-  // Conversion goals
-  const [conversionGoals, setConversionGoals] = useState<ConversionGoal[]>([]);
-  const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
+  // AI Analysis (for audit tab only)
+  const { text: analysisText, isStreaming: isAnalyzing, startAnalysis: handleAnalyze, ref: analysisRef } = useAdsStreaming();
 
   useEffect(() => {
     loadConnectionAndData();
@@ -297,151 +290,6 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
     if (!micros) return "0.00";
     return (micros / 1000000).toFixed(2);
   };
-
-  const handleAnalyze = async (focus: string, campaignId?: string) => {
-    setIsAnalyzing(true);
-    setAnalysisFocus(focus);
-    setAnalysisText("");
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-google-ads`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ focus, campaign_id: campaignId }),
-        }
-      );
-
-      if (!resp.ok || !resp.body) {
-        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(err.error || `Error ${resp.status}`);
-      }
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              setAnalysisText(fullText);
-            }
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
-
-      if (buffer.trim()) {
-        for (let raw of buffer.split("\n")) {
-          if (!raw || !raw.startsWith("data: ")) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              setAnalysisText(fullText);
-            }
-          } catch { /* ignore */ }
-        }
-      }
-
-      setTimeout(() => {
-        analysisRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    } catch (err: any) {
-      toast({ title: "Erreur analyse", description: err.message, variant: "destructive" });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleGenerateConversionGoals = async () => {
-    setIsGeneratingGoals(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase.functions.invoke("analyze-google-ads", {
-        body: { focus: "conversions" },
-      });
-
-      if (error) throw error;
-
-      // Parse the response to extract conversion goals
-      const goals: ConversionGoal[] = data?.goals || [];
-      setConversionGoals(goals);
-      
-      if (goals.length === 0) {
-        toast({ title: "Aucun objectif généré", description: "Lancez d'abord un audit complet", variant: "destructive" });
-      } else {
-        toast({ title: `${goals.length} objectif(s) de conversion générés` });
-      }
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
-    } finally {
-      setIsGeneratingGoals(false);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copié !", description: "Tag copié dans le presse-papier" });
-  };
-
-  const generateGtagSnippet = (conversionId: string, conversionLabel: string, value?: number) => {
-    return `<!-- Google Ads Conversion Tracking -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '${conversionId}');
-</script>
-
-<!-- Event snippet for conversion -->
-<script>
-  gtag('event', 'conversion', {
-    'send_to': '${conversionId}/${conversionLabel}'${value ? `,\n    'value': ${value},\n    'currency': 'EUR'` : ''}
-  });
-</script>`;
-  };
-
-  const focusOptions = [
-    { key: "all", label: "Audit complet", icon: Brain, desc: "Analyse globale" },
-    { key: "keywords", label: "Mots-clés", icon: Key, desc: "QS, bids, négatifs" },
-    { key: "ad_groups", label: "Ad Groups", icon: Target, desc: "Structure & pertinence" },
-    { key: "roas", label: "ROAS", icon: TrendingUp, desc: "Revenue & rentabilité" },
-    { key: "strategy", label: "Stratégie", icon: Lightbulb, desc: "Vision macro" },
-  ];
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -853,164 +701,62 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
             )}
           </TabsContent>
 
-          {/* Analysis Sub-tabs */}
-          {focusOptions.map((opt) => {
-            const tabValue = opt.key === "all" ? "audit" : 
-                           opt.key === "keywords" ? "keywords-analysis" :
-                           opt.key === "ad_groups" ? "adgroups-analysis" :
-                           opt.key === "roas" ? "roas-analysis" : "strategy-analysis";
-            const Icon = opt.icon;
-            return (
-              <TabsContent key={opt.key} value={tabValue}>
-                <Card ref={opt.key === analysisFocus ? analysisRef : undefined}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Icon className="h-5 w-5 text-primary" />
-                          {opt.label}
-                        </CardTitle>
-                        <CardDescription>{opt.desc}</CardDescription>
-                      </div>
-                      <Button 
-                        onClick={() => handleAnalyze(opt.key)} 
-                        disabled={isAnalyzing}
-                      >
-                        {isAnalyzing && analysisFocus === opt.key ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Zap className="h-4 w-4 mr-2" />
-                        )}
-                        Lancer l'analyse
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {analysisFocus === opt.key && (analysisText || isAnalyzing) ? (
-                      <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
-                        <AdsAnalysisReport text={analysisText} isStreaming={isAnalyzing} />
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Icon className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p>Cliquez sur "Lancer l'analyse" pour obtenir des recommandations IA</p>
-                        <p className="text-xs mt-1">Basé sur vos données Google Ads synchronisées</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            );
-          })}
+          {/* Audit Tab */}
+          <TabsContent value="audit">
+            <Card ref={analysisRef}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-primary" />
+                      Audit complet
+                    </CardTitle>
+                    <CardDescription>Synthèse globale du compte Google Ads</CardDescription>
+                  </div>
+                  <Button onClick={() => handleAnalyze("all")} disabled={isAnalyzing}>
+                    {isAnalyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
+                    Lancer l'audit
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(analysisText || isAnalyzing) ? (
+                  <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+                    <AdsAnalysisReport text={analysisText} isStreaming={isAnalyzing} />
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Brain className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p>Cliquez sur "Lancer l'audit" pour une analyse complète</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Keywords Tab */}
+          <TabsContent value="keywords-analysis">
+            <KeywordsTab />
+          </TabsContent>
+
+          {/* Ad Groups Tab */}
+          <TabsContent value="adgroups-analysis">
+            <AdGroupsTab />
+          </TabsContent>
+
+          {/* ROAS Tab */}
+          <TabsContent value="roas-analysis">
+            <RoasTab campaigns={syncedCampaigns} />
+          </TabsContent>
+
+          {/* Strategy Tab */}
+          <TabsContent value="strategy-analysis">
+            <StrategyTab campaigns={syncedCampaigns} />
+          </TabsContent>
 
           {/* Conversions Tab */}
           <TabsContent value="conversions">
-            <div className="space-y-6">
-              {/* Generate Goals from Audit */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-primary" />
-                        Objectifs de conversion IA
-                      </CardTitle>
-                      <CardDescription>Générez des objectifs de conversion basés sur l'audit de vos campagnes</CardDescription>
-                    </div>
-                    <Button onClick={handleGenerateConversionGoals} disabled={isGeneratingGoals}>
-                      {isGeneratingGoals ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Zap className="h-4 w-4 mr-2" />
-                      )}
-                      Générer les objectifs
-                    </Button>
-                  </div>
-                </CardHeader>
-                {conversionGoals.length > 0 && (
-                  <CardContent>
-                    <div className="space-y-3">
-                      {conversionGoals.map((goal, idx) => (
-                        <div key={idx} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Tag className="h-4 w-4 text-primary" />
-                              <span className="font-medium">{goal.name}</span>
-                            </div>
-                            <Badge variant="outline">{goal.type}</Badge>
-                          </div>
-                          {goal.value && (
-                            <p className="text-sm text-muted-foreground">Valeur: {goal.value}€</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-
-              {/* Implemented Conversion Tracking */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Code className="h-5 w-5 text-primary" />
-                    Conversions implémentées sur LovelyAnswers
-                  </CardTitle>
-                  <CardDescription>
-                    Ces conversions sont déjà intégrées dans le site et remontent automatiquement dans Google Ads (AW-{conversionId})
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    { name: "Inscription (Sign Up)", event: "sign_up", page: "/signup", value: "$5", status: "active", description: "Se déclenche quand un utilisateur crée un compte" },
-                    { name: "Onboarding terminé", event: "onboarding_complete", page: "/wizard", value: "$10", status: "active", description: "Se déclenche quand l'utilisateur termine le wizard de configuration" },
-                    { name: "Début de checkout", event: "begin_checkout", page: "/checkout", value: "$29-279", status: "active", description: "Se déclenche quand l'utilisateur clique sur 'S'abonner'" },
-                    { name: "Vue page Pricing", event: "pricing_view", page: "/pricing", value: "$1", status: "active", description: "Se déclenche quand un visiteur consulte la page pricing" },
-                    { name: "Achat (Purchase)", event: "purchase", page: "Stripe webhook", value: "Dynamic", status: "active", description: "Se déclenche après paiement réussi via Stripe" },
-                  ].map((conv, idx) => (
-                    <div key={idx} className="border rounded-lg p-4 flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="font-medium text-sm">{conv.name}</span>
-                          <Badge variant="outline" className="text-[10px]">{conv.event}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{conv.description}</p>
-                        <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                          <span>Page: <code className="bg-muted px-1 rounded">{conv.page}</code></span>
-                          <span>Valeur: <strong>{conv.value}</strong></span>
-                        </div>
-                      </div>
-                      <Badge className="bg-green-100 text-green-800 border-green-200 shrink-0">Actif</Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Tag global info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" />
-                    Configuration gtag.js
-                  </CardTitle>
-                  <CardDescription>Le tag global Google Ads est déjà installé dans index.html</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{`<!-- Déjà dans index.html -->
-gtag('config', 'AW-${conversionId}');
-
-<!-- Événements envoyés automatiquement via src/lib/gtag-conversions.ts -->
-gtag('event', 'conversion', { send_to: 'AW-${conversionId}/signup', value: 5.0 });
-gtag('event', 'conversion', { send_to: 'AW-${conversionId}/onboarding', value: 10.0 });
-gtag('event', 'conversion', { send_to: 'AW-${conversionId}/checkout', value: 29-279 });
-gtag('event', 'conversion', { send_to: 'AW-${conversionId}/purchase', value: dynamic });
-gtag('event', 'conversion', { send_to: 'AW-${conversionId}/pricing_view', value: 1.0 });`}
-                  </pre>
-                </CardContent>
-              </Card>
-            </div>
+            <ConversionsTab conversionId={conversionId} />
           </TabsContent>
         </Tabs>
       )}
