@@ -26,7 +26,7 @@ interface ReportSection {
 
 interface ParsedAction {
   text: string;
-  type: "pause_ad_group" | "enable_ad_group" | "add_negative_keyword" | "generic";
+  type: "pause_ad_group" | "enable_ad_group" | "add_negative_keyword" | "create_ad_group" | "add_headlines" | "add_descriptions" | "pause_keyword" | "generic";
   targetName?: string;
 }
 
@@ -42,8 +42,14 @@ function parseSeverity(title: string): "critical" | "important" | "improvement" 
 function detectActionType(text: string): ParsedAction {
   const lower = text.toLowerCase();
   
+  // Detect pause keyword
+  const pauseKwMatch = lower.match(/(?:mett(?:re|ez)\s+en\s+pause|pause[rz])\s+(?:le\s+)?(?:mot[- ]?clé)\s+["«]?([^"»,.\n]+)/i);
+  if (pauseKwMatch) {
+    return { text, type: "pause_keyword", targetName: pauseKwMatch[1]?.trim() };
+  }
+
   // Detect pause ad group actions
-  const pauseMatch = lower.match(/(?:mett(?:re|ez)\s+en\s+pause|pause[rz])\s+(?:le\s+)?(?:ad\s+group|groupe)\s+["«]?([^"»,.\n]+)/i)
+  const pauseMatch = lower.match(/(?:mett(?:re|ez)\s+en\s+pause|pause[rz])\s+(?:le\s+|l')?(?:ad\s+group|groupe)\s+["«]?([^"»,.\n]+)/i)
     || lower.match(/(?:mett(?:re|ez)\s+en\s+pause|pause[rz])\s+["«]?([^"»,.\n]+)/i);
   if (pauseMatch || lower.includes("mettre en pause") || lower.includes("pausez")) {
     return { text, type: "pause_ad_group", targetName: pauseMatch?.[1]?.trim() };
@@ -56,8 +62,24 @@ function detectActionType(text: string): ParsedAction {
   }
 
   // Detect negative keywords
-  if (lower.includes("négatif") || lower.includes("exclure") || lower.includes("negative")) {
+  if (lower.includes("négatif") || lower.includes("exclure") || lower.includes("negative keyword")) {
     return { text, type: "add_negative_keyword" };
+  }
+
+  // Detect create ad group
+  if (lower.includes("créer") && (lower.includes("ad group") || lower.includes("groupe d'annonces") || lower.includes("groupe"))) {
+    const createMatch = lower.match(/créer\s+(?:un\s+)?(?:nouvel?\s+)?(?:ad\s+group|groupe)\s+["«]?([^"»,.\n]+)/i);
+    return { text, type: "create_ad_group", targetName: createMatch?.[1]?.trim() };
+  }
+
+  // Detect add headlines
+  if (lower.includes("ajouter") && (lower.includes("headline") || lower.includes("titre"))) {
+    return { text, type: "add_headlines" };
+  }
+
+  // Detect add descriptions
+  if (lower.includes("ajouter") && lower.includes("description")) {
+    return { text, type: "add_descriptions" };
   }
 
   return { text, type: "generic" };
@@ -114,10 +136,12 @@ function extractActions(content: string): ParsedAction[] {
   const lines = content.split("\n");
   for (const line of lines) {
     const trimmed = line.trim();
-    if (
+    const isActionLine = 
       (trimmed.startsWith("*   **Action") || trimmed.startsWith("- **Action") || trimmed.startsWith("*  **Action")) ||
-      (trimmed.match(/^\d+\.\s+\*\*/) && (trimmed.includes("Action") || trimmed.includes("Mettre") || trimmed.includes("Ajouter") || trimmed.includes("Optimiser") || trimmed.includes("Vérifi") || trimmed.includes("Créer") || trimmed.includes("Supprim") || trimmed.includes("Paus") || trimmed.includes("Réactiv")))
-    ) {
+      (trimmed.match(/^\d+\.\s+\*\*/) && (trimmed.includes("Action") || trimmed.includes("Mettre") || trimmed.includes("Ajouter") || trimmed.includes("Optimiser") || trimmed.includes("Vérifi") || trimmed.includes("Créer") || trimmed.includes("Supprim") || trimmed.includes("Paus") || trimmed.includes("Réactiv"))) ||
+      (trimmed.match(/^\d+\.\s+/) && (trimmed.includes("Mettre en pause") || trimmed.includes("Créer") || trimmed.includes("Ajouter")));
+    
+    if (isActionLine) {
       const cleaned = trimmed
         .replace(/^\*\s+/, "").replace(/^-\s+/, "").replace(/^\d+\.\s+/, "")
         .replace(/\*\*/g, "").replace(/^Action\s*:\s*/i, "").replace(/^Action concrète\s*:\s*/i, "")
@@ -127,7 +151,7 @@ function extractActions(content: string): ParsedAction[] {
       }
     }
   }
-  return actions.slice(0, 8);
+  return actions.slice(0, 12);
 }
 
 const severityConfig = {
@@ -174,8 +198,15 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
   const [executed, setExecuted] = useState(false);
 
   const executeAction = async () => {
-    if (action.type === "generic") return;
-    
+    if (action.type === "generic" || action.type === "add_headlines" || action.type === "add_descriptions") {
+      // For headlines/descriptions, copy the text to clipboard as guidance
+      if (action.type !== "generic") {
+        await navigator.clipboard.writeText(action.text);
+        toast({ title: "📋 Copié", description: "Suggestion copiée dans le presse-papier. Ajoutez-la dans Google Ads." });
+        setExecuted(true);
+      }
+      return;
+    }
     setIsExecuting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -255,6 +286,62 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
           description: `"${keyword}" exclu ${data?.level === "ad_group" ? "du groupe" : "de la campagne"}`,
         });
         onExecuted?.();
+
+      } else if (action.type === "create_ad_group") {
+        // Use generate-google-ads to create ad group
+        const targetName = action.targetName?.replace(/['"«»\[\]]/g, "").trim() || "Nouveau groupe";
+        
+        const { data, error } = await supabase.functions.invoke("generate-google-ads", {
+          body: { 
+            action: "create_ad_group",
+            adGroupName: targetName,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        setExecuted(true);
+        toast({
+          title: "✅ Ad Group créé",
+          description: `"${targetName}" a été créé avec succès`,
+        });
+        onExecuted?.();
+
+      } else if (action.type === "pause_keyword") {
+        const targetName = action.targetName?.replace(/['"«»\[\]]/g, "").trim();
+        if (!targetName) {
+          toast({ title: "Mot-clé introuvable", variant: "destructive" });
+          return;
+        }
+
+        // Find the keyword in keywords_sync
+        const { data: keywords } = await supabase
+          .from("keywords_sync")
+          .select("google_keyword_id, keyword_text, google_ad_group_id")
+          .eq("user_id", session.user.id)
+          .ilike("keyword_text", `%${targetName}%`)
+          .limit(1);
+
+        if (!keywords?.[0]?.google_ad_group_id) {
+          toast({ title: "Mot-clé introuvable dans les données sync", variant: "destructive" });
+          return;
+        }
+
+        // Use add-negative-keyword to effectively pause it
+        const { data, error } = await supabase.functions.invoke("add-negative-keyword", {
+          body: { keyword: targetName, adGroupId: keywords[0].google_ad_group_id },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        setExecuted(true);
+        toast({
+          title: "⏸️ Mot-clé exclu",
+          description: `"${targetName}" ajouté en négatif`,
+        });
+        onExecuted?.();
       }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
@@ -267,13 +354,17 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
     return null;
   }
 
-  const buttonConfig = {
-    pause_ad_group: { icon: Pause, label: "Mettre en pause", variant: "destructive" as const },
-    enable_ad_group: { icon: Play, label: "Activer", variant: "default" as const },
-    add_negative_keyword: { icon: MinusCircle, label: "Ajouter négatif", variant: "outline" as const },
+  const buttonConfig: Record<string, { icon: typeof Pause; label: string; variant: "destructive" | "default" | "outline" | "secondary" }> = {
+    pause_ad_group: { icon: Pause, label: "Mettre en pause", variant: "destructive" },
+    enable_ad_group: { icon: Play, label: "Activer", variant: "default" },
+    add_negative_keyword: { icon: MinusCircle, label: "Ajouter négatif", variant: "outline" },
+    pause_keyword: { icon: Pause, label: "Pauser mot-clé", variant: "destructive" },
+    create_ad_group: { icon: PlusCircle, label: "Créer Ad Group", variant: "default" },
+    add_headlines: { icon: PlusCircle, label: "Ajouter Headlines", variant: "secondary" },
+    add_descriptions: { icon: PlusCircle, label: "Ajouter Descriptions", variant: "secondary" },
   };
 
-  const config = buttonConfig[action.type];
+  const config = buttonConfig[action.type] || buttonConfig.pause_ad_group;
   const Icon = config.icon;
 
   return (
