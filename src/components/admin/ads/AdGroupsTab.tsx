@@ -51,8 +51,7 @@ export function AdGroupsTab() {
         .from("ads_sync")
         .select("*")
         .eq("user_id", session.user.id)
-        .order("clicks", { ascending: false })
-        .limit(200);
+        .order("clicks", { ascending: false });
 
       const grouped: Record<string, AdGroupData> = {};
       for (const ad of (ads || [])) {
