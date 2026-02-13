@@ -981,6 +981,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const requestBody = await req.json();
     const { 
       projectId, 
       action, 
@@ -997,8 +998,9 @@ serve(async (req) => {
       tone = "expert_human",
       brand_name,
       brand_url,
-      save_as_aeo = false
-    }: RedditRequest = await req.json();
+      save_as_aeo = false,
+      storeInDb = false
+    }: RedditRequest & { storeInDb?: boolean } = requestBody;
 
     console.log(`[reddit-agent] Action: ${action}${projectId ? ` for project ${projectId}` : ""}`);
 
@@ -1173,12 +1175,7 @@ serve(async (req) => {
     }
 
     let result;
-    let storeInDb = false;
-    
-    try {
-      const body = await req.json();
-      storeInDb = body.storeInDb === true;
-    } catch {}
+    // storeInDb is now read from the initial requestBody parsing above
 
     switch (action) {
       case "find-opportunities":
