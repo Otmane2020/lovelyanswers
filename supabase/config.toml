@@ -202,3 +202,9 @@ verify_jwt = false
 
 [functions.analyze-google-ads]
 verify_jwt = false
+
+[functions.toggle-ad-group-status]
+verify_jwt = false
+
+[functions.create-google-ads-conversions]
+verify_jwt = false
