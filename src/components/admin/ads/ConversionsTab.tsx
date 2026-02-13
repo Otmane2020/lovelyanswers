@@ -35,7 +35,15 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
     setIsGeneratingGoals(true);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-google-ads", {
-        body: { focus: "conversions" },
+        body: { 
+          focus: "conversions",
+          businessContext: {
+            websiteUrl: "https://lovelyanswers.com",
+            brandName: "LovelyAnswers",
+            businessDescription: "AI-powered SEO and Answer Engine Optimization (AEO) platform that helps businesses get cited by AI chatbots like ChatGPT, Perplexity, and Gemini.",
+            language: "en",
+          },
+        },
       });
       if (error) throw error;
       const goals: ConversionGoal[] = data?.goals || [];

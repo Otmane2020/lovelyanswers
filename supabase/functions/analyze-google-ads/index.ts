@@ -32,7 +32,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { focus, campaign_id } = await req.json();
+    const { focus, campaign_id, businessContext } = await req.json();
     // focus: "all" | "ad_groups" | "keywords" | "roas" | "strategy" | "conversions"
 
     const adminClient = createClient(
@@ -243,6 +243,22 @@ Vision à 30-90 jours pour améliorer les performances globales
 
 Pour chaque recommandation, donne une **Action concrète :** avec des détails précis.`;
         break;
+      case "conversions":
+        focusInstruction = `
+FOCUS: Génération d'objectifs de conversion
+Business: ${businessContext?.brandName || "LovelyAnswers"} - ${businessContext?.businessDescription || "AI SEO platform"}
+Website: ${businessContext?.websiteUrl || "https://lovelyanswers.com"}
+
+Analyse le tunnel de conversion du site et propose des objectifs Google Ads.
+Retourne un JSON avec une clé "goals" contenant un tableau d'objets:
+[
+  { "name": "Nom de l'objectif", "type": "SIGNUP|LEAD|PURCHASE|PAGE_VIEW|CHECKOUT", "value": valeur_en_euros_ou_null, "tag": "event_tag_name" }
+]
+
+Propose 3-7 objectifs de conversion pertinents pour ce type de business (SaaS/tool).
+Exemples types: inscription, onboarding, vue pricing, début checkout, achat, upgrade, usage feature clé.
+RETOURNE UNIQUEMENT LE JSON, pas de markdown.`;
+        break;
       default: // "all"
         focusInstruction = `
 FOCUS: Audit complet du compte
@@ -313,7 +329,7 @@ Fournis une analyse détaillée avec des recommandations actionnables classées 
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        stream: true,
+        stream: focus !== "conversions",
       }),
     });
 
@@ -333,6 +349,25 @@ Fournis une analyse détaillée avec des recommandations actionnables classées 
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // For conversions focus, parse JSON response
+    if (focus === "conversions") {
+      const aiData = await aiResponse.json();
+      let content = aiData.choices?.[0]?.message?.content || "";
+      content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      try {
+        const parsed = JSON.parse(content);
+        const goals = Array.isArray(parsed) ? parsed : (parsed.goals || []);
+        return new Response(JSON.stringify({ goals }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("Failed to parse conversions response:", content);
+        return new Response(JSON.stringify({ goals: [], error: "Failed to parse AI response" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Stream the response back
