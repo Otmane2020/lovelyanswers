@@ -49,19 +49,32 @@ serve(async (req) => {
       });
     }
 
-    // Get user's project for business context
-    const { data: project } = await supabase
-      .from("projects")
-      .select("website_url, business_description, brand_name, competitors, language")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    // Parse request body for explicit business context
+    let body: Record<string, unknown> = {};
+    try { body = await req.json(); } catch { /* no body */ }
 
-    const websiteUrl = project?.website_url || "";
-    const brandName = project?.brand_name || "";
-    const businessDesc = project?.business_description || "";
-    const language = project?.language || "fr";
-    const existingCompetitors = project?.competitors || [];
+    // Use explicit context if provided, otherwise fall back to active project
+    let websiteUrl = (body.websiteUrl as string) || "";
+    let brandName = (body.brandName as string) || "";
+    let businessDesc = (body.businessDescription as string) || "";
+    let language = (body.language as string) || "fr";
+    let existingCompetitors: string[] = (body.competitors as string[]) || [];
+
+    // Only fetch from project if no explicit context was provided
+    if (!websiteUrl && !brandName) {
+      const { data: project } = await supabase
+        .from("projects")
+        .select("website_url, business_description, brand_name, competitors, language")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      websiteUrl = project?.website_url || "";
+      brandName = project?.brand_name || "";
+      businessDesc = project?.business_description || "";
+      language = project?.language || "fr";
+      existingCompetitors = project?.competitors || [];
+    }
 
     // Get Google Ads connection
     const { data: connection } = await supabase

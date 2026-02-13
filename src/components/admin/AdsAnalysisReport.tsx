@@ -288,10 +288,18 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
         onExecuted?.();
 
       } else if (action.type === "create_ad_group") {
-        // Call competitor ad group creation function
+        // Call competitor ad group creation function with explicit lovelyanswers context
         toast({ title: "🔍 Recherche de concurrents...", description: "Identification des concurrents et création de l'ad group en cours..." });
         
-        const { data, error } = await supabase.functions.invoke("create-competitor-ad-group", {});
+        const { data, error } = await supabase.functions.invoke("create-competitor-ad-group", {
+          body: {
+            websiteUrl: "https://lovelyanswers.com",
+            brandName: "LovelyAnswers",
+            businessDescription: "AI-powered SEO and Answer Engine Optimization (AEO) platform that helps businesses get cited by AI chatbots like ChatGPT, Perplexity, and Gemini. Generates optimized content, articles, and Q&A to boost AI visibility.",
+            language: "en",
+            competitors: ["Surfer SEO", "MarketMuse", "Frase", "Clearscope"],
+          },
+        });
 
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
