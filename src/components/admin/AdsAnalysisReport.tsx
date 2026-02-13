@@ -288,23 +288,19 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
         onExecuted?.();
 
       } else if (action.type === "create_ad_group") {
-        // Use generate-google-ads to create ad group
-        const targetName = action.targetName?.replace(/['"«»\[\]]/g, "").trim() || "Nouveau groupe";
+        // Call competitor ad group creation function
+        toast({ title: "🔍 Recherche de concurrents...", description: "Identification des concurrents et création de l'ad group en cours..." });
         
-        const { data, error } = await supabase.functions.invoke("generate-google-ads", {
-          body: { 
-            action: "create_ad_group",
-            adGroupName: targetName,
-          },
-        });
+        const { data, error } = await supabase.functions.invoke("create-competitor-ad-group", {});
 
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
 
+        const competitorNames = data?.competitors?.map((c: any) => c.name).join(", ") || "concurrents";
         setExecuted(true);
         toast({
-          title: "✅ Ad Group créé",
-          description: `"${targetName}" a été créé avec succès`,
+          title: "✅ Ad Group Concurrent créé",
+          description: `Groupe "${data?.adGroupName}" créé avec mots-clés : ${competitorNames}. ${data?.keywordsCount || 0} keywords ajoutés.`,
         });
         onExecuted?.();
 

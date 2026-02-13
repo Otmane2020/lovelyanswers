@@ -211,3 +211,6 @@ verify_jwt = false
 
 [functions.add-negative-keyword]
 verify_jwt = false
+
+[functions.create-competitor-ad-group]
+verify_jwt = false
