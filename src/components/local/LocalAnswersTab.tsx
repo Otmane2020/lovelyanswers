@@ -347,7 +347,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredAnswers.map((answer) => (
-            <GlassCard key={answer.id} hover className="p-4">
+            <GlassCard key={answer.id} hover className="p-4 cursor-pointer" onClick={() => setViewingAnswer(answer)}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h4 className="font-medium line-clamp-2 flex-1">{answer.question}</h4>
                 <ScoreRing score={answer.score} size="sm" />
@@ -368,7 +368,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
                         : "Draft"}
                   </Badge>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="icon"

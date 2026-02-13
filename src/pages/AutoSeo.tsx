@@ -228,7 +228,7 @@ export default function AutoSeo() {
         ) : (
           <div className="space-y-4">
             {filteredArticles.map((article) => (
-              <GlassCard key={article.id} hover className="p-4 sm:p-6">
+              <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setViewingArticle(article)}>
                 <div className="flex items-start gap-4">
                   <div className="shrink-0">
                     <ScoreRing score={article.aeo_score || 0} size="sm" />
@@ -258,7 +258,7 @@ export default function AutoSeo() {
                         </>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
                         size="sm"
