@@ -10,8 +10,9 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useShoppingProducts, useShoppingFeeds, useImportFeed, useGenerateAllProductsAI, useDeleteProduct } from "@/hooks/useShoppingProducts";
+import { useShoppingPlanning, useFillShoppingPlanning, useClearShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
-import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper } from "lucide-react";
+import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 
@@ -24,6 +25,9 @@ export default function ShoppingDashboard() {
   const deleteProduct = useDeleteProduct();
   const [feedUrl, setFeedUrl] = useState("");
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
+  const { data: planning = [], isLoading: planningLoading } = useShoppingPlanning();
+  const fillPlanning = useFillShoppingPlanning();
+  const clearPlanning = useClearShoppingPlanning();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "products";
 
@@ -86,6 +90,10 @@ export default function ShoppingDashboard() {
               <TabsTrigger value="aeo" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
                 <Newspaper className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 AEO ({aeoProducts.length})
+              </TabsTrigger>
+              <TabsTrigger value="planning" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                Planning ({planning.length})
               </TabsTrigger>
             </TabsList>
 
@@ -272,6 +280,96 @@ export default function ShoppingDashboard() {
                           )}
                         </div>
                       </GlassCard>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ===== PLANNING TAB ===== */}
+            <TabsContent value="planning" className="space-y-4 sm:space-y-6">
+              {/* Actions */}
+              <GlassCard gradient className="p-4 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Planning 30 jours
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      {planning.length}/30 jours planifiés · {planning.filter(p => p.published).length} publiés
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {planning.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => clearPlanning.mutate()}
+                        disabled={clearPlanning.isPending}
+                        className="gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Vider
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => fillPlanning.mutate()}
+                      disabled={fillPlanning.isPending}
+                      className="bg-foreground text-background hover:bg-foreground/90 gap-1.5"
+                    >
+                      {fillPlanning.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      Remplir 30 jours
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Planning Grid */}
+              {planningLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : planning.length === 0 ? (
+                <Card className="p-8 sm:p-12 text-center">
+                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-semibold mb-2">Aucun planning</h3>
+                  <p className="text-sm text-muted-foreground">Cliquez sur "Remplir 30 jours" pour programmer des produits aléatoires chaque jour</p>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                  {planning.map((entry) => {
+                    const product = entry.product;
+                    const isToday = entry.scheduled_date === new Date().toISOString().split("T")[0];
+                    const isPast = new Date(entry.scheduled_date) < new Date(new Date().toISOString().split("T")[0]);
+                    return (
+                      <Card
+                        key={entry.id}
+                        className={`p-3 sm:p-4 transition-all ${isToday ? "border-primary ring-1 ring-primary/20" : ""} ${entry.published ? "opacity-60" : ""}`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${entry.published ? "bg-green-500" : isToday ? "bg-primary" : isPast ? "bg-orange-400" : "bg-muted-foreground/30"}`} />
+                          <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                            {new Date(entry.scheduled_date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                          </span>
+                          {entry.published && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto" />}
+                          {isToday && !entry.published && <Clock className="w-3.5 h-3.5 text-primary ml-auto" />}
+                        </div>
+                        {product && (
+                          <div className="flex items-center gap-2.5">
+                            {product.image_url && (
+                              <img src={product.image_url} alt={product.ai_title || product.title} className="w-10 h-10 rounded-md object-cover bg-muted shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium truncate">{product.ai_title || product.title}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {product.price && <span className="text-[10px] text-muted-foreground">{product.price} {product.currency}</span>}
+                                {product.ai_score && <Badge variant="secondary" className="text-[10px] px-1 py-0">{product.ai_score}%</Badge>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Card>
                     );
                   })}
                 </div>
