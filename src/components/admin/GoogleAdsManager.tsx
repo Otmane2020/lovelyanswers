@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, RefreshCw, Target, FileText, 
@@ -887,9 +888,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                   <CardContent>
                     {analysisFocus === opt.key && (analysisText || isAnalyzing) ? (
                       <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
-                        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                          {analysisText || "Analyse en cours..."}
-                        </div>
+                        <AdsAnalysisReport text={analysisText} isStreaming={isAnalyzing} />
                       </div>
                     ) : (
                       <div className="text-center py-12 text-muted-foreground">
