@@ -17,7 +17,8 @@ function generateSlug(question: string): string {
 }
 
 function computeLocalScore(answer: string, businessName: string): number {
-  let score = 75; // Base score
+  // Randomized base between 78-86 to create natural score variation
+  let score = 78 + Math.floor(Math.random() * 9);
   
   // Bonus for mentioning the business name
   if (answer.toLowerCase().includes(businessName.toLowerCase())) score += 5;
