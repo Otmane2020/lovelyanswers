@@ -3,14 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Target, Zap, Pause, Play, PlusCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, Target, Zap, Pause, Play, PlusCircle, AlertTriangle } from "lucide-react";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
+import { toast } from "@/hooks/use-toast";
 
 interface AdGroupData {
   ad_group_name: string;
+  google_ad_group_id: string | null;
   ads: Array<{
     id: string;
     status: string | null;
@@ -21,17 +22,20 @@ interface AdGroupData {
     impressions: number | null;
     cost_micros: number | null;
     conversions: number | null;
+    google_ad_group_id: string | null;
   }>;
   totalClicks: number;
   totalImpressions: number;
   totalCost: number;
   totalConversions: number;
   avgStrength: string;
+  currentStatus: string; // from synced data
 }
 
 export function AdGroupsTab() {
   const [adGroups, setAdGroups] = useState<AdGroupData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const { text, isStreaming, startAnalysis, ref } = useAdsStreaming();
 
   useEffect(() => {
@@ -50,24 +54,40 @@ export function AdGroupsTab() {
         .order("clicks", { ascending: false })
         .limit(200);
 
-      // Group by ad_group_name
       const grouped: Record<string, AdGroupData> = {};
       for (const ad of (ads || [])) {
         const name = ad.ad_group_name || "Sans nom";
         if (!grouped[name]) {
-          grouped[name] = { ad_group_name: name, ads: [], totalClicks: 0, totalImpressions: 0, totalCost: 0, totalConversions: 0, avgStrength: "" };
+          grouped[name] = {
+            ad_group_name: name,
+            google_ad_group_id: ad.google_ad_group_id,
+            ads: [],
+            totalClicks: 0,
+            totalImpressions: 0,
+            totalCost: 0,
+            totalConversions: 0,
+            avgStrength: "",
+            currentStatus: ad.status || "UNKNOWN",
+          };
         }
         grouped[name].ads.push(ad as any);
         grouped[name].totalClicks += ad.clicks || 0;
         grouped[name].totalImpressions += ad.impressions || 0;
         grouped[name].totalCost += ad.cost_micros || 0;
         grouped[name].totalConversions += ad.conversions || 0;
+        // Keep google_ad_group_id
+        if (ad.google_ad_group_id) {
+          grouped[name].google_ad_group_id = ad.google_ad_group_id;
+        }
       }
 
-      // Determine avg strength
       for (const g of Object.values(grouped)) {
         const strengths = g.ads.map(a => a.ad_strength).filter(Boolean);
         g.avgStrength = strengths[0] || "UNKNOWN";
+        // Determine status from ads
+        const statuses = g.ads.map(a => a.status).filter(Boolean);
+        if (statuses.includes("ENABLED")) g.currentStatus = "ENABLED";
+        else if (statuses.includes("PAUSED")) g.currentStatus = "PAUSED";
       }
 
       setAdGroups(Object.values(grouped).sort((a, b) => b.totalCost - a.totalCost));
@@ -76,9 +96,51 @@ export function AdGroupsTab() {
     }
   };
 
+  const toggleAdGroupStatus = async (group: AdGroupData) => {
+    const adGroupId = group.google_ad_group_id;
+    if (!adGroupId) {
+      toast({ title: "Erreur", description: "ID du groupe d'annonces introuvable", variant: "destructive" });
+      return;
+    }
+
+    const newAction = group.currentStatus === "ENABLED" ? "PAUSED" : "ENABLED";
+    const key = adGroupId;
+    
+    setTogglingIds(prev => new Set(prev).add(key));
+    try {
+      const { data, error } = await supabase.functions.invoke("toggle-ad-group-status", {
+        body: { adGroupId, action: newAction },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update local state
+      setAdGroups(prev => prev.map(g => {
+        if (g.google_ad_group_id === adGroupId) {
+          return { ...g, currentStatus: newAction };
+        }
+        return g;
+      }));
+
+      toast({
+        title: newAction === "PAUSED" ? "⏸️ Ad Group mis en pause" : "▶️ Ad Group activé",
+        description: `"${group.ad_group_name}" est maintenant ${newAction === "PAUSED" ? "en pause" : "actif"}`,
+      });
+    } catch (err: any) {
+      console.error("Toggle error:", err);
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
   const formatMicros = (v: number) => (v / 1000000).toFixed(2);
 
-  const getStatusRecommendation = (g: AdGroupData): { label: string; color: string; icon: any } => {
+  const getRecommendation = (g: AdGroupData): { label: string; color: string; icon: any } => {
     if (g.totalCost > 2000000 && g.totalConversions === 0) {
       return { label: "Mettre en pause", color: "bg-red-100 text-red-700 border-red-300", icon: Pause };
     }
@@ -142,19 +204,30 @@ export function AdGroupsTab() {
             <Target className="h-5 w-5 text-primary" />
             Synthèse par Ad Group
           </CardTitle>
-          <CardDescription>Vue d'ensemble avec recommandations d'action</CardDescription>
+          <CardDescription>Cliquez sur le bouton d'action pour activer/désactiver un groupe dans Google Ads</CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="max-h-[500px]">
             <div className="space-y-3">
               {adGroups.map((g, idx) => {
-                const rec = getStatusRecommendation(g);
+                const rec = getRecommendation(g);
                 const RecIcon = rec.icon;
+                const isToggling = togglingIds.has(g.google_ad_group_id || "");
+                const isEnabled = g.currentStatus === "ENABLED";
+
                 return (
                   <div key={idx} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="font-semibold text-sm">{g.ad_group_name}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-sm">{g.ad_group_name}</h4>
+                          <Badge 
+                            variant={isEnabled ? "default" : "outline"} 
+                            className={`text-[10px] ${isEnabled ? "bg-green-600" : "bg-muted text-muted-foreground"}`}
+                          >
+                            {isEnabled ? "ACTIF" : "EN PAUSE"}
+                          </Badge>
+                        </div>
                         <div className="flex gap-3 text-xs text-muted-foreground mt-1">
                           <span>{g.ads.length} annonce{g.ads.length > 1 ? "s" : ""}</span>
                           <span>{g.totalClicks} clics</span>
@@ -167,17 +240,40 @@ export function AdGroupsTab() {
                         <Badge variant="outline" className={`text-[10px] ${getStrengthColor(g.avgStrength)}`}>
                           {g.avgStrength}
                         </Badge>
+                        {/* Recommendation badge */}
                         <Badge className={`text-[10px] ${rec.color} flex items-center gap-1`}>
                           <RecIcon className="h-3 w-3" />
                           {rec.label}
                         </Badge>
+                        {/* Action button */}
+                        <Button
+                          size="sm"
+                          variant={isEnabled ? "destructive" : "default"}
+                          className="h-7 text-xs gap-1"
+                          disabled={isToggling || !g.google_ad_group_id}
+                          onClick={() => toggleAdGroupStatus(g)}
+                        >
+                          {isToggling ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : isEnabled ? (
+                            <>
+                              <Pause className="h-3 w-3" />
+                              Pause
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3" />
+                              Activer
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
 
                     {/* Ads preview */}
                     <div className="space-y-2">
                       {g.ads.slice(0, 3).map((ad, ai) => {
-                        const headlines = Array.isArray(ad.headlines) 
+                        const headlines = Array.isArray(ad.headlines)
                           ? ad.headlines.map((h: any) => typeof h === "string" ? h : h.text || "").slice(0, 3)
                           : [];
                         return (
