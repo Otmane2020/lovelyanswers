@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useRedditPreload } from "@/hooks/useRedditPreload";
 import { useActiveProject } from "@/hooks/useProjects";
-import { MessageSquare, TrendingUp, Globe, ArrowRight, Sparkles, Lightbulb, Link, Settings, Crown, Target, Check, Lock, FileText } from "lucide-react";
+import { toast } from "sonner";
+import { MessageSquare, TrendingUp, Globe, ArrowRight, Sparkles, Lightbulb, Link, Settings, Crown, Target, Check, Lock, FileText, Loader2 } from "lucide-react";
 
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
@@ -25,6 +27,9 @@ export default function AeoDashboard() {
   
   const [answersStats, setAnswersStats] = useState({ total: 0, published: 0, highCitation: 0, avgScore: 0 });
   const [lockedArticles, setLockedArticles] = useState<LockedArticle[]>([]);
+  const [lockedCount, setLockedCount] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,6 +54,7 @@ export default function AeoDashboard() {
         
         if (articles) {
           setLockedArticles(articles);
+          setLockedCount(articles.filter(a => a.status === 'locked').length);
         }
       } catch (error) { console.error('Error fetching data:', error); }
     };
@@ -63,7 +69,7 @@ export default function AeoDashboard() {
   ];
 
   const quickActions = [
-    { title: "AEO Wizard", description: "Generate citation opportunities", icon: Lightbulb, url: "/wizard" },
+    { title: "AEO Wizard", description: "Generate citation opportunities", icon: Lightbulb, url: "/wizard" } as const,
     { title: "Opportunities", description: "View your AEO opportunities", icon: Sparkles, url: "/opportunities" },
     { title: "Integrations", description: "Connect your platforms", icon: Link, url: "/integrations" },
     { title: "Settings", description: "Configure LLMs.txt", icon: Settings, url: "/settings" },
@@ -75,6 +81,68 @@ export default function AeoDashboard() {
         <h1 className="text-3xl font-bold">AEO Dashboard</h1>
         <p className="text-muted-foreground mt-1">Optimize your visibility on AI answer engines</p>
       </div>
+
+      {/* Generate locked content CTA for subscribers */}
+      {subscribed && lockedCount > 0 && (
+        <Card className="p-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-600">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Générer le contenu de vos articles</h3>
+                <p className="text-sm text-muted-foreground">
+                  {lockedCount} articles sont prêts à être générés avec du contenu complet
+                </p>
+              </div>
+            </div>
+            {isGenerating ? (
+              <div className="flex flex-col gap-2 min-w-[200px]">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Génération en cours...
+                </div>
+                <Progress value={generationProgress} className="h-2" />
+              </div>
+            ) : (
+              <Button 
+                onClick={async () => {
+                  setIsGenerating(true);
+                  setGenerationProgress(10);
+                  try {
+                    const progressInterval = setInterval(() => {
+                      setGenerationProgress(prev => Math.min(prev + 5, 90));
+                    }, 3000);
+                    
+                    const { data, error } = await supabase.functions.invoke("unlock-articles");
+                    clearInterval(progressInterval);
+                    
+                    if (error) throw error;
+                    
+                    setGenerationProgress(100);
+                    toast.success(`${data.unlocked} articles débloqués et ${data.generated} générés !`);
+                    setLockedCount(0);
+                    
+                    // Refresh articles list
+                    setTimeout(() => window.location.reload(), 2000);
+                  } catch (err) {
+                    console.error("Unlock error:", err);
+                    toast.error("Erreur lors de la génération. Réessayez.");
+                  } finally {
+                    setIsGenerating(false);
+                  }
+                }}
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Générer {lockedCount} articles
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Subscription CTA */}
       {!subscribed && (

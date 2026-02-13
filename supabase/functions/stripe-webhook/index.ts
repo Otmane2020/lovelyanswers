@@ -169,6 +169,64 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }, { onConflict: "user_id" });
 
   logStep("Credits updated", { userId: profile.id, credits: creditsTotal });
+
+  // AUTO-UNLOCK: When subscription becomes active, unlock all locked articles
+  if (isActive) {
+    try {
+      // Find user's project
+      const { data: projects } = await supabaseAdmin
+        .from("projects")
+        .select("id")
+        .eq("user_id", profile.id)
+        .limit(1);
+
+      if (projects && projects.length > 0) {
+        const projectId = projects[0].id;
+
+        // Get locked articles
+        const { data: lockedArticles } = await supabaseAdmin
+          .from("articles")
+          .select("id, title")
+          .eq("project_id", projectId)
+          .eq("status", "locked");
+
+        if (lockedArticles && lockedArticles.length > 0) {
+          logStep("Found locked articles to unlock", { count: lockedArticles.length, projectId });
+
+          // Update status from locked to scheduled
+          const articleIds = lockedArticles.map(a => a.id);
+          await supabaseAdmin
+            .from("articles")
+            .update({ status: "scheduled" })
+            .in("id", articleIds);
+
+          // Trigger generation for each article
+          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+          for (const article of lockedArticles) {
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/generate-aeo-article`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${serviceRoleKey}`,
+                },
+                body: JSON.stringify({ articleId: article.id }),
+              });
+              logStep("Triggered generation for article", { articleId: article.id });
+            } catch (genErr) {
+              logStep("Error triggering generation", { articleId: article.id, error: String(genErr) });
+            }
+          }
+
+          logStep("Unlocked articles after subscription activation", { count: lockedArticles.length });
+        }
+      }
+    } catch (unlockErr) {
+      logStep("Error in auto-unlock process", { error: String(unlockErr) });
+    }
+  }
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
