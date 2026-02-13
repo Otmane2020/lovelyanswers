@@ -1,45 +1,57 @@
 
 
-# Force Light Theme on Onboarding Page
+## Probleme identifie
 
-## Problem
-The `/onboarding` page uses a dark navy background (`bg-[hsl(222,47%,11%)]`) with white text, as shown in the screenshot. The user wants every page -- including onboarding -- to use the light theme.
+`service-client@sweetdeco.com` a bien un abonnement actif (confirme par les logs backend), mais ses 28+ articles restent en statut `locked` avec du contenu vide. C'est un probleme structurel : quand un utilisateur s'inscrit, les articles sont crees en mode "titres seulement" (statut `locked`). Apres le paiement, **aucun mecanisme ne declenche la generation du contenu complet**.
 
-## Changes (single file: `src/pages/Onboarding.tsx`)
+## Solution
 
-### 1. Root container
-- Replace `bg-[hsl(222,47%,11%)]` with `bg-background` (light white)
+Ajouter un mecanisme automatique de deblocage des articles apres le paiement, en deux volets :
 
-### 2. Header
-- Replace `border-white/10` with `border-border`
-- Replace `text-white` with `text-foreground`
-- Replace `text-violet-400` with `text-primary`
+### 1. Webhook Stripe : declencher la generation apres paiement
 
-### 3. Step 1 (URL Input)
-- Remove `from-primary/10 to-violet-500/10` and `border-primary/20` badge gradient -- use `bg-muted border-border`
-- Replace gradient text `from-primary to-violet-500` with plain `text-primary`
-- Remove violet from testimonial avatar gradient
+Quand le webhook recoit un evenement `customer.subscription.created` ou `customer.subscription.updated` avec un statut `active`, il recherchera les articles `locked` de l'utilisateur et appellera la fonction `generate-aeo-article` pour chacun (ou une nouvelle fonction batch).
 
-### 4. Step 4 (Analyzing)
-- Replace `from-primary/30 to-violet-500/30` glow with `bg-primary/20`
-- Text colors already use `text-foreground` / `text-muted-foreground` via CSS variables (correct for light)
+### 2. Frontend : bouton "Generer le contenu" pour les abonnes
 
-### 5. Step 3 (Email gate)
-- Replace `from-primary/20 to-violet-500/20` icon bg with `bg-primary/10`
+Sur le dashboard, quand l'utilisateur est abonne mais a encore des articles `locked`, afficher un bouton "Generer tous les articles" qui lance la generation en batch.
 
-### 6. Step 7 (Pain/FOMO)
-- Replace `from-primary/10 via-violet-500/10 to-fuchsia-500/10` solution card with `bg-primary/5 border-primary/20`
+### 3. Correction immediate pour sweetdeco
 
-### 7. Step 6 (Pricing)
-- Any remaining violet references
+En attendant le deploiement, mettre a jour directement le statut des articles locks vers `scheduled` et declencher la generation de contenu.
 
-### 8. Bottom progress bar and CTA
-- Replace dark-themed sticky bar (`bg-[hsl(222,47%,11%)]`, `border-white/10`) with `bg-background border-border`
-- Replace white CTA button with `bg-primary text-primary-foreground` (navy button, white text)
-- Step indicators: use `border-foreground` / `bg-foreground` instead of `border-white` / `bg-white`
+---
 
-All text using `text-white` explicitly will be changed to `text-foreground` so it renders dark on the light background.
+## Details techniques
 
-## Files to edit
-- `src/pages/Onboarding.tsx` (single file, ~30 class replacements)
+### Modification 1 : `supabase/functions/stripe-webhook/index.ts`
+
+Dans `handleSubscriptionUpdate`, apres la mise a jour des credits, ajouter un appel pour debloquer les articles :
+
+```text
+1. Trouver le project actif de l'utilisateur
+2. Recuperer tous les articles avec status = 'locked' pour ce projet
+3. Pour chaque article, appeler generate-aeo-article ou mettre le statut a 'scheduled'
+4. Logger le nombre d'articles debloques
+```
+
+### Modification 2 : `src/pages/AeoDashboard.tsx`
+
+Quand `subscribed === true` ET qu'il reste des articles `locked` :
+- Afficher un bouton "Generer le contenu complet"
+- Au clic, appeler un endpoint qui lance la generation batch
+- Afficher une barre de progression
+
+### Modification 3 : Nouvelle fonction `supabase/functions/unlock-articles/index.ts`
+
+Fonction dediee qui :
+1. Verifie l'abonnement actif
+2. Recupere tous les articles `locked` du projet
+3. Pour chaque article, genere le contenu complet via l'IA (OpenRouter/Gemini)
+4. Met a jour le statut de `locked` vers `scheduled`
+5. Retourne le nombre d'articles traites
+
+### Modification 4 : `supabase/functions/check-subscription/index.ts`
+
+Ajouter un champ `has_locked_content: true/false` dans la reponse pour que le frontend sache s'il faut proposer la generation.
 
