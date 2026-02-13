@@ -257,6 +257,15 @@ Règles:
 - Pour chaque recommandation, estime l'impact potentiel en €/mois ou en %
 - Donne des actions concrètes (pas "améliorez vos annonces" mais "ajoutez le mot-clé X dans le titre 1")
 
+STRUCTURE OBLIGATOIRE:
+1. Commence par un résumé de 3-4 lignes mentionnant les KPIs clés (dépenses, clics, conversions, CTR, ROAS)
+2. Puis une section "## Analyse Globale" avec le diagnostic
+3. Puis des sections "### 🔴 Critique : [titre]" ou "### 🟡 Important : [titre]" ou "### 🟢 Amélioration : [titre]"
+4. Dans chaque section, inclure des points "**Action concrète :**" avec des instructions précises
+5. Pour chaque action, estimer l'impact : "**Impact potentiel :** +X€/mois ou X% d'amélioration"
+
+NOTE IMPORTANTE: Le suivi des conversions Google Ads est DÉJÀ configuré sur ce site (gtag AW-2652268707 avec events: sign_up, onboarding, checkout, purchase, pricing_view). Ne recommande PAS de l'installer, il est déjà en place.
+
 ${focusInstruction}`;
 
     const userPrompt = `Analyse ces données Google Ads (7 derniers jours):
