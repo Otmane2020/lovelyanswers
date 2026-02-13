@@ -33,7 +33,7 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
 
     const { focus, campaign_id } = await req.json();
-    // focus: "all" | "ad_groups" | "keywords" | "roas" | "strategy"
+    // focus: "all" | "ad_groups" | "keywords" | "roas" | "strategy" | "conversions"
 
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -186,6 +186,60 @@ FOCUS: Strategic Campaign Analysis
 - Recommend A/B testing priorities
 - Assess competitive positioning and market opportunity`;
         break;
+      case "conversions": {
+        // Non-streaming: generate conversion goals as JSON
+        const convSystemPrompt = `Tu es un expert Google Ads. Analyse les données de campagnes et génère des objectifs de conversion pertinents.
+Retourne UNIQUEMENT un JSON valide avec cette structure:
+{"goals":[{"name":"Nom de l'objectif","type":"purchase|lead|signup|call|page_view","value":50,"tag":"CONVERSION_LABEL_SUGGESTION"}]}
+Génère 3-6 objectifs basés sur le type de business et les données de campagnes.`;
+
+        const convUserPrompt = `Données campagnes (7j): Dépenses=${totalSpend.toFixed(2)}€, Clics=${totalClicks}, Conversions=${totalConversions.toFixed(1)}, Revenue=${totalRevenue.toFixed(2)}€
+Campagnes: ${JSON.stringify(campaignsSummary.map(c => ({ name: c.name, type: c.type, bidding: c.bidding })))}
+Mots-clés principaux: ${keywordsSummary.slice(0, 20).map(k => k.keyword).join(", ")}`;
+
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) {
+          return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const convResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: convSystemPrompt },
+              { role: "user", content: convUserPrompt },
+            ],
+          }),
+        });
+
+        if (!convResp.ok) {
+          return new Response(JSON.stringify({ error: "AI generation failed" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const convData = await convResp.json();
+        let content = convData.choices?.[0]?.message?.content || "";
+        content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        
+        try {
+          const parsed = JSON.parse(content);
+          return new Response(JSON.stringify(parsed), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch {
+          return new Response(JSON.stringify({ goals: [], raw: content }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
       default: // "all"
         focusInstruction = `
 FOCUS: Complete Account Audit

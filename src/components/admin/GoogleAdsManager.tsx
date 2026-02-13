@@ -7,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
-  Download, CheckCircle, AlertCircle, Building2, Brain, Zap, TrendingUp, BarChart3, Lightbulb
+  Download, CheckCircle, AlertCircle, Building2, Brain, Zap, TrendingUp, BarChart3, Lightbulb,
+  Code, Copy, Tag
 } from "lucide-react";
 
 interface GoogleAdsAccount {
@@ -72,6 +75,13 @@ interface ConnectionInfo {
   metadata: any;
 }
 
+interface ConversionGoal {
+  name: string;
+  type: string;
+  value: number | null;
+  tag: string;
+}
+
 export function GoogleAdsManager() {
   const [connectingOAuth, setConnectingOAuth] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
@@ -97,10 +107,14 @@ export function GoogleAdsManager() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisFocus, setAnalysisFocus] = useState<string | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
+
+  // Conversion goals
+  const [conversionGoals, setConversionGoals] = useState<ConversionGoal[]>([]);
+  const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
+
   useEffect(() => {
     loadConnectionAndData();
     
-    // Handle OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     const stateParam = urlParams.get("state");
@@ -121,7 +135,6 @@ export function GoogleAdsManager() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Check connection status FIRST
       const { data: conn } = await supabase
         .from("user_connections")
         .select("status, account_id, metadata")
@@ -131,7 +144,6 @@ export function GoogleAdsManager() {
 
       setConnectionInfo(conn as ConnectionInfo | null);
 
-      // Only load synced data if an account is actually selected
       const hasValidAccount = conn?.account_id && conn.account_id !== "pending";
       if (hasValidAccount) {
         const { data, error } = await supabase.functions.invoke("sync-google-ads", {
@@ -341,7 +353,6 @@ export function GoogleAdsManager() {
         }
       }
 
-      // Flush remaining
       if (buffer.trim()) {
         for (let raw of buffer.split("\n")) {
           if (!raw || !raw.startsWith("data: ")) continue;
@@ -368,6 +379,57 @@ export function GoogleAdsManager() {
     }
   };
 
+  const handleGenerateConversionGoals = async () => {
+    setIsGeneratingGoals(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("analyze-google-ads", {
+        body: { focus: "conversions" },
+      });
+
+      if (error) throw error;
+
+      // Parse the response to extract conversion goals
+      const goals: ConversionGoal[] = data?.goals || [];
+      setConversionGoals(goals);
+      
+      if (goals.length === 0) {
+        toast({ title: "Aucun objectif généré", description: "Lancez d'abord un audit complet", variant: "destructive" });
+      } else {
+        toast({ title: `${goals.length} objectif(s) de conversion générés` });
+      }
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingGoals(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copié !", description: "Tag copié dans le presse-papier" });
+  };
+
+  const generateGtagSnippet = (conversionId: string, conversionLabel: string, value?: number) => {
+    return `<!-- Google Ads Conversion Tracking -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${conversionId}');
+</script>
+
+<!-- Event snippet for conversion -->
+<script>
+  gtag('event', 'conversion', {
+    'send_to': '${conversionId}/${conversionLabel}'${value ? `,\n    'value': ${value},\n    'currency': 'EUR'` : ''}
+  });
+</script>`;
+  };
+
   const focusOptions = [
     { key: "all", label: "Audit complet", icon: Brain, desc: "Analyse globale" },
     { key: "keywords", label: "Mots-clés", icon: Key, desc: "QS, bids, négatifs" },
@@ -382,6 +444,7 @@ export function GoogleAdsManager() {
 
   const isConnected = connectionInfo?.status === "connected";
   const hasAccount = connectionInfo?.account_id && connectionInfo.account_id !== "pending";
+  const conversionId = connectionInfo?.account_id ? `AW-${connectionInfo.account_id}` : "AW-XXXXXXXXXX";
 
   return (
     <div className="space-y-6">
@@ -571,274 +634,486 @@ export function GoogleAdsManager() {
         </div>
       )}
 
-      {/* Sync Status */}
-      {syncStatus && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Dernière sync: {syncStatus.last_full_sync_at ? new Date(syncStatus.last_full_sync_at).toLocaleString("fr-FR") : "Jamais"}
-              </span>
-              <div className="flex items-center gap-2">
-                <Badge variant={syncStatus.last_full_sync_status === "success" ? "default" : "outline"}>
-                  {syncStatus.last_full_sync_status || "N/A"}
-                </Badge>
-                <span className="text-muted-foreground">
-                  {syncStatus.total_campaigns || 0} camp. · {syncStatus.total_keywords || 0} kw · {syncStatus.total_ads || 0} ads
-                </span>
-              </div>
-            </div>
-            {syncStatus.last_full_sync_error && (
-              <p className="text-xs text-destructive mt-2">{syncStatus.last_full_sync_error}</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Sub-tabs for Google Ads sections */}
+      {hasAccount && (
+        <Tabs defaultValue="campaigns" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-7 h-auto">
+            <TabsTrigger value="campaigns" className="text-xs py-2">
+              <Megaphone className="h-3.5 w-3.5 mr-1" />
+              Campagnes
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="text-xs py-2">
+              <Brain className="h-3.5 w-3.5 mr-1" />
+              Audit complet
+            </TabsTrigger>
+            <TabsTrigger value="keywords-analysis" className="text-xs py-2">
+              <Key className="h-3.5 w-3.5 mr-1" />
+              Mots-clés
+            </TabsTrigger>
+            <TabsTrigger value="adgroups-analysis" className="text-xs py-2">
+              <Target className="h-3.5 w-3.5 mr-1" />
+              Ad Groups
+            </TabsTrigger>
+            <TabsTrigger value="roas-analysis" className="text-xs py-2">
+              <TrendingUp className="h-3.5 w-3.5 mr-1" />
+              ROAS
+            </TabsTrigger>
+            <TabsTrigger value="strategy-analysis" className="text-xs py-2">
+              <Lightbulb className="h-3.5 w-3.5 mr-1" />
+              Stratégie
+            </TabsTrigger>
+            <TabsTrigger value="conversions" className="text-xs py-2">
+              <Tag className="h-3.5 w-3.5 mr-1" />
+              Conversions
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Campaigns Table */}
-      {hasAccount && syncedCampaigns.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Campagnes Google Ads</CardTitle>
-            <CardDescription>Cliquez sur une campagne pour voir les mots-clés et annonces</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {syncedCampaigns.map((campaign) => (
-                <div key={campaign.id} className="border rounded-lg">
-                  <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleLoadCampaignDetails(campaign.google_campaign_id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      {expandedCampaign === campaign.google_campaign_id ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                      <Megaphone className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="font-medium">{campaign.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {campaign.advertising_channel_type} · {campaign.bidding_strategy_type}
-                          {campaign.budget_amount_micros && ` · ${formatMicros(campaign.budget_amount_micros)}€/jour`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="text-right">
-                        <p className="font-medium">{(campaign.spend_7d || 0).toFixed(2)}€</p>
-                        <p className="text-xs text-muted-foreground">dépenses</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{campaign.clicks_7d || 0}</p>
-                        <p className="text-xs text-muted-foreground">clics</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{((campaign.ctr_7d || 0) * 100).toFixed(1)}%</p>
-                        <p className="text-xs text-muted-foreground">CTR</p>
-                      </div>
-                      <Badge variant={campaign.status === "ENABLED" ? "default" : "outline"}>
-                        {campaign.status}
+          {/* Campaigns Tab */}
+          <TabsContent value="campaigns" className="space-y-4">
+            {/* Sync Status */}
+            {syncStatus && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Dernière sync: {syncStatus.last_full_sync_at ? new Date(syncStatus.last_full_sync_at).toLocaleString("fr-FR") : "Jamais"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={syncStatus.last_full_sync_status === "success" ? "default" : "outline"}>
+                        {syncStatus.last_full_sync_status || "N/A"}
                       </Badge>
+                      <span className="text-muted-foreground">
+                        {syncStatus.total_campaigns || 0} camp. · {syncStatus.total_keywords || 0} kw · {syncStatus.total_ads || 0} ads
+                      </span>
                     </div>
                   </div>
+                  {syncStatus.last_full_sync_error && (
+                    <p className="text-xs text-destructive mt-2">{syncStatus.last_full_sync_error}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-                  {expandedCampaign === campaign.google_campaign_id && (
-                    <div className="border-t p-4 space-y-4">
-                      {isLoadingDetails ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          <span className="text-sm text-muted-foreground">Chargement...</span>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Keywords */}
-                          <div>
-                            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                              <Key className="h-4 w-4" />
-                              Mots-clés ({campaignKeywords.length})
-                            </h4>
-                            {campaignKeywords.length > 0 ? (
-                              <ScrollArea className="max-h-[300px]">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Mot-clé</TableHead>
-                                      <TableHead>Match</TableHead>
-                                      <TableHead>QS</TableHead>
-                                      <TableHead>Clics</TableHead>
-                                      <TableHead>Impr.</TableHead>
-                                      <TableHead>Coût</TableHead>
-                                      <TableHead>Ad Group</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {campaignKeywords.map((kw) => (
-                                      <TableRow key={kw.id}>
-                                        <TableCell className="font-medium">{kw.keyword_text}</TableCell>
-                                        <TableCell>
-                                          <Badge variant="outline" className="text-xs">{kw.match_type}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                          {kw.quality_score ? (
-                                            <Badge variant={kw.quality_score >= 7 ? "default" : kw.quality_score >= 4 ? "outline" : "destructive"} className="text-xs">
-                                              {kw.quality_score}/10
-                                            </Badge>
-                                          ) : "-"}
-                                        </TableCell>
-                                        <TableCell>{kw.clicks || 0}</TableCell>
-                                        <TableCell>{kw.impressions || 0}</TableCell>
-                                        <TableCell>{formatMicros(kw.cost_micros)}€</TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">{kw.ad_group_name}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </ScrollArea>
+            {syncedCampaigns.length > 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Campagnes Google Ads</CardTitle>
+                  <CardDescription>Cliquez sur une campagne pour voir les mots-clés et annonces</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {syncedCampaigns.map((campaign) => (
+                      <div key={campaign.id} className="border rounded-lg">
+                        <div
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleLoadCampaignDetails(campaign.google_campaign_id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {expandedCampaign === campaign.google_campaign_id ? (
+                              <ChevronDown className="h-4 w-4" />
                             ) : (
-                              <p className="text-sm text-muted-foreground text-center py-4">Aucun mot-clé</p>
+                              <ChevronRight className="h-4 w-4" />
                             )}
+                            <Megaphone className="h-4 w-4 text-primary" />
+                            <div>
+                              <p className="font-medium">{campaign.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {campaign.advertising_channel_type} · {campaign.bidding_strategy_type}
+                                {campaign.budget_amount_micros && ` · ${formatMicros(campaign.budget_amount_micros)}€/jour`}
+                              </p>
+                            </div>
                           </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <div className="text-right">
+                              <p className="font-medium">{(campaign.spend_7d || 0).toFixed(2)}€</p>
+                              <p className="text-xs text-muted-foreground">dépenses</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{campaign.clicks_7d || 0}</p>
+                              <p className="text-xs text-muted-foreground">clics</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{((campaign.ctr_7d || 0) * 100).toFixed(1)}%</p>
+                              <p className="text-xs text-muted-foreground">CTR</p>
+                            </div>
+                            <Badge variant={campaign.status === "ENABLED" ? "default" : "outline"}>
+                              {campaign.status}
+                            </Badge>
+                          </div>
+                        </div>
 
-                          <Separator />
-
-                          {/* Ads */}
-                          <div>
-                            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                              <FileText className="h-4 w-4" />
-                              Annonces ({campaignAds.length})
-                            </h4>
-                            {campaignAds.length > 0 ? (
-                              <div className="space-y-3">
-                                {campaignAds.map((ad) => {
-                                  const headlines = Array.isArray(ad.headlines) 
-                                    ? ad.headlines.map((h: any) => typeof h === 'string' ? h : h.text || '')
-                                    : [];
-                                  const descriptions = Array.isArray(ad.descriptions)
-                                    ? ad.descriptions.map((d: any) => typeof d === 'string' ? d : d.text || '')
-                                    : [];
-                                  
-                                  return (
-                                    <div key={ad.id} className="border rounded-md p-3 space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs text-muted-foreground">{ad.ad_group_name}</span>
-                                        <div className="flex items-center gap-2">
-                                          {ad.ad_strength && (
-                                            <Badge variant="outline" className="text-xs">{ad.ad_strength}</Badge>
-                                          )}
-                                          <Badge variant={ad.status === "ENABLED" ? "default" : "outline"} className="text-xs">
-                                            {ad.status}
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {headlines.map((h: string, i: number) => (
-                                          <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
-                                        ))}
-                                      </div>
-                                      {descriptions.map((d: string, i: number) => (
-                                        <p key={i} className="text-xs text-muted-foreground">{d}</p>
-                                      ))}
-                                      {ad.final_urls && ad.final_urls.length > 0 && (
-                                        <p className="text-xs text-blue-500">{ad.final_urls.join(", ")}</p>
-                                      )}
-                                      <div className="flex gap-4 text-xs text-muted-foreground">
-                                        <span>{ad.clicks || 0} clics</span>
-                                        <span>{ad.impressions || 0} impr.</span>
-                                        <span>{formatMicros(ad.cost_micros)}€</span>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                        {expandedCampaign === campaign.google_campaign_id && (
+                          <div className="border-t p-4 space-y-4">
+                            {isLoadingDetails ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                <span className="text-sm text-muted-foreground">Chargement...</span>
                               </div>
                             ) : (
-                              <p className="text-sm text-muted-foreground text-center py-4">Aucune annonce</p>
+                              <>
+                                {/* Keywords */}
+                                <div>
+                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                                    <Key className="h-4 w-4" />
+                                    Mots-clés ({campaignKeywords.length})
+                                  </h4>
+                                  {campaignKeywords.length > 0 ? (
+                                    <ScrollArea className="max-h-[300px]">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Mot-clé</TableHead>
+                                            <TableHead>Match</TableHead>
+                                            <TableHead>QS</TableHead>
+                                            <TableHead>Clics</TableHead>
+                                            <TableHead>Impr.</TableHead>
+                                            <TableHead>Coût</TableHead>
+                                            <TableHead>Ad Group</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {campaignKeywords.map((kw) => (
+                                            <TableRow key={kw.id}>
+                                              <TableCell className="font-medium">{kw.keyword_text}</TableCell>
+                                              <TableCell>
+                                                <Badge variant="outline" className="text-xs">{kw.match_type}</Badge>
+                                              </TableCell>
+                                              <TableCell>
+                                                {kw.quality_score ? (
+                                                  <Badge variant={kw.quality_score >= 7 ? "default" : kw.quality_score >= 4 ? "outline" : "destructive"} className="text-xs">
+                                                    {kw.quality_score}/10
+                                                  </Badge>
+                                                ) : "-"}
+                                              </TableCell>
+                                              <TableCell>{kw.clicks || 0}</TableCell>
+                                              <TableCell>{kw.impressions || 0}</TableCell>
+                                              <TableCell>{formatMicros(kw.cost_micros)}€</TableCell>
+                                              <TableCell className="text-xs text-muted-foreground">{kw.ad_group_name}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </ScrollArea>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Aucun mot-clé</p>
+                                  )}
+                                </div>
+
+                                <Separator />
+
+                                {/* Ads */}
+                                <div>
+                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                                    <FileText className="h-4 w-4" />
+                                    Annonces ({campaignAds.length})
+                                  </h4>
+                                  {campaignAds.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {campaignAds.map((ad) => {
+                                        const headlines = Array.isArray(ad.headlines) 
+                                          ? ad.headlines.map((h: any) => typeof h === 'string' ? h : h.text || '')
+                                          : [];
+                                        const descriptions = Array.isArray(ad.descriptions)
+                                          ? ad.descriptions.map((d: any) => typeof d === 'string' ? d : d.text || '')
+                                          : [];
+                                        
+                                        return (
+                                          <div key={ad.id} className="border rounded-md p-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs text-muted-foreground">{ad.ad_group_name}</span>
+                                              <div className="flex items-center gap-2">
+                                                {ad.ad_strength && (
+                                                  <Badge variant="outline" className="text-xs">{ad.ad_strength}</Badge>
+                                                )}
+                                                <Badge variant={ad.status === "ENABLED" ? "default" : "outline"} className="text-xs">
+                                                  {ad.status}
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                              {headlines.map((h: string, i: number) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
+                                              ))}
+                                            </div>
+                                            {descriptions.map((d: string, i: number) => (
+                                              <p key={i} className="text-xs text-muted-foreground">{d}</p>
+                                            ))}
+                                            {ad.final_urls && ad.final_urls.length > 0 && (
+                                              <p className="text-xs text-blue-500">{ad.final_urls.join(", ")}</p>
+                                            )}
+                                            <div className="flex gap-4 text-xs text-muted-foreground">
+                                              <span>{ad.clicks || 0} clics</span>
+                                              <span>{ad.impressions || 0} impr.</span>
+                                              <span>{formatMicros(ad.cost_micros)}€</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Aucune annonce</p>
+                                  )}
+                                </div>
+                              </>
                             )}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* AI Optimization Panel */}
-      {hasAccount && syncedCampaigns.length > 0 && (
-        <Card ref={analysisRef}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              Optimisation IA
-            </CardTitle>
-            <CardDescription>Analyse intelligente de vos campagnes par focus</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {focusOptions.map((opt) => {
-                const Icon = opt.icon;
-                const isActive = analysisFocus === opt.key;
-                return (
-                  <Button
-                    key={opt.key}
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    className="flex flex-col items-center gap-1 h-auto py-3"
-                    disabled={isAnalyzing}
-                    onClick={() => handleAnalyze(opt.key)}
-                  >
-                    {isAnalyzing && isActive ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Icon className="h-5 w-5" />
-                    )}
-                    <span className="text-xs font-medium">{opt.label}</span>
-                    <span className="text-[10px] opacity-60">{opt.desc}</span>
-                  </Button>
-                );
-              })}
-            </div>
-
-            {(analysisText || isAnalyzing) && (
-              <>
-                <Separator />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">
-                      Analyse: {focusOptions.find(o => o.key === analysisFocus)?.label}
-                    </span>
-                    {isAnalyzing && <Loader2 className="h-3 w-3 animate-spin" />}
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <ScrollArea className="max-h-[600px]">
-                    <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                      {analysisText || "Analyse en cours..."}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Aucune campagne synchronisée</h3>
+                  <p className="text-muted-foreground mb-4">Cliquez sur "Sync complet" pour importer vos campagnes</p>
+                  <Button onClick={handleFullSync} disabled={isSyncing}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Lancer la synchronisation
+                  </Button>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </TabsContent>
 
-      {/* Empty state */}
-      {hasAccount && syncedCampaigns.length === 0 && !isSyncing && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucune campagne synchronisée</h3>
-            <p className="text-muted-foreground mb-4">Cliquez sur "Sync complet" pour importer vos campagnes</p>
-            <Button onClick={handleFullSync} disabled={isSyncing}>
-              <Download className="h-4 w-4 mr-2" />
-              Lancer la synchronisation
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Analysis Sub-tabs */}
+          {focusOptions.map((opt) => {
+            const tabValue = opt.key === "all" ? "audit" : 
+                           opt.key === "keywords" ? "keywords-analysis" :
+                           opt.key === "ad_groups" ? "adgroups-analysis" :
+                           opt.key === "roas" ? "roas-analysis" : "strategy-analysis";
+            const Icon = opt.icon;
+            return (
+              <TabsContent key={opt.key} value={tabValue}>
+                <Card ref={opt.key === analysisFocus ? analysisRef : undefined}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Icon className="h-5 w-5 text-primary" />
+                          {opt.label}
+                        </CardTitle>
+                        <CardDescription>{opt.desc}</CardDescription>
+                      </div>
+                      <Button 
+                        onClick={() => handleAnalyze(opt.key)} 
+                        disabled={isAnalyzing}
+                      >
+                        {isAnalyzing && analysisFocus === opt.key ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Zap className="h-4 w-4 mr-2" />
+                        )}
+                        Lancer l'analyse
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {analysisFocus === opt.key && (analysisText || isAnalyzing) ? (
+                      <ScrollArea className="max-h-[600px]">
+                        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                          {analysisText || "Analyse en cours..."}
+                        </div>
+                      </ScrollArea>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Icon className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                        <p>Cliquez sur "Lancer l'analyse" pour obtenir des recommandations IA</p>
+                        <p className="text-xs mt-1">Basé sur vos données Google Ads synchronisées</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
+
+          {/* Conversions Tab */}
+          <TabsContent value="conversions">
+            <div className="space-y-6">
+              {/* Generate Goals from Audit */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-primary" />
+                        Objectifs de conversion IA
+                      </CardTitle>
+                      <CardDescription>Générez des objectifs de conversion basés sur l'audit de vos campagnes</CardDescription>
+                    </div>
+                    <Button onClick={handleGenerateConversionGoals} disabled={isGeneratingGoals}>
+                      {isGeneratingGoals ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Zap className="h-4 w-4 mr-2" />
+                      )}
+                      Générer les objectifs
+                    </Button>
+                  </div>
+                </CardHeader>
+                {conversionGoals.length > 0 && (
+                  <CardContent>
+                    <div className="space-y-3">
+                      {conversionGoals.map((goal, idx) => (
+                        <div key={idx} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Tag className="h-4 w-4 text-primary" />
+                              <span className="font-medium">{goal.name}</span>
+                            </div>
+                            <Badge variant="outline">{goal.type}</Badge>
+                          </div>
+                          {goal.value && (
+                            <p className="text-sm text-muted-foreground">Valeur: {goal.value}€</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Conversion Tracking Tags */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="h-5 w-5 text-primary" />
+                    Tags de suivi de conversion
+                  </CardTitle>
+                  <CardDescription>
+                    Copiez ces tags HTML et ajoutez-les sur votre site pour tracker les conversions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Global gtag */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Tag global (toutes les pages)</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', '${conversionId}');\n</script>`)}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copier
+                      </Button>
+                    </div>
+                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{`<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${conversionId}');
+</script>`}
+                    </pre>
+                  </div>
+
+                  <Separator />
+
+                  {/* Purchase conversion */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Conversion: Achat / Commande</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "PURCHASE_LABEL", 50))}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copier
+                      </Button>
+                    </div>
+                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{generateGtagSnippet(conversionId, "PURCHASE_LABEL", 50)}
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      Placez ce snippet sur la page de confirmation de commande. Remplacez <code>PURCHASE_LABEL</code> par votre label de conversion Google Ads.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Lead conversion */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Conversion: Formulaire / Lead</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "LEAD_LABEL"))}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copier
+                      </Button>
+                    </div>
+                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{generateGtagSnippet(conversionId, "LEAD_LABEL")}
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      Placez sur la page de confirmation de formulaire. Remplacez <code>LEAD_LABEL</code> par votre label.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Signup conversion */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Conversion: Inscription</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "SIGNUP_LABEL"))}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copier
+                      </Button>
+                    </div>
+                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{generateGtagSnippet(conversionId, "SIGNUP_LABEL")}
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      Déclenchez après une inscription réussie. Remplacez <code>SIGNUP_LABEL</code> par votre label.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Phone call conversion */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold">Conversion: Appel téléphonique</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(`<script>\n  gtag('event', 'conversion', {\n    'send_to': '${conversionId}/CALL_LABEL',\n    'phone_conversion_number': '+33XXXXXXXXX'\n  });\n</script>`)}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copier
+                      </Button>
+                    </div>
+                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{`<script>
+  gtag('event', 'conversion', {
+    'send_to': '${conversionId}/CALL_LABEL',
+    'phone_conversion_number': '+33XXXXXXXXX'
+  });
+</script>`}
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      Attachez à un clic sur un numéro de téléphone. Remplacez les valeurs par vos labels.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
