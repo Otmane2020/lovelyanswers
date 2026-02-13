@@ -1,384 +1,288 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, ChevronLeft, ChevronRight, MessageSquare, FileText, Loader2, Search, Eye, Lock, Crown } from "lucide-react";
-import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
-import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
-import { enUS, fr } from "date-fns/locale";
+import { ScoreRing } from "@/components/ui/score-ring";
+import {
+  MessageSquare,
+  Search,
+  Loader2,
+  Copy,
+  Check,
+  Eye,
+  Send,
+  Globe,
+  Calendar,
+  Sparkles,
+  Filter,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useAnswers, Answer } from "@/hooks/useAnswers";
+import { toast } from "sonner";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useActiveProject } from "@/hooks/useProjects";
-import { supabase } from "@/integrations/supabase/client";
-
-interface ScheduledAnswer {
-  id: string;
-  question: string;
-  score: number | null;
-  scheduled_date: string;
-}
-
-interface ScheduledArticle {
-  id: string;
-  title: string;
-  aeo_score: number | null;
-  scheduled_date: string;
-  status: string | null;
-}
+import chatGptLogo from "@/assets/chatgpt-logo.png";
+import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 export default function Answers() {
-  const { project } = useActiveProject();
-  const { isSubscribed } = useSubscriptionContext();
-  const navigate = useNavigate();
-  const [answers, setAnswers] = useState<ScheduledAnswer[]>([]);
-  const [articles, setArticles] = useState<ScheduledArticle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [showDayPopup, setShowDayPopup] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [activeTab, setActiveTab] = useState("calendar");
+  const { data: answers = [], isLoading } = useAnswers();
   const [searchQuery, setSearchQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewingAnswer, setViewingAnswer] = useState<Answer | null>(null);
+  const [filter, setFilter] = useState<"all" | "published" | "scheduled" | "draft">("all");
 
-  const rangeStart = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  const visibleStart = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return addDays(d, weekOffset * 7);
-  }, [weekOffset]);
-
-  const visibleEnd = useMemo(() => addDays(visibleStart, 27), [visibleStart]);
-  const visibleDays = useMemo(() => eachDayOfInterval({ start: visibleStart, end: visibleEnd }), [visibleStart, visibleEnd]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!project?.id) return;
-      setIsLoading(true);
-      try {
-        const [{ data: answersData }, { data: articlesData }] = await Promise.all([
-          supabase
-            .from("answers")
-            .select("id, question, score, scheduled_date")
-            .eq("project_id", project.id)
-            .not("scheduled_date", "is", null)
-            .order("scheduled_date", { ascending: true }),
-          supabase
-            .from("articles")
-            .select("id, title, aeo_score, scheduled_date, status")
-            .eq("project_id", project.id)
-            .not("scheduled_date", "is", null)
-            .order("scheduled_date", { ascending: true }),
-        ]);
-        setAnswers((answersData || []) as ScheduledAnswer[]);
-        setArticles((articlesData || []) as ScheduledArticle[]);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, [project?.id]);
-
-  const getItemsForDate = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    const dayAnswers = answers.filter(a => a.scheduled_date?.startsWith(dateStr));
-    const dayArticles = articles.filter(a => a.scheduled_date?.startsWith(dateStr));
-    return { answers: dayAnswers, articles: dayArticles, total: dayAnswers.length + dayArticles.length };
+  const handleCopy = async (answer: Answer) => {
+    await navigator.clipboard.writeText(`Q: ${answer.question}\n\nA: ${answer.answer}`);
+    setCopiedId(answer.id);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDayClick = (date: Date) => {
-    const items = getItemsForDate(date);
-    if (items.total > 0) {
-      setSelectedDay(date);
-      setShowDayPopup(true);
+  const isPublished = (a: Answer) => Boolean(a.published_url) || Boolean(a.published_at);
+
+  const filteredAnswers = useMemo(() => {
+    let result = answers;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.question.toLowerCase().includes(q) ||
+          a.answer.toLowerCase().includes(q)
+      );
     }
-  };
 
-  // All items as flat list for list view
-  const allItems = useMemo(() => {
-    const items: { id: string; title: string; type: "answer" | "article"; date: string; score: number | null }[] = [];
-    answers.forEach(a => items.push({ id: a.id, title: a.question, type: "answer", date: a.scheduled_date, score: a.score }));
-    articles.forEach(a => items.push({ id: a.id, title: a.title, type: "article", date: a.scheduled_date, score: a.aeo_score }));
-    return items.sort((a, b) => a.date.localeCompare(b.date));
-  }, [answers, articles]);
+    if (filter === "published") {
+      result = result.filter((a) => isPublished(a));
+    } else if (filter === "scheduled") {
+      result = result.filter((a) => a.scheduled_date && !isPublished(a));
+    } else if (filter === "draft") {
+      result = result.filter((a) => !a.scheduled_date && !isPublished(a));
+    }
 
-  const filteredItems = allItems.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    return result;
+  }, [answers, searchQuery, filter]);
 
-  const selectedDayItems = selectedDay ? getItemsForDate(selectedDay) : null;
-
-  const totalAnswers = answers.length;
-  const totalArticles = articles.length;
+  const publishedCount = answers.filter((a) => isPublished(a)).length;
+  const scheduledCount = answers.filter((a) => a.scheduled_date && !isPublished(a)).length;
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">AEO Content Plan</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalAnswers} answers · {totalArticles} articles planned
-          </p>
+      <div className="space-y-6">
+        {/* ChatGPT Logo + Badge */}
+        <div className="flex items-center gap-3">
+          <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
+          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 font-bold text-sm px-3 py-1">
+            Rank First in AI!
+          </Badge>
         </div>
 
-        {/* Stats badges */}
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-xs sm:text-sm font-medium text-primary">
-            <MessageSquare className="h-3.5 w-3.5" />
-            {totalAnswers} Answers
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-xs sm:text-sm font-medium text-emerald-700">
-            <FileText className="h-3.5 w-3.5" />
-            {totalArticles} Articles
-          </div>
-        </div>
-
-        {/* Tabs: Calendar / List */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-[250px] grid-cols-2">
-            <TabsTrigger value="calendar" className="text-xs sm:text-sm gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> Calendar
-            </TabsTrigger>
-            <TabsTrigger value="list" className="text-xs sm:text-sm gap-1.5">
-              <Search className="h-3.5 w-3.5" /> List
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Calendar View */}
-          <TabsContent value="calendar" className="mt-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        {/* Hero Header */}
+        <div className="rounded-xl bg-gradient-to-r from-orange-500/10 via-red-500/10 to-amber-500/10 p-6 border border-border/50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
+                <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
               </div>
-            ) : (
-              <Card className="p-3 sm:p-4">
-                {/* Calendar navigation */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                    {format(visibleStart, "d MMM", { locale: enUS })} – {format(visibleEnd, "d MMM", { locale: enUS })}
-                  </p>
-                  <div className="flex border rounded-lg overflow-hidden">
-                    <Button variant="ghost" size="sm" onClick={() => setWeekOffset(Math.max(0, weekOffset - 4))} disabled={weekOffset === 0} className="rounded-none h-8 w-8 p-0">
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0} className="rounded-none text-xs px-2 h-8">
-                      Today
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setWeekOffset(weekOffset + 4)} className="rounded-none h-8 w-8 p-0">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              <p className="text-muted-foreground mt-1">
+                {answers.length} AI-optimized answers for search engines
+              </p>
+            </div>
+          </div>
+        </div>
 
-                {/* Day headers */}
-                <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1">
-                  {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
-                    <div key={i} className="text-center text-[10px] sm:text-xs font-medium text-muted-foreground py-1">
-                      <span className="hidden sm:inline">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}</span>
-                      <span className="sm:hidden">{day}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
-                  {/* Empty cells for offset */}
-                  {Array.from({ length: (visibleStart.getDay() + 6) % 7 }).map((_, i) => (
-                    <div key={`empty-${i}`} className="h-14 sm:h-24" />
-                  ))}
-                  {visibleDays.map((day) => {
-                    const items = getItemsForDate(day);
-                    const hasItems = items.total > 0;
-                    return (
-                      <button
-                        key={day.toISOString()}
-                        onClick={() => handleDayClick(day)}
-                        className={cn(
-                          "h-14 sm:h-24 p-1 sm:p-2 rounded-md sm:rounded-lg border transition-all text-left flex flex-col",
-                          isToday(day) && "border-primary ring-1 ring-primary/20",
-                          hasItems && "hover:shadow-md cursor-pointer hover:bg-muted/50",
-                          !hasItems && "opacity-50"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className={cn(
-                            "text-[10px] sm:text-sm font-semibold w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full",
-                            isToday(day) && "bg-primary text-primary-foreground"
-                          )}>
-                            {format(day, "d")}
-                          </span>
-                          {hasItems && (
-                            <Badge variant="secondary" className="text-[8px] sm:text-[9px] h-3.5 sm:h-4 px-1">
-                              {items.total}
-                            </Badge>
-                          )}
-                        </div>
-                        {/* Mobile: colored dots / Desktop: mini items */}
-                        <div className="mt-0.5 sm:mt-1 flex-1 overflow-hidden">
-                          {/* Mobile dots */}
-                          <div className="flex gap-0.5 sm:hidden flex-wrap">
-                            {items.answers.slice(0, 2).map(a => (
-                              <div key={a.id} className="w-2 h-2 rounded-full bg-primary" />
-                            ))}
-                            {items.articles.slice(0, 2).map(a => (
-                              <div key={a.id} className="w-2 h-2 rounded-full bg-emerald-500" />
-                            ))}
-                          </div>
-                          {/* Desktop mini labels */}
-                          <div className="hidden sm:flex sm:flex-col gap-0.5">
-                            {items.answers.slice(0, 1).map(a => (
-                              <div key={a.id} className="text-[10px] px-1.5 py-0.5 rounded truncate font-medium bg-primary/10 text-primary flex items-center gap-1">
-                                <MessageSquare className="h-2.5 w-2.5 shrink-0" />
-                                <span className="truncate">{a.question.slice(0, 18)}…</span>
-                              </div>
-                            ))}
-                            {items.articles.slice(0, 1).map(a => (
-                              <div key={a.id} className="text-[10px] px-1.5 py-0.5 rounded truncate font-medium bg-emerald-500/20 text-emerald-700 flex items-center gap-1">
-                                <FileText className="h-2.5 w-2.5 shrink-0" />
-                                <span className="truncate">{a.title.slice(0, 18)}…</span>
-                              </div>
-                            ))}
-                            {items.total > 2 && (
-                              <span className="text-[10px] text-muted-foreground">+{items.total - 2}</span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* List View */}
-          <TabsContent value="list" className="mt-4 space-y-3">
-            <div className="relative max-w-md">
+        {/* Stats + Search Bar */}
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="relative max-w-md flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search answers..."
                 className="pl-10"
               />
             </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={filter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("all")}
+                className="text-xs"
+              >
+                All ({answers.length})
+              </Button>
+              <Button
+                variant={filter === "published" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("published")}
+                className="text-xs gap-1"
+              >
+                <Globe className="h-3 w-3" />
+                Published ({publishedCount})
+              </Button>
+              <Button
+                variant={filter === "scheduled" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("scheduled")}
+                className="text-xs gap-1"
+              >
+                <Calendar className="h-3 w-3" />
+                Scheduled ({scheduledCount})
+              </Button>
+              <Button
+                variant={filter === "draft" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("draft")}
+                className="text-xs gap-1"
+              >
+                Draft ({answers.length - publishedCount - scheduledCount})
+              </Button>
+            </div>
+          </div>
+        </Card>
 
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <Card className="p-8 text-center">
-                <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">No planned content found</p>
-              </Card>
-            ) : (
-              <div className="grid gap-2">
-                {filteredItems.map((item) => (
-                  <Card key={item.id} className="p-3 sm:p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
-                        item.type === "answer" ? "bg-primary/10" : "bg-emerald-500/10"
-                      )}>
-                        {item.type === "answer"
-                          ? <MessageSquare className="h-4 w-4 text-primary" />
-                          : <FileText className="h-4 w-4 text-emerald-600" />
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-snug line-clamp-2">{item.title}</p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(item.date), "MMM d, yyyy")}
-                          </span>
-                          <Badge variant="secondary" className="text-[10px] h-4">
-                            {item.type === "answer" ? "AEO" : "SEO"}
-                          </Badge>
-                        </div>
+        {/* Answers List */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredAnswers.length === 0 ? (
+          <Card className="p-12 text-center">
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-medium mb-2">No answers found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery ? "Try a different search term" : "Generate your first AEO answers from the dashboard"}
+            </p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filteredAnswers.map((answer) => (
+              <Card
+                key={answer.id}
+                className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setViewingAnswer(answer)}
+              >
+                <div className="flex items-start gap-4">
+                  <ScoreRing score={answer.score ?? 0} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-medium text-sm sm:text-base leading-snug">
+                        {answer.question}
+                      </h3>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(answer);
+                          }}
+                        >
+                          {copiedId === answer.id ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {answer.answer}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          isPublished(answer)
+                            ? "bg-emerald-500/20 text-emerald-600"
+                            : answer.scheduled_date
+                              ? "bg-orange-500/20 text-orange-600"
+                              : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {isPublished(answer)
+                          ? "Published"
+                          : answer.scheduled_date
+                            ? `Scheduled ${format(new Date(answer.scheduled_date), "MMM d")}`
+                            : "Draft"}
+                      </Badge>
+                      {answer.platforms && answer.platforms.length > 0 && (
+                        <div className="flex gap-1">
+                          {answer.platforms.slice(0, 3).map((p) => (
+                            <Badge key={p} variant="outline" className="text-[10px] h-5">
+                              {p}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      {answer.has_article && (
+                        <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          Article
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Day detail popup */}
-      <Dialog open={showDayPopup} onOpenChange={setShowDayPopup}>
-        <DialogContent className="w-[calc(100vw-32px)] max-w-md p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">
-              {selectedDay && format(selectedDay, "EEEE, MMMM d", { locale: enUS })}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedDayItems && (
-            <div className="space-y-3 mt-2 max-h-[60vh] overflow-y-auto">
-              {selectedDayItems.answers.map(answer => (
-                <Card key={answer.id} className="p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Badge variant="secondary" className="text-[10px] h-4 mb-1.5">AEO Answer</Badge>
-                      <p className="text-sm font-medium leading-snug">{answer.question}</p>
-                      {answer.score !== null && (
-                        <p className="text-xs text-muted-foreground mt-1">Score: {answer.score}%</p>
-                      )}
-                    </div>
+      {/* View Answer Modal */}
+      <Dialog open={!!viewingAnswer} onOpenChange={() => setViewingAnswer(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {viewingAnswer && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{viewingAnswer.question}</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <ScoreRing score={viewingAnswer.score ?? 0} size="md" />
+                  <div>
+                    <p className="text-sm font-medium">AEO Score</p>
+                    <p className="text-xs text-muted-foreground">AI optimization</p>
                   </div>
-                </Card>
-              ))}
-
-              {selectedDayItems.articles.map(article => (
-                <Card key={article.id} className="p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <FileText className="h-3.5 w-3.5 text-emerald-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Badge variant="secondary" className="text-[10px] h-4 mb-1.5">SEO Article</Badge>
-                      <p className="text-sm font-medium leading-snug">{article.title}</p>
-                      {article.aeo_score !== null && (
-                        <p className="text-xs text-muted-foreground mt-1">AEO Score: {article.aeo_score}%</p>
-                      )}
-                    </div>
+                  {viewingAnswer.scheduled_date && (
+                    <Badge variant="outline" className="ml-auto">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {format(new Date(viewingAnswer.scheduled_date), "MMM d, yyyy")}
+                    </Badge>
+                  )}
+                </div>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <p className="whitespace-pre-wrap">{viewingAnswer.answer}</p>
+                </div>
+                {viewingAnswer.platforms && viewingAnswer.platforms.length > 0 && (
+                  <div className="flex gap-2 mt-4 flex-wrap">
+                    {viewingAnswer.platforms.map((p) => (
+                      <Badge key={p} variant="secondary">{p}</Badge>
+                    ))}
                   </div>
-                </Card>
-              ))}
-
-              {!isSubscribed && (
-                <Card className="p-4 bg-muted/50 border-dashed border-primary/20">
-                  <div className="flex flex-col items-center text-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Subscribe to view full content</p>
-                      <p className="text-xs text-muted-foreground mt-1">Unlock all answers, articles and publishing features</p>
-                    </div>
-                    <Button size="sm" className="gap-2 mt-1" onClick={() => navigate("/subscription")}>
-                      <Crown className="h-4 w-4" />
-                      Upgrade Now
-                    </Button>
-                  </div>
-                </Card>
-              )}
-            </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => handleCopy(viewingAnswer)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+                {viewingAnswer.published_url && (
+                  <Button variant="outline" asChild>
+                    <a href={viewingAnswer.published_url} target="_blank" rel="noopener noreferrer">
+                      <Globe className="h-4 w-4 mr-2" />
+                      View Published
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>
