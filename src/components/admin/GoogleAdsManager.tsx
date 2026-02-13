@@ -15,6 +15,8 @@ import { RoasTab } from "@/components/admin/ads/RoasTab";
 import { StrategyTab } from "@/components/admin/ads/StrategyTab";
 import { ConversionsTab } from "@/components/admin/ads/ConversionsTab";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
+import { CampaignSelectDialog } from "@/components/admin/ads/CampaignSelectDialog";
+import { ReportHistory } from "@/components/admin/ads/ReportHistory";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
@@ -108,7 +110,13 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // AI Analysis (for audit tab only)
-  const { text: analysisText, isStreaming: isAnalyzing, startAnalysis: handleAnalyze, ref: analysisRef } = useAdsStreaming();
+  const { text: analysisText, isStreaming: isAnalyzing, startAnalysis: handleAnalyze, ref: analysisRef, previousReports: auditReports, isLoadingHistory: auditHistoryLoading, loadPreviousReports: loadAuditReports, loadReport: loadAuditReport } = useAdsStreaming();
+  const [showAuditCampaignPicker, setShowAuditCampaignPicker] = useState(false);
+  const [selectedAuditCampaignName, setSelectedAuditCampaignName] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadAuditReports("all");
+  }, []);
 
   useEffect(() => {
     loadConnectionAndData();
@@ -702,7 +710,25 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           </TabsContent>
 
           {/* Audit Tab */}
-          <TabsContent value="audit">
+          <TabsContent value="audit" className="space-y-4">
+            <CampaignSelectDialog
+              open={showAuditCampaignPicker}
+              onOpenChange={setShowAuditCampaignPicker}
+              onSelect={(campaignId, campaignName) => {
+                setSelectedAuditCampaignName(campaignName);
+                handleAnalyze("all", campaignId || undefined);
+              }}
+              title="Lancer l'audit"
+            />
+
+            <ReportHistory
+              reports={auditReports}
+              isLoading={auditHistoryLoading}
+              onLoad={loadAuditReport}
+              focusType="all"
+              onRefresh={loadAuditReports}
+            />
+
             <Card ref={analysisRef}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -711,9 +737,12 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                       <Brain className="h-5 w-5 text-primary" />
                       Audit complet
                     </CardTitle>
-                    <CardDescription>Synthèse globale du compte Google Ads</CardDescription>
+                    <CardDescription>
+                      Synthèse globale du compte Google Ads
+                      {selectedAuditCampaignName && <Badge variant="outline" className="ml-2 text-[10px]">{selectedAuditCampaignName}</Badge>}
+                    </CardDescription>
                   </div>
-                  <Button onClick={() => handleAnalyze("all")} disabled={isAnalyzing}>
+                  <Button onClick={() => setShowAuditCampaignPicker(true)} disabled={isAnalyzing}>
                     {isAnalyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
                     Lancer l'audit
                   </Button>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,7 @@ import { Loader2, Lightbulb, Zap, Settings, Target } from "lucide-react";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
+import { CampaignSelectDialog } from "./CampaignSelectDialog";
 
 interface SyncedCampaign {
   id: string;
@@ -31,11 +32,19 @@ interface StrategyTabProps {
 }
 
 export function StrategyTab({ campaigns }: StrategyTabProps) {
+  const [showCampaignPicker, setShowCampaignPicker] = useState(false);
+  const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
 
   useEffect(() => {
     loadPreviousReports("strategy");
   }, []);
+
+  const handleLaunchAnalysis = () => setShowCampaignPicker(true);
+  const handleCampaignSelected = (campaignId: string | null, campaignName: string) => {
+    setSelectedCampaignName(campaignName);
+    startAnalysis("strategy", campaignId || undefined);
+  };
 
   const totalSpend = campaigns.reduce((s, c) => s + (c.spend_7d || 0), 0);
   const totalClicks = campaigns.reduce((s, c) => s + (c.clicks_7d || 0), 0);
@@ -101,14 +110,19 @@ export function StrategyTab({ campaigns }: StrategyTabProps) {
 
       <ReportHistory reports={previousReports} isLoading={isLoadingHistory} onLoad={loadReport} focusType="strategy" onRefresh={loadPreviousReports} />
 
+      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser la stratégie" />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Recommandations IA — Stratégie</CardTitle>
-              <CardDescription>Quick wins et optimisations</CardDescription>
+              <CardDescription>
+                Quick wins et optimisations
+                {selectedCampaignName && <Badge variant="outline" className="ml-2 text-[10px]">{selectedCampaignName}</Badge>}
+              </CardDescription>
             </div>
-            <Button onClick={() => startAnalysis("strategy")} disabled={isStreaming}>
+            <Button onClick={handleLaunchAnalysis} disabled={isStreaming}>
               {isStreaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
               Analyser la stratégie
             </Button>

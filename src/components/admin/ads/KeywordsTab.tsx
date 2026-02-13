@@ -10,6 +10,7 @@ import { Loader2, Key, Zap, AlertTriangle, MinusCircle, CheckCircle2, Search } f
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
+import { CampaignSelectDialog } from "./CampaignSelectDialog";
 import { Input } from "@/components/ui/input";
 
 interface KeywordRow {
@@ -36,6 +37,8 @@ export function KeywordsTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [subTab, setSubTab] = useState("all");
+  const [showCampaignPicker, setShowCampaignPicker] = useState(false);
+  const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
 
   useEffect(() => {
@@ -57,6 +60,15 @@ export function KeywordsTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLaunchAnalysis = () => {
+    setShowCampaignPicker(true);
+  };
+
+  const handleCampaignSelected = (campaignId: string | null, campaignName: string) => {
+    setSelectedCampaignName(campaignName);
+    startAnalysis("keywords", campaignId || undefined);
   };
 
   const formatMicros = (v: number | null) => v ? (v / 1000000).toFixed(2) : "0.00";
@@ -82,6 +94,13 @@ export function KeywordsTab() {
 
   return (
     <div className="space-y-6" ref={ref}>
+      <CampaignSelectDialog
+        open={showCampaignPicker}
+        onOpenChange={setShowCampaignPicker}
+        onSelect={handleCampaignSelected}
+        title="Analyser les mots-clés"
+      />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-muted/30">
@@ -207,9 +226,12 @@ export function KeywordsTab() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Recommandations IA — Mots-clés</CardTitle>
-              <CardDescription>Analyse avec actions concrètes</CardDescription>
+              <CardDescription>
+                Analyse avec actions concrètes
+                {selectedCampaignName && <Badge variant="outline" className="ml-2 text-[10px]">{selectedCampaignName}</Badge>}
+              </CardDescription>
             </div>
-            <Button onClick={() => startAnalysis("keywords")} disabled={isStreaming}>
+            <Button onClick={handleLaunchAnalysis} disabled={isStreaming}>
               {isStreaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
               Analyser les mots-clés
             </Button>

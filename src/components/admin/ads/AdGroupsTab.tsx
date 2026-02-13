@@ -8,6 +8,7 @@ import { Loader2, Target, Zap, Pause, Play, PlusCircle, AlertTriangle } from "lu
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
+import { CampaignSelectDialog } from "./CampaignSelectDialog";
 import { toast } from "@/hooks/use-toast";
 
 interface AdGroupData {
@@ -37,6 +38,8 @@ export function AdGroupsTab() {
   const [adGroups, setAdGroups] = useState<AdGroupData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [showCampaignPicker, setShowCampaignPicker] = useState(false);
+  const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
 
   useEffect(() => {
@@ -85,6 +88,15 @@ export function AdGroupsTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLaunchAnalysis = () => {
+    setShowCampaignPicker(true);
+  };
+
+  const handleCampaignSelected = (campaignId: string | null, campaignName: string) => {
+    setSelectedCampaignName(campaignName);
+    startAnalysis("ad_groups", campaignId || undefined);
   };
 
   const toggleAdGroupStatus = async (group: AdGroupData) => {
@@ -136,6 +148,13 @@ export function AdGroupsTab() {
 
   return (
     <div className="space-y-6" ref={ref}>
+      <CampaignSelectDialog
+        open={showCampaignPicker}
+        onOpenChange={setShowCampaignPicker}
+        onSelect={handleCampaignSelected}
+        title="Analyser les Ad Groups"
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-muted/30"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground uppercase">Ad Groups</p><p className="text-2xl font-bold mt-1">{adGroups.length}</p></CardContent></Card>
         <Card className="bg-red-50 border-red-200"><CardContent className="p-4 text-center"><p className="text-xs text-red-600 uppercase">À mettre en pause</p><p className="text-2xl font-bold mt-1 text-red-700">{toPause.length}</p></CardContent></Card>
@@ -212,9 +231,12 @@ export function AdGroupsTab() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Recommandations IA — Ad Groups</CardTitle>
-              <CardDescription>Analyse avec actions directes</CardDescription>
+              <CardDescription>
+                Analyse avec actions directes
+                {selectedCampaignName && <Badge variant="outline" className="ml-2 text-[10px]">{selectedCampaignName}</Badge>}
+              </CardDescription>
             </div>
-            <Button onClick={() => startAnalysis("ad_groups")} disabled={isStreaming}>
+            <Button onClick={handleLaunchAnalysis} disabled={isStreaming}>
               {isStreaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
               Analyser les Ad Groups
             </Button>
