@@ -11,6 +11,46 @@ const logStep = (step: string, details?: any) => {
   console.log(`[UNLOCK-ARTICLES] ${step}${detailsStr}`);
 };
 
+async function generateAnswerContent(
+  question: string,
+  projectContext: any,
+  apiKey: string
+): Promise<{ answer: string; score: number }> {
+  const { brand_name, website_url, business_description, language, audience } = projectContext;
+  
+  const systemPrompt = language === "fr"
+    ? `Tu es un expert AEO. Rédige une réponse factuelle et citable de 80-120 mots.
+Marque: ${brand_name || ""}. Site: ${website_url || ""}.
+${business_description ? `Description: ${business_description}` : ""}
+${audience ? `Audience: ${audience}` : ""}
+Pas de superlatifs, pas de marketing. Première phrase = réponse directe. Mentionne la marque une fois avec l'URL.`
+    : `You are an AEO expert. Write a factual, citable answer of 80-120 words.
+Brand: ${brand_name || ""}. Website: ${website_url || ""}.
+${business_description ? `Description: ${business_description}` : ""}
+No superlatives, no marketing. First sentence = direct answer. Mention brand once with URL.`;
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question }
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI API error: ${response.status}`);
+  const data = await response.json();
+  const answer = data.choices?.[0]?.message?.content || "";
+  return { answer: answer.trim(), score: 75 };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,89 +75,91 @@ serve(async (req) => {
     const userId = userData.user.id;
     logStep("User authenticated", { userId });
 
-    // Get the user's active project
-    const { data: projects, error: projectError } = await supabaseAdmin
+    const { data: projects } = await supabaseAdmin
       .from("projects")
-      .select("id")
+      .select("*")
       .eq("user_id", userId)
       .limit(1);
 
-    if (projectError || !projects || projects.length === 0) {
-      throw new Error("No project found for user");
-    }
+    if (!projects || projects.length === 0) throw new Error("No project found");
 
-    const projectId = projects[0].id;
+    const project = projects[0];
+    const projectId = project.id;
     logStep("Found project", { projectId });
 
-    // Get all locked articles for this project
-    const { data: lockedArticles, error: articlesError } = await supabaseAdmin
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const openrouterKey = Deno.env.get("OPENROUTER_API_KEY") ?? "";
+    let articlesUnlocked = 0;
+    let answersUnlocked = 0;
+    let generated = 0;
+    let errors = 0;
+
+    // ===== 1. UNLOCK LOCKED ARTICLES =====
+    const { data: lockedArticles } = await supabaseAdmin
       .from("articles")
       .select("id, title")
       .eq("project_id", projectId)
       .eq("status", "locked");
 
-    if (articlesError) throw new Error(`Error fetching articles: ${articlesError.message}`);
+    if (lockedArticles && lockedArticles.length > 0) {
+      logStep("Found locked articles", { count: lockedArticles.length });
+      const articleIds = lockedArticles.map(a => a.id);
+      await supabaseAdmin.from("articles").update({ status: "scheduled" }).in("id", articleIds);
+      articlesUnlocked = articleIds.length;
 
-    if (!lockedArticles || lockedArticles.length === 0) {
-      logStep("No locked articles found");
-      return new Response(JSON.stringify({ unlocked: 0, message: "No locked articles" }), {
+      for (const article of lockedArticles) {
+        try {
+          const response = await fetch(`${supabaseUrl}/functions/v1/generate-aeo-article`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceRoleKey}` },
+            body: JSON.stringify({ articleId: article.id }),
+          });
+          if (response.ok) { generated++; } else { errors++; }
+        } catch { errors++; }
+      }
+    }
+
+    // ===== 2. UNLOCK LOCKED ANSWERS (generate content in-place) =====
+    const { data: lockedAnswers } = await supabaseAdmin
+      .from("answers")
+      .select("id, question")
+      .eq("project_id", projectId)
+      .eq("answer", "Content locked — subscribe to unlock.");
+
+    if (lockedAnswers && lockedAnswers.length > 0) {
+      logStep("Found locked answers", { count: lockedAnswers.length });
+
+      for (const ans of lockedAnswers) {
+        try {
+          logStep("Generating answer", { id: ans.id, q: ans.question.substring(0, 50) });
+          const result = await generateAnswerContent(ans.question, project, openrouterKey);
+          
+          await supabaseAdmin
+            .from("answers")
+            .update({ answer: result.answer, score: result.score })
+            .eq("id", ans.id);
+          
+          answersUnlocked++;
+          logStep("Answer generated", { id: ans.id, score: result.score });
+        } catch (err) {
+          logStep("Answer generation error", { id: ans.id, error: String(err) });
+          errors++;
+        }
+      }
+    }
+
+    if (articlesUnlocked === 0 && answersUnlocked === 0) {
+      return new Response(JSON.stringify({ unlocked: 0, message: "No locked content" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    logStep("Found locked articles", { count: lockedArticles.length });
-
-    // Update all locked articles to "scheduled" status so daily-planning-fill and generate functions can pick them up
-    const articleIds = lockedArticles.map(a => a.id);
-    const { error: updateError } = await supabaseAdmin
-      .from("articles")
-      .update({ status: "scheduled" })
-      .in("id", articleIds);
-
-    if (updateError) throw new Error(`Error updating articles: ${updateError.message}`);
-
-    logStep("Articles unlocked to scheduled", { count: articleIds.length });
-
-    // Trigger generation for each article by calling generate-aeo-article
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    let generated = 0;
-    let errors = 0;
-
-    for (const article of lockedArticles) {
-      try {
-        logStep("Generating content for article", { articleId: article.id, title: article.title });
-        
-        const response = await fetch(`${supabaseUrl}/functions/v1/generate-aeo-article`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${serviceRoleKey}`,
-          },
-          body: JSON.stringify({ articleId: article.id }),
-        });
-
-        if (response.ok) {
-          generated++;
-          logStep("Article generated successfully", { articleId: article.id });
-        } else {
-          const errText = await response.text();
-          logStep("Article generation failed", { articleId: article.id, error: errText });
-          errors++;
-        }
-      } catch (err) {
-        logStep("Article generation error", { articleId: article.id, error: String(err) });
-        errors++;
-      }
-    }
-
-    logStep("Unlock complete", { total: lockedArticles.length, generated, errors });
+    logStep("Unlock complete", { articlesUnlocked, answersUnlocked, generated, errors });
 
     return new Response(JSON.stringify({ 
-      unlocked: lockedArticles.length,
-      generated,
-      errors,
-      message: `${lockedArticles.length} articles unlocked, ${generated} generated`
+      articlesUnlocked, answersUnlocked, generated, errors,
+      message: `${articlesUnlocked} articles + ${answersUnlocked} answers unlocked`
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
