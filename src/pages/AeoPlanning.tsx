@@ -481,9 +481,9 @@ export default function AeoPlanning() {
                       )
                     )}
                     {item.publishedUrl && (
-                      <Button variant="outline" size="sm" onClick={() => window.open(item.publishedUrl, "_blank")}>
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        View
+                      <Button variant="outline" size="sm" onClick={() => window.open(item.publishedUrl, "_blank")} className="text-xs">
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        {(() => { try { return new URL(item.publishedUrl).hostname; } catch { return "View"; } })()}
                       </Button>
                     )}
                   </div>
