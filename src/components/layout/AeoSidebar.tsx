@@ -32,6 +32,7 @@ export function AeoSidebar() {
   const shoppingMenuItems = [
     { title: "Products", url: "/shopping", icon: Package },
     { title: "AEO Shopping", url: "/shopping?tab=aeo", icon: ShoppingCart, badge: "New" },
+    { title: "Planning", url: "/shopping?tab=planning", icon: CalendarDays },
   ];
 
   const otherMenuItems = [

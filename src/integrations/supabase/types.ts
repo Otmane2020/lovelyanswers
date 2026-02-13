@@ -2068,6 +2068,54 @@ export type Database = {
           },
         ]
       }
+      shopping_planning: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          project_id: string
+          published: boolean | null
+          published_at: string | null
+          scheduled_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          project_id: string
+          published?: boolean | null
+          published_at?: string | null
+          scheduled_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          project_id?: string
+          published?: boolean | null
+          published_at?: string | null
+          scheduled_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_planning_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_planning_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopping_products: {
         Row: {
           ai_description: string | null
