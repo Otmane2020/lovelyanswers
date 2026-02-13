@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
-import { FileText, Plus, Search, Calendar, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
+import { FileText, Search, Calendar, Loader2, Eye, Pencil, Copy, Clock, ExternalLink, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GlassCard } from "@/components/ui/glass-card";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Article {
   id: string;
@@ -19,6 +22,8 @@ interface Article {
   aeo_score: number | null;
   created_at: string;
   scheduled_date: string | null;
+  content?: string | null;
+  html_content?: string | null;
 }
 
 export default function AutoSeo() {
@@ -28,6 +33,7 @@ export default function AutoSeo() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
 
   useEffect(() => {
     if (!project?.id) return;
@@ -37,21 +43,18 @@ export default function AutoSeo() {
       try {
         const { data, error } = await supabase
           .from("articles")
-          .select("id, title, status, word_count, aeo_score, created_at, scheduled_date")
+          .select("id, title, status, word_count, aeo_score, created_at, scheduled_date, content, html_content")
           .eq("project_id", project.id)
           .order("scheduled_date", { ascending: true });
 
         if (error) throw error;
-        
-        // Sort: today's articles first, then by scheduled_date ascending
-        const today = new Date().toISOString().split('T')[0];
+
+        const today = new Date().toISOString().split("T")[0];
         const sortedData = (data || []).sort((a, b) => {
-          const dateA = a.scheduled_date?.split('T')[0] || '';
-          const dateB = b.scheduled_date?.split('T')[0] || '';
-          
+          const dateA = a.scheduled_date?.split("T")[0] || "";
+          const dateB = b.scheduled_date?.split("T")[0] || "";
           if (dateA === today && dateB !== today) return -1;
           if (dateB === today && dateA !== today) return 1;
-          
           return dateA.localeCompare(dateB);
         });
         setArticles(sortedData);
@@ -65,27 +68,30 @@ export default function AutoSeo() {
     fetchArticles();
   }, [project?.id]);
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      draft: "bg-muted text-muted-foreground",
-      scheduled: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-      published: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-      generating: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    };
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "published":
+        return "bg-emerald-500/20 text-emerald-600";
+      case "scheduled":
+        return "bg-teal-500/20 text-teal-600";
+      case "generating":
+        return "bg-amber-500/20 text-amber-600";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       draft: "Draft",
       scheduled: "Scheduled",
       published: "Published",
       generating: "Generating",
     };
-    return (
-      <Badge className={styles[status] || styles.draft}>
-        {labels[status] || status}
-      </Badge>
-    );
+    return labels[status] || status;
   };
 
-  const filteredArticles = articles.filter(article => {
+  const filteredArticles = articles.filter((article) => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === "all" || article.status === activeTab;
     return matchesSearch && matchesTab;
@@ -93,58 +99,89 @@ export default function AutoSeo() {
 
   const stats = {
     total: articles.length,
-    published: articles.filter(a => a.status === "published").length,
-    scheduled: articles.filter(a => a.status === "scheduled").length,
-    avgScore: articles.filter(a => a.aeo_score).length > 0
-      ? Math.round(articles.filter(a => a.aeo_score).reduce((sum, a) => sum + (a.aeo_score || 0), 0) / articles.filter(a => a.aeo_score).length)
-      : 0,
+    published: articles.filter((a) => a.status === "published").length,
+    scheduled: articles.filter((a) => a.status === "scheduled").length,
+    avgScore:
+      articles.filter((a) => a.aeo_score).length > 0
+        ? Math.round(
+            articles
+              .filter((a) => a.aeo_score)
+              .reduce((sum, a) => sum + (a.aeo_score || 0), 0) /
+              articles.filter((a) => a.aeo_score).length
+          )
+        : 0,
+  };
+
+  const handleCopyArticle = (article: Article) => {
+    const content = article.html_content || article.content || "";
+    navigator.clipboard.writeText(content);
+    toast.success("Article copied to clipboard!");
+  };
+
+  const handleDeleteArticle = async (articleId: string) => {
+    try {
+      const { error } = await supabase.from("articles").delete().eq("id", articleId);
+      if (error) throw error;
+      setArticles((prev) => prev.filter((a) => a.id !== articleId));
+      toast.success("Article deleted");
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      toast.error("Failed to delete article");
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Auto SEO</h1>
-            <p className="text-muted-foreground">
-              SEO articles auto-generated from your AEO answers
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/planning")}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Planning
-            </Button>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Article
-            </Button>
+        {/* Hero Header */}
+        <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 p-6 border border-border/50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Auto SEO</h1>
+              </div>
+              <p className="text-muted-foreground mt-1">
+                SEO articles auto-generated from your AEO answers
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => navigate("/planning")} className="gap-2">
+                <Calendar className="h-4 w-4" />
+                Planning
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/answers")} className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                AEO Answers
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <GlassCard className="p-4 text-center">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-sm text-muted-foreground">Total Articles</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-primary">{stats.published}</div>
-            <div className="text-sm text-muted-foreground">Published</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-primary/70">{stats.scheduled}</div>
-            <div className="text-sm text-muted-foreground">Scheduled</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-primary">{stats.avgScore}%</div>
-            <div className="text-sm text-muted-foreground">Avg Score</div>
-          </Card>
+            <div className="text-xs text-muted-foreground mt-1">Total Articles</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-600">{stats.published}</div>
+            <div className="text-xs text-muted-foreground mt-1">Published</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center">
+            <div className="text-2xl font-bold text-teal-600">{stats.scheduled}</div>
+            <div className="text-xs text-muted-foreground mt-1">Scheduled</div>
+          </GlassCard>
+          <GlassCard className="p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-600">{stats.avgScore}%</div>
+            <div className="text-xs text-muted-foreground mt-1">Avg Score</div>
+          </GlassCard>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* Search & Tabs */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -156,7 +193,7 @@ export default function AutoSeo() {
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="all">All ({articles.length})</TabsTrigger>
               <TabsTrigger value="draft">Drafts</TabsTrigger>
               <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
               <TabsTrigger value="published">Published</TabsTrigger>
@@ -167,66 +204,150 @@ export default function AutoSeo() {
         {/* Articles List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
           </div>
         ) : filteredArticles.length === 0 ? (
-          <Card className="p-12 text-center">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">No articles</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery 
-                ? "No articles match your search"
-                : "Start by generating AEO answers, then transform them into SEO articles"}
-            </p>
-            <Button onClick={() => navigate("/answers")}>
-              View AEO Answers
-            </Button>
-          </Card>
+          <GlassCard className="p-12">
+            <div className="text-center space-y-4">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
+              <h3 className="text-lg font-medium">No articles found</h3>
+              <p className="text-muted-foreground">
+                {searchQuery
+                  ? "No articles match your search"
+                  : "Generate AEO answers first, then transform them into SEO articles"}
+              </p>
+              <Button
+                onClick={() => navigate("/answers")}
+                className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View AEO Answers
+              </Button>
+            </div>
+          </GlassCard>
         ) : (
-          <div className="grid gap-4">
+          <div className="space-y-4">
             {filteredArticles.map((article) => (
-              <Card key={article.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {getStatusBadge(article.status)}
-                      {article.aeo_score && (
-                        <Badge variant="outline" className="text-xs">
-                          Score: {article.aeo_score}%
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="font-medium truncate">{article.title}</h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      <span>{article.word_count || 0} words</span>
-                      <span>
-                        {format(new Date(article.created_at), "MMM d, yyyy")}
-                      </span>
-                      {article.scheduled_date && (
-                        <span className="flex items-center gap-1 text-primary">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(article.scheduled_date), "MMM d")}
-                        </span>
-                      )}
-                    </div>
+              <GlassCard key={article.id} hover className="p-4 sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0">
+                    <ScoreRing score={article.aeo_score || 0} size="sm" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-semibold text-sm sm:text-base leading-snug">
+                        {article.title}
+                      </h3>
+                      <Badge className={getStatusColor(article.status)}>
+                        {getStatusLabel(article.status)}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span>{article.word_count || 0} words</span>
+                      <span>•</span>
+                      <span>AEO Score: {article.aeo_score || 0}%</span>
+                      <span>•</span>
+                      <span>{format(new Date(article.created_at), "MMM d, yyyy")}</span>
+                      {article.scheduled_date && (
+                        <>
+                          <span>•</span>
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(article.scheduled_date), "MMM d")}
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewingArticle(article)}
+                        className="gap-1"
+                      >
+                        <Eye className="h-3 w-3" />
+                        View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/articles/${article.id}/edit`)}
+                        className="gap-1"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyArticle(article)}
+                        className="gap-1"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteArticle(article.id)}
+                        className="gap-1 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </GlassCard>
             ))}
           </div>
         )}
       </div>
+
+      {/* View Article Dialog */}
+      <Dialog open={!!viewingArticle} onOpenChange={() => setViewingArticle(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              {viewingArticle?.title}
+            </DialogTitle>
+            <DialogDescription>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <ScoreRing score={viewingArticle?.aeo_score || 0} size="sm" />
+                  <span>AEO Score: {viewingArticle?.aeo_score || 0}%</span>
+                </div>
+                <span>•</span>
+                <span>{viewingArticle?.word_count || 0} words</span>
+                {viewingArticle?.scheduled_date && (
+                  <>
+                    <span>•</span>
+                    <Badge variant="secondary">
+                      Scheduled: {format(new Date(viewingArticle.scheduled_date), "MMM d, yyyy")}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-4">
+            {viewingArticle?.html_content ? (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }}
+              />
+            ) : viewingArticle?.content ? (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: viewingArticle.content }}
+              />
+            ) : (
+              <p className="text-muted-foreground text-center py-8">No content available</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
