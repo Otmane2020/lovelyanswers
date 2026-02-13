@@ -4,13 +4,21 @@ import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Brain, Zap, CheckCircle, Tag, Code, Copy, ExternalLink } from "lucide-react";
+import { Loader2, Brain, Zap, CheckCircle, Tag, Code, Copy, ExternalLink, Rocket, AlertCircle, ArrowRight } from "lucide-react";
 
 interface ConversionGoal {
   name: string;
   type: string;
   value: number | null;
   tag: string;
+}
+
+interface ConversionResult {
+  name: string;
+  tag: string;
+  status: string;
+  conversionLabel?: string;
+  error?: string;
 }
 
 interface ConversionsTabProps {
@@ -20,6 +28,8 @@ interface ConversionsTabProps {
 export function ConversionsTab({ conversionId }: ConversionsTabProps) {
   const [conversionGoals, setConversionGoals] = useState<ConversionGoal[]>([]);
   const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
+  const [isCreatingConversions, setIsCreatingConversions] = useState(false);
+  const [createdConversions, setCreatedConversions] = useState<ConversionResult[]>([]);
 
   const handleGenerateConversionGoals = async () => {
     setIsGeneratingGoals(true);
@@ -42,6 +52,28 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
     }
   };
 
+  const handleCreateConversionsInGoogleAds = async () => {
+    setIsCreatingConversions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-google-ads-conversions");
+      if (error) throw error;
+      if (data?.conversions) {
+        setCreatedConversions(data.conversions);
+        const created = data.conversions.filter((c: ConversionResult) => c.status === "created").length;
+        const existing = data.conversions.filter((c: ConversionResult) => c.status === "already_exists").length;
+        const errors = data.conversions.filter((c: ConversionResult) => c.status === "error").length;
+        toast({
+          title: "Conversions synchronisées",
+          description: `${created} créée(s), ${existing} existante(s)${errors > 0 ? `, ${errors} erreur(s)` : ""}`,
+        });
+      }
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setIsCreatingConversions(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copié !" });
@@ -59,9 +91,167 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
     return `gtag('event', 'conversion', {\n  'send_to': '${conversionId}/${label}',\n  'value': ${value || "1.0"},\n  'currency': 'EUR'\n});`;
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "created":
+        return <Badge className="bg-green-100 text-green-800 border-green-200">✓ Créée</Badge>;
+      case "already_exists":
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Existante</Badge>;
+      case "error":
+        return <Badge variant="destructive">Erreur</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Actions rapides */}
+      {/* Action principale : Créer les conversions dans Google Ads */}
+      <Card className="border-2 border-primary/30 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-full bg-primary/10">
+              <Rocket className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-base mb-1">Créer les conversions dans Google Ads</h3>
+              <p className="text-sm text-muted-foreground mb-1">
+                Crée automatiquement les 5 actions de conversion dans votre compte Google Ads via l'API.
+                Les labels de conversion seront récupérés pour l'intégration dans le site.
+              </p>
+              <ul className="text-xs text-muted-foreground mb-3 space-y-0.5">
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Sign Up ($5)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Onboarding Complete ($10)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Begin Checkout ($29)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Purchase ($49 default)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Pricing Page View ($1)</li>
+              </ul>
+              <Button 
+                onClick={handleCreateConversionsInGoogleAds} 
+                disabled={isCreatingConversions}
+                className="gap-2"
+              >
+                {isCreatingConversions ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Rocket className="h-4 w-4" />
+                )}
+                {isCreatingConversions ? "Création en cours..." : "Créer les 5 conversions dans Google Ads"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Résultats de la création */}
+      {createdConversions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Résultat de la synchronisation
+            </CardTitle>
+            <CardDescription>
+              Labels de conversion récupérés — copiez-les pour mettre à jour le tracking
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {createdConversions.map((conv, idx) => (
+              <div key={idx} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {conv.status === "error" ? (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    )}
+                    <span className="font-semibold text-sm">{conv.name}</span>
+                    {getStatusBadge(conv.status)}
+                  </div>
+                </div>
+                {conv.conversionLabel && (
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase text-muted-foreground font-medium">
+                        Conversion Label (send_to)
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => copyToClipboard(conv.conversionLabel!)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" /> Copier
+                      </Button>
+                    </div>
+                    <code className="text-sm font-mono text-primary">{conv.conversionLabel}</code>
+                  </div>
+                )}
+                {conv.conversionLabel && (
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase text-muted-foreground font-medium">
+                        Code gtag.js
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => copyToClipboard(
+                          `gtag('event', 'conversion', {\n  'send_to': '${conv.conversionLabel}',\n  'value': 1.0,\n  'currency': 'USD'\n});`
+                        )}
+                      >
+                        <Copy className="h-3 w-3 mr-1" /> Copier
+                      </Button>
+                    </div>
+                    <pre className="text-xs font-mono overflow-x-auto">
+{`gtag('event', 'conversion', {
+  'send_to': '${conv.conversionLabel}',
+  'value': 1.0,
+  'currency': 'USD'
+});`}
+                    </pre>
+                  </div>
+                )}
+                {conv.error && (
+                  <p className="text-xs text-destructive">{conv.error}</p>
+                )}
+              </div>
+            ))}
+
+            {/* Code complet à copier */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-semibold text-sm mb-2">📋 Code complet pour gtag-conversions.ts</h4>
+              <div className="bg-muted rounded-lg p-3 relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-7"
+                  onClick={() => {
+                    const labels = createdConversions
+                      .filter(c => c.conversionLabel)
+                      .map(c => `  ${c.tag.toUpperCase()}: "${c.conversionLabel}",`)
+                      .join("\n");
+                    copyToClipboard(`export const CONVERSION_EVENTS = {\n${labels}\n} as const;`);
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copier tout
+                </Button>
+                <pre className="text-xs font-mono overflow-x-auto">
+{`export const CONVERSION_EVENTS = {
+${createdConversions
+  .filter(c => c.conversionLabel)
+  .map(c => `  ${c.tag.toUpperCase()}: "${c.conversionLabel}",`)
+  .join("\n")}
+} as const;`}
+                </pre>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actions secondaires */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-primary/20">
           <CardContent className="pt-6">
@@ -88,13 +278,13 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
                 <ExternalLink className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-sm">Créer dans Google Ads</h4>
-                <p className="text-xs text-muted-foreground mt-1">Ouvrez Google Ads pour créer les conversions correspondantes</p>
+                <h4 className="font-semibold text-sm">Voir dans Google Ads</h4>
+                <p className="text-xs text-muted-foreground mt-1">Ouvrez Google Ads pour vérifier vos conversions</p>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="mt-3"
-                  onClick={() => window.open("https://ads.google.com/aw/conversions/new", "_blank")}
+                  onClick={() => window.open("https://ads.google.com/aw/conversions", "_blank")}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ouvrir Google Ads
