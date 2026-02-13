@@ -44,18 +44,30 @@ serve(async (req) => {
     const results = [];
     for (const product of products) {
       try {
-        const systemPrompt = `You are an AI Shopping Optimization expert. Your job is to optimize product listings for AI recommendation engines (ChatGPT, Gemini, Perplexity, Claude, Google SGE).
+        const systemPrompt = `You are an AEO (Answer Engine Optimization) product expert. Your goal is to make products CITABLE by AI engines (ChatGPT Shopping, Gemini, Perplexity, Google AI Overview).
 
-IMPORTANT: All output MUST be in ${lang === "fr" ? "French" : lang === "en" ? "English" : lang === "de" ? "German" : lang === "es" ? "Spanish" : lang === "it" ? "Italian" : lang === "nl" ? "Dutch" : lang === "pt" ? "Portuguese" : lang}. Do NOT mix languages.
+CRITICAL RULES:
+- All output MUST be in ${lang === "fr" ? "French" : lang === "en" ? "English" : lang === "de" ? "German" : lang === "es" ? "Spanish" : lang === "it" ? "Italian" : lang === "nl" ? "Dutch" : lang === "pt" ? "Portuguese" : lang}.
+- EXACTLY 3 Q&A (never more, never less). Each must answer ONE strong purchase intent:
+  1. USAGE question: comfort, daily use, who is it for?
+  2. TECHNICAL question: dimensions, compatibility, specifications
+  3. DECISION question: delivery speed, availability, return policy
+- Each answer must be 2-3 sentences max, direct, affirmative, with specific data (numbers, measurements, timeframes).
+- NO generic questions (maintenance, style, comparison). Only questions that trigger a purchase decision.
+- The ai_description must contain ONE strong positioning sentence like: "Idéal pour [specific use case] de [specific dimension/context]."
+- NEVER start answers with "X is a..." — start with the benefit or answer directly.
 
 Brand context: ${project?.brand_name || "Unknown"} - ${project?.business_description || "E-commerce store"}
+Website: ${project?.website_url || ""}
 
-You must return a JSON object using tool calling with these fields:
-- ai_title: An enriched product title format: Product + benefit + target audience + key advantage
-- ai_description: A recommendation-oriented description answering: Who is it for? In what context? Why choose it? What problem does it solve?
-- ai_faq: Array of 6-8 Q&A objects with {question, answer} - natural questions covering: comparison, budget, shipping, durability, safety, special occasion, alternatives, value for money
-- ai_schema_markup: Complete JSON-LD schema with @context, @type Product, name, description, brand, offers, and FAQPage schema
-- ai_score: A score from 0-100 rating how well the product is optimized for AI citation`;
+Strategy: Signal fort > contenu long. 3 Q&A ultra-ciblées = meilleure citation AI que 7 Q&A diluées.
+
+Return a JSON object via tool calling with:
+- ai_title: Product + benefit + target audience + key advantage (enriched title)
+- ai_description: Recommendation-oriented description with ONE strong positioning sentence. Answer: Who? Context? Why choose it? What problem solved?
+- ai_faq: EXACTLY 3 Q&A objects [{question, answer}] — usage, technical, decision
+- ai_schema_markup: JSON-LD with @context, @type Product, name, description, brand, offers, and FAQPage schema (with "name" property for GSC compliance)
+- ai_score: 0-100 AI citation probability score (75-95 range for well-optimized products)`;
 
         const userPrompt = `Optimize this product for AI recommendation engines:
 
@@ -93,6 +105,8 @@ URL: ${product.product_url || "N/A"}`;
                     ai_description: { type: "string", description: "Recommendation-oriented description" },
                     ai_faq: {
                       type: "array",
+                      minItems: 3,
+                      maxItems: 3,
                       items: {
                         type: "object",
                         properties: {
@@ -101,7 +115,7 @@ URL: ${product.product_url || "N/A"}`;
                         },
                         required: ["question", "answer"],
                       },
-                      description: "6-8 natural Q&A pairs",
+                      description: "EXACTLY 3 Q&A: 1 usage, 1 technical, 1 decision/delivery",
                     },
                     ai_schema_markup: { type: "object", description: "Complete JSON-LD schema" },
                     ai_score: { type: "number", description: "AI optimization score 0-100" },
