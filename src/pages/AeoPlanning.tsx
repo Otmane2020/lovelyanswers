@@ -368,7 +368,19 @@ export default function AeoPlanning() {
                       {item.type === "answer" ? <MessageSquare className="h-4 w-4 text-[hsl(222,47%,30%)]" /> : <FileText className="h-4 w-4 text-emerald-600" />}
                       <h4 className="font-semibold text-sm">{item.title}</h4>
                     </div>
-                    {item.answer && <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{item.answer}</p>}
+                    {item.answer && (
+                      <div className="mb-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{item.answer.split(/\*\*(?:Références|References|Sources)\s*:?\s*\*\*/i)[0]}</p>
+                        {/\*\*(?:Références|References|Sources)\s*:?\s*\*\*/i.test(item.answer) && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-600">
+                              <FileText className="h-2.5 w-2.5 mr-1" />
+                              Sources
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       {item.score !== null && item.score !== undefined && (
                         <Badge variant="outline" className={item.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}>
