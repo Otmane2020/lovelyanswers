@@ -2175,6 +2175,7 @@ export type Database = {
           email_sent_at: string | null
           id: string
           page_title: string | null
+          project_id: string | null
           results: Json
           scores: Json
           summary: Json
@@ -2189,6 +2190,7 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           page_title?: string | null
+          project_id?: string | null
           results?: Json
           scores?: Json
           summary?: Json
@@ -2203,13 +2205,22 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           page_title?: string | null
+          project_id?: string | null
           results?: Json
           scores?: Json
           summary?: Json
           updated_at?: string
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "site_audits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_pages: {
         Row: {
