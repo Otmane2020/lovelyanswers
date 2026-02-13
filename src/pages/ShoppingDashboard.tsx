@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,16 @@ export default function ShoppingDashboard() {
   const deleteProduct = useDeleteProduct();
   const [feedUrl, setFeedUrl] = useState("");
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "products";
+
+  const handleTabChange = (value: string) => {
+    if (value === "products") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ tab: value });
+    }
+  };
 
   const handleImport = async () => {
     if (!feedUrl.trim()) {
@@ -66,7 +77,7 @@ export default function ShoppingDashboard() {
             <p className="text-sm text-muted-foreground mt-1">Optimize products for AI engines</p>
           </div>
 
-          <Tabs defaultValue="products" className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="mb-4 sm:mb-6 w-full sm:w-auto">
               <TabsTrigger value="products" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
                 <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

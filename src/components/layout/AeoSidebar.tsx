@@ -30,7 +30,8 @@ export function AeoSidebar() {
   ];
 
   const shoppingMenuItems = [
-    { title: "AEO Shopping", url: "/shopping", icon: ShoppingCart, badge: "New" },
+    { title: "Products", url: "/shopping", icon: Package },
+    { title: "AEO Shopping", url: "/shopping?tab=aeo", icon: ShoppingCart, badge: "New" },
   ];
 
   const otherMenuItems = [
@@ -39,7 +40,17 @@ export function AeoSidebar() {
     { title: "Support", url: "/support", icon: HelpCircle },
   ];
 
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path: string) => {
+    if (path.includes('?tab=')) {
+      const [base, query] = path.split('?');
+      const tab = new URLSearchParams(query).get('tab');
+      return currentPath === base && new URLSearchParams(location.search).get('tab') === tab;
+    }
+    if (path === '/shopping') {
+      return currentPath === '/shopping' && !location.search.includes('tab=');
+    }
+    return currentPath === path;
+  };
   const handleNavClick = () => { if ((sidebarIsMobile || isMobile) && openMobile) toggleSidebar(); };
   const handleSignOut = async () => { await signOut(); navigate('/'); };
 
