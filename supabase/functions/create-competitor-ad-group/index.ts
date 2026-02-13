@@ -120,7 +120,7 @@ Business: "${brandName}" - ${businessDesc}
 Website: ${websiteUrl}
 ${competitorContext}
 
-Task: Identify 2-3 direct competitors offering similar "AI SEO" or similar services, then create a Google Ads competitor ad group structure.
+Task: Based STRICTLY on the business description and website above, identify 2-3 direct competitors in the SAME industry/niche. Do NOT default to AI SEO tools unless the business is actually an AI SEO tool. Analyze the business type carefully and find real competitors.
 
 Return ONLY valid JSON:
 {
@@ -137,14 +137,14 @@ Return ONLY valid JSON:
     "negative_keywords": ["free", "crack", "download"],
     "ads": [
       {
-        "headlines": ["Better Than [Competitor]", "${brandName} vs [Competitor]", "Switch from [Competitor]", "Try ${brandName} Instead", "#1 [Competitor] Alternative", "Save vs [Competitor]", "Why ${brandName} Wins", "AI SEO Made Simple", "Start Free Trial Today"],
+        "headlines": ["Better Than [Competitor]", "${brandName} vs [Competitor]", "Switch from [Competitor]", "Try ${brandName} Instead", "#1 [Competitor] Alternative", "Save vs [Competitor]", "Why ${brandName} Wins", "Best in Category", "Start Free Today"],
         "descriptions": [
-          "Looking for a [Competitor] alternative? ${brandName} offers better AI SEO results at a lower price. Try free!",
-          "Switch from [Competitor] to ${brandName}. More features, better AI optimization, transparent pricing."
+          "Looking for a [Competitor] alternative? ${brandName} offers better results. Try free!",
+          "Switch from [Competitor] to ${brandName}. More features, better service, transparent pricing."
         ],
         "final_urls": ["${websiteUrl}"],
         "path1": "alternative",
-        "path2": "ai-seo"
+        "path2": ""
       }
     ]
   }
@@ -155,9 +155,10 @@ Rules:
 - Descriptions max 90 characters each, provide 2-4
 - Include each competitor's brand name as EXACT match keyword
 - Include "[brand] alternative" and "[brand] vs" variations
-- Ad copy must highlight ${brandName}'s advantages
+- Ad copy must highlight ${brandName}'s advantages over each competitor
 - Use ${language} for ad copy
-- Focus on real AI SEO competitors (e.g. Surfer SEO, MarketMuse, Frase, Clearscope, etc.)`;
+- CRITICAL: Find competitors that match the ACTUAL business described above (${businessDesc}), NOT generic AI/SEO tools
+- If competitors are already provided (${existingCompetitors.join(", ") || "none"}), prioritize those`;
 
     console.log("[COMPETITOR] Generating competitor ad group via AI...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
