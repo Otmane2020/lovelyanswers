@@ -9,7 +9,7 @@ const corsHeaders = {
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
 const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v22";
+const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v18";
 
 const CONVERSIONS_TO_CREATE = [
   {
@@ -19,8 +19,7 @@ const CONVERSIONS_TO_CREATE = [
     countingType: "ONE_PER_CLICK",
     defaultValue: 5.0,
     currencyCode: "USD",
-    status: "ENABLED",
-    tag: "signup",
+    tag: "sign_up",
   },
   {
     name: "Onboarding Complete",
@@ -29,8 +28,7 @@ const CONVERSIONS_TO_CREATE = [
     countingType: "ONE_PER_CLICK",
     defaultValue: 10.0,
     currencyCode: "USD",
-    status: "ENABLED",
-    tag: "onboarding",
+    tag: "onboarding_complete",
   },
   {
     name: "Begin Checkout",
@@ -39,8 +37,7 @@ const CONVERSIONS_TO_CREATE = [
     countingType: "ONE_PER_CLICK",
     defaultValue: 29.0,
     currencyCode: "USD",
-    status: "ENABLED",
-    tag: "checkout",
+    tag: "begin_checkout",
   },
   {
     name: "Purchase",
@@ -49,7 +46,6 @@ const CONVERSIONS_TO_CREATE = [
     countingType: "ONE_PER_CLICK",
     defaultValue: 49.0,
     currencyCode: "USD",
-    status: "ENABLED",
     tag: "purchase",
   },
   {
@@ -59,7 +55,6 @@ const CONVERSIONS_TO_CREATE = [
     countingType: "ONE_PER_CLICK",
     defaultValue: 1.0,
     currencyCode: "USD",
-    status: "ENABLED",
     tag: "pricing_view",
   },
 ];
@@ -98,13 +93,13 @@ serve(async (req) => {
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     // Get Google Ads connection
     const { data: connection } = await supabase
@@ -122,7 +117,7 @@ serve(async (req) => {
     }
 
     let accessToken = connection.access_token as string;
-    if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
+    if (connection.token_expires_at && new Date(connection.token_expires_at as string) < new Date()) {
       const newToken = await refreshAccessToken(connection.refresh_token || "");
       if (!newToken) {
         return new Response(JSON.stringify({ error: "Token refresh failed" }), {
@@ -132,70 +127,101 @@ serve(async (req) => {
       accessToken = newToken;
     }
 
-    const customerId = connection.account_id as string;
+    const customerId = (connection.account_id as string).replace(/-/g, "");
     const metadata = connection.metadata as Record<string, unknown> || {};
     const managerCustomerId = metadata.manager_customer_id as string | undefined;
 
-    const headers: Record<string, string> = {
+    const apiHeaders: Record<string, string> = {
       "Authorization": `Bearer ${accessToken}`,
       "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN || "",
       "Content-Type": "application/json",
     };
-    if (managerCustomerId && managerCustomerId !== customerId) {
-      headers["login-customer-id"] = managerCustomerId;
+    if (managerCustomerId && managerCustomerId.replace(/-/g, "") !== customerId) {
+      apiHeaders["login-customer-id"] = managerCustomerId.replace(/-/g, "");
     }
 
-    // First, list existing conversion actions to avoid duplicates
-    const listQuery = `SELECT conversion_action.name, conversion_action.id, conversion_action.tag_snippets FROM conversion_action`;
+    // List ALL existing conversion actions (including default ones) with their category
+    const listQuery = `SELECT conversion_action.name, conversion_action.id, conversion_action.resource_name, conversion_action.category, conversion_action.status, conversion_action.tag_snippets FROM conversion_action WHERE conversion_action.status != 'REMOVED'`;
     const listResponse = await fetch(
       `${GOOGLE_ADS_API_BASE}/customers/${customerId}/googleAds:search`,
-      { method: "POST", headers, body: JSON.stringify({ query: listQuery }) }
+      { method: "POST", headers: apiHeaders, body: JSON.stringify({ query: listQuery }) }
     );
 
-    const existingConversions: Record<string, { id: string; tagSnippets?: unknown[] }> = {};
-    if (listResponse.ok) {
-      const listData = await listResponse.json();
-      for (const row of (listData.results || [])) {
-        const ca = row.conversionAction;
-        if (ca?.name) {
-          existingConversions[ca.name] = { id: ca.id, tagSnippets: ca.tagSnippets };
-        }
+    if (!listResponse.ok) {
+      const errText = await listResponse.text();
+      console.error("[CONV] Failed to list existing conversions:", errText);
+      return new Response(JSON.stringify({ error: "Failed to list conversions: " + errText }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const listData = await listResponse.json();
+    const existingByCategory: Record<string, { name: string; id: string; resourceName: string; tagSnippets?: unknown[] }> = {};
+    const existingByName: Record<string, { name: string; id: string; resourceName: string; tagSnippets?: unknown[] }> = {};
+    
+    for (const row of (listData.results || [])) {
+      const ca = row.conversionAction;
+      if (ca) {
+        const entry = { 
+          name: ca.name, 
+          id: ca.id, 
+          resourceName: ca.resourceName,
+          tagSnippets: ca.tagSnippets 
+        };
+        if (ca.category) existingByCategory[ca.category] = entry;
+        if (ca.name) existingByName[ca.name] = entry;
       }
     }
+
+    console.log("[CONV] Existing conversions by category:", Object.keys(existingByCategory));
+    console.log("[CONV] Existing conversions by name:", Object.keys(existingByName));
+
+    const extractLabel = (tagSnippets: unknown[]): string => {
+      for (const snippet of tagSnippets) {
+        const s = snippet as Record<string, unknown>;
+        if (s.type === "EVENT_SNIPPET" && s.eventSnippet) {
+          const match = (s.eventSnippet as string).match(/send_to['":\s]+['"]?(AW-[^'"}\s,]+)/);
+          if (match) return match[1];
+        }
+      }
+      return "";
+    };
 
     const results: { name: string; tag: string; status: string; conversionLabel?: string; error?: string }[] = [];
 
     for (const conv of CONVERSIONS_TO_CREATE) {
-      // Skip if already exists
-      if (existingConversions[conv.name]) {
-        console.log(`[CONV] "${conv.name}" already exists, skipping`);
+      // Check if already exists by exact name OR by category
+      const existingByExactName = existingByName[conv.name];
+      const existingByCat = existingByCategory[conv.category];
+      const existing = existingByExactName || existingByCat;
+
+      if (existing) {
+        console.log(`[CONV] "${conv.name}" already exists (found as "${existing.name}", category: ${conv.category}), skipping creation`);
         
-        // Try to get the conversion label from tag snippets
-        const existing = existingConversions[conv.name];
         let label = "";
+        if (existing.tagSnippets && Array.isArray(existing.tagSnippets)) {
+          label = extractLabel(existing.tagSnippets);
+        }
         
-        // Query for tag snippets specifically
-        const snippetQuery = `SELECT conversion_action.tag_snippets, conversion_action.id FROM conversion_action WHERE conversion_action.name = '${conv.name}'`;
-        const snippetRes = await fetch(
-          `${GOOGLE_ADS_API_BASE}/customers/${customerId}/googleAds:search`,
-          { method: "POST", headers, body: JSON.stringify({ query: snippetQuery }) }
-        );
-        if (snippetRes.ok) {
-          const snippetData = await snippetRes.json();
-          const snippets = snippetData.results?.[0]?.conversionAction?.tagSnippets;
-          if (snippets && Array.isArray(snippets)) {
-            for (const snippet of snippets) {
-              if (snippet.type === "EVENT_SNIPPET" && snippet.eventSnippet) {
-                const match = snippet.eventSnippet.match(/send_to.*?'(AW-[^']+)'/);
-                if (match) label = match[1];
-              }
+        // If no label from initial query, fetch tag snippets specifically
+        if (!label) {
+          const snippetQuery = `SELECT conversion_action.tag_snippets FROM conversion_action WHERE conversion_action.resource_name = '${existing.resourceName}'`;
+          const snippetRes = await fetch(
+            `${GOOGLE_ADS_API_BASE}/customers/${customerId}/googleAds:search`,
+            { method: "POST", headers: apiHeaders, body: JSON.stringify({ query: snippetQuery }) }
+          );
+          if (snippetRes.ok) {
+            const snippetData = await snippetRes.json();
+            const snippets = snippetData.results?.[0]?.conversionAction?.tagSnippets;
+            if (snippets && Array.isArray(snippets)) {
+              label = extractLabel(snippets);
             }
           }
         }
-        
-        results.push({ 
-          name: conv.name, 
-          tag: conv.tag, 
+
+        results.push({
+          name: conv.name,
+          tag: conv.tag,
           status: "already_exists",
           conversionLabel: label || `AW-${customerId}/${existing.id}`,
         });
@@ -210,7 +236,8 @@ serve(async (req) => {
             category: conv.category,
             type: conv.type,
             countingType: conv.countingType,
-            status: conv.status,
+            status: "ENABLED",
+            primaryForGoal: true,
             valueSettings: {
               defaultValue: conv.defaultValue,
               defaultCurrencyCode: conv.currencyCode,
@@ -220,41 +247,44 @@ serve(async (req) => {
         }],
       };
 
-      console.log(`[CONV] Creating "${conv.name}"...`);
+      console.log(`[CONV] Creating "${conv.name}" (category: ${conv.category})...`);
       const createResponse = await fetch(
         `${GOOGLE_ADS_API_BASE}/customers/${customerId}/conversionActions:mutate`,
-        { method: "POST", headers, body: JSON.stringify(createBody) }
+        { method: "POST", headers: apiHeaders, body: JSON.stringify(createBody) }
       );
 
       if (!createResponse.ok) {
         const errText = await createResponse.text();
         console.error(`[CONV] Failed to create "${conv.name}":`, errText);
-        results.push({ name: conv.name, tag: conv.tag, status: "error", error: errText });
+        
+        // Check if it's a duplicate error
+        if (errText.includes("DUPLICATE") || errText.includes("already exists")) {
+          results.push({ name: conv.name, tag: conv.tag, status: "already_exists", error: "Duplicate detected by API" });
+        } else {
+          results.push({ name: conv.name, tag: conv.tag, status: "error", error: errText.substring(0, 300) });
+        }
         continue;
       }
 
       const createData = await createResponse.json();
       const resourceName = createData.results?.[0]?.resourceName || "";
-      // Extract ID from resource name: "customers/123/conversionActions/456" → "456"
       const convId = resourceName.split("/").pop() || "";
 
-      // Now fetch the tag snippet for this new conversion
+      // Fetch tag snippet for the new conversion
       let conversionLabel = "";
+      // Small delay to let Google Ads process
+      await new Promise(r => setTimeout(r, 1000));
+      
       const tagQuery = `SELECT conversion_action.tag_snippets FROM conversion_action WHERE conversion_action.resource_name = '${resourceName}'`;
       const tagRes = await fetch(
         `${GOOGLE_ADS_API_BASE}/customers/${customerId}/googleAds:search`,
-        { method: "POST", headers, body: JSON.stringify({ query: tagQuery }) }
+        { method: "POST", headers: apiHeaders, body: JSON.stringify({ query: tagQuery }) }
       );
       if (tagRes.ok) {
         const tagData = await tagRes.json();
         const snippets = tagData.results?.[0]?.conversionAction?.tagSnippets;
         if (snippets && Array.isArray(snippets)) {
-          for (const snippet of snippets) {
-            if (snippet.type === "EVENT_SNIPPET" && snippet.eventSnippet) {
-              const match = snippet.eventSnippet.match(/send_to.*?'(AW-[^']+)'/);
-              if (match) conversionLabel = match[1];
-            }
-          }
+          conversionLabel = extractLabel(snippets);
         }
       }
 
