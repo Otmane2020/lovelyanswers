@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Loader2, TrendingUp, Zap, ArrowUp, ArrowDown, DollarSign, Target, BarCh
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
+import { CampaignSelectDialog } from "./CampaignSelectDialog";
 interface SyncedCampaign {
   id: string;
   name: string;
@@ -30,11 +31,19 @@ interface RoasTabProps {
 }
 
 export function RoasTab({ campaigns }: RoasTabProps) {
+  const [showCampaignPicker, setShowCampaignPicker] = useState(false);
+  const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
 
   useEffect(() => {
     loadPreviousReports("roas");
   }, []);
+
+  const handleLaunchAnalysis = () => setShowCampaignPicker(true);
+  const handleCampaignSelected = (campaignId: string | null, campaignName: string) => {
+    setSelectedCampaignName(campaignName);
+    startAnalysis("roas", campaignId || undefined);
+  };
 
   const totalSpend = campaigns.reduce((s, c) => s + (c.spend_7d || 0), 0);
   const totalRevenue = campaigns.reduce((s, c) => s + (c.revenue_7d || 0), 0);
@@ -158,6 +167,8 @@ export function RoasTab({ campaigns }: RoasTabProps) {
 
       <ReportHistory reports={previousReports} isLoading={isLoadingHistory} onLoad={loadReport} focusType="roas" onRefresh={loadPreviousReports} />
 
+      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser le ROAS" />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -166,9 +177,12 @@ export function RoasTab({ campaigns }: RoasTabProps) {
                 <Zap className="h-5 w-5 text-primary" />
                 Recommandations IA — ROAS & Rentabilité
               </CardTitle>
-              <CardDescription>Optimisation budget, enchères et allocation</CardDescription>
+              <CardDescription>
+                Optimisation budget, enchères et allocation
+                {selectedCampaignName && <Badge variant="outline" className="ml-2 text-[10px]">{selectedCampaignName}</Badge>}
+              </CardDescription>
             </div>
-            <Button onClick={() => startAnalysis("roas")} disabled={isStreaming}>
+            <Button onClick={handleLaunchAnalysis} disabled={isStreaming}>
               {isStreaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
               Analyser le ROAS
             </Button>
