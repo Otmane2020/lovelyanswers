@@ -147,104 +147,108 @@ serve(async (req) => {
     switch (focus) {
       case "keywords":
         focusInstruction = `
-FOCUS: Keyword Optimization
-- Identify low Quality Score keywords and suggest improvements (landing page, ad relevance, expected CTR)
-- Find keywords with high spend but 0 conversions → suggest pausing or adjusting bids
-- Identify keywords with good conversions but low impression share → suggest bid increases
-- Suggest negative keywords to add based on patterns
-- Recommend match type changes (broad → phrase → exact) where appropriate
-- Highlight keyword cannibalization between ad groups`;
+FOCUS: Analyse et tri des mots-clés
+Tu DOIS structurer ta réponse avec ces sections EXACTES:
+
+### 🔴 Mots-clés à EXCLURE (ajouter en négatifs)
+Pour chaque mot-clé: nom, raison, coût gaspillé, action précise
+- Critère: dépenses > 1€ et 0 conversions, ou CTR < 0.5% avec dépenses significatives
+- Inclure aussi des suggestions de mots-clés négatifs à ajouter (pas dans les données mais à anticiper)
+
+### 🟡 Mots-clés à OPTIMISER
+Pour chaque mot-clé: nom, QS actuel, problème identifié (landing/pertinence/CTR attendu), action
+- Critère: QS < 5, ou CPC trop élevé vs first page CPC
+
+### 🟢 Mots-clés à CONSERVER et BOOSTER
+Pour chaque mot-clé: nom, conversions, ROAS, action pour augmenter (bid increase, budget)
+- Critère: conversions > 0, bon QS
+
+### 🔵 Mots-clés à AJOUTER
+Suggestions de nouveaux mots-clés basés sur l'analyse des performances actuelles
+- Pour chaque suggestion: mot-clé, match type recommandé, CPC estimé, raison
+
+Pour chaque recommandation, donne une **Action concrète :** avec des détails précis.`;
         break;
       case "ad_groups":
         focusInstruction = `
-FOCUS: Ad Group Optimization
-- Analyze ad group structure and suggest consolidation or splitting
-- Identify ad groups with too many/few keywords
-- Check ad-to-keyword relevance within each group
-- Suggest new ad groups for better segmentation
-- Identify underperforming ad groups to pause
-- Check landing page alignment per ad group`;
+FOCUS: Synthèse par Ad Group avec actions
+Tu DOIS structurer ta réponse avec ces sections:
+
+### 🔴 Ad Groups à METTRE EN PAUSE
+Pour chaque: nom, dépenses, 0 conversions, raison du stop
+- Critère: dépenses > 5€ et 0 conversions, ou CTR < 1%
+
+### 🟢 Ad Groups à CONSERVER
+Pour chaque: nom, métriques clés, force de l'annonce
+- Critère: conversions > 0 ou bon CTR
+
+### 🔵 Ad Groups à CRÉER
+Suggestions de nouveaux groupes d'annonces pour couvrir des segments manquants
+- Pour chaque: nom suggéré, mots-clés à inclure, headlines suggérés
+
+### 🟡 Annonces à AMÉLIORER
+Pour chaque annonce: headlines actuels vs recommandés, descriptions à changer
+- Focalise sur l'Ad Strength (POOR/AVERAGE → GOOD/EXCELLENT)
+
+Pour chaque recommandation, donne une **Action concrète :** avec des détails précis.`;
         break;
       case "roas":
         focusInstruction = `
-FOCUS: ROAS & Revenue Optimization
-- Calculate and compare ROAS by campaign, ad group, and keyword
-- Identify high-ROAS segments to scale up
-- Find low-ROAS segments bleeding budget → suggest fixes or pause
-- Recommend budget reallocation for maximum ROAS
-- Suggest bidding strategy changes (tROAS, Max Conv Value)
-- Estimate revenue impact of recommended changes`;
+FOCUS: Optimisation ROAS & Budget
+Tu DOIS structurer ta réponse avec ces sections:
+
+## Analyse Globale ROAS
+- ROAS actuel vs objectif recommandé
+- Répartition du budget: quelles campagnes reçoivent trop/pas assez
+
+### 🔴 Campagnes à RÉDUIRE/PAUSER (ROAS < 1)
+Pour chaque: nom, dépenses, revenue, ROAS actuel, perte estimée
+- Action: réduire budget de X% ou pauser
+
+### 🟢 Campagnes à SCALER (ROAS > 2)
+Pour chaque: nom, ROAS actuel, budget actuel, budget recommandé, revenue potentiel
+- Action: augmenter budget de X€/jour
+
+### 🟡 Enchères à AJUSTER
+Recommandations de stratégie d'enchères par campagne
+- tROAS vs Max Conversions vs Manual CPC: quand et pourquoi
+
+### 💰 Plan de réallocation budget
+Tableau récapitulatif: campagne | budget actuel | budget recommandé | impact estimé
+
+Pour chaque recommandation, chiffre l'**Impact potentiel :** en € ou %.`;
         break;
       case "strategy":
         focusInstruction = `
-FOCUS: Strategic Campaign Analysis
-- Evaluate overall account structure and campaign strategy
-- Assess bidding strategies vs business goals
-- Recommend campaign type changes (Search, PMax, Display)
-- Suggest new campaign opportunities based on data gaps
-- Evaluate budget distribution across campaigns
-- Recommend A/B testing priorities
-- Assess competitive positioning and market opportunity`;
+FOCUS: Quick Wins & Stratégie
+Tu DOIS structurer ta réponse avec ces sections:
+
+## Diagnostic express
+3-5 points clés: ce qui marche et ce qui ne marche pas
+
+### ⚡ Quick Wins (0-2 jours)
+5-10 actions rapides classées par impact estimé
+Pour chaque: action, temps, impact estimé
+Exemples: ajuster un bid, pauser une campagne, ajouter un négatif, modifier un headline
+
+### 🎯 Améliorations moyen-terme (1-2 semaines)  
+3-5 actions structurelles
+Exemples: restructurer ad groups, tester nouvelles enchères, créer campagne PMax
+
+### 🔮 Recommandations stratégiques
+Vision à 30-90 jours pour améliorer les performances globales
+- Types de campagnes manquants
+- Tests A/B à lancer
+- Structure de compte idéale
+
+Pour chaque recommandation, donne une **Action concrète :** avec des détails précis.`;
         break;
-      case "conversions": {
-        // Non-streaming: generate conversion goals as JSON
-        const convSystemPrompt = `Tu es un expert Google Ads. Analyse les données de campagnes et génère des objectifs de conversion pertinents.
-Retourne UNIQUEMENT un JSON valide avec cette structure:
-{"goals":[{"name":"Nom de l'objectif","type":"purchase|lead|signup|call|page_view","value":50,"tag":"CONVERSION_LABEL_SUGGESTION"}]}
-Génère 3-6 objectifs basés sur le type de business et les données de campagnes.`;
-
-        const convUserPrompt = `Données campagnes (7j): Dépenses=${totalSpend.toFixed(2)}€, Clics=${totalClicks}, Conversions=${totalConversions.toFixed(1)}, Revenue=${totalRevenue.toFixed(2)}€
-Campagnes: ${JSON.stringify(campaignsSummary.map(c => ({ name: c.name, type: c.type, bidding: c.bidding })))}
-Mots-clés principaux: ${keywordsSummary.slice(0, 20).map(k => k.keyword).join(", ")}`;
-
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (!LOVABLE_API_KEY) {
-          return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const convResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: convSystemPrompt },
-              { role: "user", content: convUserPrompt },
-            ],
-          }),
-        });
-
-        if (!convResp.ok) {
-          return new Response(JSON.stringify({ error: "AI generation failed" }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const convData = await convResp.json();
-        let content = convData.choices?.[0]?.message?.content || "";
-        content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        
-        try {
-          const parsed = JSON.parse(content);
-          return new Response(JSON.stringify(parsed), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch {
-          return new Response(JSON.stringify({ goals: [], raw: content }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
       default: // "all"
         focusInstruction = `
-FOCUS: Complete Account Audit
-Cover ALL areas: keywords, ad groups, ads, ROAS, bidding strategy, budget allocation, and account structure.
-Prioritize recommendations by estimated impact.`;
+FOCUS: Audit complet du compte
+Couvre TOUS les aspects: mots-clés, ad groups, annonces, ROAS, enchères, budget.
+Donne une vue synthétique avec les TOP 5 actions prioritaires classées par impact estimé.
+Pour chaque action, estime l'impact en €/mois.`;
     }
 
     const systemPrompt = `Tu es un expert Google Ads senior avec 15 ans d'expérience. Tu analyses des données réelles de campagnes Google Ads et fournis des recommandations actionnables et précises.
