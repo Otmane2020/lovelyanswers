@@ -178,18 +178,16 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
     
     setIsExecuting(true);
     try {
-      if (action.type === "pause_ad_group" || action.type === "enable_ad_group") {
-        // Find the ad group by name
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("Not authenticated");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
+      if (action.type === "pause_ad_group" || action.type === "enable_ad_group") {
         const targetName = action.targetName?.replace(/['"«»\[\]]/g, "").trim();
         if (!targetName) {
           toast({ title: "Nom du groupe introuvable", description: "Impossible d'identifier l'ad group", variant: "destructive" });
           return;
         }
 
-        // Look up in ads_sync to find google_ad_group_id
         const { data: ads } = await supabase
           .from("ads_sync")
           .select("google_ad_group_id, ad_group_name")
@@ -215,6 +213,46 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
         toast({
           title: newStatus === "PAUSED" ? "⏸️ Ad Group mis en pause" : "▶️ Ad Group activé",
           description: `"${ads?.[0]?.ad_group_name || targetName}" → ${newStatus}`,
+        });
+        onExecuted?.();
+
+      } else if (action.type === "add_negative_keyword") {
+        // Extract keyword from the action text
+        const keywordMatch = action.text.match(/["«]([^"»]+)["»]/i) 
+          || action.text.match(/(?:exclure|ajouter.*négatif|negative)\s+(?:le\s+)?(?:mot[- ]clé\s+)?["«]?([^"»,.\n]+)/i)
+          || action.text.match(/:\s*["«]?([^"»,.\n]{3,40})/i);
+        
+        const keyword = keywordMatch?.[1]?.replace(/['"«»\[\]]/g, "").trim();
+        if (!keyword) {
+          toast({ title: "Mot-clé introuvable", description: "Impossible d'extraire le mot-clé négatif du texte", variant: "destructive" });
+          return;
+        }
+
+        // Optionally find adGroupId or campaignId from context
+        let adGroupId: string | undefined;
+        const groupMatch = action.text.match(/(?:ad\s*group|groupe)\s+["«]?([^"»,.\n]+)/i);
+        if (groupMatch) {
+          const groupName = groupMatch[1].trim();
+          const { data: ads } = await supabase
+            .from("ads_sync")
+            .select("google_ad_group_id")
+            .eq("user_id", session.user.id)
+            .ilike("ad_group_name", `%${groupName}%`)
+            .limit(1);
+          adGroupId = ads?.[0]?.google_ad_group_id || undefined;
+        }
+
+        const { data, error } = await supabase.functions.invoke("add-negative-keyword", {
+          body: { keyword, adGroupId },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        setExecuted(true);
+        toast({
+          title: "🚫 Mot-clé négatif ajouté",
+          description: `"${keyword}" exclu ${data?.level === "ad_group" ? "du groupe" : "de la campagne"}`,
         });
         onExecuted?.();
       }
