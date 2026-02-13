@@ -886,11 +886,11 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                   </CardHeader>
                   <CardContent>
                     {analysisFocus === opt.key && (analysisText || isAnalyzing) ? (
-                      <ScrollArea className="max-h-[600px]">
+                      <div className="max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
                         <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                           {analysisText || "Analyse en cours..."}
                         </div>
-                      </ScrollArea>
+                      </div>
                     ) : (
                       <div className="text-center py-12 text-muted-foreground">
                         <Icon className="h-12 w-12 mx-auto mb-4 opacity-30" />
