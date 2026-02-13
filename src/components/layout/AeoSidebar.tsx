@@ -30,8 +30,7 @@ export function AeoSidebar() {
   ];
 
   const shoppingMenuItems = [
-    { title: "Products", url: "/shopping", icon: ShoppingCart, badge: "New" },
-    { title: "Product Detail", url: "/shopping/planning", icon: CalendarDays },
+    { title: "AEO Shopping", url: "/shopping", icon: ShoppingCart, badge: "New" },
   ];
 
   const otherMenuItems = [
