@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, LayoutGrid, List, Loader2, Play, MessageSquare, Send, Settings } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, LayoutGrid, Link2, List, Loader2, Play, MessageSquare, Send, Settings } from "lucide-react";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
+import { useIntegrations } from "@/hooks/useIntegrations";
 import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 
 interface ScheduledItem {
@@ -43,6 +44,8 @@ export default function AeoPlanning() {
   const publishAnswer = usePublishAnswer();
   const { startGeneration, stopGeneration, setGenerationProgress, setGenerationMessage, isGenerating } = useGeneration();
   const { isSubscribed } = useSubscriptionContext();
+  const { data: integrations } = useIntegrations();
+  const hasIntegration = integrations && integrations.some(i => i.is_connected);
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -302,9 +305,15 @@ export default function AeoPlanning() {
                               )}
                             </div>
                             {item.status !== "published" && (
-                              <Button variant="ghost" size="sm" onClick={() => handlePublishNow(item)} disabled={publishingId === item.id}>
-                                {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                              </Button>
+                              hasIntegration ? (
+                                <Button variant="ghost" size="sm" onClick={() => handlePublishNow(item)} disabled={publishingId === item.id}>
+                                  {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                                </Button>
+                              ) : (
+                                <Button variant="ghost" size="sm" onClick={() => window.location.href = "/integrations"} title="Connect a CMS first">
+                                  <Link2 className="h-4 w-4" />
+                                </Button>
+                              )
                             )}
                           </div>
                         ))}
@@ -338,10 +347,17 @@ export default function AeoPlanning() {
                         Published
                       </Badge>
                     ) : (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handlePublishNow(item)} disabled={publishingId === item.id}>
-                        {publishingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
-                        Publish
-                      </Button>
+                      hasIntegration ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handlePublishNow(item)} disabled={publishingId === item.id}>
+                          {publishingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
+                          Publish
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.location.href = "/integrations"}>
+                          <Link2 className="h-3 w-3 mr-1" />
+                          Connect CMS
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>
@@ -398,10 +414,17 @@ export default function AeoPlanning() {
                   </div>
                   <div className="flex flex-col gap-2">
                     {item.status !== "published" && (
-                      <Button size="sm" onClick={() => isSubscribed ? handlePublishNow(item) : toast.error("Upgrade your plan to publish content")} disabled={publishingId === item.id || !isSubscribed} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
-                        {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
-                        Publish
-                      </Button>
+                      hasIntegration ? (
+                        <Button size="sm" onClick={() => isSubscribed ? handlePublishNow(item) : toast.error("Upgrade your plan to publish content")} disabled={publishingId === item.id || !isSubscribed} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+                          {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
+                          Publish
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => window.location.href = "/integrations"} className="text-xs">
+                          <Link2 className="h-4 w-4 mr-1" />
+                          Connect CMS
+                        </Button>
+                      )
                     )}
                     {item.publishedUrl && (
                       <Button variant="outline" size="sm" onClick={() => window.open(item.publishedUrl, "_blank")}>
