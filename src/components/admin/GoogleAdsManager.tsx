@@ -82,7 +82,11 @@ interface ConversionGoal {
   tag: string;
 }
 
-export function GoogleAdsManager() {
+interface GoogleAdsManagerProps {
+  activeTab?: string;
+}
+
+export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerProps) {
   const [connectingOAuth, setConnectingOAuth] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -636,37 +640,7 @@ export function GoogleAdsManager() {
 
       {/* Sub-tabs for Google Ads sections */}
       {hasAccount && (
-        <Tabs defaultValue="campaigns" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7 h-auto">
-            <TabsTrigger value="campaigns" className="text-xs py-2">
-              <Megaphone className="h-3.5 w-3.5 mr-1" />
-              Campagnes
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="text-xs py-2">
-              <Brain className="h-3.5 w-3.5 mr-1" />
-              Audit complet
-            </TabsTrigger>
-            <TabsTrigger value="keywords-analysis" className="text-xs py-2">
-              <Key className="h-3.5 w-3.5 mr-1" />
-              Mots-clés
-            </TabsTrigger>
-            <TabsTrigger value="adgroups-analysis" className="text-xs py-2">
-              <Target className="h-3.5 w-3.5 mr-1" />
-              Ad Groups
-            </TabsTrigger>
-            <TabsTrigger value="roas-analysis" className="text-xs py-2">
-              <TrendingUp className="h-3.5 w-3.5 mr-1" />
-              ROAS
-            </TabsTrigger>
-            <TabsTrigger value="strategy-analysis" className="text-xs py-2">
-              <Lightbulb className="h-3.5 w-3.5 mr-1" />
-              Stratégie
-            </TabsTrigger>
-            <TabsTrigger value="conversions" className="text-xs py-2">
-              <Tag className="h-3.5 w-3.5 mr-1" />
-              Conversions
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} className="space-y-4">
 
           {/* Campaigns Tab */}
           <TabsContent value="campaigns" className="space-y-4">
