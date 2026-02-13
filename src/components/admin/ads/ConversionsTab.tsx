@@ -80,11 +80,11 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
   };
 
   const implementedConversions = [
-    { name: "Inscription (Sign Up)", event: "sign_up", page: "/signup", value: "$5", description: "Se déclenche quand un utilisateur crée un compte" },
-    { name: "Onboarding terminé", event: "onboarding_complete", page: "/wizard", value: "$10", description: "Se déclenche quand l'utilisateur termine le wizard" },
-    { name: "Début de checkout", event: "begin_checkout", page: "/checkout", value: "$29-279", description: "Se déclenche au clic sur 'S'abonner'" },
-    { name: "Vue page Pricing", event: "pricing_view", page: "/pricing", value: "$1", description: "Se déclenche à la consultation de la page pricing" },
-    { name: "Achat (Purchase)", event: "purchase", page: "Stripe webhook", value: "Dynamic", description: "Se déclenche après paiement réussi via Stripe" },
+    { name: "Inscription (Sign Up)", event: "sign_up", page: "/signup", value: "$5", description: "Se déclenche quand un utilisateur crée un compte via Start Free" },
+    { name: "Onboarding terminé", event: "onboarding_complete", page: "/wizard", value: "$10", description: "Se déclenche quand l'utilisateur termine le wizard de configuration" },
+    { name: "Vue page Pricing", event: "pricing_view", page: "/pricing", value: "$1", description: "Se déclenche à la consultation de la page pricing (après onboarding)" },
+    { name: "Début de checkout", event: "begin_checkout", page: "/checkout", value: "$29-279", description: "Se déclenche au clic sur 'S'abonner' depuis la page pricing" },
+    { name: "Achat (Purchase)", event: "purchase", page: "Stripe redirect", value: "Dynamique", description: "Se déclenche après paiement réussi — valeur = montant réel Stripe" },
   ];
 
   const generateGtagSnippet = (label: string, value?: string) => {
@@ -120,11 +120,11 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
                 Les labels de conversion seront récupérés pour l'intégration dans le site.
               </p>
               <ul className="text-xs text-muted-foreground mb-3 space-y-0.5">
-                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Sign Up ($5)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Sign Up — Start Free ($5)</li>
                 <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Onboarding Complete ($10)</li>
-                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Begin Checkout ($29)</li>
-                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Purchase ($49 default)</li>
                 <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Pricing Page View ($1)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Begin Checkout ($29)</li>
+                <li className="flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Purchase (valeur dynamique Stripe)</li>
               </ul>
               <Button 
                 onClick={handleCreateConversionsInGoogleAds} 
