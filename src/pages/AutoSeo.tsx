@@ -331,16 +331,11 @@ export default function AutoSeo() {
               </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-4">
-            {viewingArticle?.html_content ? (
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }}
-              />
-            ) : viewingArticle?.content ? (
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: viewingArticle.content }}
+          <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-6 sm:p-8">
+            {viewingArticle?.html_content || viewingArticle?.content ? (
+              <article
+                className="editorial-prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content || viewingArticle.content || "" }}
               />
             ) : (
               <p className="text-muted-foreground text-center py-8">No content available</p>
