@@ -335,7 +335,17 @@ export default function AutoSeo() {
             {viewingArticle?.html_content || viewingArticle?.content ? (
               <article
                 className="editorial-prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content || viewingArticle.content || "" }}
+                dangerouslySetInnerHTML={{ __html: (viewingArticle.html_content || viewingArticle.content || "")
+                  .replace(/^[\s\S]*?<body[^>]*>/i, "")
+                  .replace(/<\/body>[\s\S]*$/i, "")
+                  .replace(/<!DOCTYPE[^>]*>/i, "")
+                  .replace(/<\/?html[^>]*>/gi, "")
+                  .replace(/<head>[\s\S]*?<\/head>/i, "")
+                  .replace(/<\/?body[^>]*>/gi, "")
+                  .replace(/```html\s*/gi, "")
+                  .replace(/```\s*$/gi, "")
+                  .trim()
+                }}
               />
             ) : (
               <p className="text-muted-foreground text-center py-8">No content available</p>
