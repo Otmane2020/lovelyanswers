@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackOnboardingComplete } from "@/lib/gtag-conversions";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -152,6 +153,7 @@ export default function AeoWizard() {
           body: { projectId: project.id, language: data.language, days: 30, questionsPerDay: 1, titlesOnly: true }
         }).catch(err => console.error('[WIZARD] Title generation error:', err));
       }
+      trackOnboardingComplete(data.websiteUrl);
       toast.success("Project created! Your 30-day content plan is generating 💜");
       navigate("/dashboard");
     } catch (error) {

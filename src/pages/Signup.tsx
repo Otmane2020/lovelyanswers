@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackSignUp } from "@/lib/gtag-conversions";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +64,7 @@ export default function Signup() {
       toast({ title: "Sign up failed", description: message, variant: "destructive" });
       return;
     }
+    trackSignUp(email);
     toast({ title: "Account created!", description: "Please check your email to verify your account." });
     setIsLoading(false);
   };
