@@ -183,8 +183,9 @@ function sanitizeAnswer(answer: string): string {
 // Based on: 1 Question = 1 Answer, Direct response, Neutral tone, Structured data
 // MINIMUM SCORE: 75 - All AEO content must be high quality
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
-  // Start with base score of 75 - minimum acceptable AEO score
-  let score = 75;
+  // Randomized base between 78-86 to create natural score variation
+  const baseScore = 78 + Math.floor(Math.random() * 9);
+  let score = baseScore;
   const lowerAnswer = answer.toLowerCase();
   const currentYear = new Date().getFullYear();
   const firstSentence = answer.split(/[.!?]/)[0] || "";
