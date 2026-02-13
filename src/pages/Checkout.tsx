@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackCheckoutStart } from "@/lib/gtag-conversions";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -57,7 +58,8 @@ export default function Checkout() {
 
   const handleCheckout = async () => {
     setIsLoading(true);
-    
+    const checkoutValue = billingCycle === "annual" ? 279 : 29;
+    trackCheckoutStart(billingCycle, checkoutValue);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: billingCycle }

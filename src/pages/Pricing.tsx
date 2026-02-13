@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { trackPricingView } from "@/lib/gtag-conversions";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
+  useEffect(() => { document.documentElement.classList.remove("dark"); trackPricingView(); }, []);
 
   return (
     <>

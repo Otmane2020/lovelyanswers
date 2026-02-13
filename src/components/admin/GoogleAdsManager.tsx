@@ -950,139 +950,65 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                 )}
               </Card>
 
-              {/* Conversion Tracking Tags */}
+              {/* Implemented Conversion Tracking */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Code className="h-5 w-5 text-primary" />
-                    Tags de suivi de conversion
+                    Conversions implémentées sur LovelyAnswers
                   </CardTitle>
                   <CardDescription>
-                    Copiez ces tags HTML et ajoutez-les sur votre site pour tracker les conversions
+                    Ces conversions sont déjà intégrées dans le site et remontent automatiquement dans Google Ads (AW-{conversionId})
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Global gtag */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold">Tag global (toutes les pages)</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => copyToClipboard(`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', '${conversionId}');\n</script>`)}
-                      >
-                        <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copier
-                      </Button>
+                <CardContent className="space-y-4">
+                  {[
+                    { name: "Inscription (Sign Up)", event: "sign_up", page: "/signup", value: "$5", status: "active", description: "Se déclenche quand un utilisateur crée un compte" },
+                    { name: "Onboarding terminé", event: "onboarding_complete", page: "/wizard", value: "$10", status: "active", description: "Se déclenche quand l'utilisateur termine le wizard de configuration" },
+                    { name: "Début de checkout", event: "begin_checkout", page: "/checkout", value: "$29-279", status: "active", description: "Se déclenche quand l'utilisateur clique sur 'S'abonner'" },
+                    { name: "Vue page Pricing", event: "pricing_view", page: "/pricing", value: "$1", status: "active", description: "Se déclenche quand un visiteur consulte la page pricing" },
+                    { name: "Achat (Purchase)", event: "purchase", page: "Stripe webhook", value: "Dynamic", status: "active", description: "Se déclenche après paiement réussi via Stripe" },
+                  ].map((conv, idx) => (
+                    <div key={idx} className="border rounded-lg p-4 flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-sm">{conv.name}</span>
+                          <Badge variant="outline" className="text-[10px]">{conv.event}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{conv.description}</p>
+                        <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                          <span>Page: <code className="bg-muted px-1 rounded">{conv.page}</code></span>
+                          <span>Valeur: <strong>{conv.value}</strong></span>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800 border-green-200 shrink-0">Actif</Badge>
                     </div>
-                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{`<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${conversionId}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '${conversionId}');
-</script>`}
-                    </pre>
-                  </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-                  <Separator />
+              {/* Tag global info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    Configuration gtag.js
+                  </CardTitle>
+                  <CardDescription>Le tag global Google Ads est déjà installé dans index.html</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
+{`<!-- Déjà dans index.html -->
+gtag('config', 'AW-${conversionId}');
 
-                  {/* Purchase conversion */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold">Conversion: Achat / Commande</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "PURCHASE_LABEL", 50))}
-                      >
-                        <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copier
-                      </Button>
-                    </div>
-                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{generateGtagSnippet(conversionId, "PURCHASE_LABEL", 50)}
-                    </pre>
-                    <p className="text-xs text-muted-foreground">
-                      Placez ce snippet sur la page de confirmation de commande. Remplacez <code>PURCHASE_LABEL</code> par votre label de conversion Google Ads.
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  {/* Lead conversion */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold">Conversion: Formulaire / Lead</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "LEAD_LABEL"))}
-                      >
-                        <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copier
-                      </Button>
-                    </div>
-                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{generateGtagSnippet(conversionId, "LEAD_LABEL")}
-                    </pre>
-                    <p className="text-xs text-muted-foreground">
-                      Placez sur la page de confirmation de formulaire. Remplacez <code>LEAD_LABEL</code> par votre label.
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  {/* Signup conversion */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold">Conversion: Inscription</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => copyToClipboard(generateGtagSnippet(conversionId, "SIGNUP_LABEL"))}
-                      >
-                        <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copier
-                      </Button>
-                    </div>
-                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{generateGtagSnippet(conversionId, "SIGNUP_LABEL")}
-                    </pre>
-                    <p className="text-xs text-muted-foreground">
-                      Déclenchez après une inscription réussie. Remplacez <code>SIGNUP_LABEL</code> par votre label.
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  {/* Phone call conversion */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold">Conversion: Appel téléphonique</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => copyToClipboard(`<script>\n  gtag('event', 'conversion', {\n    'send_to': '${conversionId}/CALL_LABEL',\n    'phone_conversion_number': '+33XXXXXXXXX'\n  });\n</script>`)}
-                      >
-                        <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copier
-                      </Button>
-                    </div>
-                    <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto">
-{`<script>
-  gtag('event', 'conversion', {
-    'send_to': '${conversionId}/CALL_LABEL',
-    'phone_conversion_number': '+33XXXXXXXXX'
-  });
-</script>`}
-                    </pre>
-                    <p className="text-xs text-muted-foreground">
-                      Attachez à un clic sur un numéro de téléphone. Remplacez les valeurs par vos labels.
-                    </p>
-                  </div>
+<!-- Événements envoyés automatiquement via src/lib/gtag-conversions.ts -->
+gtag('event', 'conversion', { send_to: 'AW-${conversionId}/signup', value: 5.0 });
+gtag('event', 'conversion', { send_to: 'AW-${conversionId}/onboarding', value: 10.0 });
+gtag('event', 'conversion', { send_to: 'AW-${conversionId}/checkout', value: 29-279 });
+gtag('event', 'conversion', { send_to: 'AW-${conversionId}/purchase', value: dynamic });
+gtag('event', 'conversion', { send_to: 'AW-${conversionId}/pricing_view', value: 1.0 });`}
+                  </pre>
                 </CardContent>
               </Card>
             </div>
