@@ -568,7 +568,7 @@ export default function Answers() {
           {/* Answers Tab Content */}
           <TabsContent value="answers" className="space-y-4 mt-4">
             {filteredAnswers.map((answer, index) => (
-              <GlassCard key={answer.id} hover className="p-4 sm:p-6">
+              <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
                   <ScoreRing score={answer.score ?? 0} size="sm" />
                   <div className="flex-1 min-w-0 space-y-3">
@@ -592,7 +592,7 @@ export default function Answers() {
                       )}
                       {answer.has_article && <Badge variant="secondary" className="text-xs">Has Article</Badge>}
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" onClick={() => handleViewAnswer(answer)} className="gap-1"><Eye className="h-3 w-3" />View</Button>
                       {answer.has_article && (
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/articles/${answer.article_id}`)} className="gap-1"><Newspaper className="h-3 w-3" />Article</Button>
@@ -662,7 +662,7 @@ export default function Answers() {
               </GlassCard>
             ) : (
               filteredArticles.map((article, index) => (
-                <GlassCard key={article.id} hover className="p-4 sm:p-6">
+                <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setViewingArticle(article)}>
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <ScoreRing score={article.aeo_score || 0} size="sm" />
@@ -681,7 +681,7 @@ export default function Answers() {
                         <span>•</span>
                         <span>{new Date(article.created_at || '').toLocaleDateString()}</span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" onClick={() => setViewingArticle(article)} className="gap-1">
                           <Eye className="h-3 w-3" />View Article
                         </Button>
