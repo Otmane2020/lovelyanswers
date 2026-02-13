@@ -21,6 +21,7 @@ const VIP_EMAILS = [
   "starlinko.app@gmail.com",
   "support@meubleoccasion.com",
   "support@audit-aeo.com",
+  "contact@webify-app.com",
 ];
 
 serve(async (req) => {
