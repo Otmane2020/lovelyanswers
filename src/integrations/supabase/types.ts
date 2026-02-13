@@ -74,6 +74,83 @@ export type Database = {
         }
         Relationships: []
       }
+      ads_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string | null
+          executed_at: string | null
+          id: string
+          report_id: string | null
+          result: string | null
+          status: string
+          target_id: string | null
+          target_name: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          report_id?: string | null
+          result?: string | null
+          status?: string
+          target_id?: string | null
+          target_name?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          report_id?: string | null
+          result?: string | null
+          status?: string
+          target_id?: string | null
+          target_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_actions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ads_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_reports: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          report_type: string
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          report_type: string
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          report_type?: string
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ads_sync: {
         Row: {
           ad_group_name: string | null
