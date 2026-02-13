@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, LayoutGrid, Link2, List, Loader2, Play, MessageSquare, Send, Settings } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings } from "lucide-react";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
@@ -21,7 +21,8 @@ import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 interface ScheduledItem {
   id: string;
   title: string;
-  type: "answer" | "article";
+  type: "answer" | "article" | "local";
+  origin: "AEO" | "Auto SEO" | "Local AEO";
   date: Date;
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
@@ -90,18 +91,26 @@ export default function AeoPlanning() {
     try {
       const { data: answers } = await supabase.from("answers").select("id, question, scheduled_date, published_url, published_at, answer, score, high_citation, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, aeo_score, word_count, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
+      const { data: localAnswers } = await supabase.from("local_answers").select("id, question, scheduled_date, published_url, published_at, answer, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const items: ScheduledItem[] = [];
       if (answers) {
         answers.forEach((a) => {
           if (a.scheduled_date) {
-            items.push({ id: a.id, title: a.question, type: "answer", date: new Date(a.scheduled_date), status: getPublishStatus(a), publishedUrl: a.published_url || undefined, publishedAt: a.published_at, answer: a.answer || undefined, score: a.score, highCitation: a.high_citation, createdAt: a.created_at });
+            items.push({ id: a.id, title: a.question, type: "answer", origin: "AEO", date: new Date(a.scheduled_date), status: getPublishStatus(a), publishedUrl: a.published_url || undefined, publishedAt: a.published_at, answer: a.answer || undefined, score: a.score, highCitation: a.high_citation, createdAt: a.created_at });
           }
         });
       }
       if (articles) {
         articles.forEach((art) => {
           if (art.scheduled_date) {
-            items.push({ id: art.id, title: art.title, type: "article", date: new Date(art.scheduled_date), status: "scheduled", aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
+            items.push({ id: art.id, title: art.title, type: "article", origin: "Auto SEO", date: new Date(art.scheduled_date), status: "scheduled", aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
+          }
+        });
+      }
+      if (localAnswers) {
+        localAnswers.forEach((la) => {
+          if (la.scheduled_date) {
+            items.push({ id: la.id, title: la.question, type: "local", origin: "Local AEO", date: new Date(la.scheduled_date), status: getPublishStatus(la), publishedUrl: la.published_url || undefined, publishedAt: la.published_at, answer: la.answer || undefined, score: la.score, createdAt: la.created_at });
           }
         });
       }
@@ -148,7 +157,25 @@ export default function AeoPlanning() {
 
   const totalAnswers = scheduledItems.filter((i) => i.type === "answer").length;
   const totalArticles = scheduledItems.filter((i) => i.type === "article").length;
+  const totalLocal = scheduledItems.filter((i) => i.type === "local").length;
   const publishedItems = scheduledItems.filter((i) => i.status === "published").length;
+
+  const getOriginColor = (origin: string) => {
+    switch (origin) {
+      case "AEO": return "bg-primary/10 text-primary border-primary/20";
+      case "Auto SEO": return "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
+      case "Local AEO": return "bg-orange-500/10 text-orange-700 border-orange-500/20";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getItemIcon = (item: ScheduledItem) => {
+    switch (item.type) {
+      case "answer": return <MessageSquare className="h-4 w-4 text-primary shrink-0" />;
+      case "article": return <FileText className="h-4 w-4 text-emerald-600 shrink-0" />;
+      case "local": return <MapPin className="h-4 w-4 text-orange-600 shrink-0" />;
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -173,11 +200,15 @@ export default function AeoPlanning() {
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
               <MessageSquare className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs sm:text-sm font-medium text-primary">{totalAnswers} Answers</span>
+              <span className="text-xs sm:text-sm font-medium text-primary">{totalAnswers} AEO</span>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10">
               <FileText className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="text-xs sm:text-sm font-medium text-emerald-700">{totalArticles} Articles</span>
+              <span className="text-xs sm:text-sm font-medium text-emerald-700">{totalArticles} Auto SEO</span>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-orange-500/10">
+              <MapPin className="h-3.5 w-3.5 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-orange-700">{totalLocal} Local AEO</span>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
               <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
@@ -263,10 +294,10 @@ export default function AeoPlanning() {
                               key={item.id}
                               className={cn(
                                 "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-0.5 sm:gap-1",
-                                item.type === "answer" ? "bg-[hsl(222,47%,11%)]/10 text-[hsl(222,47%,30%)]" : "bg-emerald-500/20 text-emerald-700"
+                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : "bg-emerald-500/20 text-emerald-700"
                               )}
                             >
-                              {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
+                              {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "local" ? <MapPin className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
                               <span className="truncate hidden sm:inline">{item.title.slice(0, 20)}...</span>
                             </div>
                           ))}
@@ -295,13 +326,20 @@ export default function AeoPlanning() {
                         {items.map((item) => (
                           <div key={item.id} className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted transition-colors">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {item.type === "answer" ? <MessageSquare className="h-4 w-4 text-[hsl(222,47%,30%)] shrink-0" /> : <FileText className="h-4 w-4 text-emerald-600 shrink-0" />}
+                              {getItemIcon(item)}
+                              <Badge variant="outline" className={cn("text-[10px] shrink-0", getOriginColor(item.origin))}>{item.origin}</Badge>
                               <span className="text-sm truncate">{item.title}</span>
                               {item.status === "published" && (
-                                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs shrink-0">
                                   <CheckCircle2 className="h-3 w-3 mr-1" />
                                   Published
                                 </Badge>
+                              )}
+                              {item.publishedUrl && (
+                                <a href={item.publishedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary truncate max-w-[200px] shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <ExternalLink className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.publishedUrl.replace(/^https?:\/\//, '')}</span>
+                                </a>
                               )}
                             </div>
                             {item.status !== "published" && (
@@ -333,11 +371,20 @@ export default function AeoPlanning() {
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {getUpcomingItems().slice(0, 20).map((item) => (
                 <div key={item.id} className="p-3 rounded-lg border hover:border-primary/50 transition-colors">
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {item.type === "answer" ? <MessageSquare className="h-4 w-4 text-[hsl(222,47%,30%)] shrink-0" /> : <FileText className="h-4 w-4 text-emerald-600 shrink-0" />}
+                      {getItemIcon(item)}
                       <span className="text-sm font-medium truncate">{item.title}</span>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className={cn("text-[10px]", getOriginColor(item.origin))}>{item.origin}</Badge>
+                    {item.publishedUrl && (
+                      <a href={item.publishedUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground hover:text-primary truncate flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate">{item.publishedUrl.replace(/^https?:\/\//, '')}</span>
+                      </a>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{format(item.date, "MMM d, yyyy")}</span>
@@ -381,7 +428,8 @@ export default function AeoPlanning() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      {item.type === "answer" ? <MessageSquare className="h-4 w-4 text-[hsl(222,47%,30%)]" /> : <FileText className="h-4 w-4 text-emerald-600" />}
+                      {getItemIcon(item)}
+                      <Badge variant="outline" className={cn("text-[10px]", getOriginColor(item.origin))}>{item.origin}</Badge>
                       <h4 className="font-semibold text-sm">{item.title}</h4>
                     </div>
                     {item.answer && (
@@ -399,7 +447,7 @@ export default function AeoPlanning() {
                     )}
                     <div className="flex flex-wrap gap-2">
                       {item.score !== null && item.score !== undefined && (
-                        <Badge variant="outline" className={item.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}>
+                        <Badge variant="outline" className={item.score >= 80 ? "border-primary text-primary" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}>
                           {item.score}%
                         </Badge>
                       )}
@@ -409,6 +457,12 @@ export default function AeoPlanning() {
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Published
                         </Badge>
+                      )}
+                      {item.publishedUrl && (
+                        <a href={item.publishedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" />
+                          {item.publishedUrl.replace(/^https?:\/\//, '')}
+                        </a>
                       )}
                     </div>
                   </div>
