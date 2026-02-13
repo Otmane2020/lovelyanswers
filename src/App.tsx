@@ -44,6 +44,7 @@ import LocalAeoArticle from "./pages/LocalAeoArticle";
 import AuditPremium from "./pages/AuditPremium";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+import AiSeo from "./pages/AiSeo";
 import ShoppingDashboard from "./pages/ShoppingDashboard";
 import ShoppingProduct from "./pages/ShoppingProduct";
 import ShoppingPlanning from "./pages/ShoppingPlanning";
@@ -66,6 +67,7 @@ const App = () => (
                 <FloatingSupportButton />
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/ai-seo" element={<AiSeo />} />
                   
                   <Route path="/audit-premium" element={<AuditPremium />} />
                   <Route path="/pricing" element={<Pricing />} />
