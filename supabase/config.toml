@@ -208,3 +208,6 @@ verify_jwt = false
 
 [functions.create-google-ads-conversions]
 verify_jwt = false
+
+[functions.add-negative-keyword]
+verify_jwt = false
