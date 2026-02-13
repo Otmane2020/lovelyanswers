@@ -214,3 +214,6 @@ verify_jwt = false
 
 [functions.create-competitor-ad-group]
 verify_jwt = false
+
+[functions.unlock-articles]
+verify_jwt = false
