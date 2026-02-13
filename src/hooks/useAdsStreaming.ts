@@ -1,15 +1,80 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+interface AdsReport {
+  id: string;
+  report_type: string;
+  content: string;
+  summary: string | null;
+  created_at: string;
+}
 
 export function useAdsStreaming() {
   const [text, setText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [savedReportId, setSavedReportId] = useState<string | null>(null);
+  const [previousReports, setPreviousReports] = useState<AdsReport[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const loadPreviousReports = useCallback(async (focus: string) => {
+    setIsLoadingHistory(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from("ads_reports")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .eq("report_type", focus)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setPreviousReports((data as AdsReport[]) || []);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  const loadReport = (report: AdsReport) => {
+    setText(report.content);
+    setSavedReportId(report.id);
+  };
+
+  const saveReport = async (focus: string, content: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !content || content.length < 50) return null;
+
+      // Extract summary (first 3 lines)
+      const summary = content.split("\n").filter(l => l.trim()).slice(0, 3).join(" ").substring(0, 300);
+
+      const { data, error } = await supabase
+        .from("ads_reports")
+        .insert({
+          user_id: session.user.id,
+          report_type: focus,
+          content,
+          summary,
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Failed to save report:", error);
+        return null;
+      }
+      return data?.id || null;
+    } catch (err) {
+      console.error("Save report error:", err);
+      return null;
+    }
+  };
 
   const startAnalysis = async (focus: string, campaignId?: string) => {
     setIsStreaming(true);
     setText("");
+    setSavedReportId(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -82,6 +147,15 @@ export function useAdsStreaming() {
         }
       }
 
+      // Save report to DB
+      const reportId = await saveReport(focus, fullText);
+      if (reportId) {
+        setSavedReportId(reportId);
+        // Refresh history
+        loadPreviousReports(focus);
+        toast({ title: "✅ Rapport sauvegardé", description: "L'analyse est enregistrée dans votre historique" });
+      }
+
       setTimeout(() => {
         ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
@@ -92,5 +166,9 @@ export function useAdsStreaming() {
     }
   };
 
-  return { text, isStreaming, startAnalysis, ref };
+  return { 
+    text, isStreaming, startAnalysis, ref, 
+    savedReportId, 
+    previousReports, isLoadingHistory, loadPreviousReports, loadReport 
+  };
 }

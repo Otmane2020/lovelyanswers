@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, TrendingUp, Zap, ArrowUp, ArrowDown, DollarSign, Target, BarChart3 } from "lucide-react";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
-
+import { ReportHistory } from "./ReportHistory";
 interface SyncedCampaign {
   id: string;
   name: string;
@@ -29,7 +30,11 @@ interface RoasTabProps {
 }
 
 export function RoasTab({ campaigns }: RoasTabProps) {
-  const { text, isStreaming, startAnalysis, ref } = useAdsStreaming();
+  const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
+
+  useEffect(() => {
+    loadPreviousReports("roas");
+  }, []);
 
   const totalSpend = campaigns.reduce((s, c) => s + (c.spend_7d || 0), 0);
   const totalRevenue = campaigns.reduce((s, c) => s + (c.revenue_7d || 0), 0);
@@ -151,7 +156,8 @@ export function RoasTab({ campaigns }: RoasTabProps) {
         </CardContent>
       </Card>
 
-      {/* AI Analysis */}
+      <ReportHistory reports={previousReports} isLoading={isLoadingHistory} onLoad={loadReport} focusType="roas" onRefresh={loadPreviousReports} />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
