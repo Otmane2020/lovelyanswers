@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
-  Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone
+  Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone,
+  Brain, Key, Target, TrendingUp, Lightbulb, Tag
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -629,9 +630,35 @@ const SuperAdmin = () => {
               <Globe className="h-4 w-4" />
               Articles Actifs
             </TabsTrigger>
-            <TabsTrigger value="google-ads" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+            <Separator className="my-2" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-1 font-semibold">Google Ads</p>
+            <TabsTrigger value="gads-campaigns" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
               <Megaphone className="h-4 w-4" />
-              Google Ads
+              Campagnes
+            </TabsTrigger>
+            <TabsTrigger value="gads-audit" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Brain className="h-4 w-4" />
+              Audit complet
+            </TabsTrigger>
+            <TabsTrigger value="gads-keywords" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Key className="h-4 w-4" />
+              Mots-clés
+            </TabsTrigger>
+            <TabsTrigger value="gads-adgroups" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Target className="h-4 w-4" />
+              Ad Groups
+            </TabsTrigger>
+            <TabsTrigger value="gads-roas" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <TrendingUp className="h-4 w-4" />
+              ROAS
+            </TabsTrigger>
+            <TabsTrigger value="gads-strategy" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Lightbulb className="h-4 w-4" />
+              Stratégie
+            </TabsTrigger>
+            <TabsTrigger value="gads-conversions" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Tag className="h-4 w-4" />
+              Conversions
             </TabsTrigger>
           </TabsList>
         </aside>
@@ -649,9 +676,27 @@ const SuperAdmin = () => {
             <ActiveArticleUsers />
           </TabsContent>
 
-          {/* Google Ads Tab */}
-          <TabsContent value="google-ads">
-            <GoogleAdsManager />
+          {/* Google Ads Sub-Tabs */}
+          <TabsContent value="gads-campaigns">
+            <GoogleAdsManager activeTab="campaigns" />
+          </TabsContent>
+          <TabsContent value="gads-audit">
+            <GoogleAdsManager activeTab="audit" />
+          </TabsContent>
+          <TabsContent value="gads-keywords">
+            <GoogleAdsManager activeTab="keywords-analysis" />
+          </TabsContent>
+          <TabsContent value="gads-adgroups">
+            <GoogleAdsManager activeTab="adgroups-analysis" />
+          </TabsContent>
+          <TabsContent value="gads-roas">
+            <GoogleAdsManager activeTab="roas-analysis" />
+          </TabsContent>
+          <TabsContent value="gads-strategy">
+            <GoogleAdsManager activeTab="strategy-analysis" />
+          </TabsContent>
+          <TabsContent value="gads-conversions">
+            <GoogleAdsManager activeTab="conversions" />
           </TabsContent>
 
           {/* Users Tab */}
