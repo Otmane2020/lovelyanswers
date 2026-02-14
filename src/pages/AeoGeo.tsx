@@ -15,6 +15,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useGeoContents, useGenerateGeoContent, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
@@ -34,9 +35,36 @@ export default function AeoGeo() {
   const [contentType, setContentType] = useState("article");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const brand = project?.brand_name || "";
   const website = project?.website_url || "";
+
+  const handleAiSuggest = async () => {
+    if (!project) return;
+    setIsSuggesting(true);
+    try {
+      const res = await supabase.functions.invoke("generate-geo-content", {
+        body: {
+          mode: "suggest",
+          brand: brand || "Brand",
+          website,
+          projectId: project.id,
+          contentType,
+          language: project.language || "en",
+        },
+      });
+      if (res.error) throw new Error(res.error.message);
+      const data = res.data;
+      if (data?.topic) setTopic(data.topic);
+      if (data?.keywords?.length) setKeywords(data.keywords.join(", "));
+      toast.success("AI suggestion applied!");
+    } catch (err: any) {
+      toast.error(err.message || "AI suggestion failed");
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!topic.trim() || !project) return;
@@ -175,6 +203,19 @@ export default function AeoGeo() {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleAiSuggest}
+                  disabled={isSuggesting}
+                >
+                  {isSuggesting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Suggesting...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4 mr-2" />AI Auto-fill Topic & Keywords</>
+                  )}
+                </Button>
                 <div>
                   <Label>Topic *</Label>
                   <Input
