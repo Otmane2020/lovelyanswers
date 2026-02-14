@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Globe, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Globe, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings, ShoppingCart } from "lucide-react";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
@@ -21,8 +21,8 @@ import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 interface ScheduledItem {
   id: string;
   title: string;
-  type: "answer" | "article" | "local" | "geo";
-  origin: "AEO" | "Auto SEO" | "Local AEO" | "GEO";
+  type: "answer" | "article" | "local" | "geo" | "shopping";
+  origin: "AEO" | "Auto SEO" | "Local AEO" | "GEO" | "Shopping";
   date: Date;
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
@@ -122,6 +122,17 @@ export default function AeoPlanning() {
           }
         });
       }
+      // Fetch shopping planning
+      const { data: shoppingPlanning } = await supabase.from("shopping_planning").select("id, scheduled_date, published, published_at, product_id, shopping_products(id, title, ai_title, price, currency, ai_score, image_url, product_url)").eq("project_id", project.id);
+      if (shoppingPlanning) {
+        shoppingPlanning.forEach((sp: any) => {
+          if (sp.scheduled_date) {
+            const product = sp.shopping_products;
+            const title = product?.ai_title || product?.title || "Product";
+            items.push({ id: sp.id, title, type: "shopping", origin: "Shopping", date: new Date(sp.scheduled_date), status: sp.published ? "published" : "scheduled", publishedAt: sp.published_at, score: product?.ai_score, createdAt: sp.scheduled_date });
+          }
+        });
+      }
       setScheduledItems(items);
     } catch (error) {
       console.error("Error fetching scheduled items:", error);
@@ -167,6 +178,7 @@ export default function AeoPlanning() {
   const totalArticles = scheduledItems.filter((i) => i.type === "article").length;
   const totalLocal = scheduledItems.filter((i) => i.type === "local").length;
   const totalGeo = scheduledItems.filter((i) => i.type === "geo").length;
+  const totalShopping = scheduledItems.filter((i) => i.type === "shopping").length;
   const publishedItems = scheduledItems.filter((i) => i.status === "published").length;
 
   const getOriginColor = (origin: string) => {
@@ -175,6 +187,7 @@ export default function AeoPlanning() {
       case "Auto SEO": return "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
       case "Local AEO": return "bg-orange-500/10 text-orange-700 border-orange-500/20";
       case "GEO": return "bg-violet-500/10 text-violet-700 border-violet-500/20";
+      case "Shopping": return "bg-pink-500/10 text-pink-700 border-pink-500/20";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -185,6 +198,7 @@ export default function AeoPlanning() {
       case "article": return <FileText className="h-4 w-4 text-emerald-600 shrink-0" />;
       case "local": return <MapPin className="h-4 w-4 text-orange-600 shrink-0" />;
       case "geo": return <Globe className="h-4 w-4 text-violet-600 shrink-0" />;
+      case "shopping": return <ShoppingCart className="h-4 w-4 text-pink-600 shrink-0" />;
     }
   };
 
@@ -224,6 +238,10 @@ export default function AeoPlanning() {
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-violet-500/10">
               <Globe className="h-3.5 w-3.5 text-violet-600" />
               <span className="text-xs sm:text-sm font-medium text-violet-700">{totalGeo} GEO</span>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-pink-500/10">
+              <ShoppingCart className="h-3.5 w-3.5 text-pink-600" />
+              <span className="text-xs sm:text-sm font-medium text-pink-700">{totalShopping} Shopping</span>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
               <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
