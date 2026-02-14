@@ -223,16 +223,16 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>LovelyAnswers – Get Discovered in AI Search | ChatGPT, Gemini & Google</title>
+        <title>LovelyAnswers – AI Search Optimization for SaaS | Rank in ChatGPT, Gemini & Google</title>
         <meta
           name="description"
-          content="Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered content, monitoring, and optimization for modern search."
+          content="AI search optimization platform for SaaS. Get your SaaS brand recommended by ChatGPT, Gemini, Perplexity & Google. AEO + GEO + SEO automation. Start free."
         />
         <link rel="canonical" href="https://lovelyanswers.com/" />
-        <meta property="og:title" content="LovelyAnswers – Get Discovered in AI Search" />
+        <meta property="og:title" content="LovelyAnswers – AI Search Optimization for SaaS" />
         <meta
           property="og:description"
-          content="The #1 platform to get your brand recommended by AI search engines."
+          content="The #1 platform to get your SaaS recommended by AI search engines. AEO, GEO & SEO automation."
         />
         <meta property="og:url" content="https://lovelyanswers.com/" />
         <meta property="og:type" content="website" />
@@ -350,7 +350,7 @@ export default function Index() {
               >
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70 mb-6">
                   <Sparkles className="h-3.5 w-3.5 text-white/60" />
-                  AI search optimization platform
+                  AI Search Optimization for SaaS — AEO + GEO + SEO
                 </div>
               </motion.div>
 
@@ -360,8 +360,8 @@ export default function Index() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
               >
-                Get discovered in{" "}
-                <span className="text-white">AI search</span>
+                Rank your SaaS in{" "}
+                <span className="text-white">AI search & Google</span>
               </motion.h1>
 
               <motion.p
@@ -370,7 +370,7 @@ export default function Index() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-8"
               >
-                Get your brand recommended by ChatGPT, Gemini, Perplexity and Google. Monitor, optimize, and grow your AI search presence.
+                Get your SaaS recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered AEO, GEO & SEO automation.
               </motion.p>
 
               <motion.div
@@ -506,7 +506,7 @@ export default function Index() {
           <div className="container px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                AI search is the new <span className="font-extrabold">growth channel</span>
+                AI search is the new <span className="font-extrabold">SaaS growth channel</span>
               </h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">

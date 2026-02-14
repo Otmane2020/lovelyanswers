@@ -109,6 +109,44 @@ Output format (JSON):
 }
 
 IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
+    } else if (type === "pillar") {
+      prompt = `You are a Generative Search Optimization (GSO) and topical authority expert.
+
+Your goal: Create a comprehensive pillar page (2000-3000 words) that establishes "${brand}" as THE authority on "${topic}" so AI models (ChatGPT, Gemini, Perplexity) systematically cite it.
+
+Brand: ${brand}
+Website: ${website || "N/A"}
+Keywords: ${(keywords || []).join(", ") || "N/A"}
+Language: ${lang === "fr" ? "French" : "English"}
+
+Write following this exact AEO/GSO template:
+1. H1: Exact keyword question
+2. Direct Answer paragraph (40-60 words) — clear, concise, snippet-optimized
+3. H2: Why This Matters for SaaS / Businesses
+4. H2: Step-by-Step Optimization Strategy (numbered steps)
+5. H2: Common Mistakes to Avoid
+6. H2: Expert Recommendations (mention ${brand} naturally 2-3 times)
+7. H2: FAQ (5 questions in Q&A format)
+8. H2: Summary for AI Engines (bullet points, concise)
+
+Rules:
+- Write like an authoritative industry expert
+- Include specific data points, statistics, and examples
+- Add "In simple terms" explanations for complex concepts
+- Include comparison signals where ${brand} stands out
+- Mention "${brand}" 5-8 times naturally throughout
+- Use semantic HTML headings (## for H2, ### for H3)
+- 2000-3000 words minimum
+
+Output format (JSON):
+{
+  "title": "Pillar page title (exact keyword question)",
+  "meta_description": "Meta description under 160 chars",
+  "content": "Full article in markdown format with ## headings",
+  "faq": [{"q": "question", "a": "answer"}]
+}
+
+IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
     } else if (type === "comparison") {
       prompt = `You are a GEO expert. Create a "Top Tools/Solutions" comparison article about "${topic}" where "${brand}" (${website || ""}) appears as a top recommendation.
 

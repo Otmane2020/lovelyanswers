@@ -64,7 +64,8 @@ export default function AeoGeo() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "article": return "GEO Article";
+      case "article": return "GSO Article";
+      case "pillar": return "Pillar Page";
       case "mentions": return "Brand Mentions";
       case "comparison": return "Comparison";
       default: return type;
@@ -74,15 +75,17 @@ export default function AeoGeo() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "article": return "bg-violet-500/10 text-violet-700 border-violet-500/20";
+      case "pillar": return "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
       case "mentions": return "bg-blue-500/10 text-blue-700 border-blue-500/20";
       case "comparison": return "bg-amber-500/10 text-amber-700 border-amber-500/20";
       default: return "bg-muted text-muted-foreground";
     }
   };
 
-  const articles = contents.filter(c => c.content_type === "article");
+  const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
   const mentions = contents.filter(c => c.content_type === "mentions");
   const comparisons = contents.filter(c => c.content_type === "comparison");
+  const pillars = contents.filter(c => c.content_type === "pillar");
 
   const ContentCard = ({ item }: { item: GeoContent }) => {
     const isExpanded = expandedId === item.id;
@@ -150,10 +153,10 @@ export default function AeoGeo() {
           <div>
             <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2">
               <Globe className="h-6 w-6 sm:h-8 sm:w-8 text-violet-600" />
-              GEO Engine
+              GSO Engine
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Generate AI-optimized content to make your brand appear in generative answers
+              Generative Search Optimization — Make your brand appear in AI-generated answers
             </p>
           </div>
 
@@ -161,14 +164,14 @@ export default function AeoGeo() {
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-violet-600 to-blue-600 hover:opacity-90">
                 <Sparkles className="h-4 w-4 mr-2" />
-                Generate GEO Content
+                Generate GSO Content
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Zap className="h-5 w-5 text-violet-600" />
-                  Generate GEO Content
+                  Generate GSO Content
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2">
@@ -190,7 +193,13 @@ export default function AeoGeo() {
                       <SelectItem value="article">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
-                          GEO Article (1500+ words)
+                          GSO Article (1500+ words)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pillar">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Pillar Page (2000+ words)
                         </div>
                       </SelectItem>
                       <SelectItem value="mentions">
@@ -247,7 +256,7 @@ export default function AeoGeo() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="p-3 text-center">
             <p className="text-2xl font-bold">{contents.length}</p>
-            <p className="text-xs text-muted-foreground">Total GEO</p>
+            <p className="text-xs text-muted-foreground">Total GSO</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-2xl font-bold">{articles.length}</p>
@@ -293,13 +302,13 @@ export default function AeoGeo() {
             ) : contents.length === 0 ? (
               <Card className="p-12 text-center">
                 <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No GEO content yet</h3>
+                <h3 className="text-lg font-semibold mb-2">No GSO content yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Generate AI-optimized content to make your brand appear in ChatGPT, Gemini & Perplexity answers.
                 </p>
                 <Button onClick={() => setShowGenerate(true)} className="bg-gradient-to-r from-violet-600 to-blue-600">
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate your first GEO content
+                  Generate your first GSO content
                 </Button>
               </Card>
             ) : (
