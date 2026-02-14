@@ -44,7 +44,80 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { topic, brand, website, keywords, projectId, contentType, language } = await req.json();
+    const body = await req.json();
+    const { topic, brand, website, keywords, projectId, contentType, language, mode } = body;
+
+    // AI Suggest mode — return topic + keywords suggestions
+    if (mode === "suggest") {
+      if (!brand || !projectId) {
+        return new Response(
+          JSON.stringify({ error: "Missing brand or projectId" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const lang = language || "en";
+      const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+      if (!openRouterKey) {
+        return new Response(
+          JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fetch existing project keywords for context
+      const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: existingKw } = await serviceClient
+        .from("keywords")
+        .select("keyword")
+        .eq("project_id", projectId)
+        .limit(20);
+      const kwList = (existingKw || []).map((k: any) => k.keyword).join(", ");
+
+      const suggestPrompt = `You are a Generative Search Optimization strategist.
+Brand: "${brand}"
+Website: ${website || "N/A"}
+Existing keywords: ${kwList || "none"}
+Language: ${lang === "fr" ? "French" : "English"}
+Content type requested: ${contentType || "article"}
+
+Suggest 1 high-impact GSO topic and 5 relevant keywords for this brand.
+The topic should be a question or statement that AI engines (ChatGPT, Gemini) would answer, where this brand can be naturally mentioned.
+
+Output ONLY valid JSON:
+{"topic": "suggested topic", "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5"]}`;
+
+      const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openRouterKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: "Respond with valid JSON only." },
+            { role: "user", content: suggestPrompt },
+          ],
+          temperature: 0.8,
+          max_tokens: 300,
+        }),
+      });
+
+      const aiData = await aiRes.json();
+      const raw = aiData.choices?.[0]?.message?.content || "";
+      try {
+        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        return new Response(JSON.stringify({ success: true, ...parsed }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        return new Response(JSON.stringify({ error: "Failed to parse AI suggestion" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!topic || !brand || !projectId) {
       return new Response(
