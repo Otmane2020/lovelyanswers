@@ -1,57 +1,58 @@
 
 
-## Probleme identifie
+# Fix Google Search Console FAQPage Errors
 
-`service-client@sweetdeco.com` a bien un abonnement actif (confirme par les logs backend), mais ses 28+ articles restent en statut `locked` avec du contenu vide. C'est un probleme structurel : quand un utilisateur s'inscrit, les articles sont crees en mode "titres seulement" (statut `locked`). Apres le paiement, **aucun mecanisme ne declenche la generation du contenu complet**.
+## Problem
+Google Search Console reports 2 invalid FAQPage structured data issues:
+1. **"Element sans nom"** -- FAQPage JSON-LD is missing the required `name` property
+2. **"Champ FAQPage en double"** -- Multiple pages have overlapping/duplicate FAQ questions (e.g., "Can I really cancel anytime?" appears in both Index and Pricing)
 
 ## Solution
 
-Ajouter un mecanisme automatique de deblocage des articles apres le paiement, en deux volets :
+### 1. Add `name` property to all FAQPage schemas (fixes "unnamed element")
 
-### 1. Webhook Stripe : declencher la generation apres paiement
+Google requires a `name` field on FAQPage. We need to add it to all 3 files:
 
-Quand le webhook recoit un evenement `customer.subscription.created` ou `customer.subscription.updated` avec un statut `active`, il recherchera les articles `locked` de l'utilisateur et appellera la fonction `generate-aeo-article` pour chacun (ou une nouvelle fonction batch).
+- **Index.tsx** (line ~274): Add `"name": "LovelyAnswers FAQ"`
+- **AiSeo.tsx** (line ~173): Add `"name": "AI SEO FAQ"`  
+- **AeoPublicAnswer.tsx** (line ~191): Add `"name": "Answer FAQ"`
 
-### 2. Frontend : bouton "Generer le contenu" pour les abonnes
+### 2. Remove duplicate FAQPage from Index.tsx (fixes "duplicate" error)
 
-Sur le dashboard, quand l'utilisateur est abonne mais a encore des articles `locked`, afficher un bouton "Generer tous les articles" qui lance la generation en batch.
+The homepage (Index.tsx) and AiSeo.tsx have overlapping FAQ questions. Since the homepage already has Organization + SoftwareApplication schemas, we will **remove the FAQPage schema from Index.tsx entirely** and keep unique FAQs only on their dedicated pages:
 
-### 3. Correction immediate pour sweetdeco
+- **Index.tsx**: Remove the FAQPage JSON-LD block (lines 270-281). The FAQ section stays visible on the page, just without the structured data markup.
+- **AiSeo.tsx**: Keep its FAQPage schema with `name` added -- it has unique AI SEO questions.
+- **AeoPublicAnswer.tsx**: Keep with `name` added -- it's per-answer, no duplication risk.
 
-En attendant le deploiement, mettre a jour directement le statut des articles locks vers `scheduled` et declencher la generation de contenu.
+### 3. Deduplicate Pricing.tsx FAQ questions
 
----
+The Pricing page doesn't have a FAQPage schema (only Product schema), so it's fine. But its visible FAQ questions overlap with Index.tsx -- this is acceptable since there's no structured data duplication.
 
-## Details techniques
+## Files to modify
+- `src/pages/Index.tsx` -- Remove FAQPage JSON-LD block
+- `src/pages/AiSeo.tsx` -- Add `name` to FAQPage schema
+- `src/pages/AeoPublicAnswer.tsx` -- Add `name` to FAQPage schema
 
-### Modification 1 : `supabase/functions/stripe-webhook/index.ts`
-
-Dans `handleSubscriptionUpdate`, apres la mise a jour des credits, ajouter un appel pour debloquer les articles :
+## Technical Details
 
 ```text
-1. Trouver le project actif de l'utilisateur
-2. Recuperer tous les articles avec status = 'locked' pour ce projet
-3. Pour chaque article, appeler generate-aeo-article ou mettre le statut a 'scheduled'
-4. Logger le nombre d'articles debloques
+Before (Index.tsx):
+  Organization schema
+  SoftwareApplication schema
+  FAQPage schema  <-- REMOVE THIS
+
+After (Index.tsx):
+  Organization schema
+  SoftwareApplication schema
+  (no FAQPage)
 ```
 
-### Modification 2 : `src/pages/AeoDashboard.tsx`
+```text
+Before (AiSeo.tsx):
+  { "@type": "FAQPage", mainEntity: [...] }
 
-Quand `subscribed === true` ET qu'il reste des articles `locked` :
-- Afficher un bouton "Generer le contenu complet"
-- Au clic, appeler un endpoint qui lance la generation batch
-- Afficher une barre de progression
-
-### Modification 3 : Nouvelle fonction `supabase/functions/unlock-articles/index.ts`
-
-Fonction dediee qui :
-1. Verifie l'abonnement actif
-2. Recupere tous les articles `locked` du projet
-3. Pour chaque article, genere le contenu complet via l'IA (OpenRouter/Gemini)
-4. Met a jour le statut de `locked` vers `scheduled`
-5. Retourne le nombre d'articles traites
-
-### Modification 4 : `supabase/functions/check-subscription/index.ts`
-
-Ajouter un champ `has_locked_content: true/false` dans la reponse pour que le frontend sache s'il faut proposer la generation.
+After (AiSeo.tsx):
+  { "@type": "FAQPage", "name": "AI SEO FAQ", mainEntity: [...] }
+```
 
