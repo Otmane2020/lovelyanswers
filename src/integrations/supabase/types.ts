@@ -638,6 +638,80 @@ export type Database = {
           },
         ]
       }
+      geo_contents: {
+        Row: {
+          brand: string
+          content: string | null
+          content_type: string | null
+          created_at: string
+          html_content: string | null
+          id: string
+          is_public: boolean | null
+          keywords: string[] | null
+          meta_description: string | null
+          project_id: string
+          published_at: string | null
+          published_url: string | null
+          scheduled_date: string | null
+          score: number | null
+          slug: string | null
+          title: string | null
+          topic: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          brand: string
+          content?: string | null
+          content_type?: string | null
+          created_at?: string
+          html_content?: string | null
+          id?: string
+          is_public?: boolean | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          project_id: string
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          score?: number | null
+          slug?: string | null
+          title?: string | null
+          topic: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          brand?: string
+          content?: string | null
+          content_type?: string | null
+          created_at?: string
+          html_content?: string | null
+          id?: string
+          is_public?: boolean | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          project_id?: string
+          published_at?: string | null
+          published_url?: string | null
+          scheduled_date?: string | null
+          score?: number | null
+          slug?: string | null
+          title?: string | null
+          topic?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_contents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_ads_accounts: {
         Row: {
           access_token: string | null

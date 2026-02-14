@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Globe, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings } from "lucide-react";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
@@ -21,8 +21,8 @@ import { AutoPublishSettings } from "@/components/planning/AutoPublishSettings";
 interface ScheduledItem {
   id: string;
   title: string;
-  type: "answer" | "article" | "local";
-  origin: "AEO" | "Auto SEO" | "Local AEO";
+  type: "answer" | "article" | "local" | "geo";
+  origin: "AEO" | "Auto SEO" | "Local AEO" | "GEO";
   date: Date;
   status: "scheduled" | "published" | "draft";
   publishedUrl?: string;
@@ -92,6 +92,7 @@ export default function AeoPlanning() {
       const { data: answers } = await supabase.from("answers").select("id, question, scheduled_date, published_url, published_at, answer, score, high_citation, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, aeo_score, word_count, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: localAnswers } = await supabase.from("local_answers").select("id, question, scheduled_date, published_url, published_at, answer, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
+      const { data: geoContents } = await supabase.from("geo_contents").select("id, title, topic, scheduled_date, published_url, published_at, content, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const items: ScheduledItem[] = [];
       if (answers) {
         answers.forEach((a) => {
@@ -111,6 +112,13 @@ export default function AeoPlanning() {
         localAnswers.forEach((la) => {
           if (la.scheduled_date) {
             items.push({ id: la.id, title: la.question, type: "local", origin: "Local AEO", date: new Date(la.scheduled_date), status: getPublishStatus(la), publishedUrl: la.published_url || undefined, publishedAt: la.published_at, answer: la.answer || undefined, score: la.score, createdAt: la.created_at });
+          }
+        });
+      }
+      if (geoContents) {
+        geoContents.forEach((geo: any) => {
+          if (geo.scheduled_date) {
+            items.push({ id: geo.id, title: geo.title || geo.topic, type: "geo", origin: "GEO", date: new Date(geo.scheduled_date), status: getPublishStatus(geo), publishedUrl: geo.published_url || undefined, publishedAt: geo.published_at, answer: geo.content || undefined, score: geo.score, createdAt: geo.created_at });
           }
         });
       }
@@ -158,6 +166,7 @@ export default function AeoPlanning() {
   const totalAnswers = scheduledItems.filter((i) => i.type === "answer").length;
   const totalArticles = scheduledItems.filter((i) => i.type === "article").length;
   const totalLocal = scheduledItems.filter((i) => i.type === "local").length;
+  const totalGeo = scheduledItems.filter((i) => i.type === "geo").length;
   const publishedItems = scheduledItems.filter((i) => i.status === "published").length;
 
   const getOriginColor = (origin: string) => {
@@ -165,6 +174,7 @@ export default function AeoPlanning() {
       case "AEO": return "bg-primary/10 text-primary border-primary/20";
       case "Auto SEO": return "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
       case "Local AEO": return "bg-orange-500/10 text-orange-700 border-orange-500/20";
+      case "GEO": return "bg-violet-500/10 text-violet-700 border-violet-500/20";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -174,6 +184,7 @@ export default function AeoPlanning() {
       case "answer": return <MessageSquare className="h-4 w-4 text-primary shrink-0" />;
       case "article": return <FileText className="h-4 w-4 text-emerald-600 shrink-0" />;
       case "local": return <MapPin className="h-4 w-4 text-orange-600 shrink-0" />;
+      case "geo": return <Globe className="h-4 w-4 text-violet-600 shrink-0" />;
     }
   };
 
@@ -209,6 +220,10 @@ export default function AeoPlanning() {
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-orange-500/10">
               <MapPin className="h-3.5 w-3.5 text-orange-600" />
               <span className="text-xs sm:text-sm font-medium text-orange-700">{totalLocal} Local AEO</span>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-violet-500/10">
+              <Globe className="h-3.5 w-3.5 text-violet-600" />
+              <span className="text-xs sm:text-sm font-medium text-violet-700">{totalGeo} GEO</span>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10">
               <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
@@ -294,10 +309,10 @@ export default function AeoPlanning() {
                               key={item.id}
                               className={cn(
                                 "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-0.5 sm:gap-1",
-                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : "bg-emerald-500/20 text-emerald-700"
+                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : item.type === "geo" ? "bg-violet-500/20 text-violet-700" : "bg-emerald-500/20 text-emerald-700"
                               )}
                             >
-                              {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "local" ? <MapPin className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
+                              {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "local" ? <MapPin className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "geo" ? <Globe className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
                               <span className="truncate hidden sm:inline">{item.title.slice(0, 20)}...</span>
                             </div>
                           ))}
