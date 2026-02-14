@@ -49,6 +49,7 @@ import ShoppingDashboard from "./pages/ShoppingDashboard";
 import ShoppingProduct from "./pages/ShoppingProduct";
 import ShoppingPlanning from "./pages/ShoppingPlanning";
 import AiShoppingAssistant from "./pages/AiShoppingAssistant";
+import AeoGeo from "./pages/AeoGeo";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/articles" element={<ProtectedRoute requireSubscription={false}><AeoArticles /></ProtectedRoute>} />
                   <Route path="/answers" element={<ProtectedRoute requireSubscription={false}><Answers /></ProtectedRoute>} />
                   <Route path="/autoseo" element={<ProtectedRoute requireSubscription={false}><AutoSeo /></ProtectedRoute>} />
+                  <Route path="/geo" element={<ProtectedRoute requireSubscription={false}><AeoGeo /></ProtectedRoute>} />
                   <Route path="/planning" element={<ProtectedRoute requireSubscription={false}><AeoPlanning /></ProtectedRoute>} />
                   <Route path="/reddit" element={<ProtectedRoute requireSubscription={false}><AeoReddit /></ProtectedRoute>} />
                   <Route path="/local" element={<ProtectedRoute requireSubscription={false}><AeoLocal /></ProtectedRoute>} />

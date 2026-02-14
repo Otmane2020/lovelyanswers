@@ -1,5 +1,5 @@
 import {
-  Home, FileText, BarChart3, Link2, MessageSquareText, Settings, CreditCard, LogOut, CalendarDays, History, HelpCircle, Newspaper, MapPin, ShoppingCart, Package,
+  Home, FileText, BarChart3, Link2, MessageSquareText, Settings, CreditCard, LogOut, CalendarDays, History, HelpCircle, Newspaper, MapPin, ShoppingCart, Package, Globe,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -19,9 +19,10 @@ export function AeoSidebar() {
 
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
+    { title: "GEO Engine", url: "/geo", icon: Globe, badge: "New" },
     { title: "AEO Answers", url: "/answers", icon: FileText },
-    { title: "Auto SEO", url: "/autoseo", icon: Newspaper, badge: "New" },
-    { title: "Local AEO", url: "/local", icon: MapPin, badge: "New" },
+    { title: "Auto SEO", url: "/autoseo", icon: Newspaper },
+    { title: "Local AEO", url: "/local", icon: MapPin },
     { title: "Planning", url: "/planning", icon: CalendarDays },
     { title: "History", url: "/history", icon: History },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
