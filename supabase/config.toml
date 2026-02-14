@@ -217,3 +217,7 @@ verify_jwt = false
 
 [functions.unlock-articles]
 verify_jwt = false
+
+[functions.publish-geo-content]
+verify_jwt = false
+schedule = "0 2 * * *"
