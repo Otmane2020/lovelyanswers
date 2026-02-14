@@ -62,7 +62,7 @@ export function AeoSidebar() {
         <NavLink to="/dashboard" onClick={handleNavClick} className="flex items-center gap-2.5 group">
           <AnimatedLogo size="sm" />
           {state === "expanded" && (
-            <span className="font-bold text-lg text-foreground">Answers</span>
+            <span className="font-bold text-lg text-foreground">LovelyAnswers</span>
           )}
         </NavLink>
       </div>
