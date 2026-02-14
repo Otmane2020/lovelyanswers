@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,18 @@ export default function AeoGeo() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const hasSuggestedRef = useRef(false);
+
+  // Auto-trigger AI suggestion when dialog opens
+  useEffect(() => {
+    if (showGenerate && !hasSuggestedRef.current && project && !topic) {
+      hasSuggestedRef.current = true;
+      handleAiSuggest();
+    }
+    if (!showGenerate) {
+      hasSuggestedRef.current = false;
+    }
+  }, [showGenerate]);
 
   const brand = project?.brand_name || "";
   const website = project?.website_url || "";
@@ -213,7 +225,7 @@ export default function AeoGeo() {
                   {isSuggesting ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Suggesting...</>
                   ) : (
-                    <><Sparkles className="h-4 w-4 mr-2" />AI Auto-fill Topic & Keywords</>
+                    <><Sparkles className="h-4 w-4 mr-2" />AI Suggestion</>
                   )}
                 </Button>
                 <div>
