@@ -267,18 +267,6 @@ export default function Index() {
             },
           })}
         />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((faq) => ({
-              "@type": "Question",
-              name: faq.question,
-              acceptedAnswer: { "@type": "Answer", text: faq.answer },
-            })),
-          })}
-        />
       </Helmet>
 
       <div className="min-h-screen bg-background">
