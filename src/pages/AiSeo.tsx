@@ -171,6 +171,7 @@ export default function AiSeo() {
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
+            "name": "AI SEO FAQ",
             mainEntity: faqs.map((f) => ({
               "@type": "Question",
               name: f.q,

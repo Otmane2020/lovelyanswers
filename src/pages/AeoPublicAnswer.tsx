@@ -189,6 +189,7 @@ export default function AeoPublicAnswer() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    "name": `${answer.question} - FAQ`,
     "mainEntity": [
       {
         "@type": "Question",
