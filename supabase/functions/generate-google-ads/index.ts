@@ -20,7 +20,6 @@ serve(async (req) => {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; AdsBot/1.0)" },
       });
       const html = await res.text();
-      // Extract text content from HTML
       pageContent = html
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -69,21 +68,41 @@ RULES:
 - Negative keywords: 10-15 irrelevant terms
 - Focus on conversion intent keywords (buy, pricing, tool, platform, software)
 - Include competitor comparison keywords if relevant`
-      : `You are a Google Ads expert. Based on the website content, generate a complete Performance Max (Service/Lead Gen) campaign for lovelyanswers.com (a SaaS AEO platform).
+      : `You are a Google Ads Performance Max expert. Based on the website content, generate the MOST COMPLETE Performance Max (Service/Lead Gen) campaign possible for lovelyanswers.com.
 
 Return ONLY valid JSON with this exact structure:
 {
   "campaignName": "PMax - LovelyAnswers AEO",
-  "dailyBudget": "25",
+  "dailyBudget": 25,
   "biddingStrategy": "maximize_conversions",
   "language": "en",
   "locations": ["FR", "US", "GB", "CA"],
   "brandName": "LovelyAnswers",
   "finalUrl": "https://lovelyanswers.com",
+  "businessName": "LovelyAnswers",
+  "businessLogoUrl": "https://lovelyanswers.com/favicon.png",
   "searchThemes": ["theme1", "theme2"],
   "headlines": ["Headline (30 chars max)"],
   "longHeadlines": ["Long headline (90 chars max)"],
-  "descriptions": ["Description (90 chars max)"]
+  "descriptions": ["Description (90 chars max)"],
+  "sitelinks": [
+    {"text": "Sitelink Text (max 25 chars)", "description1": "Line 1 (max 35 chars)", "description2": "Line 2 (max 35 chars)", "finalUrl": "https://lovelyanswers.com/page"}
+  ],
+  "callouts": ["Callout text (max 25 chars)"],
+  "callToAction": "SIGN_UP",
+  "imageUrls": ["https://lovelyanswers.com/og-image.png"],
+  "leadFormHeadline": "Get Started with LovelyAnswers",
+  "leadFormDescription": "Sign up for a free trial and boost your AI visibility",
+  "leadFormFields": ["FULL_NAME", "EMAIL", "PHONE_NUMBER", "COMPANY_NAME"],
+  "leadFormPrivacyPolicyUrl": "https://lovelyanswers.com/privacy",
+  "leadFormSubmitButtonText": "Submit",
+  "audienceSignals": {
+    "customSegments": ["AI SEO tools users", "Content marketing professionals"],
+    "interests": ["Search Engine Optimization", "Digital Marketing", "AI Tools"],
+    "demographics": {"ageRanges": ["25-34", "35-44", "45-54"], "genders": ["all"]}
+  },
+  "negativeKeywords": ["free download", "tutorial youtube"],
+  "urlExclusions": ["/admin", "/superadmin", "/auth"]
 }
 
 RULES:
@@ -91,6 +110,16 @@ RULES:
 - 10-15 headlines, max 30 chars each, mix of brand + benefit + CTA
 - 3-5 long headlines, max 90 chars
 - 4-5 descriptions, max 90 chars, benefit-focused
+- 4-6 sitelinks with descriptions pointing to real pages (pricing, features, blog, signup, about)
+- 6-8 callouts highlighting USPs (AI-Powered, Free Trial, No Code, 24/7 Support, etc.)
+- callToAction: one of SIGN_UP, LEARN_MORE, GET_QUOTE, SUBSCRIBE, CONTACT_US, BOOK_NOW
+- imageUrls: extract any OG images, hero images, or logo URLs from the website
+- businessLogoUrl: the favicon or logo URL
+- Lead form: generate a compelling headline + description for lead generation
+- leadFormFields: choose from FULL_NAME, EMAIL, PHONE_NUMBER, COMPANY_NAME, CITY, POSTAL_CODE
+- audienceSignals: define custom segments, interests, and demographics
+- negativeKeywords: 10-15 irrelevant terms to exclude
+- urlExclusions: admin/internal paths to exclude from dynamic URL expansion
 - Search themes should include: service names, competitor names (chatgpt seo, perplexity optimization), use cases (get cited by ai, ai seo tool), and buying intent terms`;
 
     const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -117,7 +146,7 @@ RULES:
         });
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédits IA insuffisants. Ajoutez des crédits dans Settings > Workspace > Usage." }), {
+        return new Response(JSON.stringify({ error: "Crédits OpenRouter insuffisants" }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -127,7 +156,6 @@ RULES:
     const aiData = await aiResponse.json();
     const raw = aiData.choices?.[0]?.message?.content || "";
     
-    // Extract JSON from response
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("AI returned no valid JSON");
 
