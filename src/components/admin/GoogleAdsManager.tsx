@@ -982,7 +982,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                         ].map((item, i) => (
                                           <div key={i} className="text-center border rounded p-2 bg-background">
                                             <p className="text-xs text-muted-foreground">{item.icon} {item.label}</p>
-                                            <p className={`text-sm font-bold ${item.current >= item.max ? "text-green-600" : item.current > 0 ? "text-amber-600" : "text-red-600"}`}>
+                                            <p className={`text-sm font-bold ${item.current > item.max ? "text-orange-600" : item.current >= item.max ? "text-green-600" : item.current > 0 ? "text-amber-600" : "text-red-600"}`}>
                                               {item.current}/{item.max}
                                             </p>
                                           </div>
