@@ -41,6 +41,7 @@ interface AudienceSignals {
   customSegments: string[];
   interests: string[];
   demographics: { ageRanges: string[]; genders: string[] };
+  audienceName?: string;
 }
 
 export function CreatePmaxCampaignDialog() {
@@ -475,13 +476,87 @@ export function CreatePmaxCampaignDialog() {
 
                 {/* Audience Signals */}
                 <Section title="Audience Signals" icon={<Users className="h-4 w-4" />}>
-                  {audienceSignals && (
-                    <div className="space-y-2 text-xs">
-                      <div><span className="font-medium">Custom Segments:</span> <span className="text-muted-foreground">{audienceSignals.customSegments?.join(", ")}</span></div>
-                      <div><span className="font-medium">Interests:</span> <span className="text-muted-foreground">{audienceSignals.interests?.join(", ")}</span></div>
-                      <div><span className="font-medium">Ages:</span> <span className="text-muted-foreground">{audienceSignals.demographics?.ageRanges?.join(", ")}</span></div>
+                  <p className="text-xs text-muted-foreground">Reach the right customers faster across Google with an audience signal.</p>
+                  <Field label="Your data — Custom Segments (1 per line)">
+                    <Textarea
+                      value={audienceSignals?.customSegments?.join("\n") || ""}
+                      onChange={e => setAudienceSignals(prev => ({
+                        customSegments: e.target.value.split("\n").map(s => s.trim()).filter(Boolean),
+                        interests: prev?.interests || [],
+                        demographics: prev?.demographics || { ageRanges: [], genders: [] },
+                        audienceName: prev?.audienceName || "",
+                      }))}
+                      rows={3} className="text-xs" placeholder="SEO professionals&#10;Digital marketing managers&#10;Small business owners"
+                    />
+                  </Field>
+                  <Field label="Interests & detailed demographics (1 per line)">
+                    <Textarea
+                      value={audienceSignals?.interests?.join("\n") || ""}
+                      onChange={e => setAudienceSignals(prev => ({
+                        customSegments: prev?.customSegments || [],
+                        interests: e.target.value.split("\n").map(s => s.trim()).filter(Boolean),
+                        demographics: prev?.demographics || { ageRanges: [], genders: [] },
+                        audienceName: prev?.audienceName || "",
+                      }))}
+                      rows={3} className="text-xs" placeholder="Search Engine Optimization&#10;Content Marketing&#10;Business Technology"
+                    />
+                  </Field>
+                  <Field label="Age Ranges">
+                    <div className="flex flex-wrap gap-1.5">
+                      {["18-24", "25-34", "35-44", "45-54", "55-64", "65+"].map(age => {
+                        const selected = audienceSignals?.demographics?.ageRanges?.includes(age);
+                        return (
+                          <Badge key={age} variant={selected ? "default" : "outline"} className="cursor-pointer text-xs"
+                            onClick={() => setAudienceSignals(prev => {
+                              const current = prev?.demographics?.ageRanges || [];
+                              const newAges = selected ? current.filter(a => a !== age) : [...current, age];
+                              return {
+                                customSegments: prev?.customSegments || [],
+                                interests: prev?.interests || [],
+                                demographics: { ageRanges: newAges, genders: prev?.demographics?.genders || [] },
+                                audienceName: prev?.audienceName || "",
+                              };
+                            })}>
+                            {age}
+                          </Badge>
+                        );
+                      })}
                     </div>
-                  )}
+                  </Field>
+                  <Field label="Genders">
+                    <div className="flex flex-wrap gap-1.5">
+                      {["Male", "Female", "Unknown"].map(g => {
+                        const selected = audienceSignals?.demographics?.genders?.includes(g);
+                        return (
+                          <Badge key={g} variant={selected ? "default" : "outline"} className="cursor-pointer text-xs"
+                            onClick={() => setAudienceSignals(prev => {
+                              const current = prev?.demographics?.genders || [];
+                              const newG = selected ? current.filter(x => x !== g) : [...current, g];
+                              return {
+                                customSegments: prev?.customSegments || [],
+                                interests: prev?.interests || [],
+                                demographics: { ageRanges: prev?.demographics?.ageRanges || [], genders: newG },
+                                audienceName: prev?.audienceName || "",
+                              };
+                            })}>
+                            {g}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Audience name (optional)">
+                    <Input
+                      value={audienceSignals?.audienceName || ""}
+                      onChange={e => setAudienceSignals(prev => ({
+                        customSegments: prev?.customSegments || [],
+                        interests: prev?.interests || [],
+                        demographics: prev?.demographics || { ageRanges: [], genders: [] },
+                        audienceName: e.target.value,
+                      }))}
+                      className="text-xs" placeholder="Enter audience name"
+                    />
+                  </Field>
                 </Section>
 
                 <Separator />
