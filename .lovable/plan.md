@@ -1,58 +1,50 @@
 
 
-# Fix Google Search Console FAQPage Errors
+## Fix: Sitelink "Invalid JSON payload" Error
 
-## Problem
-Google Search Console reports 2 invalid FAQPage structured data issues:
-1. **"Element sans nom"** -- FAQPage JSON-LD is missing the required `name` property
-2. **"Champ FAQPage en double"** -- Multiple pages have overlapping/duplicate FAQ questions (e.g., "Can I really cancel anytime?" appears in both Index and Pricing)
+### Root Cause
 
-## Solution
+In `supabase/functions/optimize-pmax/index.ts` (lines 566-577), the sitelink creation payload incorrectly nests `finalUrls` inside `sitelinkAsset`. In the Google Ads API v22, `finalUrls` is a top-level field on the `Asset` resource, not on `SitelinkAsset`.
 
-### 1. Add `name` property to all FAQPage schemas (fixes "unnamed element")
-
-Google requires a `name` field on FAQPage. We need to add it to all 3 files:
-
-- **Index.tsx** (line ~274): Add `"name": "LovelyAnswers FAQ"`
-- **AiSeo.tsx** (line ~173): Add `"name": "AI SEO FAQ"`  
-- **AeoPublicAnswer.tsx** (line ~191): Add `"name": "Answer FAQ"`
-
-### 2. Remove duplicate FAQPage from Index.tsx (fixes "duplicate" error)
-
-The homepage (Index.tsx) and AiSeo.tsx have overlapping FAQ questions. Since the homepage already has Organization + SoftwareApplication schemas, we will **remove the FAQPage schema from Index.tsx entirely** and keep unique FAQs only on their dedicated pages:
-
-- **Index.tsx**: Remove the FAQPage JSON-LD block (lines 270-281). The FAQ section stays visible on the page, just without the structured data markup.
-- **AiSeo.tsx**: Keep its FAQPage schema with `name` added -- it has unique AI SEO questions.
-- **AeoPublicAnswer.tsx**: Keep with `name` added -- it's per-answer, no duplication risk.
-
-### 3. Deduplicate Pricing.tsx FAQ questions
-
-The Pricing page doesn't have a FAQPage schema (only Product schema), so it's fine. But its visible FAQ questions overlap with Index.tsx -- this is acceptable since there's no structured data duplication.
-
-## Files to modify
-- `src/pages/Index.tsx` -- Remove FAQPage JSON-LD block
-- `src/pages/AiSeo.tsx` -- Add `name` to FAQPage schema
-- `src/pages/AeoPublicAnswer.tsx` -- Add `name` to FAQPage schema
-
-## Technical Details
-
+### Current (broken)
 ```text
-Before (Index.tsx):
-  Organization schema
-  SoftwareApplication schema
-  FAQPage schema  <-- REMOVE THIS
-
-After (Index.tsx):
-  Organization schema
-  SoftwareApplication schema
-  (no FAQPage)
+{
+  sitelinkAsset: {
+    linkText: "...",
+    finalUrls: ["..."],       <-- WRONG: not a SitelinkAsset field
+    description1: "...",
+    description2: "...",
+  }
+}
 ```
 
+### Fixed
 ```text
-Before (AiSeo.tsx):
-  { "@type": "FAQPage", mainEntity: [...] }
-
-After (AiSeo.tsx):
-  { "@type": "FAQPage", "name": "AI SEO FAQ", mainEntity: [...] }
+{
+  finalUrls: ["..."],          <-- Correct: top-level Asset field
+  sitelinkAsset: {
+    linkText: "...",
+    description1: "...",
+    description2: "...",
+  }
+}
 ```
 
+### Changes
+
+**File: `supabase/functions/optimize-pmax/index.ts`** (lines 566-577)
+
+Restructure the sitelink asset creation payload so `finalUrls` is at the asset level:
+
+```typescript
+const payload: Record<string, unknown> = {
+  finalUrls: [sl.finalUrl || websiteUrl],
+  sitelinkAsset: {
+    linkText: cut(String(sl.text || "").trim(), 25),
+  },
+};
+if (sl.description1) (payload.sitelinkAsset as any).description1 = cut(String(sl.description1).trim(), 35);
+if (sl.description2) (payload.sitelinkAsset as any).description2 = cut(String(sl.description2).trim(), 35);
+```
+
+Then redeploy the `optimize-pmax` edge function.
