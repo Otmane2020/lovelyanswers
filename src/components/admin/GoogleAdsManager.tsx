@@ -87,8 +87,8 @@ interface ConnectionInfo {
 type StatsPeriod = "today" | "yesterday" | "7d" | "30d" | "90d";
 
 const PERIOD_LABELS: Record<StatsPeriod, string> = {
-  today: "Today",
-  yesterday: "Yesterday",
+  today: "Aujourd'hui",
+  yesterday: "Hier",
   "7d": "7 jours",
   "30d": "30 jours",
   "90d": "90 jours",
@@ -720,8 +720,8 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
             {syncedCampaigns.length > 0 ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Campagnes Google Ads</CardTitle>
-                  <CardDescription>Cliquez sur une campagne pour voir les mots-clés et annonces</CardDescription>
+                    <CardTitle>Campagnes Google Ads</CardTitle>
+                   <CardDescription>Cliquez sur une campagne pour voir les détails</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -777,10 +777,10 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                               <>
                                 {/* Asset Groups from API */}
                                 <div>
-                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                                    <Target className="h-4 w-4" />
-                                    Asset Groups
-                                  </h4>
+                                    <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                                     <Target className="h-4 w-4" />
+                                     Groupes d'assets
+                                   </h4>
                                   {pmaxAssets?.assetGroups && pmaxAssets.assetGroups.length > 0 ? (
                                     <div className="space-y-3">
                                       {pmaxAssets.assetGroups.map((ag: any) => (
@@ -803,7 +803,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
                                           {ag.assets?.headlines?.length > 0 && (
                                             <div>
-                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Headlines ({ag.assets.headlines.length})</p>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Titres ({ag.assets.headlines.length})</p>
                                               <div className="flex flex-wrap gap-1">
                                                 {ag.assets.headlines.map((h: string, i: number) => (
                                                   <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
@@ -814,7 +814,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
                                           {ag.assets?.longHeadlines?.length > 0 && (
                                             <div>
-                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Long Headlines ({ag.assets.longHeadlines.length})</p>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Titres longs ({ag.assets.longHeadlines.length})</p>
                                               <div className="flex flex-wrap gap-1">
                                                 {ag.assets.longHeadlines.map((h: string, i: number) => (
                                                   <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
@@ -834,7 +834,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
                                           {ag.searchThemes?.length > 0 && (
                                             <div>
-                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Search Themes ({ag.searchThemes.length})</p>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Thèmes de recherche ({ag.searchThemes.length})</p>
                                               <div className="flex flex-wrap gap-1">
                                                 {ag.searchThemes.map((t: string, i: number) => (
                                                   <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
@@ -852,14 +852,14 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                               <p className="text-lg font-bold">{ag.assets?.logos?.length || 0}</p>
                                               <p className="text-[10px] text-muted-foreground">Logos</p>
                                             </div>
-                                            <div className="text-center">
+                                             <div className="text-center">
                                               <p className="text-lg font-bold">{ag.assets?.videos?.length || 0}</p>
-                                              <p className="text-[10px] text-muted-foreground">Videos</p>
-                                            </div>
-                                            <div className="text-center">
+                                              <p className="text-[10px] text-muted-foreground">Vidéos</p>
+                                             </div>
+                                             <div className="text-center">
                                               <p className="text-lg font-bold">{ag.assets?.callToActions?.length || 0}</p>
-                                              <p className="text-[10px] text-muted-foreground">CTAs</p>
-                                            </div>
+                                              <p className="text-[10px] text-muted-foreground">Appels à l'action</p>
+                                             </div>
                                           </div>
 
                                           {ag.assets?.images?.length > 0 && (
@@ -927,10 +927,10 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                 <Separator />
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                                      <Wand2 className="h-4 w-4" />
-                                      Optimisation AI
-                                    </h4>
+                                     <h4 className="text-sm font-semibold flex items-center gap-2">
+                                       <Wand2 className="h-4 w-4" />
+                                       Optimisation IA
+                                     </h4>
                                     <div className="flex gap-2">
                                       {!pmaxAnalysis && (
                                         <Button
@@ -963,16 +963,20 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                   {pmaxAnalysis && (
                                     <div className="border rounded-md p-3 space-y-2 bg-muted/30">
                                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Diagnostic</p>
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                         {[
-                                          { label: "Headlines", current: pmaxAnalysis.headlines, max: pmaxAnalysis.maxHeadlines, icon: "📝" },
+                                          { label: "Titres", current: pmaxAnalysis.headlines, max: pmaxAnalysis.maxHeadlines, icon: "📝" },
                                           { label: "Descriptions", current: pmaxAnalysis.descriptions, max: pmaxAnalysis.maxDescriptions, icon: "📄" },
-                                          { label: "Long Headlines", current: pmaxAnalysis.longHeadlines, max: pmaxAnalysis.maxLongHeadlines, icon: "📰" },
+                                          { label: "Titres longs", current: pmaxAnalysis.longHeadlines, max: pmaxAnalysis.maxLongHeadlines, icon: "📰" },
                                           { label: "Images", current: pmaxAnalysis.images, max: pmaxAnalysis.maxImages, icon: "🖼️" },
                                           { label: "Logos", current: pmaxAnalysis.logos, max: pmaxAnalysis.maxLogos, icon: "🏷️" },
-                                          { label: "Search Themes", current: pmaxAnalysis.searchThemes, max: pmaxAnalysis.maxSearchThemes, icon: "🔍" },
+                                          { label: "Vidéos", current: pmaxAnalysis.videos || 0, max: 5, icon: "🎬" },
+                                          { label: "Thèmes recherche", current: pmaxAnalysis.searchThemes, max: pmaxAnalysis.maxSearchThemes, icon: "🔍" },
                                           { label: "Sitelinks", current: pmaxAnalysis.sitelinks, max: pmaxAnalysis.maxSitelinks, icon: "🔗" },
-                                          { label: "Callouts", current: pmaxAnalysis.callouts, max: pmaxAnalysis.maxCallouts, icon: "💬" },
+                                          { label: "Accroches", current: pmaxAnalysis.callouts, max: pmaxAnalysis.maxCallouts, icon: "💬" },
+                                          { label: "Promotions", current: pmaxAnalysis.promotions || 0, max: 6, icon: "🏷️" },
+                                          { label: "Prix", current: pmaxAnalysis.prices || 0, max: 8, icon: "💰" },
+                                          { label: "Extraits", current: pmaxAnalysis.snippets || 0, max: 4, icon: "📋" },
                                         ].map((item, i) => (
                                           <div key={i} className="text-center border rounded p-2 bg-background">
                                             <p className="text-xs text-muted-foreground">{item.icon} {item.label}</p>
@@ -982,31 +986,35 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                           </div>
                                         ))}
                                       </div>
-                                      <div className="flex gap-3 pt-1">
+                                       <div className="flex flex-wrap gap-3 pt-1">
                                         <div className="flex items-center gap-1 text-xs">
                                           <Phone className="h-3 w-3" />
-                                          <span>Téléphone: {pmaxAnalysis.phones > 0 ? "✅" : "❌"}</span>
+                                          <span>Téléphone : {pmaxAnalysis.phones > 0 ? "✅" : "❌"}</span>
                                         </div>
                                         <div className="flex items-center gap-1 text-xs">
                                           <FileSpreadsheet className="h-3 w-3" />
-                                          <span>Lead Form: {pmaxAnalysis.leadForms > 0 ? "✅" : "❌"}</span>
+                                          <span>Formulaire : {pmaxAnalysis.leadForms > 0 ? "✅" : "❌"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <Link className="h-3 w-3" />
+                                          <span>Display path : {pmaxAnalysis.displayPath || "—"}</span>
                                         </div>
                                         <div className="flex items-center gap-1 text-xs">
                                           <Badge variant={pmaxAnalysis.adStrength === "EXCELLENT" ? "default" : pmaxAnalysis.adStrength === "GOOD" ? "secondary" : "destructive"} className="text-[10px]">
-                                            Strength: {pmaxAnalysis.adStrength}
+                                            Force : {pmaxAnalysis.adStrength}
                                           </Badge>
                                         </div>
-                                      </div>
+                                       </div>
                                     </div>
                                   )}
 
                                   {/* Optimize Results */}
                                   {optimizeResults && (
                                     <div className="border rounded-md p-3 space-y-2 bg-green-50/50 dark:bg-green-950/20">
-                                      <p className="text-xs font-semibold flex items-center gap-1 text-green-700 dark:text-green-400">
+                                       <p className="text-xs font-semibold flex items-center gap-1 text-green-700 dark:text-green-400">
                                         <CheckCircle2 className="h-3 w-3" />
-                                        {optimizeResults.applied} assets ajoutés avec succès
-                                      </p>
+                                        {optimizeResults.applied} éléments ajoutés avec succès
+                                       </p>
                                       <div className="space-y-1 max-h-[200px] overflow-y-auto">
                                         {optimizeResults.results?.filter((r: any) => r.success).map((r: any, i: number) => (
                                           <div key={i} className="flex items-center gap-2 text-xs">
