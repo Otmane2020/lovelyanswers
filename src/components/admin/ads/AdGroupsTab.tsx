@@ -194,7 +194,25 @@ export function AdGroupsTab() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={`text-[10px] ${getStrengthColor(g.avgStrength)}`}>{g.avgStrength}</Badge>
-                        <Badge className={`text-[10px] ${rec.color} flex items-center gap-1`}><RecIcon className="h-3 w-3" />{rec.label}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 px-2 text-[10px] ${rec.color} flex items-center gap-1`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (rec.label === "Mettre en pause") {
+                              toast({ title: "⏸️ Mettre en pause recommandé", description: `"${g.ad_group_name}" — ${formatMicros(g.totalCost)}€ dépensés, 0 conversion. Utilisez le bouton Pause à droite.` });
+                            } else if (rec.label === "Conserver") {
+                              toast({ title: "🏆 Ad Group performant", description: `"${g.ad_group_name}" — ${g.totalConversions} conversion(s) pour ${formatMicros(g.totalCost)}€. Maintenez cette configuration.` });
+                            } else if (rec.label === "Booster") {
+                              toast({ title: "🚀 Booster cet Ad Group", description: `"${g.ad_group_name}" — Seulement ${g.totalImpressions} impressions. Augmentez les enchères ou ajoutez des mots-clés.` });
+                            } else {
+                              toast({ title: "👀 En surveillance", description: `"${g.ad_group_name}" — Pas assez de données. Continuez à surveiller.` });
+                            }
+                          }}
+                        >
+                          <RecIcon className="h-3 w-3" />{rec.label}
+                        </Button>
                         <Button size="sm" variant={isEnabled ? "destructive" : "default"} className="h-7 text-xs gap-1" disabled={isToggling || !g.google_ad_group_id} onClick={() => toggleAdGroupStatus(g)}>
                           {isToggling ? <Loader2 className="h-3 w-3 animate-spin" /> : isEnabled ? <><Pause className="h-3 w-3" />Pause</> : <><Play className="h-3 w-3" />Activer</>}
                         </Button>
