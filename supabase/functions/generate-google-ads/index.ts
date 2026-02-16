@@ -120,7 +120,8 @@ RULES:
 - audienceSignals: define custom segments, interests, and demographics
 - negativeKeywords: 10-15 irrelevant terms to exclude
 - urlExclusions: admin/internal paths to exclude from dynamic URL expansion
-- Search themes should include: service names, competitor names (chatgpt seo, perplexity optimization), use cases (get cited by ai, ai seo tool), and buying intent terms`;
+- Search themes should include: service names, competitor names (chatgpt seo, perplexity optimization), use cases (get cited by ai, ai seo tool), and buying intent terms
+- CRITICAL: ALL text (search themes, headlines, long headlines, descriptions, callouts, sitelinks, lead form) MUST be written in ENGLISH. Never use French or any other language.`;
 
     const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
