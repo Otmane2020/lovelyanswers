@@ -202,6 +202,11 @@ interface PmaxParams {
   displayPath1?: string;
   displayPath2?: string;
   negativeKeywords?: string[];
+  promotions?: { promotionTarget: string; discountModifier?: string; moneyAmountOff?: { currencyCode: string; amountMicros: string }; percentOff?: number; occasion?: string; finalUrl?: string }[];
+  structuredSnippets?: { header: string; values: string[] }[];
+  prices?: { type: string; priceOfferings: { header: string; description?: string; price: { currencyCode: string; amountMicros: string }; unit?: string; finalUrl: string }[] }[];
+  phoneNumber?: string;
+  phoneCountry?: string;
 }
 
 async function createPmaxFull(
@@ -461,6 +466,111 @@ async function createPmaxFull(
       } catch (e: unknown) {
         warnings.push(`Callout skipped: ${e instanceof Error ? e.message : String(e)}`);
       }
+    }
+  }
+
+  // ── Promotions (campaign-level) ──
+  if (params.promotions?.length) {
+    for (const promo of params.promotions.slice(0, 6)) {
+      if (!promo.promotionTarget?.trim()) continue;
+      try {
+        const promoPayload: Record<string, unknown> = {
+          promotionTarget: cut(promo.promotionTarget.trim(), 20),
+          occasion: promo.occasion || "NONE",
+        };
+        if (promo.percentOff) promoPayload.percentOff = Number(promo.percentOff);
+        if (promo.moneyAmountOff) promoPayload.moneyAmountOff = promo.moneyAmountOff;
+        if (promo.discountModifier) promoPayload.discountModifier = promo.discountModifier;
+
+        const assetPayload: Record<string, unknown> = { promotionAsset: promoPayload };
+        if (promo.finalUrl?.trim()) assetPayload.finalUrls = [promo.finalUrl.trim()];
+
+        const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+          create: assetPayload,
+        }], managerCustomerId);
+        const rn = assetRes.results?.[0]?.resourceName;
+        if (rn) {
+          await mutateResource(accessToken, customerId, "campaignAssets", [{
+            create: { campaign: campaignResourceName, asset: rn, fieldType: "PROMOTION" },
+          }], managerCustomerId);
+        }
+      } catch (e: unknown) {
+        warnings.push(`Promotion "${promo.promotionTarget}" skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  // ── Structured Snippets (campaign-level) ──
+  if (params.structuredSnippets?.length) {
+    for (const snippet of params.structuredSnippets.slice(0, 4)) {
+      const values = (snippet.values || []).map(v => cut(v.trim(), 25)).filter(Boolean);
+      if (!snippet.header?.trim() || values.length < 3) { warnings.push(`Snippet skipped: need header + 3 values`); continue; }
+      try {
+        const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+          create: {
+            structuredSnippetAsset: { header: snippet.header.trim(), values: values.slice(0, 10) },
+          },
+        }], managerCustomerId);
+        const rn = assetRes.results?.[0]?.resourceName;
+        if (rn) {
+          await mutateResource(accessToken, customerId, "campaignAssets", [{
+            create: { campaign: campaignResourceName, asset: rn, fieldType: "STRUCTURED_SNIPPET" },
+          }], managerCustomerId);
+        }
+      } catch (e: unknown) {
+        warnings.push(`Snippet "${snippet.header}" skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  // ── Prices (campaign-level) ──
+  if (params.prices?.length) {
+    for (const priceSet of params.prices.slice(0, 2)) {
+      const offerings = (priceSet.priceOfferings || []).slice(0, 8).map(o => ({
+        header: cut(o.header.trim(), 25),
+        description: o.description ? cut(o.description.trim(), 25) : undefined,
+        price: o.price,
+        unit: o.unit || "PER_MONTH",
+        finalUrl: o.finalUrl || params.finalUrl,
+      }));
+      if (offerings.length < 3) { warnings.push(`Price set skipped: need 3+ offerings`); continue; }
+      try {
+        const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+          create: {
+            priceAsset: { type: priceSet.type || "SERVICES", priceOfferings: offerings },
+          },
+        }], managerCustomerId);
+        const rn = assetRes.results?.[0]?.resourceName;
+        if (rn) {
+          await mutateResource(accessToken, customerId, "campaignAssets", [{
+            create: { campaign: campaignResourceName, asset: rn, fieldType: "PRICE" },
+          }], managerCustomerId);
+        }
+      } catch (e: unknown) {
+        warnings.push(`Price set "${priceSet.type}" skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  // ── Call (campaign-level) ──
+  if (params.phoneNumber?.trim()) {
+    try {
+      const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+        create: {
+          callAsset: {
+            phoneNumber: params.phoneNumber.trim(),
+            countryCode: (params.phoneCountry || "FR").toUpperCase(),
+          },
+        },
+      }], managerCustomerId);
+      const rn = assetRes.results?.[0]?.resourceName;
+      if (rn) {
+        await mutateResource(accessToken, customerId, "campaignAssets", [{
+          create: { campaign: campaignResourceName, asset: rn, fieldType: "CALL" },
+        }], managerCustomerId);
+      }
+    } catch (e: unknown) {
+      warnings.push(`Call skipped: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

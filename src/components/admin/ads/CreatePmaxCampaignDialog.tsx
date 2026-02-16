@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Loader2, Sparkles, Brain, Zap, Search, Link, Image, FileText, Users, ShieldCheck } from "lucide-react";
+import { Plus, Loader2, Sparkles, Brain, Zap, Search, Link, Image, FileText, Users, ShieldCheck, Phone, Tag, DollarSign } from "lucide-react";
 
 const LOCATIONS = [
   { code: "FR", label: "🇫🇷 France" }, { code: "BE", label: "🇧🇪 Belgique" },
@@ -69,6 +69,15 @@ export function CreatePmaxCampaignDialog() {
   const [sitelinks, setSitelinks] = useState<Sitelink[]>([]);
   const [callouts, setCallouts] = useState("");
   const [callToAction, setCallToAction] = useState("SIGN_UP");
+
+  // New extensions
+  const [promotions, setPromotions] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState("FR");
+  const [snippetHeader, setSnippetHeader] = useState("Services");
+  const [snippetValues, setSnippetValues] = useState("");
+  const [priceType, setPriceType] = useState("SERVICES");
+  const [priceItems, setPriceItems] = useState("");
 
   // Images & Logo
   const [businessLogoUrl, setBusinessLogoUrl] = useState("");
@@ -130,6 +139,19 @@ export function CreatePmaxCampaignDialog() {
       setDisplayPath1(data.displayPath1 || "");
       setDisplayPath2(data.displayPath2 || "");
 
+      // New extension fields
+      setPhoneNumber(data.phoneNumber || "");
+      setPhoneCountry(data.phoneCountry || "FR");
+      if (data.promotions?.length) setPromotions(data.promotions.map((p: any) => p.promotionTarget || "").filter(Boolean).join("\n"));
+      if (data.structuredSnippets?.length) {
+        setSnippetHeader(data.structuredSnippets[0]?.header || "Services");
+        setSnippetValues((data.structuredSnippets[0]?.values || []).join("\n"));
+      }
+      if (data.prices?.length) {
+        setPriceType(data.prices[0]?.type || "SERVICES");
+        setPriceItems((data.prices[0]?.priceOfferings || []).map((o: any) => `${o.header}|${o.description || ""}|${o.price?.amountMicros ? (Number(o.price.amountMicros) / 1000000).toFixed(0) : "0"}|${o.unit || "PER_MONTH"}|${o.finalUrl || ""}`).join("\n"));
+      }
+
       setAiGenerated(true);
       toast({
         title: "✨ Campagne PMax complète générée",
@@ -177,6 +199,23 @@ export function CreatePmaxCampaignDialog() {
         urlExclusions: urlExclusions.split("\n").map(s => s.trim()).filter(Boolean),
         displayPath1,
         displayPath2,
+        phoneNumber: phoneNumber.trim() || undefined,
+        phoneCountry: phoneCountry || "FR",
+        promotions: promotions.split("\n").map(s => s.trim()).filter(Boolean).map(t => ({ promotionTarget: t, occasion: "NONE" })),
+        structuredSnippets: snippetValues.trim() ? [{ header: snippetHeader, values: snippetValues.split("\n").map(s => s.trim()).filter(Boolean) }] : [],
+        prices: priceItems.trim() ? [{
+          type: priceType,
+          priceOfferings: priceItems.split("\n").map(s => s.trim()).filter(Boolean).map(line => {
+            const [header, description, amount, unit, finalUrl] = line.split("|").map(s => s.trim());
+            return {
+              header: header || "Item",
+              description: description || undefined,
+              price: { currencyCode: "EUR", amountMicros: String(Math.round((parseFloat(amount) || 0) * 1000000)) },
+              unit: unit || "PER_MONTH",
+              finalUrl: finalUrl || finalUrl,
+            };
+          }),
+        }] : [],
       };
 
       if (biddingStrategy === "target_cpa" && targetCpa) {
@@ -339,7 +378,77 @@ export function CreatePmaxCampaignDialog() {
 
                 <Separator />
 
-                {/* Images & Logo */}
+                {/* Promotions */}
+                <Section title="Promotions" icon={<Tag className="h-4 w-4" />}>
+                  <Field label="Promotions (1 par ligne, ex: Free Trial, 50% Off)">
+                    <Textarea value={promotions} onChange={e => setPromotions(e.target.value)} rows={2} className="text-xs" placeholder="Free Trial&#10;50% Off First Month" />
+                  </Field>
+                </Section>
+
+                <Separator />
+
+                {/* Calls */}
+                <Section title="Appel téléphonique" icon={<Phone className="h-4 w-4" />}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Numéro de téléphone">
+                      <Input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="text-xs" placeholder="+33 1 23 45 67 89" />
+                    </Field>
+                    <Field label="Pays">
+                      <Select value={phoneCountry} onValueChange={setPhoneCountry}>
+                        <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FR">🇫🇷 France</SelectItem>
+                          <SelectItem value="US">🇺🇸 USA</SelectItem>
+                          <SelectItem value="GB">🇬🇧 UK</SelectItem>
+                          <SelectItem value="CA">🇨🇦 Canada</SelectItem>
+                          <SelectItem value="DE">🇩🇪 Allemagne</SelectItem>
+                          <SelectItem value="BE">🇧🇪 Belgique</SelectItem>
+                          <SelectItem value="CH">🇨🇭 Suisse</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                </Section>
+
+                <Separator />
+
+                {/* Structured Snippets */}
+                <Section title="Extraits structurés" icon={<FileText className="h-4 w-4" />}>
+                  <Field label="En-tête">
+                    <Select value={snippetHeader} onValueChange={setSnippetHeader}>
+                      <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Amenities", "Brands", "Courses", "Degree programs", "Destinations", "Featured hotels", "Insurance coverage", "Models", "Neighborhoods", "Service catalog", "Shows", "Styles", "Types"].map(h => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Valeurs (1 par ligne, min 3)">
+                    <Textarea value={snippetValues} onChange={e => setSnippetValues(e.target.value)} rows={3} className="text-xs" placeholder="AEO Content&#10;SEO Audit&#10;Keyword Research" />
+                  </Field>
+                </Section>
+
+                <Separator />
+
+                {/* Prices */}
+                <Section title="Prix" icon={<DollarSign className="h-4 w-4" />}>
+                  <Field label="Type">
+                    <Select value={priceType} onValueChange={setPriceType}>
+                      <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["SERVICES", "BRANDS", "EVENTS", "LOCATIONS", "NEIGHBORHOODS", "PRODUCT_CATEGORIES", "PRODUCT_TIERS", "SERVICE_CATEGORIES", "SERVICE_TIERS"].map(t => (
+                          <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Offres (format: Header|Description|Prix€|Unité|URL, 1/ligne)">
+                    <Textarea value={priceItems} onChange={e => setPriceItems(e.target.value)} rows={3} className="text-xs" placeholder="Starter|Basic plan|29|PER_MONTH|https://...&#10;Pro|Advanced|79|PER_MONTH|https://..." />
+                  </Field>
+                </Section>
+
+                <Separator />
                 <Section title="Images & Logo" icon={<Image className="h-4 w-4" />}>
                   <Field label="Logo URL">
                     <Input value={businessLogoUrl} onChange={e => setBusinessLogoUrl(e.target.value)} className="text-xs" placeholder="https://..." />
