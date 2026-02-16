@@ -250,72 +250,61 @@ serve(async (req) => {
     const action = body.action as string || "full_sync";
 
     if (action === "scheduled_sync") {
-      console.log("[CRON] Starting scheduled sync for all users with auto_sync enabled");
+      console.log("[CRON] Starting scheduled sync for all active Google Ads accounts");
       
-      const { data: syncStatuses } = await supabase
-        .from("sync_status")
-        .select("user_id")
-        .eq("auto_sync_enabled", true);
+      // Get all active Google Ads accounts
+      const { data: accounts, error: accountsError } = await supabase
+        .from("google_ads_accounts")
+        .select("*")
+        .eq("is_active", true);
 
-      if (!syncStatuses || syncStatuses.length === 0) {
-        return new Response(JSON.stringify({ success: true, message: "No users with auto_sync enabled", users_synced: 0 }), {
+      if (accountsError || !accounts || accounts.length === 0) {
+        console.log("[CRON] No active accounts found:", accountsError?.message);
+        return new Response(JSON.stringify({ success: true, message: "No active Google Ads accounts", users_synced: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const results: { userId: string; success: boolean; error?: string }[] = [];
+      console.log(`[CRON] Found ${accounts.length} active account(s) to sync`);
+      const results: { userId: string; customerId: string; success: boolean; campaigns?: number; error?: string }[] = [];
 
-      for (const syncStatus of syncStatuses) {
-        const userId = syncStatus.user_id;
+      for (const account of accounts) {
+        const userId = account.user_id;
+        const customerId = account.customer_id;
         try {
-          const { data: connection } = await supabase
-            .from("user_connections")
-            .select("*")
-            .eq("user_id", userId)
-            .eq("connection_type", "google_ads")
-            .eq("status", "connected")
-            .maybeSingle();
-
-          if (!connection?.access_token) {
-            results.push({ userId, success: false, error: "No Google Ads connection" });
+          if (!account.refresh_token) {
+            results.push({ userId, customerId, success: false, error: "No refresh token" });
             continue;
           }
 
-          let accessToken = connection.access_token as string;
-          if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
-            const newToken = await refreshAccessToken(connection.refresh_token || "");
-            if (!newToken) { results.push({ userId, success: false, error: "Token refresh failed" }); continue; }
-            accessToken = newToken;
-            await supabase.from("user_connections").update({
-              access_token: newToken,
-              token_expires_at: new Date(Date.now() + 3600000).toISOString(),
-            }).eq("id", connection.id);
+          // Always refresh token for cron (tokens expire after 1h)
+          const newToken = await refreshAccessToken(account.refresh_token);
+          if (!newToken) {
+            results.push({ userId, customerId, success: false, error: "Token refresh failed" });
+            continue;
           }
 
-          const customerId = connection.account_id as string;
-          const metadata = connection.metadata as Record<string, unknown> || {};
-          const managerCustomerId = metadata.manager_customer_id as string | undefined;
+          // Update token in DB
+          await supabase.from("google_ads_accounts").update({
+            access_token: newToken,
+            token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+          }).eq("id", account.id);
 
-          if (!customerId) { results.push({ userId, success: false, error: "No account selected" }); continue; }
-
-          const syncResult = await performFullSync(supabase, accessToken, customerId, managerCustomerId, userId);
-
-          await supabase.from("sync_status").update({
-            last_full_sync_at: new Date().toISOString(),
-            last_full_sync_status: syncResult.errors.length > 0 ? "partial" : "success",
-            last_full_sync_error: syncResult.errors.length > 0 ? syncResult.errors.join("; ") : null,
-            total_campaigns: syncResult.campaigns,
-            total_keywords: syncResult.keywords,
-            total_ads: syncResult.ads,
-          }).eq("user_id", userId);
-
-          results.push({ userId, success: true });
+          // Perform full sync
+          const syncResult = await performFullSync(supabase, newToken, customerId, undefined, userId);
+          
+          console.log(`[CRON] User ${userId} synced: ${syncResult.campaigns} campaigns, ${syncResult.keywords} keywords, ${syncResult.ads} ads`);
+          results.push({ userId, customerId, success: true, campaigns: syncResult.campaigns });
         } catch (error) {
-          results.push({ userId, success: false, error: String(error) });
+          console.error(`[CRON] Failed for user ${userId}:`, error);
+          results.push({ userId, customerId, success: false, error: String(error) });
         }
       }
 
-      return new Response(JSON.stringify({ success: true, users_synced: results.filter(r => r.success).length, results }), {
+      const successCount = results.filter(r => r.success).length;
+      console.log(`[CRON] Completed: ${successCount}/${results.length} accounts synced successfully`);
+
+      return new Response(JSON.stringify({ success: true, users_synced: successCount, total_accounts: results.length, results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
