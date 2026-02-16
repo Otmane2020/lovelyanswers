@@ -233,7 +233,7 @@ async function createPmaxFull(
     status: "PAUSED",
     advertisingChannelType: "PERFORMANCE_MAX",
     campaignBudget: budgetResourceName,
-    containsEuPoliticalAdvertising: false,
+    containsEuPoliticalAdvertising: "NO_EU_POLITICAL_ADVERTISING",
   };
 
   if (params.biddingStrategy === "target_cpa") {
