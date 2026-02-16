@@ -44,8 +44,13 @@ async function mutateResource(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[PMAX-OPT] mutate ${resource} ERROR:`, errorText.slice(0, 1000));
-    throw new Error(`mutate ${resource} failed: ${errorText}`);
+    console.error(`[PMAX-OPT] mutate ${resource} ERROR (${response.status}):`, errorText.slice(0, 2000));
+    try {
+      const errObj = JSON.parse(errorText);
+      const details = errObj?.error?.details;
+      if (details) console.error(`[PMAX-OPT] Error details:`, JSON.stringify(details).slice(0, 2000));
+    } catch (_) { /* not JSON */ }
+    throw new Error(`mutate ${resource} failed: ${errorText.slice(0, 500)}`);
   }
   return await response.json();
 }
