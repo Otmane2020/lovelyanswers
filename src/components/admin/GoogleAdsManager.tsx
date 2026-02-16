@@ -252,7 +252,13 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           body: { action: "get_synced_data" },
         });
         if (!error && data) {
-          setSyncedCampaigns(data.campaigns || []);
+          // Filter campaigns to only show those from the selected account
+          const selectedCustomerId = (conn.account_id as string).replace(/-/g, "");
+          const allCampaigns = data.campaigns || [];
+          const filtered = allCampaigns.filter(
+            (c: any) => !c.google_customer_id || c.google_customer_id === selectedCustomerId
+          );
+          setSyncedCampaigns(filtered);
           setSyncStatus(data.syncStatus || null);
         }
       }
