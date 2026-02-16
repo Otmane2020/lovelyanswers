@@ -170,7 +170,7 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
       FROM asset_group WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
-      SELECT asset_group_asset.asset_group, asset_group_asset.field_type,
+      SELECT asset_group_asset.asset_group, asset_group_asset.field_type, asset_group_asset.status,
         asset.id, asset.text_asset.text, asset.image_asset.full_size.url,
         asset.youtube_video_asset.youtube_video_id, asset.youtube_video_asset.youtube_video_title,
         asset.sitelink_asset.link_text, asset.sitelink_asset.description1, asset.sitelink_asset.description2,
@@ -180,22 +180,22 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
         asset.promotion_asset.promotion_target, asset.promotion_asset.discount_modifier,
         asset.price_asset.type, asset.price_asset.price_qualifier,
         asset.structured_snippet_asset.header, asset.structured_snippet_asset.values
-      FROM asset_group_asset WHERE campaign.id = ${campaignId}
+      FROM asset_group_asset WHERE campaign.id = ${campaignId} AND asset_group_asset.status != 'REMOVED'
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
       SELECT asset_group_signal.asset_group, asset_group_signal.search_theme.text
       FROM asset_group_signal WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
-      SELECT campaign_asset.asset, campaign_asset.field_type,
-        asset.sitelink_asset.link_text, asset.sitelink_asset.final_urls,
+      SELECT campaign_asset.asset, campaign_asset.field_type, campaign_asset.status,
+        asset.sitelink_asset.link_text, asset.sitelink_asset.description1, asset.sitelink_asset.description2,
         asset.call_asset.phone_number, asset.call_asset.country_code,
         asset.lead_form_asset.headline,
         asset.callout_asset.callout_text,
         asset.promotion_asset.promotion_target, asset.promotion_asset.discount_modifier,
         asset.price_asset.type,
         asset.structured_snippet_asset.header, asset.structured_snippet_asset.values
-      FROM campaign_asset WHERE campaign.id = ${campaignId}
+      FROM campaign_asset WHERE campaign.id = ${campaignId} AND campaign_asset.status != 'REMOVED'
     `, managerCustomerId),
   ]);
 
