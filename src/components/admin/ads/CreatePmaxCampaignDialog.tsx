@@ -475,9 +475,9 @@ export function CreatePmaxCampaignDialog() {
                 <Separator />
 
                 {/* Audience Signals */}
-                <Section title="Audience Signals" icon={<Users className="h-4 w-4" />}>
-                  <p className="text-xs text-muted-foreground">Reach the right customers faster across Google with an audience signal.</p>
-                  <Field label="Your data — Custom Segments (1 per line)">
+                <Section title="Signal d'audience" icon={<Users className="h-4 w-4" />}>
+                  <p className="text-xs text-muted-foreground">Touchez les bonnes personnes plus rapidement sur Google grâce à un signal d'audience.</p>
+                  <Field label="Vos données — Les données first party peuvent nous aider à toucher vos clients (1 par ligne)">
                     <Textarea
                       value={audienceSignals?.customSegments?.join("\n") || ""}
                       onChange={e => setAudienceSignals(prev => ({
@@ -489,7 +489,7 @@ export function CreatePmaxCampaignDialog() {
                       rows={3} className="text-xs" placeholder="SEO professionals&#10;Digital marketing managers&#10;Small business owners"
                     />
                   </Field>
-                  <Field label="Interests & detailed demographics (1 per line)">
+                  <Field label="Signaux supplémentaires — Centres d'intérêt (1 par ligne)">
                     <Textarea
                       value={audienceSignals?.interests?.join("\n") || ""}
                       onChange={e => setAudienceSignals(prev => ({
@@ -501,7 +501,7 @@ export function CreatePmaxCampaignDialog() {
                       rows={3} className="text-xs" placeholder="Search Engine Optimization&#10;Content Marketing&#10;Business Technology"
                     />
                   </Field>
-                  <Field label="Age Ranges">
+                  <Field label="Tranches d'âge">
                     <div className="flex flex-wrap gap-1.5">
                       {["18-24", "25-34", "35-44", "45-54", "55-64", "65+"].map(age => {
                         const selected = audienceSignals?.demographics?.ageRanges?.includes(age);
@@ -523,15 +523,17 @@ export function CreatePmaxCampaignDialog() {
                       })}
                     </div>
                   </Field>
-                  <Field label="Genders">
+                  <Field label="Genres">
                     <div className="flex flex-wrap gap-1.5">
-                      {["Male", "Female", "Unknown"].map(g => {
-                        const selected = audienceSignals?.demographics?.genders?.includes(g);
+                      {["Homme", "Femme", "Inconnu"].map((g, idx) => {
+                        const values = ["Male", "Female", "Unknown"];
+                        const val = values[idx];
+                        const selected = audienceSignals?.demographics?.genders?.includes(val);
                         return (
-                          <Badge key={g} variant={selected ? "default" : "outline"} className="cursor-pointer text-xs"
+                          <Badge key={val} variant={selected ? "default" : "outline"} className="cursor-pointer text-xs"
                             onClick={() => setAudienceSignals(prev => {
                               const current = prev?.demographics?.genders || [];
-                              const newG = selected ? current.filter(x => x !== g) : [...current, g];
+                              const newG = selected ? current.filter(x => x !== val) : [...current, val];
                               return {
                                 customSegments: prev?.customSegments || [],
                                 interests: prev?.interests || [],
@@ -545,7 +547,7 @@ export function CreatePmaxCampaignDialog() {
                       })}
                     </div>
                   </Field>
-                  <Field label="Audience name (optional)">
+                  <Field label="Nom de l'audience — Attribuez un nom à votre audience pour l'enregistrer dans votre bibliothèque (facultatif)">
                     <Input
                       value={audienceSignals?.audienceName || ""}
                       onChange={e => setAudienceSignals(prev => ({
@@ -554,7 +556,7 @@ export function CreatePmaxCampaignDialog() {
                         demographics: prev?.demographics || { ageRanges: [], genders: [] },
                         audienceName: e.target.value,
                       }))}
-                      className="text-xs" placeholder="Enter audience name"
+                      className="text-xs" placeholder="Entrez le nom de l'audience"
                     />
                   </Field>
                 </Section>
