@@ -52,7 +52,13 @@ async function mutateResource(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`mutate ${resource} failed: ${errorText}`);
+    console.error(`[PMAX-SVC] mutate ${resource} ERROR (${response.status}):`, errorText.slice(0, 2000));
+    try {
+      const errObj = JSON.parse(errorText);
+      const details = errObj?.error?.details;
+      if (details) console.error(`[PMAX-SVC] Error details:`, JSON.stringify(details).slice(0, 2000));
+    } catch (_) { /* not JSON */ }
+    throw new Error(`mutate ${resource} failed: ${errorText.slice(0, 500)}`);
   }
   return await response.json();
 }
@@ -398,9 +404,9 @@ async function createPmaxFull(
       try {
         // Create sitelink asset
         const sitelinkAssetPayload: Record<string, unknown> = {
+          finalUrls: [sl.finalUrl.trim()],
           sitelinkAsset: {
             linkText: cut(sl.text.trim(), 25),
-            finalUrls: [sl.finalUrl.trim()],
           },
         };
         if (sl.description1?.trim()) {
