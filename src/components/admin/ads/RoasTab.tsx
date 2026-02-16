@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, TrendingUp, Zap, ArrowUp, ArrowDown, DollarSign, Target, BarChart3 } from "lucide-react";
+import { Loader2, TrendingUp, Zap, ArrowUp, ArrowDown, DollarSign, Target, BarChart3, Settings } from "lucide-react";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
 import { CampaignSelectDialog } from "./CampaignSelectDialog";
+import { toast } from "@/hooks/use-toast";
+
 interface SyncedCampaign {
   id: string;
   name: string;
@@ -56,6 +58,31 @@ export function RoasTab({ campaigns }: RoasTabProps) {
     if (roas >= 2) return { label: `${roas.toFixed(1)}x`, color: "bg-emerald-100 text-emerald-700 border-emerald-300" };
     if (roas >= 1) return { label: `${roas.toFixed(1)}x`, color: "bg-amber-100 text-amber-700 border-amber-300" };
     return { label: `${roas.toFixed(1)}x`, color: "bg-red-100 text-red-700 border-red-300" };
+  };
+
+  const handleScaleAction = (c: SyncedCampaign) => {
+    const currentBudget = c.budget_amount_micros ? (c.budget_amount_micros / 1000000) : 0;
+    const suggestedBudget = Math.round(currentBudget * 1.3);
+    toast({
+      title: "📈 Scaler cette campagne",
+      description: `"${c.name}" — ROAS ${(c.roas_7d || 0).toFixed(1)}x. Budget actuel: ${currentBudget}€/j → Suggéré: ${suggestedBudget}€/j (+30%). Augmentez le budget dans Google Ads.`,
+    });
+  };
+
+  const handleReduceAction = (c: SyncedCampaign) => {
+    const currentBudget = c.budget_amount_micros ? (c.budget_amount_micros / 1000000) : 0;
+    const suggestedBudget = Math.max(5, Math.round(currentBudget * 0.5));
+    toast({
+      title: "⚠️ Réduire cette campagne",
+      description: `"${c.name}" — ROAS ${(c.roas_7d || 0).toFixed(1)}x, dépense ${(c.spend_7d || 0).toFixed(0)}€ sans rentabilité. Réduisez le budget à ${suggestedBudget}€/j ou mettez en pause.`,
+    });
+  };
+
+  const handleOptimizeAction = (c: SyncedCampaign) => {
+    toast({
+      title: "🔧 Optimiser cette campagne",
+      description: `"${c.name}" — ROAS ${(c.roas_7d || 0).toFixed(1)}x. Testez de nouvelles annonces, affinez les mots-clés, et améliorez les landing pages.`,
+    });
   };
 
   const sorted = [...campaigns].sort((a, b) => (b.roas_7d || 0) - (a.roas_7d || 0));
@@ -106,7 +133,7 @@ export function RoasTab({ campaigns }: RoasTabProps) {
             <BarChart3 className="h-5 w-5 text-primary" />
             Performance ROAS par campagne
           </CardTitle>
-          <CardDescription>Classement des campagnes par rentabilité</CardDescription>
+          <CardDescription>Cliquez sur les actions pour obtenir des recommandations concrètes</CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="max-h-[400px]">
@@ -122,7 +149,7 @@ export function RoasTab({ campaigns }: RoasTabProps) {
                   <TableHead>Conv.</TableHead>
                   <TableHead>CPA</TableHead>
                   <TableHead>ROAS</TableHead>
-                  <TableHead>Reco</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,15 +172,32 @@ export function RoasTab({ campaigns }: RoasTabProps) {
                       </TableCell>
                       <TableCell>
                         {roas >= 3 ? (
-                          <Badge className="bg-green-100 text-green-700 text-[10px] flex items-center gap-1 w-fit">
-                            <ArrowUp className="h-3 w-3" /> Scaler
-                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] bg-green-100 hover:bg-green-200 text-green-700 border border-green-300"
+                            onClick={() => handleScaleAction(c)}
+                          >
+                            <ArrowUp className="h-3 w-3 mr-1" /> Scaler
+                          </Button>
                         ) : roas < 1 && (c.spend_7d || 0) > 0 ? (
-                          <Badge className="bg-red-100 text-red-700 text-[10px] flex items-center gap-1 w-fit">
-                            <ArrowDown className="h-3 w-3" /> Réduire
-                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] bg-red-100 hover:bg-red-200 text-red-700 border border-red-300"
+                            onClick={() => handleReduceAction(c)}
+                          >
+                            <ArrowDown className="h-3 w-3 mr-1" /> Réduire
+                          </Button>
                         ) : (
-                          <Badge variant="outline" className="text-[10px]">Optimiser</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] border"
+                            onClick={() => handleOptimizeAction(c)}
+                          >
+                            <Settings className="h-3 w-3 mr-1" /> Optimiser
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
