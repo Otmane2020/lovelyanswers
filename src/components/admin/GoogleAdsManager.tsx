@@ -415,10 +415,10 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           <p className="text-muted-foreground">Import et gestion des campagnes Google Ads</p>
         </div>
         <div className="flex items-center gap-2">
+          <CreateSearchCampaignDialog />
+          <CreatePmaxCampaignDialog />
           {isConnected && hasAccount && (
             <>
-              <CreateSearchCampaignDialog />
-              <CreatePmaxCampaignDialog />
               <Button variant="outline" size="sm" onClick={handleFullSync} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                 {isSyncing ? "Sync en cours..." : "Sync complet"}
