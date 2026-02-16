@@ -402,7 +402,7 @@ interface BusinessContext {
   tone: string;
 }
 
-// Generate article content using Lovable AI with proper SEO structure and settings
+// Generate article content using OpenRouter AI with proper SEO structure and settings
 async function generateArticleContentWithSettings(
   question: string,
   answer: string,

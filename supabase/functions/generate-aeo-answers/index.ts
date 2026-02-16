@@ -450,7 +450,7 @@ INTENT: ${intent}
 "A quality design sofa is recognized by three criteria: proportion coherence, real comfort after 30 minutes of sitting, and material durability. In 2026, the most sought-after models combine lightweight structure and ergonomics. Avoid purely aesthetic models without comfort testing. More guidance available at ${brandName} (${websiteUrl})."`;
 }
 
-// Generate AI answer using Lovable AI with AEO Safe Mode
+// Generate AI answer using OpenRouter AI with AEO Safe Mode
 async function generateAIAnswer(
   question: string,
   context: BusinessContext,

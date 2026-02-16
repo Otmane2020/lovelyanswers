@@ -1,6 +1,6 @@
 // supabase/functions/serp-first/index.ts
 // TrySoro-style SERP-first competitor discovery + AEO answer generation
-// Flow: DataForSEO SERP -> Top 3-4 domains -> Firecrawl scrape (fast) -> Lovable AI summary
+// Flow: DataForSEO SERP -> Top 3-4 domains -> Firecrawl scrape (fast) -> OpenRouter AI summary
 // Input: { query: "vendre un canapé", lang?: "fr", country?: "FR", limit?: 4 }
 
 const corsHeaders = {
@@ -273,7 +273,7 @@ Return ONLY JSON:
 
     if (!res.ok) {
       const err = await safeJson(res);
-      console.error("[SERP-FIRST] Lovable AI error:", err);
+      console.error("[SERP-FIRST] OpenRouter AI error:", err);
       return { best: [], answer: "", seo_titles: [], qa: [] };
     }
 
@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
     }
     if (!lovableKey) {
       return new Response(
-        JSON.stringify({ success: false, error: "Lovable AI not configured" }),
+        JSON.stringify({ success: false, error: "OpenRouter AI not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
