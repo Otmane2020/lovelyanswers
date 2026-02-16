@@ -224,3 +224,6 @@ schedule = "0 2 * * *"
 
 [functions.create-search-campaign]
 verify_jwt = false
+
+[functions.manage-pmax-service]
+verify_jwt = false
