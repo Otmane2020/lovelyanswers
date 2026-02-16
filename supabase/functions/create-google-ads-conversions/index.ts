@@ -190,10 +190,8 @@ serve(async (req) => {
     const results: { name: string; tag: string; status: string; conversionLabel?: string; error?: string }[] = [];
 
     for (const conv of CONVERSIONS_TO_CREATE) {
-      // Check if already exists by exact name OR by category
-      const existingByExactName = existingByName[conv.name];
-      const existingByCat = existingByCategory[conv.category];
-      const existing = existingByExactName || existingByCat;
+      // Only check by exact name — category matching causes false positives with auto-created conversions
+      const existing = existingByName[conv.name];
 
       if (existing) {
         console.log(`[CONV] "${conv.name}" already exists (found as "${existing.name}", category: ${conv.category}), skipping creation`);
