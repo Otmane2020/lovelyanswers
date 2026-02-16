@@ -450,7 +450,8 @@ RULES:
 - Long headlines MUST be ≤90 characters
 - Sitelink text MUST be ≤25 characters
 - Callouts MUST be ≤25 characters
-- Write in ${language === "fr" ? "French" : language === "en" ? "English" : language}
+- Write headlines, descriptions, long headlines, callouts, sitelinks in ${language === "fr" ? "French" : language === "en" ? "English" : language}
+- CRITICAL: searchThemes MUST ALWAYS be written in ENGLISH regardless of the language setting. Search themes are used by Google's algorithm and must be in English.
 - Be creative, persuasive, include CTAs and value props
 - Sitelinks should link to different pages of the website
 `;
