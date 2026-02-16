@@ -44,6 +44,7 @@ async function mutateResource(
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error(`[PMAX-OPT] mutate ${resource} ERROR:`, errorText.slice(0, 1000));
     throw new Error(`mutate ${resource} failed: ${errorText}`);
   }
   return await response.json();
@@ -187,7 +188,7 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
       FROM asset_group_signal WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
-      SELECT campaign_asset.asset, campaign_asset.field_type, campaign_asset.status,
+      SELECT campaign.id, campaign_asset.asset, campaign_asset.field_type, campaign_asset.status,
         asset.sitelink_asset.link_text, asset.sitelink_asset.description1, asset.sitelink_asset.description2,
         asset.call_asset.phone_number, asset.call_asset.country_code,
         asset.lead_form_asset.headline,
