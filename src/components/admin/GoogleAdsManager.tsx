@@ -17,6 +17,7 @@ import { ConversionsTab } from "@/components/admin/ads/ConversionsTab";
 import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { CampaignSelectDialog } from "@/components/admin/ads/CampaignSelectDialog";
 import { ReportHistory } from "@/components/admin/ads/ReportHistory";
+import { CreateSearchCampaignDialog } from "@/components/admin/ads/CreateSearchCampaignDialog";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
@@ -415,6 +416,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
         <div className="flex items-center gap-2">
           {isConnected && hasAccount && (
             <>
+              <CreateSearchCampaignDialog />
               <Button variant="outline" size="sm" onClick={handleFullSync} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                 {isSyncing ? "Sync en cours..." : "Sync complet"}
