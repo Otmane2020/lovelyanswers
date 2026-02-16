@@ -30,6 +30,8 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
   const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
   const [isCreatingConversions, setIsCreatingConversions] = useState(false);
   const [createdConversions, setCreatedConversions] = useState<ConversionResult[]>([]);
+  const [isLoadingConversions, setIsLoadingConversions] = useState(false);
+  const [existingConversions, setExistingConversions] = useState<any[]>([]);
 
   const handleGenerateConversionGoals = async () => {
     setIsGeneratingGoals(true);
@@ -79,6 +81,22 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
       setIsCreatingConversions(false);
+    }
+  };
+
+  const handleLoadExistingConversions = async () => {
+    setIsLoadingConversions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("load-google-ads-conversions");
+      if (error) throw error;
+      if (data?.conversions) {
+        setExistingConversions(data.conversions);
+        toast({ title: `${data.conversions.length} conversion(s) trouvée(s)` });
+      }
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLoadingConversions(false);
     }
   };
 
@@ -260,7 +278,25 @@ ${createdConversions
       )}
 
       {/* Actions secondaires */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <CheckCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm">Charger les conversions</h4>
+                <p className="text-xs text-muted-foreground mt-1">Récupère toutes les conversions existantes depuis Google Ads</p>
+                <Button onClick={handleLoadExistingConversions} disabled={isLoadingConversions} size="sm" className="mt-3">
+                  {isLoadingConversions ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  Charger depuis Google Ads
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
@@ -302,6 +338,61 @@ ${createdConversions
           </CardContent>
         </Card>
       </div>
+
+      {/* Existing conversions loaded from Google Ads */}
+      {existingConversions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              Conversions Google Ads ({existingConversions.length})
+            </CardTitle>
+            <CardDescription>Toutes les actions de conversion configurées dans votre compte</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {existingConversions.map((conv: any, idx: number) => (
+              <div key={idx} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="font-semibold text-sm">{conv.name}</span>
+                    <Badge variant="outline" className="text-[10px]">{conv.category}</Badge>
+                    {conv.primaryForGoal && <Badge className="bg-green-100 text-green-800 border-green-200 text-[10px]">Goal</Badge>}
+                    <Badge variant={conv.status === "ENABLED" ? "default" : "secondary"} className="text-[10px]">{conv.status}</Badge>
+                  </div>
+                  {conv.defaultValue && (
+                    <span className="text-xs text-muted-foreground">{conv.defaultValue} {conv.currencyCode}</span>
+                  )}
+                </div>
+                <div className="bg-muted rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] uppercase text-muted-foreground font-medium">Conversion Label (send_to)</span>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => copyToClipboard(conv.conversionLabel)}>
+                      <Copy className="h-3 w-3 mr-1" /> Copier
+                    </Button>
+                  </div>
+                  <code className="text-sm font-mono text-primary">{conv.conversionLabel}</code>
+                </div>
+                <div className="bg-muted rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] uppercase text-muted-foreground font-medium">Code gtag.js</span>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => copyToClipboard(`gtag('event', 'conversion', {\n  'send_to': '${conv.conversionLabel}',\n  'value': ${conv.defaultValue || 1.0},\n  'currency': '${conv.currencyCode || "USD"}'\n});`)}>
+                      <Copy className="h-3 w-3 mr-1" /> Copier
+                    </Button>
+                  </div>
+                  <pre className="text-xs font-mono overflow-x-auto">
+{`gtag('event', 'conversion', {
+  'send_to': '${conv.conversionLabel}',
+  'value': ${conv.defaultValue || 1.0},
+  'currency': '${conv.currencyCode || "USD"}'
+});`}
+                  </pre>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Generated Goals */}
       {conversionGoals.length > 0 && (
