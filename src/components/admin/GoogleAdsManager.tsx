@@ -18,6 +18,7 @@ import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { CampaignSelectDialog } from "@/components/admin/ads/CampaignSelectDialog";
 import { ReportHistory } from "@/components/admin/ads/ReportHistory";
 import { CreateSearchCampaignDialog } from "@/components/admin/ads/CreateSearchCampaignDialog";
+import { CreatePmaxCampaignDialog } from "@/components/admin/ads/CreatePmaxCampaignDialog";
 import { 
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
@@ -417,6 +418,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           {isConnected && hasAccount && (
             <>
               <CreateSearchCampaignDialog />
+              <CreatePmaxCampaignDialog />
               <Button variant="outline" size="sm" onClick={handleFullSync} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                 {isSyncing ? "Sync en cours..." : "Sync complet"}
