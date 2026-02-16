@@ -35,7 +35,11 @@ interface KeywordRow {
   campaign_sync_id: string | null;
 }
 
-export function KeywordsTab() {
+interface KeywordsTabProps {
+  googleCustomerId?: string;
+}
+
+export function KeywordsTab({ googleCustomerId }: KeywordsTabProps) {
   const [keywords, setKeywords] = useState<KeywordRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -49,18 +53,36 @@ export function KeywordsTab() {
   useEffect(() => {
     loadKeywords();
     loadPreviousReports("keywords");
-  }, []);
+  }, [googleCustomerId]);
 
   const loadKeywords = async () => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase
+      
+      // If we have a googleCustomerId, first get the campaign_sync ids for that account
+      let campaignSyncIds: string[] | null = null;
+      if (googleCustomerId) {
+        const { data: campaigns } = await supabase
+          .from("campaigns_sync")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .eq("google_customer_id", googleCustomerId);
+        campaignSyncIds = (campaigns || []).map(c => c.id);
+      }
+
+      let query = supabase
         .from("keywords_sync")
         .select("*")
         .eq("user_id", session.user.id)
         .order("clicks", { ascending: false });
+      
+      if (campaignSyncIds !== null) {
+        query = query.in("campaign_sync_id", campaignSyncIds);
+      }
+      
+      const { data } = await query;
       setKeywords((data as KeywordRow[]) || []);
     } finally {
       setIsLoading(false);
@@ -237,6 +259,7 @@ export function KeywordsTab() {
         onOpenChange={setShowCampaignPicker}
         onSelect={handleCampaignSelected}
         title="Analyser les mots-clés"
+        googleCustomerId={googleCustomerId}
       />
 
       {/* Summary Cards */}
