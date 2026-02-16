@@ -850,69 +850,162 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
         }
       }
 
-      // ── Add Audience Signal ──
+      // ── Add Audience Signal (Real AssetGroupSignal with Audience) ──
       if (gaps.needAudienceSignal && generated.audienceSignal) {
         try {
           const sig = generated.audienceSignal;
           console.log("[PMAX-OPT] Creating audience signal:", JSON.stringify(sig));
           
-          // Build audience dimensions
-          const dimensions: any[] = [];
-          
-          // Add custom segments (user search terms)
+          const audienceName = sig.name || `${brandName} - AI Audience ${Date.now()}`;
+          const audienceDimensions: any[] = [];
+
+          // Step 1: Create CustomAudience with keywords (search intent)
+          let customAudienceResourceName: string | null = null;
           if (sig.customSegments?.length > 0) {
-            for (const segment of sig.customSegments) {
-              // Create custom audience via search terms
-              dimensions.push({
-                customAffinity: { customAffinity: `customers/${customerId}/customInterests/${Date.now()}` }
-              });
+            try {
+              const members = sig.customSegments.map((kw: string) => ({
+                memberType: "KEYWORD",
+                keyword: cut(String(kw).trim(), 80),
+              }));
+              
+              const caRes = await mutateResource(accessToken, customerId, "customAudiences", [{
+                create: {
+                  name: `${audienceName} - Intent`,
+                  type: "AUTO",
+                  status: "ENABLED",
+                  members,
+                },
+              }], managerCustomerId);
+              
+              customAudienceResourceName = caRes.results?.[0]?.resourceName;
+              if (customAudienceResourceName) {
+                console.log("[PMAX-OPT] CustomAudience created:", customAudienceResourceName);
+                // Add custom audience segment to dimensions
+                audienceDimensions.push({
+                  audienceSegments: [{
+                    customAudience: { customAudience: customAudienceResourceName },
+                  }],
+                });
+                results.push({ action: "create_custom_audience", success: true, details: `${sig.customSegments.length} keywords` });
+              }
+            } catch (caErr: any) {
+              console.warn("[PMAX-OPT] CustomAudience creation failed:", caErr.message?.slice(0, 300));
+              warnings.push(`Custom audience: ${caErr.message?.slice(0, 150)}`);
             }
           }
           
-          // Add interests (in-market / affinity categories)
-          // These are pre-defined Google taxonomy IDs, so we use custom intent
-          
-          // For PMax, audience signals are added as asset_group_signal with audience
-          // First, create an Audience resource with the desired targeting
-          const audienceName = sig.name || `${brandName} - AI Audience`;
-          
-          // Build the audience with dimensions
-          const audienceDimensions: any[] = [];
-          
-          // Custom segments as keywords
-          if (sig.customSegments?.length > 0) {
-            audienceDimensions.push({
-              audienceSegments: sig.customSegments.map((s: string) => ({
-                customAudience: {
-                  // We need to create custom audiences first or use keyword-based targeting
-                }
-              }))
-            });
+          // Step 2: Add demographic dimensions if specified
+          if (sig.demographics) {
+            const demo: any = {};
+            if (sig.demographics.genders && !sig.demographics.genders.includes("all")) {
+              // Only add gender targeting if not "all"
+              demo.genders = sig.demographics.genders.map((g: string) => ({
+                type: g.toUpperCase(),
+              }));
+            }
+            if (sig.demographics.ageRanges?.length > 0) {
+              demo.ageRanges = sig.demographics.ageRanges.map((ar: string) => {
+                const ageMap: Record<string, string> = {
+                  "18-24": "AGE_RANGE_18_24", "25-34": "AGE_RANGE_25_34",
+                  "35-44": "AGE_RANGE_35_44", "45-54": "AGE_RANGE_45_54",
+                  "55-64": "AGE_RANGE_55_64", "65+": "AGE_RANGE_65_UP",
+                };
+                return { type: ageMap[ar] || "AGE_RANGE_UNDETERMINED" };
+              });
+            }
+            if (Object.keys(demo).length > 0) {
+              audienceDimensions.push(demo);
+            }
           }
-
-          // Simpler approach: add search themes as audience signals instead
-          // since full Audience creation requires multiple API calls
-          // Add custom intent keywords as additional search themes
-          if (sig.customSegments?.length > 0) {
-            const customThemes = sig.customSegments.slice(0, 5);
-            for (const theme of customThemes) {
-              try {
+          
+          // Step 3: Create the Audience resource with all dimensions
+          if (audienceDimensions.length > 0) {
+            try {
+              const audiencePayload: any = {
+                name: audienceName,
+                description: `AI-generated audience for ${brandName}`,
+                dimensions: audienceDimensions,
+              };
+              // Scope to asset group for PMax
+              audiencePayload.assetGroup = assetGroupResourceName;
+              
+              const audRes = await mutateResource(accessToken, customerId, "audiences", [{
+                create: audiencePayload,
+              }], managerCustomerId);
+              
+              const audienceResourceName = audRes.results?.[0]?.resourceName;
+              if (audienceResourceName) {
+                console.log("[PMAX-OPT] Audience created:", audienceResourceName);
+                
+                // Step 4: Create AssetGroupSignal linking audience to asset group
                 await mutateResource(accessToken, customerId, "assetGroupSignals", [{
                   create: {
                     assetGroup: assetGroupResourceName,
-                    searchTheme: { text: cut(String(theme).trim(), 80) },
+                    audience: { audience: audienceResourceName },
                   },
                 }], managerCustomerId);
-                results.push({ action: "add_audience_theme", success: true, details: theme });
-              } catch (e: any) {
-                if (!e.message?.includes("ALREADY_EXISTS") && !e.message?.includes("DUPLICATE")) {
-                  warnings.push(`Audience theme "${theme}": ${e.message?.slice(0, 100)}`);
+                
+                results.push({ action: "add_audience_signal", success: true, details: `Audience "${audienceName}" linked (${sig.customSegments?.length || 0} segments)` });
+                console.log("[PMAX-OPT] AssetGroupSignal created successfully");
+              }
+            } catch (audErr: any) {
+              console.error("[PMAX-OPT] Audience/Signal creation failed:", audErr.message?.slice(0, 500));
+              warnings.push(`Audience signal: ${audErr.message?.slice(0, 200)}`);
+              
+              // Fallback: if Audience creation fails, try linking custom audience directly as signal
+              if (customAudienceResourceName) {
+                try {
+                  // Create a simpler audience with just custom audience
+                  const simpleAudPayload: any = {
+                    name: `${audienceName} - Simple`,
+                    description: `AI audience for ${brandName}`,
+                    dimensions: [{
+                      audienceSegments: [{
+                        customAudience: { customAudience: customAudienceResourceName },
+                      }],
+                    }],
+                  };
+                  
+                  const simpleRes = await mutateResource(accessToken, customerId, "audiences", [{
+                    create: simpleAudPayload,
+                  }], managerCustomerId);
+                  
+                  const simpleRN = simpleRes.results?.[0]?.resourceName;
+                  if (simpleRN) {
+                    await mutateResource(accessToken, customerId, "assetGroupSignals", [{
+                      create: {
+                        assetGroup: assetGroupResourceName,
+                        audience: { audience: simpleRN },
+                      },
+                    }], managerCustomerId);
+                    results.push({ action: "add_audience_signal", success: true, details: `Fallback audience linked` });
+                  }
+                } catch (fbErr: any) {
+                  warnings.push(`Fallback audience: ${fbErr.message?.slice(0, 150)}`);
                 }
               }
             }
+          } else {
+            // No dimensions built - just add search themes as minimal signal
+            if (sig.customSegments?.length > 0) {
+              for (const theme of sig.customSegments.slice(0, 5)) {
+                try {
+                  await mutateResource(accessToken, customerId, "assetGroupSignals", [{
+                    create: {
+                      assetGroup: assetGroupResourceName,
+                      searchTheme: { text: cut(String(theme).trim(), 80) },
+                    },
+                  }], managerCustomerId);
+                  results.push({ action: "add_audience_theme", success: true, details: theme });
+                } catch (e: any) {
+                  if (!e.message?.includes("ALREADY_EXISTS")) {
+                    warnings.push(`Audience theme "${theme}": ${e.message?.slice(0, 100)}`);
+                  }
+                }
+              }
+            }
+            results.push({ action: "add_audience_signal", success: true, details: `Added ${sig.customSegments?.length || 0} search themes as signals` });
           }
-
-          results.push({ action: "add_audience_signal", success: true, details: `Audience: ${audienceName} (${sig.customSegments?.length || 0} segments, ${sig.interests?.length || 0} interests)` });
         } catch (e: any) {
           console.error("[PMAX-OPT] Audience signal error:", e.message?.slice(0, 300));
           warnings.push(`Audience signal: ${e.message?.slice(0, 150)}`);
