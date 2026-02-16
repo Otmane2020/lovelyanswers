@@ -880,11 +880,13 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
               customAudienceResourceName = caRes.results?.[0]?.resourceName;
               if (customAudienceResourceName) {
                 console.log("[PMAX-OPT] CustomAudience created:", customAudienceResourceName);
-                // Add custom audience segment to dimensions
+                // Add custom audience segment to dimensions (audienceSegments is a message, not array)
                 audienceDimensions.push({
-                  audienceSegments: [{
-                    customAudience: { customAudience: customAudienceResourceName },
-                  }],
+                  audienceSegments: {
+                    segments: [{
+                      customAudience: { customAudience: customAudienceResourceName },
+                    }],
+                  },
                 });
                 results.push({ action: "create_custom_audience", success: true, details: `${sig.customSegments.length} keywords` });
               }
@@ -894,27 +896,30 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
             }
           }
           
-          // Step 2: Add demographic dimensions if specified
+          // Step 2: Add demographic dimensions (age and gender are separate dimensions)
           if (sig.demographics) {
-            const demo: any = {};
-            if (sig.demographics.genders && !sig.demographics.genders.includes("all")) {
-              // Only add gender targeting if not "all"
-              demo.genders = sig.demographics.genders.map((g: string) => ({
-                type: g.toUpperCase(),
-              }));
-            }
-            if (sig.demographics.ageRanges?.length > 0) {
-              demo.ageRanges = sig.demographics.ageRanges.map((ar: string) => {
-                const ageMap: Record<string, string> = {
-                  "18-24": "AGE_RANGE_18_24", "25-34": "AGE_RANGE_25_34",
-                  "35-44": "AGE_RANGE_35_44", "45-54": "AGE_RANGE_45_54",
-                  "55-64": "AGE_RANGE_55_64", "65+": "AGE_RANGE_65_UP",
+            if (sig.demographics.ageRanges?.length > 0 && !sig.demographics.ageRanges.includes("all")) {
+              const ageSegments = sig.demographics.ageRanges.map((ar: string) => {
+                const ageMap: Record<string, [number, number]> = {
+                  "18-24": [18, 24], "25-34": [25, 34],
+                  "35-44": [35, 44], "45-54": [45, 54],
+                  "55-64": [55, 64], "65+": [65, 0],
                 };
-                return { type: ageMap[ar] || "AGE_RANGE_UNDETERMINED" };
+                const range = ageMap[ar] || [18, 65];
+                const seg: any = { minAge: range[0] };
+                if (range[1] > 0) seg.maxAge = range[1];
+                return seg;
               });
+              audienceDimensions.push({ age: { ageRanges: ageSegments } });
             }
-            if (Object.keys(demo).length > 0) {
-              audienceDimensions.push(demo);
+            if (sig.demographics.genders && !sig.demographics.genders.includes("all")) {
+              audienceDimensions.push({
+                gender: {
+                  genders: sig.demographics.genders.map((g: string) => ({
+                    type: g.toUpperCase(),
+                  })),
+                },
+              });
             }
           }
           
@@ -960,9 +965,11 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                     name: `${audienceName} - Simple`,
                     description: `AI audience for ${brandName}`,
                     dimensions: [{
-                      audienceSegments: [{
-                        customAudience: { customAudience: customAudienceResourceName },
-                      }],
+                      audienceSegments: {
+                        segments: [{
+                          customAudience: { customAudience: customAudienceResourceName },
+                        }],
+                      },
                     }],
                   };
                   
