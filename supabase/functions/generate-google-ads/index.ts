@@ -91,6 +91,21 @@ Return ONLY valid JSON with this exact structure:
   "callouts": ["Callout text (max 25 chars)"],
   "callToAction": "SIGN_UP",
   "imageUrls": ["https://lovelyanswers.com/og-image.png"],
+  "phoneNumber": "+33123456789",
+  "phoneCountry": "FR",
+  "promotions": [
+    {"promotionTarget": "Free Trial", "percentOff": 100, "occasion": "NONE", "finalUrl": "https://lovelyanswers.com/pricing"}
+  ],
+  "structuredSnippets": [
+    {"header": "Service catalog", "values": ["AEO Content", "SEO Audit", "Keyword Research", "AI Articles"]}
+  ],
+  "prices": [
+    {"type": "SERVICE_TIERS", "priceOfferings": [
+      {"header": "Starter", "description": "Basic AEO", "price": {"currencyCode": "EUR", "amountMicros": "29000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"},
+      {"header": "Pro", "description": "Full AEO Suite", "price": {"currencyCode": "EUR", "amountMicros": "79000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"},
+      {"header": "Agency", "description": "Multi-project", "price": {"currencyCode": "EUR", "amountMicros": "199000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"}
+    ]}
+  ],
   "leadFormHeadline": "Get Started with LovelyAnswers",
   "leadFormDescription": "Sign up for a free trial and boost your AI visibility",
   "leadFormFields": ["FULL_NAME", "EMAIL", "PHONE_NUMBER", "COMPANY_NAME"],
@@ -115,6 +130,11 @@ RULES:
 - callToAction: one of SIGN_UP, LEARN_MORE, GET_QUOTE, SUBSCRIBE, CONTACT_US, BOOK_NOW
 - imageUrls: extract any OG images, hero images, or logo URLs from the website
 - businessLogoUrl: the favicon or logo URL
+- phoneNumber: a phone number for call extensions (real or realistic format)
+- phoneCountry: 2-letter country code for the phone number
+- promotions: 1-3 promotion extensions with promotionTarget (max 20 chars), percentOff or moneyAmountOff, occasion (NONE or valid Google occasion), and finalUrl
+- structuredSnippets: 1-2 structured snippet extensions, header must be one of: Amenities, Brands, Courses, Degree programs, Destinations, Featured hotels, Insurance coverage, Models, Neighborhoods, Service catalog, Shows, Styles, Types. Each needs 3-10 values (max 25 chars each)
+- prices: 1 price extension with type (SERVICES, SERVICE_TIERS, PRODUCT_TIERS, etc.) and 3-8 priceOfferings each with header (max 25 chars), description (max 25 chars), price {currencyCode, amountMicros}, unit (PER_MONTH, PER_YEAR, etc.), finalUrl
 - Lead form: generate a compelling headline + description for lead generation
 - leadFormFields: choose from FULL_NAME, EMAIL, PHONE_NUMBER, COMPANY_NAME, CITY, POSTAL_CODE
 - audienceSignals: define custom segments, interests, and demographics

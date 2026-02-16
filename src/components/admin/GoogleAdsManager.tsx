@@ -435,9 +435,12 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           options: {
             sitelinks: options.sitelinks !== false,
             callouts: options.callouts !== false,
-            phone: !!options.phoneNumber,
+            phone: true,
             leadForm: options.leadForm === true,
             images: !!options.imageUrls?.length,
+            promotions: true,
+            structuredSnippets: true,
+            prices: true,
           },
         },
       });

@@ -459,11 +459,14 @@ serve(async (req) => {
         needLongHeadlines: (currentAssets.longHeadlines?.length || 0) < 5,
         needSitelinks: state.campaignAssets.sitelinks.length < 4 && optimizeOptions.sitelinks !== false,
         needCallouts: state.campaignAssets.callouts.length < 4 && optimizeOptions.callouts !== false,
-        needPhone: state.campaignAssets.phones.length === 0 && optimizeOptions.phone,
+        needPhone: state.campaignAssets.phones.length === 0 && (optimizeOptions.phone !== false),
         needLeadForm: state.campaignAssets.leadForms.length === 0 && optimizeOptions.leadForm,
         needImages: (currentAssets.images?.length || 0) < 3 && optimizeOptions.images,
         needSearchThemes: (ag.searchThemes?.length || 0) < 10,
         needAudienceSignal: (ag.audienceSignals?.length || 0) === 0,
+        needPromotions: (state.campaignAssets.promotions.length + (currentAssets.promotions?.length || 0)) === 0 && optimizeOptions.promotions !== false,
+        needPrices: (state.campaignAssets.prices.length + (currentAssets.prices?.length || 0)) === 0 && optimizeOptions.prices !== false,
+        needSnippets: (state.campaignAssets.snippets.length + (currentAssets.snippets?.length || 0)) === 0 && optimizeOptions.structuredSnippets !== false,
       };
 
       console.log(`[PMAX-OPT] Gaps:`, JSON.stringify(gaps));
@@ -481,6 +484,9 @@ Current long headlines (${currentAssets.longHeadlines?.length || 0}/5): ${JSON.s
 Current search themes (${ag.searchThemes?.length || 0}/25): ${JSON.stringify(ag.searchThemes || [])}
 Current sitelinks (${state.campaignAssets.sitelinks.length}): ${JSON.stringify(state.campaignAssets.sitelinks)}
 Current callouts (${state.campaignAssets.callouts.length}): ${JSON.stringify(state.campaignAssets.callouts)}
+Current promotions: ${state.campaignAssets.promotions.length + (currentAssets.promotions?.length || 0)}
+Current prices: ${state.campaignAssets.prices.length + (currentAssets.prices?.length || 0)}
+Current structured snippets: ${state.campaignAssets.snippets.length + (currentAssets.snippets?.length || 0)}
 Current audience signals (${ag.audienceSignals?.length || 0}): ${JSON.stringify(ag.audienceSignals?.map((a: any) => a.name) || [])}
 
 Generate ONLY what's missing. Return JSON:
@@ -491,6 +497,9 @@ Generate ONLY what's missing. Return JSON:
   "searchThemes": ["..."],       // new search themes to ADD, fill up to 25 total
   "sitelinks": [{"text": "...", "description1": "...", "description2": "...", "finalUrl": "..."}], // max 6 total, text max 25 chars, descriptions max 35 chars
   "callouts": ["..."],           // new callouts (max 25 chars each), fill up to 10 total
+  ${gaps.needPromotions ? '"promotions": [{"promotionTarget": "Free Trial", "percentOff": 100, "occasion": "NONE", "finalUrl": "https://..."}],' : ''}
+  ${gaps.needPrices ? '"prices": [{"type": "SERVICES", "priceOfferings": [{"header": "Plan Name", "description": "Short desc", "price": {"currencyCode": "EUR", "amountMicros": "29000000"}, "unit": "PER_MONTH", "finalUrl": "https://..."}]}],' : ''}
+  ${gaps.needSnippets ? '"structuredSnippets": [{"header": "Services", "values": ["AEO Content", "SEO Audit", "Keyword Research"]}],' : ''}
   ${gaps.needAudienceSignal ? '"audienceSignal": {"name": "Audience name for library", "customSegments": ["AI SEO tools users", "Content marketing pros"], "interests": ["Search Engine Optimization", "Digital Marketing"], "demographics": {"ageRanges": ["25-34", "35-44", "45-54"], "genders": ["all"]}},' : ''}
   ${gaps.needLeadForm ? '"leadForm": {"headline": "...", "description": "...", "fields": ["FULL_NAME", "EMAIL", "PHONE_NUMBER"]},' : ''}
   ${gaps.needPhone && body.phoneNumber ? '"phone": {"number": "' + body.phoneNumber + '", "country": "' + (body.phoneCountry || "FR") + '"},' : ''}
@@ -504,6 +513,10 @@ RULES:
 - Long headlines MUST be ≤90 characters
 - Sitelink text MUST be ≤25 characters
 - Callouts MUST be ≤25 characters
+- Promotions: promotionTarget is the text shown (e.g. "Free Trial"), percentOff is 0-100, occasion can be NONE or a valid Google occasion
+- Structured snippets: header must be one of: Amenities, Brands, Courses, Degree programs, Destinations, Featured hotels, Insurance coverage, Models, Neighborhoods, Service catalog, Shows, Styles, Types
+- Prices: type must be one of: BRANDS, EVENTS, LOCATIONS, NEIGHBORHOODS, PRODUCT_CATEGORIES, PRODUCT_TIERS, SERVICE_CATEGORIES, SERVICE_TIERS, SERVICES. unit can be PER_HOUR, PER_DAY, PER_WEEK, PER_MONTH, PER_YEAR, PER_NIGHT
+- Generate 2-3 promotions, 1-2 structured snippets, 1 price set with 3-5 offerings
 - Write headlines, descriptions, long headlines, callouts, sitelinks in ${language === "fr" ? "French" : language === "en" ? "English" : language}
 - CRITICAL: searchThemes MUST ALWAYS be written in ENGLISH regardless of the language setting. Search themes are used by Google's algorithm and must be in English.
 - Be creative, persuasive, include CTAs and value props
@@ -683,7 +696,100 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
         }
       }
 
-      // ── Add Phone ──
+      // ── Add Promotions ──
+      if (generated.promotions?.length > 0 && gaps.needPromotions) {
+        for (const promo of generated.promotions.slice(0, 6)) {
+          try {
+            const promoPayload: Record<string, unknown> = {
+              promotionTarget: cut(String(promo.promotionTarget || "").trim(), 20),
+              occasion: promo.occasion || "NONE",
+            };
+            if (promo.percentOff) promoPayload.percentOff = Number(promo.percentOff);
+            if (promo.moneyAmountOff) promoPayload.moneyAmountOff = promo.moneyAmountOff;
+            if (promo.discountModifier) promoPayload.discountModifier = promo.discountModifier;
+
+            const assetPayload: Record<string, unknown> = { promotionAsset: promoPayload };
+            if (promo.finalUrl) assetPayload.finalUrls = [promo.finalUrl];
+
+            const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+              create: assetPayload,
+            }], managerCustomerId);
+            const assetRN = assetRes.results?.[0]?.resourceName;
+            if (assetRN) {
+              await mutateResource(accessToken, customerId, "campaignAssets", [{
+                create: { campaign: campaignResourceName, asset: assetRN, fieldType: "PROMOTION" },
+              }], managerCustomerId);
+              results.push({ action: "add_promotion", success: true, details: promo.promotionTarget });
+            }
+          } catch (e: any) {
+            warnings.push(`Promotion "${promo.promotionTarget}": ${e.message?.slice(0, 100)}`);
+          }
+        }
+      }
+
+      // ── Add Structured Snippets ──
+      if (generated.structuredSnippets?.length > 0 && gaps.needSnippets) {
+        for (const snippet of generated.structuredSnippets.slice(0, 4)) {
+          try {
+            const values = (snippet.values || []).map((v: string) => cut(String(v).trim(), 25)).filter(Boolean);
+            if (!snippet.header || values.length < 3) { warnings.push(`Snippet "${snippet.header}": needs at least 3 values`); continue; }
+
+            const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+              create: {
+                structuredSnippetAsset: {
+                  header: snippet.header,
+                  values: values.slice(0, 10),
+                },
+              },
+            }], managerCustomerId);
+            const assetRN = assetRes.results?.[0]?.resourceName;
+            if (assetRN) {
+              await mutateResource(accessToken, customerId, "campaignAssets", [{
+                create: { campaign: campaignResourceName, asset: assetRN, fieldType: "STRUCTURED_SNIPPET" },
+              }], managerCustomerId);
+              results.push({ action: "add_snippet", success: true, details: `${snippet.header}: ${values.join(", ")}` });
+            }
+          } catch (e: any) {
+            warnings.push(`Snippet "${snippet.header}": ${e.message?.slice(0, 100)}`);
+          }
+        }
+      }
+
+      // ── Add Prices ──
+      if (generated.prices?.length > 0 && gaps.needPrices) {
+        for (const priceSet of generated.prices.slice(0, 2)) {
+          try {
+            const offerings = (priceSet.priceOfferings || []).slice(0, 8).map((o: any) => ({
+              header: cut(String(o.header || "").trim(), 25),
+              description: o.description ? cut(String(o.description).trim(), 25) : undefined,
+              price: o.price || { currencyCode: "EUR", amountMicros: "0" },
+              unit: o.unit || "PER_MONTH",
+              finalUrl: o.finalUrl || websiteUrl,
+            }));
+            if (offerings.length < 3) { warnings.push(`Price set "${priceSet.type}": needs at least 3 offerings`); continue; }
+
+            const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+              create: {
+                priceAsset: {
+                  type: priceSet.type || "SERVICES",
+                  priceOfferings: offerings,
+                },
+              },
+            }], managerCustomerId);
+            const assetRN = assetRes.results?.[0]?.resourceName;
+            if (assetRN) {
+              await mutateResource(accessToken, customerId, "campaignAssets", [{
+                create: { campaign: campaignResourceName, asset: assetRN, fieldType: "PRICE" },
+              }], managerCustomerId);
+              results.push({ action: "add_price", success: true, details: `${priceSet.type}: ${offerings.length} offerings` });
+            }
+          } catch (e: any) {
+            warnings.push(`Price "${priceSet.type}": ${e.message?.slice(0, 100)}`);
+          }
+        }
+      }
+
+
       if (gaps.needPhone && (generated.phone?.number || body.phoneNumber)) {
         const phoneNumber = generated.phone?.number || body.phoneNumber;
         const countryCode = generated.phone?.country || body.phoneCountry || "FR";
