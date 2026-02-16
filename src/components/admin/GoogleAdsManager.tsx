@@ -715,10 +715,24 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                               <>
                                 {/* Keywords */}
                                 <div>
-                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                                    <Key className="h-4 w-4" />
-                                    Mots-clés ({campaignKeywords.length})
-                                  </h4>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                                      <Key className="h-4 w-4" />
+                                      Mots-clés ({campaignKeywords.length})
+                                    </h4>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs gap-1"
+                                      onClick={() => {
+                                        const tabTrigger = document.querySelector('[data-value="keywords"]') as HTMLElement;
+                                        if (tabTrigger) tabTrigger.click();
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                      Ajouter des mots-clés
+                                    </Button>
+                                  </div>
                                   {campaignKeywords.length > 0 ? (
                                     <ScrollArea className="max-h-[300px]">
                                       <Table>
@@ -765,10 +779,24 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
                                 {/* Ads */}
                                 <div>
-                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                                    <FileText className="h-4 w-4" />
-                                    Annonces ({campaignAds.length})
-                                  </h4>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                                      <FileText className="h-4 w-4" />
+                                      Annonces ({campaignAds.length})
+                                    </h4>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs gap-1"
+                                      onClick={() => {
+                                        const tabTrigger = document.querySelector('[data-value="adgroups"]') as HTMLElement;
+                                        if (tabTrigger) tabTrigger.click();
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                      Ajouter des annonces
+                                    </Button>
+                                  </div>
                                   {campaignAds.length > 0 ? (
                                     <div className="space-y-3">
                                       {campaignAds.map((ad) => {
