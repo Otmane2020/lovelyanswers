@@ -53,7 +53,7 @@ serve(async (req) => {
       const keyword = keywords[i];
       console.log(`[generate-articles] Generating article ${i + 1}/${count} for keyword: ${keyword}`);
 
-      // Generate SEO/LLM optimized article using Lovable AI
+      // Generate SEO/LLM optimized article using OpenRouter AI
       const articlePrompt = `You are an expert SEO and AEO (Answer Engine Optimization) content writer. Generate a comprehensive, SEO-optimized article for the following:
 
 Business: ${project.brand_name || project.name}
