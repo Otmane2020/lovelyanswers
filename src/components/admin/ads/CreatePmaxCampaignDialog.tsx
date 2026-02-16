@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Loader2, Sparkles, Brain, Zap, Search, Link, Image, FileText, Users, ShieldCheck, Phone, Tag, DollarSign } from "lucide-react";
+import { Plus, Loader2, Sparkles, Brain, Zap, Search, Link, Image, FileText, Users, ShieldCheck, Phone, Tag, DollarSign, Video, X, Wand2 } from "lucide-react";
 
 const LOCATIONS = [
   { code: "FR", label: "🇫🇷 France" }, { code: "BE", label: "🇧🇪 Belgique" },
@@ -80,10 +80,13 @@ export function CreatePmaxCampaignDialog() {
   const [priceType, setPriceType] = useState("SERVICES");
   const [priceItems, setPriceItems] = useState("");
 
-  // Images & Logo
+  // Images, Logo & Videos
   const [businessLogoUrl, setBusinessLogoUrl] = useState("");
-  const [imageUrls, setImageUrls] = useState("");
-
+  const [landscapeImageUrls, setLandscapeImageUrls] = useState<string[]>([]);
+  const [squareImageUrls, setSquareImageUrls] = useState<string[]>([]);
+  const [portraitImageUrls, setPortraitImageUrls] = useState<string[]>([]);
+  const [youtubeVideoUrls, setYoutubeVideoUrls] = useState<string[]>([]);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   // Lead Form
   const [leadFormHeadline, setLeadFormHeadline] = useState("");
   const [leadFormDescription, setLeadFormDescription] = useState("");
@@ -135,7 +138,10 @@ export function CreatePmaxCampaignDialog() {
       setCallouts((data.callouts || []).join("\n"));
       setCallToAction(data.callToAction || "SIGN_UP");
       setBusinessLogoUrl(data.businessLogoUrl || "");
-      setImageUrls((data.imageUrls || []).join("\n"));
+      setLandscapeImageUrls(data.imageUrls || []);
+      setSquareImageUrls(data.squareImageUrls || []);
+      setPortraitImageUrls(data.portraitImageUrls || []);
+      setYoutubeVideoUrls(data.youtubeVideoUrls || []);
       setLeadFormHeadline(data.leadFormHeadline || "");
       setLeadFormDescription(data.leadFormDescription || "");
       setLeadFormFields((data.leadFormFields || []).join("\n"));
@@ -194,7 +200,10 @@ export function CreatePmaxCampaignDialog() {
         callouts: callouts.split("\n").map(s => s.trim()).filter(Boolean),
         callToAction,
         businessLogoUrl,
-        imageUrls: imageUrls.split("\n").map(s => s.trim()).filter(Boolean),
+        imageUrls: landscapeImageUrls,
+        squareImageUrls,
+        portraitImageUrls,
+        youtubeVideoUrls,
         leadForm: {
           headline: leadFormHeadline,
           description: leadFormDescription,
@@ -244,6 +253,35 @@ export function CreatePmaxCampaignDialog() {
 
   const updateSitelink = (index: number, field: keyof Sitelink, value: string) => {
     setSitelinks(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const handleGenerateAIImage = async (format: "landscape" | "square" | "portrait", dimensions: string) => {
+    setIsGeneratingImage(true);
+    try {
+      const prompt = `Professional marketing banner for "${brandName || "LovelyAnswers"}" - an AI-powered SEO & AEO platform. ${
+        format === "landscape" ? "Wide landscape format (1.91:1 ratio)" :
+        format === "square" ? "Square format (1:1 ratio)" :
+        "Portrait format (4:5 ratio)"
+      }. Modern, clean SaaS aesthetic with gradient background. Show data visualization, AI icons, search engine logos. Text: "Get Found by AI Search Engines". Ultra high resolution, ${dimensions}.`;
+
+      const { data, error } = await supabase.functions.invoke("generate-product-ai", {
+        body: { prompt, type: "image", dimensions },
+      });
+
+      if (error) throw error;
+      const imageUrl = data?.imageUrl;
+      if (!imageUrl) throw new Error("No image returned");
+
+      if (format === "landscape") setLandscapeImageUrls(prev => [...prev, imageUrl]);
+      else if (format === "square") setSquareImageUrls(prev => [...prev, imageUrl]);
+      else setPortraitImageUrls(prev => [...prev, imageUrl]);
+
+      toast({ title: "✨ Image générée", description: `Image ${format} ajoutée` });
+    } catch (err: any) {
+      toast({ title: "Erreur génération image", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   return (
@@ -447,12 +485,56 @@ export function CreatePmaxCampaignDialog() {
                 </Section>
 
                 <Separator />
-                <Section title="Images & Logo" icon={<Image className="h-4 w-4" />}>
-                  <Field label="Logo URL">
-                    <Input value={businessLogoUrl} onChange={e => setBusinessLogoUrl(e.target.value)} className="text-xs" placeholder="https://..." />
+                <Section title="Images, Logo & Vidéos" icon={<Image className="h-4 w-4" />}>
+                  {/* Logo */}
+                  <Field label="🏷️ Logo (carré 1:1, min 128x128px) — REQUIS">
+                    <div className="flex gap-2 items-start">
+                      <Input value={businessLogoUrl} onChange={e => setBusinessLogoUrl(e.target.value)} className="text-xs flex-1" placeholder="https://..." />
+                      {businessLogoUrl && (
+                        <img src={businessLogoUrl} alt="Logo" className="h-10 w-10 rounded border object-contain bg-white" onError={e => (e.currentTarget.style.display = "none")} />
+                      )}
+                    </div>
                   </Field>
-                  <Field label="Image URLs (1/ligne)">
-                    <Textarea value={imageUrls} onChange={e => setImageUrls(e.target.value)} rows={3} className="text-xs" placeholder="https://..." />
+
+                  {/* Brand Name */}
+                  <Field label="🏢 Business Name — REQUIS">
+                    <Input value={brandName} onChange={e => setBrandName(e.target.value)} className="text-xs" placeholder="LovelyAnswers" />
+                  </Field>
+
+                  <Separator className="my-2" />
+
+                  {/* Landscape Images (1.91:1) */}
+                  <Field label={`🖼️ Images paysage (1.91:1, 1200x628px) — ${landscapeImageUrls.length} ajoutées`}>
+                    <MediaUrlList urls={landscapeImageUrls} setUrls={setLandscapeImageUrls} placeholder="https://image-landscape.png" />
+                    <Button size="sm" variant="ghost" className="text-xs mt-1 gap-1" onClick={() => handleGenerateAIImage("landscape", "1200x628")} disabled={isGeneratingImage}>
+                      {isGeneratingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Générer avec IA
+                    </Button>
+                  </Field>
+
+                  {/* Square Images (1:1) */}
+                  <Field label={`🟦 Images carrées (1:1, 1200x1200px) — ${squareImageUrls.length} ajoutées`}>
+                    <MediaUrlList urls={squareImageUrls} setUrls={setSquareImageUrls} placeholder="https://image-square.png" />
+                    <Button size="sm" variant="ghost" className="text-xs mt-1 gap-1" onClick={() => handleGenerateAIImage("square", "1200x1200")} disabled={isGeneratingImage}>
+                      {isGeneratingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Générer avec IA
+                    </Button>
+                  </Field>
+
+                  {/* Portrait Images (4:5) */}
+                  <Field label={`📱 Images portrait (4:5, 960x1200px) — ${portraitImageUrls.length} ajoutées`}>
+                    <MediaUrlList urls={portraitImageUrls} setUrls={setPortraitImageUrls} placeholder="https://image-portrait.png" />
+                    <Button size="sm" variant="ghost" className="text-xs mt-1 gap-1" onClick={() => handleGenerateAIImage("portrait", "960x1200")} disabled={isGeneratingImage}>
+                      {isGeneratingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Générer avec IA
+                    </Button>
+                  </Field>
+
+                  <Separator className="my-2" />
+
+                  {/* YouTube Videos */}
+                  <Field label={`🎬 Vidéos YouTube — ${youtubeVideoUrls.length} ajoutées`}>
+                    <MediaUrlList urls={youtubeVideoUrls} setUrls={setYoutubeVideoUrls} placeholder="https://youtube.com/watch?v=..." />
                   </Field>
                 </Section>
 
@@ -619,6 +701,55 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function MediaUrlList({ urls, setUrls, placeholder }: { urls: string[]; setUrls: (fn: (prev: string[]) => string[]) => void; placeholder: string }) {
+  const [newUrl, setNewUrl] = useState("");
+  return (
+    <div className="space-y-1.5">
+      {urls.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {urls.map((url, i) => (
+            <div key={i} className="relative group">
+              {url.includes("youtube") || url.includes("youtu.be") ? (
+                <div className="h-16 w-24 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                  🎬 Video {i + 1}
+                </div>
+              ) : (
+                <img src={url} alt={`Asset ${i + 1}`} className="h-16 w-16 rounded border object-cover bg-white" onError={e => { (e.currentTarget as HTMLImageElement).src = ""; (e.currentTarget as HTMLImageElement).alt = "❌"; }} />
+              )}
+              <button
+                onClick={() => setUrls(prev => prev.filter((_, j) => j !== i))}
+                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <Input
+          value={newUrl}
+          onChange={e => setNewUrl(e.target.value)}
+          className="text-xs flex-1"
+          placeholder={placeholder}
+          onKeyDown={e => {
+            if (e.key === "Enter" && newUrl.trim()) {
+              e.preventDefault();
+              setUrls(prev => [...prev, newUrl.trim()]);
+              setNewUrl("");
+            }
+          }}
+        />
+        <Button size="sm" variant="outline" className="text-xs px-2" onClick={() => {
+          if (newUrl.trim()) { setUrls(prev => [...prev, newUrl.trim()]); setNewUrl(""); }
+        }}>
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,19 @@ const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v22";
 
 const cut = (s: string, n: number): string => s.length > n ? s.slice(0, n) : s;
 
+function extractYouTubeId(url: string): string {
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return url; // fallback: assume it's already an ID
+}
+
 // ─── Helpers ─────────────────────────────────────────────
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
@@ -190,7 +203,10 @@ interface PmaxParams {
   longHeadlines?: string[];
   descriptions: string[];
   imageUrls?: string[];
+  squareImageUrls?: string[];
+  portraitImageUrls?: string[];
   businessLogoUrl?: string;
+  youtubeVideoUrls?: string[];
   locations?: string[];
   language?: string;
   biddingStrategy: "maximize_conversions" | "target_cpa";
@@ -359,35 +375,48 @@ async function createPmaxFull(
     imagesAdded++;
   }
 
+  // ── Square Marketing Images ──
+  for (const imgUrl of (params.squareImageUrls || []).filter(u => u.trim()).slice(0, 10)) {
+    const b64 = await downloadImageAsBase64(imgUrl.trim());
+    if (!b64) { warnings.push(`Square image download failed: ${imgUrl}`); continue; }
+    const id = next();
+    ops.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: b64 }, name: `PMax Square ${Math.abs(id)}` } } });
+    ops.push({ assetGroupAssetOperation: { create: { assetGroup: `customers/${customerId}/assetGroups/${agTempId}`, asset: `customers/${customerId}/assets/${id}`, fieldType: "SQUARE_MARKETING_IMAGE" } } });
+    imagesAdded++;
+  }
+
+  // ── Portrait Marketing Images ──
+  for (const imgUrl of (params.portraitImageUrls || []).filter(u => u.trim()).slice(0, 5)) {
+    const b64 = await downloadImageAsBase64(imgUrl.trim());
+    if (!b64) { warnings.push(`Portrait image download failed: ${imgUrl}`); continue; }
+    const id = next();
+    ops.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: b64 }, name: `PMax Portrait ${Math.abs(id)}` } } });
+    ops.push({ assetGroupAssetOperation: { create: { assetGroup: `customers/${customerId}/assetGroups/${agTempId}`, asset: `customers/${customerId}/assets/${id}`, fieldType: "PORTRAIT_MARKETING_IMAGE" } } });
+    imagesAdded++;
+  }
+
   // ── Logo ──
   if (params.businessLogoUrl?.trim()) {
     const logoB64 = await downloadImageAsBase64(params.businessLogoUrl.trim());
     if (logoB64) {
       const id = next();
-      ops.push({
-        assetOperation: {
-          create: {
-            resourceName: `customers/${customerId}/assets/${id}`,
-            imageAsset: { data: logoB64 },
-            name: `PMax Logo`,
-          },
-        },
-      });
-      ops.push({
-        assetGroupAssetOperation: {
-          create: {
-            assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-            asset: `customers/${customerId}/assets/${id}`,
-            fieldType: "LOGO",
-          },
-        },
-      });
+      ops.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: logoB64 }, name: `PMax Logo` } } });
+      ops.push({ assetGroupAssetOperation: { create: { assetGroup: `customers/${customerId}/assetGroups/${agTempId}`, asset: `customers/${customerId}/assets/${id}`, fieldType: "LOGO" } } });
     } else {
       warnings.push("Logo download failed");
     }
   }
 
-  console.log(`[PMAX] Total ${ops.length} atomic ops (incl ${imagesAdded} images). Sending...`);
+  // ── YouTube Videos ──
+  let videosAdded = 0;
+  for (const videoUrl of (params.youtubeVideoUrls || []).filter(u => u.trim()).slice(0, 5)) {
+    const id = next();
+    ops.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, youtubeVideoAsset: { youtubeVideoId: extractYouTubeId(videoUrl.trim()) } } } });
+    ops.push({ assetGroupAssetOperation: { create: { assetGroup: `customers/${customerId}/assetGroups/${agTempId}`, asset: `customers/${customerId}/assets/${id}`, fieldType: "YOUTUBE_VIDEO" } } });
+    videosAdded++;
+  }
+
+  console.log(`[PMAX] Total ${ops.length} atomic ops (incl ${imagesAdded} images, ${videosAdded} videos). Sending...`);
 
   // ── Atomic Mutate (core campaign + asset group + assets) ──
   const atomicRes = await atomicMutate(accessToken, customerId, ops, managerCustomerId);
@@ -694,6 +723,7 @@ async function createPmaxFull(
     budgetResourceName,
     totalOperations: ops.length,
     imagesAdded,
+    videosAdded,
     searchThemes: params.searchThemes?.length || 0,
     headlines: params.headlines?.length || 0,
     descriptions: params.descriptions?.length || 0,
@@ -891,8 +921,87 @@ serve(async (req) => {
         break;
       }
 
+      // ─── UPDATE ASSETS (add images/logos/videos/text to existing campaign) ──
+      case "update_assets": {
+        if (!body.assetGroupResourceName) throw new Error("assetGroupResourceName required");
+        const updateWarnings: string[] = [];
+        const updateOps: unknown[] = [];
+        let updateTempId = -1;
+        const nextId = () => updateTempId--;
+
+        // Add Business Name
+        if (body.businessName?.trim()) {
+          const id = nextId();
+          updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, textAsset: { text: cut(body.businessName.trim(), 25) } } } });
+          updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "BUSINESS_NAME" } } });
+        }
+
+        // Add Logo
+        if (body.logoUrl?.trim()) {
+          const logoB64 = await downloadImageAsBase64(body.logoUrl.trim());
+          if (logoB64) {
+            const id = nextId();
+            updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: logoB64 }, name: `Logo Update ${Date.now()}` } } });
+            updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "LOGO" } } });
+          } else { updateWarnings.push("Logo download failed"); }
+        }
+
+        // Add Landscape Images
+        for (const url of (body.landscapeImageUrls || []).slice(0, 20)) {
+          if (!url?.trim()) continue;
+          const b64 = await downloadImageAsBase64(url.trim());
+          if (!b64) { updateWarnings.push(`Image failed: ${url}`); continue; }
+          const id = nextId();
+          updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: b64 }, name: `Landscape ${Math.abs(id)}` } } });
+          updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "MARKETING_IMAGE" } } });
+        }
+
+        // Add Square Images
+        for (const url of (body.squareImageUrls || []).slice(0, 10)) {
+          if (!url?.trim()) continue;
+          const b64 = await downloadImageAsBase64(url.trim());
+          if (!b64) { updateWarnings.push(`Square image failed: ${url}`); continue; }
+          const id = nextId();
+          updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: b64 }, name: `Square ${Math.abs(id)}` } } });
+          updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "SQUARE_MARKETING_IMAGE" } } });
+        }
+
+        // Add Portrait Images
+        for (const url of (body.portraitImageUrls || []).slice(0, 5)) {
+          if (!url?.trim()) continue;
+          const b64 = await downloadImageAsBase64(url.trim());
+          if (!b64) { updateWarnings.push(`Portrait image failed: ${url}`); continue; }
+          const id = nextId();
+          updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, imageAsset: { data: b64 }, name: `Portrait ${Math.abs(id)}` } } });
+          updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "PORTRAIT_MARKETING_IMAGE" } } });
+        }
+
+        // Add YouTube Videos
+        for (const url of (body.youtubeVideoUrls || []).slice(0, 5)) {
+          if (!url?.trim()) continue;
+          const id = nextId();
+          updateOps.push({ assetOperation: { create: { resourceName: `customers/${customerId}/assets/${id}`, youtubeVideoAsset: { youtubeVideoId: extractYouTubeId(url.trim()) } } } });
+          updateOps.push({ assetGroupAssetOperation: { create: { assetGroup: body.assetGroupResourceName, asset: `customers/${customerId}/assets/${id}`, fieldType: "YOUTUBE_VIDEO" } } });
+        }
+
+        if (updateOps.length === 0) throw new Error("No assets to update");
+
+        await atomicMutate(accessToken, customerId, updateOps, managerCustomerId);
+
+        await supabase.from("ads_actions").insert({
+          user_id: user.id,
+          action_type: "update_pmax_assets",
+          target_name: body.campaignName || "PMax",
+          description: `Added ${updateOps.length / 2} assets (logos, images, videos)`,
+          status: "executed",
+        });
+
+        result = { success: true, assetsAdded: updateOps.length / 2, warnings: updateWarnings };
+        break;
+      }
+
       default:
-        throw new Error(`Unknown action: ${action}. Use: create, update_budget, update_cpa, set_status`);
+        throw new Error(`Unknown action: ${action}. Use: create, update_budget, update_cpa, set_status, update_assets`);
     }
 
     return new Response(JSON.stringify(result), {
