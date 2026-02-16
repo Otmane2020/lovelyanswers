@@ -30,9 +30,10 @@ interface SyncedCampaign {
 
 interface RoasTabProps {
   campaigns: SyncedCampaign[];
+  googleCustomerId?: string;
 }
 
-export function RoasTab({ campaigns }: RoasTabProps) {
+export function RoasTab({ campaigns, googleCustomerId }: RoasTabProps) {
   const [showCampaignPicker, setShowCampaignPicker] = useState(false);
   const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
@@ -211,7 +212,7 @@ export function RoasTab({ campaigns }: RoasTabProps) {
 
       <ReportHistory reports={previousReports} isLoading={isLoadingHistory} onLoad={loadReport} focusType="roas" onRefresh={loadPreviousReports} />
 
-      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser le ROAS" />
+      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser le ROAS" googleCustomerId={googleCustomerId} />
 
       <Card>
         <CardHeader>

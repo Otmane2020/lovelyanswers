@@ -34,7 +34,11 @@ interface AdGroupData {
   currentStatus: string;
 }
 
-export function AdGroupsTab() {
+interface AdGroupsTabProps {
+  googleCustomerId?: string;
+}
+
+export function AdGroupsTab({ googleCustomerId }: AdGroupsTabProps) {
   const [adGroups, setAdGroups] = useState<AdGroupData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
@@ -45,18 +49,36 @@ export function AdGroupsTab() {
   useEffect(() => {
     loadAdGroups();
     loadPreviousReports("ad_groups");
-  }, []);
+  }, [googleCustomerId]);
 
   const loadAdGroups = async () => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data: ads } = await supabase
+
+      // If we have a googleCustomerId, first get the campaign_sync ids for that account
+      let campaignSyncIds: string[] | null = null;
+      if (googleCustomerId) {
+        const { data: campaigns } = await supabase
+          .from("campaigns_sync")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .eq("google_customer_id", googleCustomerId);
+        campaignSyncIds = (campaigns || []).map(c => c.id);
+      }
+
+      let query = supabase
         .from("ads_sync")
         .select("*")
         .eq("user_id", session.user.id)
         .order("clicks", { ascending: false });
+      
+      if (campaignSyncIds !== null) {
+        query = query.in("campaign_sync_id", campaignSyncIds);
+      }
+
+      const { data: ads } = await query;
 
       const grouped: Record<string, AdGroupData> = {};
       for (const ad of (ads || [])) {
@@ -153,6 +175,7 @@ export function AdGroupsTab() {
         onOpenChange={setShowCampaignPicker}
         onSelect={handleCampaignSelected}
         title="Analyser les Ad Groups"
+        googleCustomerId={googleCustomerId}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

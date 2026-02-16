@@ -30,9 +30,10 @@ interface SyncedCampaign {
 
 interface StrategyTabProps {
   campaigns: SyncedCampaign[];
+  googleCustomerId?: string;
 }
 
-export function StrategyTab({ campaigns }: StrategyTabProps) {
+export function StrategyTab({ campaigns, googleCustomerId }: StrategyTabProps) {
   const [showCampaignPicker, setShowCampaignPicker] = useState(false);
   const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
@@ -185,7 +186,7 @@ export function StrategyTab({ campaigns }: StrategyTabProps) {
 
       <ReportHistory reports={previousReports} isLoading={isLoadingHistory} onLoad={loadReport} focusType="strategy" onRefresh={loadPreviousReports} />
 
-      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser la stratégie" />
+      <CampaignSelectDialog open={showCampaignPicker} onOpenChange={setShowCampaignPicker} onSelect={handleCampaignSelected} title="Analyser la stratégie" googleCustomerId={googleCustomerId} />
 
       <Card>
         <CardHeader>

@@ -28,9 +28,10 @@ interface CampaignSelectDialogProps {
   onOpenChange: (open: boolean) => void;
   onSelect: (campaignId: string | null, campaignName: string) => void;
   title?: string;
+  googleCustomerId?: string;
 }
 
-export function CampaignSelectDialog({ open, onOpenChange, onSelect, title = "Sélectionner une campagne" }: CampaignSelectDialogProps) {
+export function CampaignSelectDialog({ open, onOpenChange, onSelect, title = "Sélectionner une campagne", googleCustomerId }: CampaignSelectDialogProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,11 +44,15 @@ export function CampaignSelectDialog({ open, onOpenChange, onSelect, title = "S�
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase
+      let query = supabase
         .from("campaigns_sync")
         .select("id, google_campaign_id, name, status, advertising_channel_type, spend_7d, clicks_7d, conversions_7d")
         .eq("user_id", session.user.id)
         .order("spend_7d", { ascending: false });
+      if (googleCustomerId) {
+        query = query.eq("google_customer_id", googleCustomerId);
+      }
+      const { data } = await query;
       setCampaigns((data as Campaign[]) || []);
     } finally {
       setIsLoading(false);

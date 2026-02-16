@@ -407,6 +407,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
   const isConnected = connectionInfo?.status === "connected";
   const hasAccount = connectionInfo?.account_id && connectionInfo.account_id !== "pending";
+  const selectedCustomerId = hasAccount ? (connectionInfo.account_id as string).replace(/-/g, "") : undefined;
   const conversionId = connectionInfo?.account_id ? `AW-${connectionInfo.account_id}` : "AW-XXXXXXXXXX";
 
   return (
@@ -457,7 +458,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                   <p className="font-medium">Google Ads connecté</p>
                   {hasAccount ? (
                     <p className="text-sm text-muted-foreground">
-                      Compte: {connectionInfo?.metadata?.account_name || connectionInfo?.account_id}
+                      Compte: {connectionInfo?.metadata?.account_name || `Account ${connectionInfo?.account_id}`}
                     </p>
                   ) : (
                     <p className="text-sm text-orange-600">⚠️ Aucun compte sélectionné — Chargez la liste des comptes</p>
@@ -849,6 +850,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                 handleAnalyze("all", campaignId || undefined);
               }}
               title="Lancer l'audit"
+              googleCustomerId={selectedCustomerId}
             />
 
             <ReportHistory
@@ -895,22 +897,22 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
           {/* Keywords Tab */}
           <TabsContent value="keywords-analysis">
-            <KeywordsTab />
+            <KeywordsTab googleCustomerId={selectedCustomerId} />
           </TabsContent>
 
           {/* Ad Groups Tab */}
           <TabsContent value="adgroups-analysis">
-            <AdGroupsTab />
+            <AdGroupsTab googleCustomerId={selectedCustomerId} />
           </TabsContent>
 
           {/* ROAS Tab */}
           <TabsContent value="roas-analysis">
-            <RoasTab campaigns={syncedCampaigns} />
+            <RoasTab campaigns={syncedCampaigns} googleCustomerId={selectedCustomerId} />
           </TabsContent>
 
           {/* Strategy Tab */}
           <TabsContent value="strategy-analysis">
-            <StrategyTab campaigns={syncedCampaigns} />
+            <StrategyTab campaigns={syncedCampaigns} googleCustomerId={selectedCustomerId} />
           </TabsContent>
 
           {/* Conversions Tab */}
