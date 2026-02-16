@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,12 @@ export function CreatePmaxCampaignDialog() {
   const toggleLocation = (code: string) => {
     setSelectedLocations(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
   };
+
+  useEffect(() => {
+    if (open && !aiGenerated && !isGenerating) {
+      handleAIGenerate();
+    }
+  }, [open]);
 
   const handleAIGenerate = async () => {
     setIsGenerating(true);
@@ -252,16 +258,7 @@ export function CreatePmaxCampaignDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        {!aiGenerated && !isGenerating && (
-          <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center space-y-3 bg-primary/5">
-            <Brain className="h-10 w-10 mx-auto text-primary" />
-            <div>
-              <p className="font-semibold">Génération IA complète</p>
-              <p className="text-sm text-muted-foreground">Search themes, headlines, sitelinks, callouts, images, lead form, audiences...</p>
-            </div>
-            <Button onClick={handleAIGenerate} className="gap-2"><Sparkles className="h-4 w-4" />Générer avec l'IA</Button>
-          </div>
-        )}
+        
 
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-12 space-y-3">
