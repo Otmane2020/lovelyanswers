@@ -166,16 +166,20 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
   const [agResults, agaResults, stResults, campaignAssetResults] = await Promise.all([
     executeGAQLQuery(accessToken, customerId, `
       SELECT asset_group.id, asset_group.name, asset_group.status, asset_group.ad_strength,
-        asset_group.final_urls, asset_group.resource_name
+        asset_group.final_urls, asset_group.resource_name, asset_group.path1, asset_group.path2
       FROM asset_group WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
       SELECT asset_group_asset.asset_group, asset_group_asset.field_type,
         asset.id, asset.text_asset.text, asset.image_asset.full_size.url,
+        asset.youtube_video_asset.youtube_video_id, asset.youtube_video_asset.youtube_video_title,
         asset.sitelink_asset.link_text, asset.sitelink_asset.description1, asset.sitelink_asset.description2,
         asset.call_asset.phone_number, asset.call_asset.country_code,
         asset.lead_form_asset.headline, asset.lead_form_asset.description,
-        asset.callout_asset.callout_text
+        asset.callout_asset.callout_text,
+        asset.promotion_asset.promotion_target, asset.promotion_asset.discount_modifier,
+        asset.price_asset.type, asset.price_asset.price_qualifier,
+        asset.structured_snippet_asset.header, asset.structured_snippet_asset.values
       FROM asset_group_asset WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
     executeGAQLQuery(accessToken, customerId, `
@@ -187,7 +191,10 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
         asset.sitelink_asset.link_text, asset.sitelink_asset.final_urls,
         asset.call_asset.phone_number, asset.call_asset.country_code,
         asset.lead_form_asset.headline,
-        asset.callout_asset.callout_text
+        asset.callout_asset.callout_text,
+        asset.promotion_asset.promotion_target, asset.promotion_asset.discount_modifier,
+        asset.price_asset.type,
+        asset.structured_snippet_asset.header, asset.structured_snippet_asset.values
       FROM campaign_asset WHERE campaign.id = ${campaignId}
     `, managerCustomerId),
   ]);
@@ -200,6 +207,8 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
     adStrength: r.assetGroup?.adStrength,
     resourceName: r.assetGroup?.resourceName,
     finalUrls: r.assetGroup?.finalUrls || [],
+    path1: r.assetGroup?.path1 || "",
+    path2: r.assetGroup?.path2 || "",
   }));
 
   // Parse assets by group
@@ -209,20 +218,26 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
     if (!assetsByGroup[groupId]) {
       assetsByGroup[groupId] = {
         headlines: [], descriptions: [], longHeadlines: [], images: [], logos: [],
-        businessName: null, sitelinks: [], callouts: [], phones: [], leadForms: [],
+        videos: [], businessName: null, sitelinks: [], callouts: [], phones: [], leadForms: [],
+        promotions: [], prices: [], snippets: [],
       };
     }
     const g = assetsByGroup[groupId];
     const ft = r.assetGroupAsset?.fieldType;
     const text = r.asset?.textAsset?.text;
     const imgUrl = r.asset?.imageAsset?.fullSize?.url;
+    const videoId = r.asset?.youtubeVideoAsset?.youtubeVideoId;
 
     if (ft === "HEADLINE" && text) g.headlines.push(text);
     else if (ft === "DESCRIPTION" && text) g.descriptions.push(text);
     else if (ft === "LONG_HEADLINE" && text) g.longHeadlines.push(text);
     else if (ft === "MARKETING_IMAGE" && imgUrl) g.images.push(imgUrl);
     else if (ft === "LOGO" && imgUrl) g.logos.push(imgUrl);
+    else if (ft === "YOUTUBE_VIDEO" && videoId) g.videos.push(videoId);
     else if (ft === "BUSINESS_NAME" && text) g.businessName = text;
+    else if (ft === "PROMOTION") g.promotions.push(r.asset?.promotionAsset || {});
+    else if (ft === "PRICE") g.prices.push(r.asset?.priceAsset || {});
+    else if (ft === "STRUCTURED_SNIPPET") g.snippets.push(r.asset?.structuredSnippetAsset || {});
   }
 
   // Parse search themes
@@ -240,6 +255,9 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
     phones: [] as any[],
     leadForms: [] as any[],
     callouts: [] as string[],
+    promotions: [] as any[],
+    prices: [] as any[],
+    snippets: [] as any[],
   };
   for (const r of (campaignAssetResults as any[])) {
     const ft = r.campaignAsset?.fieldType;
@@ -264,6 +282,9 @@ async function fetchPmaxState(accessToken: string, customerId: string, campaignI
     if (ft === "CALLOUT" && r.asset?.calloutAsset?.calloutText) {
       campaignAssets.callouts.push(r.asset.calloutAsset.calloutText);
     }
+    if (ft === "PROMOTION") campaignAssets.promotions.push(r.asset?.promotionAsset || {});
+    if (ft === "PRICE") campaignAssets.prices.push(r.asset?.priceAsset || {});
+    if (ft === "STRUCTURED_SNIPPET") campaignAssets.snippets.push(r.asset?.structuredSnippetAsset || {});
   }
 
   return {
@@ -325,6 +346,7 @@ serve(async (req) => {
         maxImages: 20,
         logos: ag?.assets?.logos?.length || 0,
         maxLogos: 5,
+        videos: ag?.assets?.videos?.length || 0,
         searchThemes: ag?.searchThemes?.length || 0,
         maxSearchThemes: 25,
         sitelinks: state.campaignAssets.sitelinks.length,
@@ -333,6 +355,10 @@ serve(async (req) => {
         leadForms: state.campaignAssets.leadForms.length,
         callouts: state.campaignAssets.callouts.length,
         maxCallouts: 10,
+        promotions: state.campaignAssets.promotions.length + (ag?.assets?.promotions?.length || 0),
+        prices: state.campaignAssets.prices.length + (ag?.assets?.prices?.length || 0),
+        snippets: state.campaignAssets.snippets.length + (ag?.assets?.snippets?.length || 0),
+        displayPath: ag?.path1 ? `/${ag.path1}${ag.path2 ? "/" + ag.path2 : ""}` : null,
         currentAssets: {
           headlines: ag?.assets?.headlines || [],
           descriptions: ag?.assets?.descriptions || [],
@@ -342,6 +368,10 @@ serve(async (req) => {
           callouts: state.campaignAssets.callouts,
           phones: state.campaignAssets.phones,
           leadForms: state.campaignAssets.leadForms,
+          promotions: state.campaignAssets.promotions,
+          prices: state.campaignAssets.prices,
+          snippets: state.campaignAssets.snippets,
+          videos: ag?.assets?.videos || [],
           images: ag?.assets?.images?.length || 0,
           logos: ag?.assets?.logos?.length || 0,
         },
