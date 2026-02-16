@@ -972,6 +972,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                           { label: "Thèmes recherche", current: pmaxAnalysis.searchThemes, max: pmaxAnalysis.maxSearchThemes, icon: "🔍" },
                                           { label: "Sitelinks", current: pmaxAnalysis.sitelinks, max: pmaxAnalysis.maxSitelinks, icon: "🔗" },
                                           { label: "Accroches", current: pmaxAnalysis.callouts, max: pmaxAnalysis.maxCallouts, icon: "💬" },
+                                          { label: "Audiences", current: pmaxAnalysis.audienceSignals || 0, max: 3, icon: "👥" },
                                           { label: "Promotions", current: pmaxAnalysis.promotions || 0, max: 6, icon: "🏷️" },
                                           { label: "Prix", current: pmaxAnalysis.prices || 0, max: 8, icon: "💰" },
                                           { label: "Extraits", current: pmaxAnalysis.snippets || 0, max: 4, icon: "📋" },
@@ -1003,6 +1004,25 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                           </Badge>
                                         </div>
                                        </div>
+
+                                      {/* Audience Signals Detail */}
+                                      {pmaxAnalysis.currentAssets?.audienceSignals?.length > 0 && (
+                                        <div className="pt-2 border-t">
+                                          <p className="text-xs font-semibold mb-1">👥 Audience Signals</p>
+                                          <div className="flex flex-wrap gap-1">
+                                            {pmaxAnalysis.currentAssets.audienceSignals.map((a: any, i: number) => (
+                                              <Badge key={i} variant="outline" className="text-[10px]">
+                                                {a.name}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {(!pmaxAnalysis.currentAssets?.audienceSignals || pmaxAnalysis.currentAssets.audienceSignals.length === 0) && (
+                                        <div className="pt-2 border-t">
+                                          <p className="text-xs text-muted-foreground">👥 Aucun signal d'audience — cliquez "Optimiser avec AI" pour en ajouter automatiquement</p>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
 
