@@ -23,7 +23,7 @@ import {
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
   Download, CheckCircle, AlertCircle, Building2, Brain, Zap, TrendingUp, BarChart3, Lightbulb,
-  Code, Copy, Tag, Calendar
+  Code, Copy, Tag, Calendar, Wand2, Phone, FileSpreadsheet, Link, Image, CheckCircle2
 } from "lucide-react";
 
 interface GoogleAdsAccount {
@@ -156,6 +156,9 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   const [campaignAds, setCampaignAds] = useState<SyncedAd[]>([]);
   const [pmaxAssets, setPmaxAssets] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizeResults, setOptimizeResults] = useState<any>(null);
+  const [pmaxAnalysis, setPmaxAnalysis] = useState<any>(null);
 
   // Period selector
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>("7d");
@@ -395,6 +398,62 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
       setIsLoadingDetails(false);
+    }
+  };
+
+  const handleAnalyzePmax = async (campaignId: string) => {
+    setPmaxAnalysis(null);
+    setOptimizeResults(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("optimize-pmax", {
+        body: { action: "analyze", campaignId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPmaxAnalysis(data.analysis);
+    } catch (err: any) {
+      toast({ title: "Erreur analyse PMax", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleOptimizePmax = async (campaignId: string, options: Record<string, any> = {}) => {
+    setIsOptimizing(true);
+    setOptimizeResults(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("optimize-pmax", {
+        body: {
+          action: "optimize",
+          campaignId,
+          brandName: options.brandName,
+          websiteUrl: options.websiteUrl,
+          businessDescription: options.businessDescription,
+          language: options.language || "fr",
+          phoneNumber: options.phoneNumber,
+          phoneCountry: options.phoneCountry || "FR",
+          privacyPolicyUrl: options.privacyPolicyUrl,
+          imageUrls: options.imageUrls,
+          options: {
+            sitelinks: options.sitelinks !== false,
+            callouts: options.callouts !== false,
+            phone: !!options.phoneNumber,
+            leadForm: options.leadForm === true,
+            images: !!options.imageUrls?.length,
+          },
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setOptimizeResults(data);
+      toast({
+        title: `✅ ${data.applied} assets ajoutés`,
+        description: data.warnings?.length ? `${data.warnings.length} warnings` : "Optimisation terminée",
+      });
+      // Refresh campaign details
+      handleLoadCampaignDetails(campaignId);
+    } catch (err: any) {
+      toast({ title: "Erreur optimisation", description: err.message, variant: "destructive" });
+    } finally {
+      setIsOptimizing(false);
     }
   };
 
@@ -861,6 +920,111 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                     </div>
                                   ) : (
                                     <p className="text-sm text-muted-foreground text-center py-4">Aucun asset group trouvé</p>
+                                  )}
+                                </div>
+
+                                {/* PMax Optimize Section */}
+                                <Separator />
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                                      <Wand2 className="h-4 w-4" />
+                                      Optimisation AI
+                                    </h4>
+                                    <div className="flex gap-2">
+                                      {!pmaxAnalysis && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 text-xs gap-1"
+                                          onClick={() => handleAnalyzePmax(campaign.google_campaign_id)}
+                                        >
+                                          <Brain className="h-3 w-3" />
+                                          Analyser
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        className="h-7 text-xs gap-1"
+                                        disabled={isOptimizing}
+                                        onClick={() => handleOptimizePmax(campaign.google_campaign_id, {
+                                          brandName: pmaxAnalysis?.currentAssets?.businessName || campaign.name,
+                                          websiteUrl: pmaxAnalysis?.finalUrl,
+                                          leadForm: true,
+                                        })}
+                                      >
+                                        {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                                        {isOptimizing ? "Optimisation..." : "Optimiser avec AI"}
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Analysis Results */}
+                                  {pmaxAnalysis && (
+                                    <div className="border rounded-md p-3 space-y-2 bg-muted/30">
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Diagnostic</p>
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                        {[
+                                          { label: "Headlines", current: pmaxAnalysis.headlines, max: pmaxAnalysis.maxHeadlines, icon: "📝" },
+                                          { label: "Descriptions", current: pmaxAnalysis.descriptions, max: pmaxAnalysis.maxDescriptions, icon: "📄" },
+                                          { label: "Long Headlines", current: pmaxAnalysis.longHeadlines, max: pmaxAnalysis.maxLongHeadlines, icon: "📰" },
+                                          { label: "Images", current: pmaxAnalysis.images, max: pmaxAnalysis.maxImages, icon: "🖼️" },
+                                          { label: "Logos", current: pmaxAnalysis.logos, max: pmaxAnalysis.maxLogos, icon: "🏷️" },
+                                          { label: "Search Themes", current: pmaxAnalysis.searchThemes, max: pmaxAnalysis.maxSearchThemes, icon: "🔍" },
+                                          { label: "Sitelinks", current: pmaxAnalysis.sitelinks, max: pmaxAnalysis.maxSitelinks, icon: "🔗" },
+                                          { label: "Callouts", current: pmaxAnalysis.callouts, max: pmaxAnalysis.maxCallouts, icon: "💬" },
+                                        ].map((item, i) => (
+                                          <div key={i} className="text-center border rounded p-2 bg-background">
+                                            <p className="text-xs text-muted-foreground">{item.icon} {item.label}</p>
+                                            <p className={`text-sm font-bold ${item.current >= item.max ? "text-green-600" : item.current > 0 ? "text-amber-600" : "text-red-600"}`}>
+                                              {item.current}/{item.max}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-3 pt-1">
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <Phone className="h-3 w-3" />
+                                          <span>Téléphone: {pmaxAnalysis.phones > 0 ? "✅" : "❌"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <FileSpreadsheet className="h-3 w-3" />
+                                          <span>Lead Form: {pmaxAnalysis.leadForms > 0 ? "✅" : "❌"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <Badge variant={pmaxAnalysis.adStrength === "EXCELLENT" ? "default" : pmaxAnalysis.adStrength === "GOOD" ? "secondary" : "destructive"} className="text-[10px]">
+                                            Strength: {pmaxAnalysis.adStrength}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Optimize Results */}
+                                  {optimizeResults && (
+                                    <div className="border rounded-md p-3 space-y-2 bg-green-50/50 dark:bg-green-950/20">
+                                      <p className="text-xs font-semibold flex items-center gap-1 text-green-700 dark:text-green-400">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        {optimizeResults.applied} assets ajoutés avec succès
+                                      </p>
+                                      <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                                        {optimizeResults.results?.filter((r: any) => r.success).map((r: any, i: number) => (
+                                          <div key={i} className="flex items-center gap-2 text-xs">
+                                            <CheckCircle className="h-3 w-3 text-green-600 shrink-0" />
+                                            <Badge variant="outline" className="text-[10px] shrink-0">{r.action.replace("add_", "")}</Badge>
+                                            <span className="text-muted-foreground truncate">{r.details}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {optimizeResults.warnings?.length > 0 && (
+                                        <div className="pt-2 border-t space-y-1">
+                                          <p className="text-xs text-amber-600 font-semibold">⚠️ {optimizeResults.warnings.length} warnings</p>
+                                          {optimizeResults.warnings.slice(0, 5).map((w: string, i: number) => (
+                                            <p key={i} className="text-[10px] text-muted-foreground">{w}</p>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </>
