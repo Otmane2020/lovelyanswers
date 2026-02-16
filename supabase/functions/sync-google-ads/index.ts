@@ -559,7 +559,104 @@ serve(async (req) => {
       const { data: keywords } = await supabase.from("keywords_sync").select("*").eq("campaign_sync_id", campaignSync.id).order("clicks", { ascending: false });
       const { data: ads } = await supabase.from("ads_sync").select("*").eq("campaign_sync_id", campaignSync.id).order("clicks", { ascending: false });
 
-      return new Response(JSON.stringify({ success: true, campaign: campaignSync, keywords: keywords || [], ads: ads || [] }), {
+      // For PMax campaigns, also fetch asset groups & assets from the API
+      let pmaxAssets = null;
+      if (campaignSync.advertising_channel_type === "PERFORMANCE_MAX") {
+        try {
+          // Fetch asset groups
+          const assetGroupQuery = `
+            SELECT asset_group.id, asset_group.name, asset_group.status, asset_group.ad_strength,
+              asset_group.primary_status, asset_group.primary_status_reasons
+            FROM asset_group WHERE campaign.id = ${campaignId}
+          `;
+          const agResult = await executeGAQLQuery(accessToken, customerId, assetGroupQuery, managerCustomerId);
+
+          // Fetch asset group assets with details
+          const assetGroupAssetsQuery = `
+            SELECT asset_group_asset.asset_group, asset_group_asset.asset, asset_group_asset.field_type,
+              asset_group_asset.status, asset_group_asset.performance_label,
+              asset.id, asset.name, asset.type, asset.text_asset.text, asset.image_asset.full_size.url,
+              asset.final_url_field_value
+            FROM asset_group_asset WHERE campaign.id = ${campaignId}
+          `;
+          const agaResult = await executeGAQLQuery(accessToken, customerId, assetGroupAssetsQuery, managerCustomerId);
+
+          // Fetch asset group listing group filters (search themes)
+          const listingGroupQuery = `
+            SELECT asset_group_listing_group_filter.asset_group,
+              asset_group_listing_group_filter.type,
+              asset_group_listing_group_filter.case_value.product_channel.channel,
+              asset_group_listing_group_filter.case_value.product_type.value
+            FROM asset_group_listing_group_filter WHERE campaign.id = ${campaignId}
+          `;
+          const lgResult = await executeGAQLQuery(accessToken, customerId, listingGroupQuery, managerCustomerId);
+
+          // Fetch search themes for asset groups
+          const searchThemeQuery = `
+            SELECT asset_group_signal.asset_group, asset_group_signal.search_theme.text
+            FROM asset_group_signal WHERE campaign.id = ${campaignId}
+          `;
+          const stResult = await executeGAQLQuery(accessToken, customerId, searchThemeQuery, managerCustomerId);
+
+          // Process asset groups
+          const assetGroups = (agResult.results as any[]).map((r: any) => {
+            const ag = r.assetGroup;
+            return {
+              id: ag.id,
+              name: ag.name,
+              status: ag.status,
+              adStrength: ag.adStrength,
+              primaryStatus: ag.primaryStatus,
+              primaryStatusReasons: ag.primaryStatusReasons,
+            };
+          });
+
+          // Process assets by field type
+          const assetsByGroup: Record<string, { headlines: string[]; descriptions: string[]; longHeadlines: string[]; images: string[]; logos: string[]; videos: string[]; callToActions: string[]; businessName: string | null; finalUrls: string[] }> = {};
+          for (const r of (agaResult.results as any[])) {
+            const aga = r.assetGroupAsset;
+            const asset = r.asset;
+            const groupId = aga.assetGroup?.split("/").pop() || "unknown";
+            if (!assetsByGroup[groupId]) {
+              assetsByGroup[groupId] = { headlines: [], descriptions: [], longHeadlines: [], images: [], logos: [], videos: [], callToActions: [], businessName: null, finalUrls: [] };
+            }
+            const g = assetsByGroup[groupId];
+            const fieldType = aga.fieldType;
+            const text = asset?.textAsset?.text;
+            const imageUrl = asset?.imageAsset?.fullSize?.url;
+            
+            if (fieldType === "HEADLINE" && text) g.headlines.push(text);
+            else if (fieldType === "DESCRIPTION" && text) g.descriptions.push(text);
+            else if (fieldType === "LONG_HEADLINE" && text) g.longHeadlines.push(text);
+            else if (fieldType === "MARKETING_IMAGE" && imageUrl) g.images.push(imageUrl);
+            else if (fieldType === "LOGO" && imageUrl) g.logos.push(imageUrl);
+            else if (fieldType === "YOUTUBE_VIDEO") g.videos.push(asset?.name || "Video");
+            else if (fieldType === "CALL_TO_ACTION_SELECTION" && text) g.callToActions.push(text);
+            else if (fieldType === "BUSINESS_NAME" && text) g.businessName = text;
+          }
+
+          // Process search themes
+          const searchThemes: Record<string, string[]> = {};
+          for (const r of (stResult.results as any[])) {
+            const groupId = r.assetGroupSignal?.assetGroup?.split("/").pop() || "unknown";
+            const theme = r.assetGroupSignal?.searchTheme?.text;
+            if (!searchThemes[groupId]) searchThemes[groupId] = [];
+            if (theme) searchThemes[groupId].push(theme);
+          }
+
+          pmaxAssets = {
+            assetGroups: assetGroups.map((ag: any) => ({
+              ...ag,
+              assets: assetsByGroup[ag.id] || { headlines: [], descriptions: [], longHeadlines: [], images: [], logos: [], videos: [], callToActions: [], businessName: null, finalUrls: [] },
+              searchThemes: searchThemes[ag.id] || [],
+            })),
+          };
+        } catch (pmaxErr) {
+          console.error("[SYNC] PMax assets fetch error:", pmaxErr);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, campaign: campaignSync, keywords: keywords || [], ads: ads || [], pmaxAssets }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

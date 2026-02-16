@@ -154,6 +154,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [campaignKeywords, setCampaignKeywords] = useState<SyncedKeyword[]>([]);
   const [campaignAds, setCampaignAds] = useState<SyncedAd[]>([]);
+  const [pmaxAssets, setPmaxAssets] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Period selector
@@ -389,6 +390,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
       if (error) throw error;
       setCampaignKeywords(data?.keywords || []);
       setCampaignAds(data?.ads || []);
+      setPmaxAssets(data?.pmaxAssets || null);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
@@ -714,13 +716,121 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                             ) : campaign.advertising_channel_type === "PERFORMANCE_MAX" ? (
                               /* ═══ PMax Campaign Detail ═══ */
                               <>
-                                {/* Asset Groups (from ads_sync) */}
+                                {/* Asset Groups from API */}
                                 <div>
                                   <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
                                     <Target className="h-4 w-4" />
                                     Asset Groups
                                   </h4>
-                                  {campaignAds.length > 0 ? (
+                                  {pmaxAssets?.assetGroups && pmaxAssets.assetGroups.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {pmaxAssets.assetGroups.map((ag: any) => (
+                                        <div key={ag.id} className="border rounded-md p-3 space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium">{ag.name || "Asset Group"}</span>
+                                            <div className="flex items-center gap-2">
+                                              {ag.adStrength && (
+                                                <Badge variant={ag.adStrength === "EXCELLENT" ? "default" : ag.adStrength === "GOOD" ? "secondary" : "outline"} className="text-xs">{ag.adStrength}</Badge>
+                                              )}
+                                              <Badge variant={ag.status === "ENABLED" ? "default" : "outline"} className="text-xs">
+                                                {ag.status}
+                                              </Badge>
+                                            </div>
+                                          </div>
+
+                                          {ag.assets?.businessName && (
+                                            <p className="text-xs text-muted-foreground">🏢 {ag.assets.businessName}</p>
+                                          )}
+
+                                          {ag.assets?.headlines?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Headlines ({ag.assets.headlines.length})</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {ag.assets.headlines.map((h: string, i: number) => (
+                                                  <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {ag.assets?.longHeadlines?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Long Headlines ({ag.assets.longHeadlines.length})</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {ag.assets.longHeadlines.map((h: string, i: number) => (
+                                                  <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {ag.assets?.descriptions?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Descriptions ({ag.assets.descriptions.length})</p>
+                                              {ag.assets.descriptions.map((d: string, i: number) => (
+                                                <p key={i} className="text-xs text-muted-foreground">{d}</p>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {ag.searchThemes?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Search Themes ({ag.searchThemes.length})</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {ag.searchThemes.map((t: string, i: number) => (
+                                                  <Badge key={i} variant="outline" className="text-xs">{t}</Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          <div className="grid grid-cols-4 gap-2 pt-1 border-t">
+                                            <div className="text-center">
+                                              <p className="text-lg font-bold">{ag.assets?.images?.length || 0}</p>
+                                              <p className="text-[10px] text-muted-foreground">Images</p>
+                                            </div>
+                                            <div className="text-center">
+                                              <p className="text-lg font-bold">{ag.assets?.logos?.length || 0}</p>
+                                              <p className="text-[10px] text-muted-foreground">Logos</p>
+                                            </div>
+                                            <div className="text-center">
+                                              <p className="text-lg font-bold">{ag.assets?.videos?.length || 0}</p>
+                                              <p className="text-[10px] text-muted-foreground">Videos</p>
+                                            </div>
+                                            <div className="text-center">
+                                              <p className="text-lg font-bold">{ag.assets?.callToActions?.length || 0}</p>
+                                              <p className="text-[10px] text-muted-foreground">CTAs</p>
+                                            </div>
+                                          </div>
+
+                                          {ag.assets?.images?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Images</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {ag.assets.images.slice(0, 6).map((url: string, i: number) => (
+                                                  <img key={i} src={url} alt={`Asset ${i}`} className="h-12 w-12 object-cover rounded border" />
+                                                ))}
+                                                {ag.assets.images.length > 6 && (
+                                                  <span className="text-xs text-muted-foreground self-center ml-1">+{ag.assets.images.length - 6}</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {ag.assets?.logos?.length > 0 && (
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Logos</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {ag.assets.logos.map((url: string, i: number) => (
+                                                  <img key={i} src={url} alt={`Logo ${i}`} className="h-10 w-10 object-contain rounded border" />
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : campaignAds.length > 0 ? (
                                     <div className="space-y-3">
                                       {campaignAds.map((ad) => {
                                         const headlines = Array.isArray(ad.headlines)
@@ -729,94 +839,29 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                         const descriptions = Array.isArray(ad.descriptions)
                                           ? ad.descriptions.map((d: any) => typeof d === 'string' ? d : d.text || '')
                                           : [];
-
                                         return (
                                           <div key={ad.id} className="border rounded-md p-3 space-y-2">
                                             <div className="flex items-center justify-between">
                                               <span className="text-sm font-medium">{ad.ad_group_name || "Asset Group"}</span>
-                                              <div className="flex items-center gap-2">
-                                                {ad.ad_strength && (
-                                                  <Badge variant={ad.ad_strength === "EXCELLENT" ? "default" : "outline"} className="text-xs">{ad.ad_strength}</Badge>
-                                                )}
-                                                <Badge variant={ad.status === "ENABLED" ? "default" : "outline"} className="text-xs">
-                                                  {ad.status}
-                                                </Badge>
-                                              </div>
+                                              <Badge variant={ad.status === "ENABLED" ? "default" : "outline"} className="text-xs">{ad.status}</Badge>
                                             </div>
-
-                                            {/* Headlines */}
                                             {headlines.length > 0 && (
-                                              <div>
-                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Headlines</p>
-                                                <div className="flex flex-wrap gap-1">
-                                                  {headlines.map((h: string, i: number) => (
-                                                    <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            )}
-
-                                            {/* Descriptions */}
-                                            {descriptions.length > 0 && (
-                                              <div>
-                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Descriptions</p>
-                                                {descriptions.map((d: string, i: number) => (
-                                                  <p key={i} className="text-xs text-muted-foreground">{d}</p>
+                                              <div className="flex flex-wrap gap-1">
+                                                {headlines.map((h: string, i: number) => (
+                                                  <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
                                                 ))}
                                               </div>
                                             )}
-
-                                            {/* Final URLs */}
-                                            {ad.final_urls && ad.final_urls.length > 0 && (
-                                              <div>
-                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Final URL</p>
-                                                <p className="text-xs text-blue-500">{ad.final_urls.join(", ")}</p>
-                                              </div>
-                                            )}
-
-                                            {/* Performance */}
-                                            <div className="flex gap-4 text-xs text-muted-foreground pt-1 border-t">
-                                              <span>{ad.clicks || 0} clics</span>
-                                              <span>{ad.impressions || 0} impr.</span>
-                                              <span>{formatMicros(ad.cost_micros)}€</span>
-                                            </div>
+                                            {descriptions.length > 0 && descriptions.map((d: string, i: number) => (
+                                              <p key={i} className="text-xs text-muted-foreground">{d}</p>
+                                            ))}
                                           </div>
                                         );
                                       })}
                                     </div>
                                   ) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">Aucun asset group synchronisé</p>
+                                    <p className="text-sm text-muted-foreground text-center py-4">Aucun asset group trouvé</p>
                                   )}
-                                </div>
-
-                                <Separator />
-
-                                {/* PMax Assets Summary */}
-                                <div>
-                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                                    <FileText className="h-4 w-4" />
-                                    Extensions & Assets
-                                  </h4>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    {["Sitelink", "Callout", "Lead Form", "Image"].map((type) => (
-                                      <div key={type} className="border rounded-md p-2 text-center">
-                                        <p className="text-xs text-muted-foreground">{type}</p>
-                                        <p className="text-sm font-medium">
-                                          <a
-                                            href={`https://ads.google.com/aw/assets?campaignId=${campaign.google_campaign_id}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:underline"
-                                          >
-                                            Voir dans Ads →
-                                          </a>
-                                        </p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    Les assets PMax (images, logos, sitelinks, callouts) sont gérés via Google Ads directement.
-                                  </p>
                                 </div>
                               </>
                             ) : (
