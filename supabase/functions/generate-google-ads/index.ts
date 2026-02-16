@@ -116,7 +116,12 @@ RULES:
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("AI generation failed");
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "Crédits IA insuffisants. Ajoutez des crédits dans Settings > Workspace > Usage." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("AI generation failed: " + errText);
     }
 
     const aiData = await aiResponse.json();
