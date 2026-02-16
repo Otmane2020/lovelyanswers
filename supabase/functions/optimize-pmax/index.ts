@@ -772,6 +772,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
               create: {
                 priceAsset: {
                   type: priceSet.type || "SERVICES",
+                  languageCode: "en",
                   priceOfferings: offerings,
                 },
               },
@@ -882,9 +883,9 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                 console.log("[PMAX-OPT] CustomAudience created:", customAudienceResourceName);
                 // Add custom audience segment to dimensions (audienceSegments is a message, not array)
                 audienceDimensions.push({
-                  audienceSegments: {
+                  audience_segments: {
                     segments: [{
-                      customAudience: { customAudience: customAudienceResourceName },
+                      custom_audience: { custom_audience: customAudienceResourceName },
                     }],
                   },
                 });
@@ -910,7 +911,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                 if (range[1] > 0) seg.maxAge = range[1];
                 return seg;
               });
-              audienceDimensions.push({ age: { ageRanges: ageSegments } });
+              audienceDimensions.push({ age: { age_ranges: ageSegments } });
             }
             if (sig.demographics.genders && !sig.demographics.genders.includes("all")) {
               audienceDimensions.push({
@@ -932,7 +933,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                 dimensions: audienceDimensions,
               };
               // Scope to asset group for PMax
-              audiencePayload.assetGroup = assetGroupResourceName;
+              audiencePayload.asset_group = assetGroupResourceName;
               
               const audRes = await mutateResource(accessToken, customerId, "audiences", [{
                 create: audiencePayload,
@@ -945,7 +946,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                 // Step 4: Create AssetGroupSignal linking audience to asset group
                 await mutateResource(accessToken, customerId, "assetGroupSignals", [{
                   create: {
-                    assetGroup: assetGroupResourceName,
+                    asset_group: assetGroupResourceName,
                     audience: { audience: audienceResourceName },
                   },
                 }], managerCustomerId);
@@ -965,9 +966,9 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                     name: `${audienceName} - Simple`,
                     description: `AI audience for ${brandName}`,
                     dimensions: [{
-                      audienceSegments: {
+                      audience_segments: {
                         segments: [{
-                          customAudience: { customAudience: customAudienceResourceName },
+                          custom_audience: { custom_audience: customAudienceResourceName },
                         }],
                       },
                     }],
@@ -981,7 +982,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                   if (simpleRN) {
                     await mutateResource(accessToken, customerId, "assetGroupSignals", [{
                       create: {
-                        assetGroup: assetGroupResourceName,
+                        asset_group: assetGroupResourceName,
                         audience: { audience: simpleRN },
                       },
                     }], managerCustomerId);
@@ -999,7 +1000,7 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
                 try {
                   await mutateResource(accessToken, customerId, "assetGroupSignals", [{
                     create: {
-                      assetGroup: assetGroupResourceName,
+                      asset_group: assetGroupResourceName,
                       searchTheme: { text: cut(String(theme).trim(), 80) },
                     },
                   }], managerCustomerId);
