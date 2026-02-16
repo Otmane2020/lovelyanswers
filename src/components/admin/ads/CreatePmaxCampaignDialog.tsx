@@ -85,6 +85,10 @@ export function CreatePmaxCampaignDialog() {
   const [negativeKeywords, setNegativeKeywords] = useState("");
   const [urlExclusions, setUrlExclusions] = useState("");
 
+  // Display path
+  const [displayPath1, setDisplayPath1] = useState("");
+  const [displayPath2, setDisplayPath2] = useState("");
+
   const toggleLocation = (code: string) => {
     setSelectedLocations(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
   };
@@ -123,6 +127,8 @@ export function CreatePmaxCampaignDialog() {
       setAudienceSignals(data.audienceSignals || null);
       setNegativeKeywords((data.negativeKeywords || []).join("\n"));
       setUrlExclusions((data.urlExclusions || []).join("\n"));
+      setDisplayPath1(data.displayPath1 || "");
+      setDisplayPath2(data.displayPath2 || "");
 
       setAiGenerated(true);
       toast({
@@ -169,6 +175,8 @@ export function CreatePmaxCampaignDialog() {
         audienceSignals,
         negativeKeywords: negativeKeywords.split("\n").map(s => s.trim()).filter(Boolean),
         urlExclusions: urlExclusions.split("\n").map(s => s.trim()).filter(Boolean),
+        displayPath1,
+        displayPath2,
       };
 
       if (biddingStrategy === "target_cpa" && targetCpa) {
@@ -368,6 +376,18 @@ export function CreatePmaxCampaignDialog() {
                       <div><span className="font-medium">Ages:</span> <span className="text-muted-foreground">{audienceSignals.demographics?.ageRanges?.join(", ")}</span></div>
                     </div>
                   )}
+                </Section>
+
+                <Separator />
+
+                {/* Display Path */}
+                <Section title="Display Path" icon={<Link className="h-4 w-4" />}>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">www.lovelyanswers.com /</span>
+                    <Input value={displayPath1} onChange={e => setDisplayPath1(e.target.value)} placeholder="path1" className="text-xs w-28" maxLength={15} />
+                    <span>/</span>
+                    <Input value={displayPath2} onChange={e => setDisplayPath2(e.target.value)} placeholder="path2" className="text-xs w-28" maxLength={15} />
+                  </div>
                 </Section>
 
                 <Separator />
