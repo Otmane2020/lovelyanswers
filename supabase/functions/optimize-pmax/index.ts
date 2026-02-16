@@ -398,7 +398,7 @@ serve(async (req) => {
       const brandName = body.brandName || currentAssets.businessName || campaignSync.name;
       const websiteUrl = body.websiteUrl || ag.finalUrls?.[0] || "";
       const businessDescription = body.businessDescription || "";
-      const language = body.language || "fr";
+      const language = body.language || "en";
       const optimizeOptions = body.options || {};
 
       // Determine what needs optimization
