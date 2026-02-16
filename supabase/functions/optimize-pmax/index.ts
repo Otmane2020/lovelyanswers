@@ -564,9 +564,9 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
         for (const sl of toAdd) {
           try {
             const payload: Record<string, unknown> = {
+              finalUrls: [sl.finalUrl || websiteUrl],
               sitelinkAsset: {
                 linkText: cut(String(sl.text || "").trim(), 25),
-                finalUrls: [sl.finalUrl || websiteUrl],
               },
             };
             if (sl.description1) (payload.sitelinkAsset as any).description1 = cut(String(sl.description1).trim(), 35);
