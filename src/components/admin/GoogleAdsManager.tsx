@@ -725,7 +725,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                       variant="outline"
                                       className="h-7 text-xs gap-1"
                                       onClick={() => {
-                                        const tabTrigger = document.querySelector('[data-value="gads-keywords"]') as HTMLElement;
+                                        const tabTrigger = document.querySelector('button[value="gads-keywords"]') as HTMLElement;
                                         if (tabTrigger) tabTrigger.click();
                                       }}
                                     >
@@ -789,7 +789,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                       variant="outline"
                                       className="h-7 text-xs gap-1"
                                       onClick={() => {
-                                        const tabTrigger = document.querySelector('[data-value="gads-adgroups"]') as HTMLElement;
+                                        const tabTrigger = document.querySelector('button[value="gads-adgroups"]') as HTMLElement;
                                         if (tabTrigger) tabTrigger.click();
                                       }}
                                     >
