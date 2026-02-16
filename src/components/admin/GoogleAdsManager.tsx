@@ -711,7 +711,116 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                 <span className="text-sm text-muted-foreground">Chargement...</span>
                               </div>
+                            ) : campaign.advertising_channel_type === "PERFORMANCE_MAX" ? (
+                              /* ═══ PMax Campaign Detail ═══ */
+                              <>
+                                {/* Asset Groups (from ads_sync) */}
+                                <div>
+                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                                    <Target className="h-4 w-4" />
+                                    Asset Groups
+                                  </h4>
+                                  {campaignAds.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {campaignAds.map((ad) => {
+                                        const headlines = Array.isArray(ad.headlines)
+                                          ? ad.headlines.map((h: any) => typeof h === 'string' ? h : h.text || '')
+                                          : [];
+                                        const descriptions = Array.isArray(ad.descriptions)
+                                          ? ad.descriptions.map((d: any) => typeof d === 'string' ? d : d.text || '')
+                                          : [];
+
+                                        return (
+                                          <div key={ad.id} className="border rounded-md p-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm font-medium">{ad.ad_group_name || "Asset Group"}</span>
+                                              <div className="flex items-center gap-2">
+                                                {ad.ad_strength && (
+                                                  <Badge variant={ad.ad_strength === "EXCELLENT" ? "default" : "outline"} className="text-xs">{ad.ad_strength}</Badge>
+                                                )}
+                                                <Badge variant={ad.status === "ENABLED" ? "default" : "outline"} className="text-xs">
+                                                  {ad.status}
+                                                </Badge>
+                                              </div>
+                                            </div>
+
+                                            {/* Headlines */}
+                                            {headlines.length > 0 && (
+                                              <div>
+                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Headlines</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                  {headlines.map((h: string, i: number) => (
+                                                    <Badge key={i} variant="secondary" className="text-xs">{h}</Badge>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Descriptions */}
+                                            {descriptions.length > 0 && (
+                                              <div>
+                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Descriptions</p>
+                                                {descriptions.map((d: string, i: number) => (
+                                                  <p key={i} className="text-xs text-muted-foreground">{d}</p>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Final URLs */}
+                                            {ad.final_urls && ad.final_urls.length > 0 && (
+                                              <div>
+                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Final URL</p>
+                                                <p className="text-xs text-blue-500">{ad.final_urls.join(", ")}</p>
+                                              </div>
+                                            )}
+
+                                            {/* Performance */}
+                                            <div className="flex gap-4 text-xs text-muted-foreground pt-1 border-t">
+                                              <span>{ad.clicks || 0} clics</span>
+                                              <span>{ad.impressions || 0} impr.</span>
+                                              <span>{formatMicros(ad.cost_micros)}€</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Aucun asset group synchronisé</p>
+                                  )}
+                                </div>
+
+                                <Separator />
+
+                                {/* PMax Assets Summary */}
+                                <div>
+                                  <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                                    <FileText className="h-4 w-4" />
+                                    Extensions & Assets
+                                  </h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {["Sitelink", "Callout", "Lead Form", "Image"].map((type) => (
+                                      <div key={type} className="border rounded-md p-2 text-center">
+                                        <p className="text-xs text-muted-foreground">{type}</p>
+                                        <p className="text-sm font-medium">
+                                          <a
+                                            href={`https://ads.google.com/aw/assets?campaignId=${campaign.google_campaign_id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline"
+                                          >
+                                            Voir dans Ads →
+                                          </a>
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Les assets PMax (images, logos, sitelinks, callouts) sont gérés via Google Ads directement.
+                                  </p>
+                                </div>
+                              </>
                             ) : (
+                              /* ═══ Search Campaign Detail ═══ */
                               <>
                                 {/* Keywords */}
                                 <div>
