@@ -16,15 +16,14 @@ declare global {
   }
 }
 
-const ADS_ID = "AW-2652268707";
+const ADS_ID = "AW-1880571409";
 
-// Conversion labels - these need to be created in Google Ads
-// For now using descriptive labels; replace with actual labels from Google Ads UI
+// Conversion labels from Google Ads account AW-1880571409
 export const CONVERSION_EVENTS = {
   SIGN_UP: `${ADS_ID}/signup`,
   ONBOARDING_COMPLETE: `${ADS_ID}/onboarding`,
   CHECKOUT_START: `${ADS_ID}/checkout`,
-  PURCHASE: `${ADS_ID}/purchase`,
+  PURCHASE: `${ADS_ID}/7502219935`,
   PAGE_VIEW_PRICING: `${ADS_ID}/pricing_view`,
 } as const;
 
