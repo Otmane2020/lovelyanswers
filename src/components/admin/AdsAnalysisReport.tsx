@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { 
   AlertCircle, AlertTriangle, CheckCircle2, TrendingUp, 
   ArrowRight, Lightbulb, Target, Loader2, Pause, Play, 
-  MinusCircle, PlusCircle, Zap
+  MinusCircle, PlusCircle, Zap, Send, MessageCircle, Bot, User
 } from "lucide-react";
 
 interface AdsAnalysisReportProps {
@@ -540,7 +541,195 @@ export function AdsAnalysisReport({ text, isStreaming, onActionExecuted }: AdsAn
           <span>Analyse en cours...</span>
         </div>
       )}
+
+      {/* Chat Discussion */}
+      {text && !isStreaming && (
+        <ReportChat reportContext={text} />
+      )}
     </div>
+  );
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function ReportChat({ reportContext }: { reportContext: string }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+
+    const userMsg: ChatMessage = { role: "user", content: trimmed };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ads-chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ reportContext, messages: newMessages }),
+        }
+      );
+
+      if (!resp.ok || !resp.body) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantText += content;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantText } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantText }];
+              });
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      toast({ title: "Erreur chat", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <Button
+        variant="outline"
+        className="w-full gap-2 border-dashed"
+        onClick={() => { setIsOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Discuter avec l'IA à propos de ce rapport
+      </Button>
+    );
+  }
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          Discussion
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Messages */}
+        {messages.length > 0 && (
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                )}
+                <div className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+                  msg.role === "user" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted"
+                }`}>
+                  {msg.role === "assistant" ? (
+                    <div className="space-y-1.5 leading-relaxed">
+                      {msg.content.split("\n").filter(l => l.trim()).map((line, j) => (
+                        <p key={j}>{renderMarkdownLine(line)}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>{msg.content}</p>
+                  )}
+                </div>
+                {msg.role === "user" && (
+                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="h-3.5 w-3.5 text-primary-foreground" />
+                  </div>
+                )}
+              </div>
+            ))}
+            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="flex gap-2">
+                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="bg-muted rounded-lg px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+            placeholder="Ex: J'ai ajouté ça, que faire ensuite ?"
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button size="icon" onClick={sendMessage} disabled={isLoading || !input.trim()}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
