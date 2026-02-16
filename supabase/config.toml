@@ -221,3 +221,6 @@ verify_jwt = false
 [functions.publish-geo-content]
 verify_jwt = false
 schedule = "0 2 * * *"
+
+[functions.create-search-campaign]
+verify_jwt = false
