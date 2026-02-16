@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,6 +88,18 @@ async function atomicMutate(
   return await response.json();
 }
 
+async function downloadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, { redirect: "follow" });
+    if (!response.ok) return null;
+    const buffer = await response.arrayBuffer();
+    return base64Encode(new Uint8Array(buffer));
+  } catch (e) {
+    console.warn(`[PMAX] Failed to download image: ${url}`, e);
+    return null;
+  }
+}
+
 const GEO_MAP: Record<string, string> = {
   FR: "2250", BE: "2056", CH: "2756", DE: "2276", ES: "2724",
   IT: "2380", NL: "2528", US: "2840", GB: "2826", CA: "2124",
@@ -144,27 +157,51 @@ async function getAuthAndConnection(req: Request) {
   return { supabase, user, accessToken, customerId, managerCustomerId };
 }
 
-// ─── CREATE PMax Service (Lead Gen) ──────────────────────
+// ─── CREATE PMax (Full Google Ads Structure) ─────────────
 
-async function createPmaxService(
+interface SitelinkInput {
+  text: string;
+  description1?: string;
+  description2?: string;
+  finalUrl: string;
+}
+
+interface LeadFormInput {
+  headline?: string;
+  description?: string;
+  fields?: string[];
+  privacyPolicyUrl?: string;
+  businessName?: string;
+}
+
+interface PmaxParams {
+  name: string;
+  dailyBudget: number;
+  brandName?: string;
+  finalUrl: string;
+  searchThemes: string[];
+  headlines: string[];
+  longHeadlines?: string[];
+  descriptions: string[];
+  imageUrls?: string[];
+  businessLogoUrl?: string;
+  locations?: string[];
+  language?: string;
+  biddingStrategy: "maximize_conversions" | "target_cpa";
+  targetCpaMicros?: number;
+  sitelinks?: SitelinkInput[];
+  callouts?: string[];
+  callToAction?: string;
+  leadForm?: LeadFormInput;
+  displayPath1?: string;
+  displayPath2?: string;
+  negativeKeywords?: string[];
+}
+
+async function createPmaxFull(
   accessToken: string,
   customerId: string,
-  params: {
-    name: string;
-    dailyBudget: number;
-    brandName?: string;
-    finalUrl: string;
-    searchThemes: string[];
-    headlines: string[];
-    longHeadlines?: string[];
-    descriptions: string[];
-    marketingImageUrls?: string[];
-    squareMarketingImageUrls?: string[];
-    locations?: string[];
-    language?: string;
-    biddingStrategy: "maximize_conversions" | "target_cpa";
-    targetCpaMicros?: number;
-  },
+  params: PmaxParams,
   managerCustomerId?: string
 ) {
   const warnings: string[] = [];
@@ -187,6 +224,7 @@ async function createPmaxService(
   const next = () => tempId--;
   const ops: unknown[] = [];
 
+  // ── Campaign ──
   const campaignTempId = next();
   const campaignPayload: Record<string, unknown> = {
     resourceName: `customers/${customerId}/campaigns/${campaignTempId}`,
@@ -206,94 +244,93 @@ async function createPmaxService(
 
   ops.push({ campaignOperation: { create: campaignPayload } });
 
-  // 3) Asset Group
+  // ── Asset Group ──
   const agTempId = next();
   ops.push({
     assetGroupOperation: {
       create: {
         resourceName: `customers/${customerId}/assetGroups/${agTempId}`,
-        name: `${params.name} - Service Group`,
+        name: `${params.name} - Asset Group`,
         campaign: `customers/${customerId}/campaigns/${campaignTempId}`,
         finalUrls: [params.finalUrl],
       },
     },
   });
 
-  // 4) Headlines (max 15, 30 chars)
+  // Helper to add text asset + link to asset group
+  const addTextAsset = (text: string, fieldType: string, maxLen: number) => {
+    const id = next();
+    ops.push({
+      assetOperation: {
+        create: {
+          resourceName: `customers/${customerId}/assets/${id}`,
+          textAsset: { text: cut(text.trim(), maxLen) },
+        },
+      },
+    });
+    ops.push({
+      assetGroupAssetOperation: {
+        create: {
+          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
+          asset: `customers/${customerId}/assets/${id}`,
+          fieldType,
+        },
+      },
+    });
+  };
+
+  // ── Headlines (max 15, 30 chars) ──
   for (const h of (params.headlines || []).slice(0, 15)) {
-    const id = next();
-    ops.push({
-      assetOperation: {
-        create: {
-          resourceName: `customers/${customerId}/assets/${id}`,
-          textAsset: { text: cut(h.trim(), 30) },
-        },
-      },
-    });
-    ops.push({
-      assetGroupAssetOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          asset: `customers/${customerId}/assets/${id}`,
-          fieldType: "HEADLINE",
-        },
-      },
-    });
+    if (h.trim()) addTextAsset(h, "HEADLINE", 30);
   }
 
-  // 5) Long Headlines (max 5, 90 chars)
+  // ── Long Headlines (max 5, 90 chars) ──
   for (const lh of (params.longHeadlines || []).slice(0, 5)) {
-    const id = next();
-    ops.push({
-      assetOperation: {
-        create: {
-          resourceName: `customers/${customerId}/assets/${id}`,
-          textAsset: { text: cut(lh.trim(), 90) },
-        },
-      },
-    });
-    ops.push({
-      assetGroupAssetOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          asset: `customers/${customerId}/assets/${id}`,
-          fieldType: "LONG_HEADLINE",
-        },
-      },
-    });
+    if (lh.trim()) addTextAsset(lh, "LONG_HEADLINE", 90);
   }
 
-  // 6) Descriptions (max 5, 90 chars)
+  // ── Descriptions (max 5, 90 chars) ──
   for (const d of (params.descriptions || []).slice(0, 5)) {
-    const id = next();
-    ops.push({
-      assetOperation: {
-        create: {
-          resourceName: `customers/${customerId}/assets/${id}`,
-          textAsset: { text: cut(d.trim(), 90) },
-        },
-      },
-    });
-    ops.push({
-      assetGroupAssetOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          asset: `customers/${customerId}/assets/${id}`,
-          fieldType: "DESCRIPTION",
-        },
-      },
-    });
+    if (d.trim()) addTextAsset(d, "DESCRIPTION", 90);
   }
 
-  // 7) Marketing Images (landscape 1.91:1)
-  for (const imgUrl of (params.marketingImageUrls || []).slice(0, 20)) {
+  // ── Business Name ──
+  if (params.brandName) {
+    addTextAsset(params.brandName, "BUSINESS_NAME", 25);
+  }
+
+  // ── Search Themes (max 25) ──
+  for (const theme of (params.searchThemes || []).slice(0, 25)) {
+    if (theme.trim()) {
+      ops.push({
+        assetGroupSignalOperation: {
+          create: {
+            assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
+            searchTheme: { text: cut(theme.trim(), 80) },
+          },
+        },
+      });
+    }
+  }
+
+  console.log(`[PMAX] ${ops.length} atomic ops prepared (text+campaign). Downloading images...`);
+
+  // ── Images (download and convert to base64) ──
+  const imageUrls = (params.imageUrls || []).filter(u => u.trim());
+  let imagesAdded = 0;
+  for (const imgUrl of imageUrls.slice(0, 20)) {
+    const b64 = await downloadImageAsBase64(imgUrl.trim());
+    if (!b64) {
+      warnings.push(`Image download failed: ${imgUrl}`);
+      continue;
+    }
     const id = next();
     ops.push({
       assetOperation: {
         create: {
           resourceName: `customers/${customerId}/assets/${id}`,
-          imageAsset: { data: imgUrl }, // base64 or URL depending on API
-          name: `Marketing Image ${Math.abs(id)}`,
+          imageAsset: { data: b64 },
+          name: `PMax Image ${Math.abs(id)}`,
         },
       },
     });
@@ -306,78 +343,171 @@ async function createPmaxService(
         },
       },
     });
+    imagesAdded++;
   }
 
-  // 8) Square Marketing Images (1:1)
-  for (const imgUrl of (params.squareMarketingImageUrls || []).slice(0, 20)) {
-    const id = next();
-    ops.push({
-      assetOperation: {
-        create: {
-          resourceName: `customers/${customerId}/assets/${id}`,
-          imageAsset: { data: imgUrl },
-          name: `Square Image ${Math.abs(id)}`,
+  // ── Logo ──
+  if (params.businessLogoUrl?.trim()) {
+    const logoB64 = await downloadImageAsBase64(params.businessLogoUrl.trim());
+    if (logoB64) {
+      const id = next();
+      ops.push({
+        assetOperation: {
+          create: {
+            resourceName: `customers/${customerId}/assets/${id}`,
+            imageAsset: { data: logoB64 },
+            name: `PMax Logo`,
+          },
         },
-      },
-    });
-    ops.push({
-      assetGroupAssetOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          asset: `customers/${customerId}/assets/${id}`,
-          fieldType: "SQUARE_MARKETING_IMAGE",
+      });
+      ops.push({
+        assetGroupAssetOperation: {
+          create: {
+            assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
+            asset: `customers/${customerId}/assets/${id}`,
+            fieldType: "LOGO",
+          },
         },
-      },
-    });
+      });
+    } else {
+      warnings.push("Logo download failed");
+    }
   }
 
-  // 9) Search Themes (max 25) — KEY for service PMax
-  for (const theme of (params.searchThemes || []).slice(0, 25)) {
-    ops.push({
-      assetGroupSignalOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          searchTheme: { text: cut(theme.trim(), 80) },
-        },
-      },
-    });
-  }
+  console.log(`[PMAX] Total ${ops.length} atomic ops (incl ${imagesAdded} images). Sending...`);
 
-  // 10) Business name asset
-  if (params.brandName) {
-    const bnId = next();
-    ops.push({
-      assetOperation: {
-        create: {
-          resourceName: `customers/${customerId}/assets/${bnId}`,
-          textAsset: { text: cut(params.brandName, 25) },
-        },
-      },
-    });
-    ops.push({
-      assetGroupAssetOperation: {
-        create: {
-          assetGroup: `customers/${customerId}/assetGroups/${agTempId}`,
-          asset: `customers/${customerId}/assets/${bnId}`,
-          fieldType: "BUSINESS_NAME",
-        },
-      },
-    });
-  }
-
-  console.log(`[PMAX-SERVICE] Sending ${ops.length} atomic operations...`);
-
-  // 11) Atomic mutate
+  // ── Atomic Mutate (core campaign + asset group + assets) ──
   const atomicRes = await atomicMutate(accessToken, customerId, ops, managerCustomerId);
   const mutateResults = (atomicRes.mutateOperationResponses || []) as Record<string, unknown>[];
   const campaignResult = mutateResults.find(r => (r as Record<string, unknown>).campaignResult) as Record<string, unknown> | undefined;
   const campaignResourceName = (campaignResult?.campaignResult as Record<string, unknown>)?.resourceName as string | undefined;
 
-  if (!campaignResourceName) throw new Error("Failed to create PMax Service campaign");
-
+  if (!campaignResourceName) throw new Error("Failed to create PMax campaign");
   const campaignId = campaignResourceName.split("/").pop();
 
-  // 12) Location targeting (post-atomic)
+  // ══════════════════════════════════════════════════════════
+  // POST-ATOMIC: Extensions & targeting (separate API calls)
+  // ══════════════════════════════════════════════════════════
+
+  // ── Sitelinks (campaign-level assets) ──
+  if (params.sitelinks?.length) {
+    for (const sl of params.sitelinks.slice(0, 6)) {
+      if (!sl.text?.trim() || !sl.finalUrl?.trim()) continue;
+      try {
+        // Create sitelink asset
+        const sitelinkAssetPayload: Record<string, unknown> = {
+          sitelinkAsset: {
+            linkText: cut(sl.text.trim(), 25),
+            finalUrls: [sl.finalUrl.trim()],
+          },
+        };
+        if (sl.description1?.trim()) {
+          (sitelinkAssetPayload.sitelinkAsset as Record<string, unknown>).description1 = cut(sl.description1.trim(), 35);
+        }
+        if (sl.description2?.trim()) {
+          (sitelinkAssetPayload.sitelinkAsset as Record<string, unknown>).description2 = cut(sl.description2.trim(), 35);
+        }
+
+        const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+          create: sitelinkAssetPayload,
+        }], managerCustomerId);
+
+        const sitelinkResourceName = assetRes.results?.[0]?.resourceName;
+        if (sitelinkResourceName) {
+          // Link to campaign
+          await mutateResource(accessToken, customerId, "campaignAssets", [{
+            create: {
+              campaign: campaignResourceName,
+              asset: sitelinkResourceName,
+              fieldType: "SITELINK",
+            },
+          }], managerCustomerId);
+        }
+      } catch (e: unknown) {
+        warnings.push(`Sitelink "${sl.text}" skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  // ── Callouts (campaign-level) ──
+  if (params.callouts?.length) {
+    for (const callout of params.callouts.slice(0, 10)) {
+      if (!callout.trim()) continue;
+      try {
+        const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+          create: {
+            calloutAsset: { calloutText: cut(callout.trim(), 25) },
+          },
+        }], managerCustomerId);
+
+        const calloutResourceName = assetRes.results?.[0]?.resourceName;
+        if (calloutResourceName) {
+          await mutateResource(accessToken, customerId, "campaignAssets", [{
+            create: {
+              campaign: campaignResourceName,
+              asset: calloutResourceName,
+              fieldType: "CALLOUT",
+            },
+          }], managerCustomerId);
+        }
+      } catch (e: unknown) {
+        warnings.push(`Callout skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
+  // ── Lead Form (campaign-level) ──
+  if (params.leadForm?.headline?.trim()) {
+    try {
+      const leadFormPayload: Record<string, unknown> = {
+        headline: cut(params.leadForm.headline.trim(), 30),
+        description: cut(params.leadForm.description?.trim() || "Fill out the form", 200),
+        privacyPolicyUrl: params.leadForm.privacyPolicyUrl || params.finalUrl,
+        businessName: params.leadForm.businessName || params.brandName || params.name,
+        callToActionType: params.callToAction || "LEARN_MORE",
+      };
+
+      // Map field names to Google Ads field types
+      const fieldMap: Record<string, string> = {
+        FULL_NAME: "FULL_NAME",
+        EMAIL: "EMAIL",
+        PHONE_NUMBER: "PHONE_NUMBER",
+        COMPANY_NAME: "COMPANY_NAME",
+        CITY: "CITY",
+        POSTAL_CODE: "POSTAL_CODE",
+        WORK_EMAIL: "WORK_EMAIL",
+        WORK_PHONE: "WORK_PHONE",
+      };
+
+      const fields = (params.leadForm.fields || ["FULL_NAME", "EMAIL"])
+        .map(f => fieldMap[f.trim().toUpperCase()])
+        .filter(Boolean)
+        .map(inputType => ({ inputType }));
+
+      if (fields.length > 0) {
+        leadFormPayload.fields = fields;
+      }
+
+      const assetRes = await mutateResource(accessToken, customerId, "assets", [{
+        create: { leadFormAsset: leadFormPayload },
+      }], managerCustomerId);
+
+      const leadFormResourceName = assetRes.results?.[0]?.resourceName;
+      if (leadFormResourceName) {
+        await mutateResource(accessToken, customerId, "campaignAssets", [{
+          create: {
+            campaign: campaignResourceName,
+            asset: leadFormResourceName,
+            fieldType: "LEAD_FORM",
+          },
+        }], managerCustomerId);
+      }
+    } catch (e: unknown) {
+      warnings.push(`Lead form skipped: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // ── Location targeting ──
   if (params.locations?.length) {
     const locationOps = params.locations
       .map(loc => GEO_MAP[loc.toUpperCase()])
@@ -398,7 +528,7 @@ async function createPmaxService(
     }
   }
 
-  // 13) Language targeting (post-atomic)
+  // ── Language targeting ──
   if (params.language) {
     const langId = LANG_MAP[params.language.toLowerCase()];
     if (langId) {
@@ -415,14 +545,44 @@ async function createPmaxService(
     }
   }
 
+  // ── Campaign-level negative keywords ──
+  if (params.negativeKeywords?.length) {
+    const negKwOps = params.negativeKeywords
+      .filter(kw => kw.trim())
+      .slice(0, 50)
+      .map(kw => ({
+        create: {
+          campaign: campaignResourceName,
+          negative: true,
+          keyword: {
+            text: kw.trim(),
+            matchType: "BROAD",
+          },
+        },
+      }));
+
+    if (negKwOps.length) {
+      try {
+        await mutateResource(accessToken, customerId, "campaignCriteria", negKwOps, managerCustomerId);
+      } catch (e: unknown) {
+        warnings.push(`Negative keywords skipped: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
+
   return {
     campaignResourceName,
     campaignId,
     budgetResourceName,
     totalOperations: ops.length,
+    imagesAdded,
     searchThemes: params.searchThemes?.length || 0,
     headlines: params.headlines?.length || 0,
     descriptions: params.descriptions?.length || 0,
+    sitelinks: params.sitelinks?.length || 0,
+    callouts: params.callouts?.length || 0,
+    hasLeadForm: !!params.leadForm?.headline,
+    hasLogo: !!params.businessLogoUrl,
     warnings,
   };
 }
@@ -498,9 +658,9 @@ serve(async (req) => {
     let result: unknown;
 
     switch (action) {
-      // ─── CREATE PMax Service ───────────────────
+      // ─── CREATE PMax ──────────────────────────
       case "create": {
-        const createResult = await createPmaxService(accessToken, customerId, body, managerCustomerId);
+        const createResult = await createPmaxFull(accessToken, customerId, body, managerCustomerId);
 
         // Sync to local DB
         try {
@@ -518,15 +678,28 @@ serve(async (req) => {
             sync_status: "synced",
           }, { onConflict: "user_id,google_campaign_id" });
         } catch (e) {
-          console.warn("[PMAX-SERVICE] DB sync warning:", e);
+          console.warn("[PMAX] DB sync warning:", e);
         }
+
+        const desc = [
+          `PMax "${body.name}" created`,
+          `${createResult.headlines} headlines`,
+          `${createResult.descriptions} descriptions`,
+          `${createResult.searchThemes} search themes`,
+          `${createResult.imagesAdded} images`,
+          `${createResult.sitelinks} sitelinks`,
+          `${createResult.callouts} callouts`,
+          createResult.hasLeadForm ? "lead form" : "",
+          createResult.hasLogo ? "logo" : "",
+          `budget €${body.dailyBudget}/day`,
+        ].filter(Boolean).join(", ");
 
         await supabase.from("ads_actions").insert({
           user_id: user.id,
           action_type: "create_pmax_service",
           target_name: body.name,
           target_id: createResult.campaignId,
-          description: `PMax Service "${body.name}" created: ${createResult.headlines} headlines, ${createResult.descriptions} descriptions, ${createResult.searchThemes} search themes, budget €${body.dailyBudget}/day`,
+          description: desc,
           status: "executed",
         });
 
@@ -609,7 +782,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    console.error("[PMAX-SERVICE] Error:", error);
+    console.error("[PMAX] Error:", error);
     const message = error instanceof Error ? error.message : String(error);
     const status = message === "Unauthorized" || message === "Google Ads not connected" ? 401 : 500;
     return new Response(JSON.stringify({ error: message }), {
