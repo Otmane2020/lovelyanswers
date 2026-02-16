@@ -427,7 +427,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
           brandName: options.brandName,
           websiteUrl: options.websiteUrl,
           businessDescription: options.businessDescription,
-          language: options.language || "fr",
+          language: options.language || "en",
           phoneNumber: options.phoneNumber,
           phoneCountry: options.phoneCountry || "FR",
           privacyPolicyUrl: options.privacyPolicyUrl,
@@ -932,17 +932,15 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
                                        Optimisation IA
                                      </h4>
                                     <div className="flex gap-2">
-                                      {!pmaxAnalysis && (
-                                        <Button
+                                      <Button
                                           size="sm"
                                           variant="outline"
                                           className="h-7 text-xs gap-1"
                                           onClick={() => handleAnalyzePmax(campaign.google_campaign_id)}
                                         >
                                           <Brain className="h-3 w-3" />
-                                          Analyser
+                                          {pmaxAnalysis ? "Ré-analyser" : "Analyser"}
                                         </Button>
-                                      )}
                                       <Button
                                         size="sm"
                                         className="h-7 text-xs gap-1"
