@@ -213,6 +213,7 @@ async function createPmaxFull(
       name: `${params.name} - Budget`,
       amountMicros: String(budgetAmountMicros),
       deliveryMethod: "STANDARD",
+      explicitlyShared: false,
     },
   }], managerCustomerId);
 
@@ -232,6 +233,7 @@ async function createPmaxFull(
     status: "PAUSED",
     advertisingChannelType: "PERFORMANCE_MAX",
     campaignBudget: budgetResourceName,
+    containsEuPoliticalAdvertising: false,
   };
 
   if (params.biddingStrategy === "target_cpa") {
