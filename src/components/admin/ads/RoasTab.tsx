@@ -9,10 +9,12 @@ import { useAdsStreaming } from "@/hooks/useAdsStreaming";
 import { AdsAnalysisReport } from "@/components/admin/AdsAnalysisReport";
 import { ReportHistory } from "./ReportHistory";
 import { CampaignSelectDialog } from "./CampaignSelectDialog";
+import { CampaignSettingsDialog } from "./CampaignSettingsDialog";
 import { toast } from "@/hooks/use-toast";
 
 interface SyncedCampaign {
   id: string;
+  google_campaign_id?: string;
   name: string;
   status: string | null;
   advertising_channel_type: string | null;
@@ -31,11 +33,13 @@ interface SyncedCampaign {
 interface RoasTabProps {
   campaigns: SyncedCampaign[];
   googleCustomerId?: string;
+  onRefreshCampaigns?: () => void;
 }
 
-export function RoasTab({ campaigns, googleCustomerId }: RoasTabProps) {
+export function RoasTab({ campaigns, googleCustomerId, onRefreshCampaigns }: RoasTabProps) {
   const [showCampaignPicker, setShowCampaignPicker] = useState(false);
   const [selectedCampaignName, setSelectedCampaignName] = useState<string | null>(null);
+  const [settingsCampaign, setSettingsCampaign] = useState<SyncedCampaign | null>(null);
   const { text, isStreaming, startAnalysis, ref, previousReports, isLoadingHistory, loadPreviousReports, loadReport } = useAdsStreaming();
 
   useEffect(() => {
@@ -171,7 +175,16 @@ export function RoasTab({ campaigns, googleCustomerId }: RoasTabProps) {
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] ${roasBadge.color}`}>{roasBadge.label}</Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] border"
+                          onClick={() => setSettingsCampaign(c)}
+                          title="Paramètres"
+                        >
+                          <Settings className="h-3 w-3" />
+                        </Button>
                         {roas >= 3 ? (
                           <Button
                             variant="ghost"
@@ -197,7 +210,7 @@ export function RoasTab({ campaigns, googleCustomerId }: RoasTabProps) {
                             className="h-6 px-2 text-[10px] border"
                             onClick={() => handleOptimizeAction(c)}
                           >
-                            <Settings className="h-3 w-3 mr-1" /> Optimiser
+                            Optimiser
                           </Button>
                         )}
                       </TableCell>
@@ -241,6 +254,16 @@ export function RoasTab({ campaigns, googleCustomerId }: RoasTabProps) {
           </CardContent>
         )}
       </Card>
+
+      {settingsCampaign && (
+        <CampaignSettingsDialog
+          open={!!settingsCampaign}
+          onOpenChange={(open) => { if (!open) setSettingsCampaign(null); }}
+          campaignId={settingsCampaign.google_campaign_id || settingsCampaign.id}
+          campaignName={settingsCampaign.name}
+          onUpdated={onRefreshCampaigns}
+        />
+      )}
     </div>
   );
 }
