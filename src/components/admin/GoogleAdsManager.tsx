@@ -1282,7 +1282,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
           {/* ROAS Tab */}
           <TabsContent value="roas-analysis">
-            <RoasTab campaigns={syncedCampaigns} googleCustomerId={selectedCustomerId} />
+            <RoasTab campaigns={syncedCampaigns} googleCustomerId={selectedCustomerId} onRefreshCampaigns={loadConnectionAndData} />
           </TabsContent>
 
           {/* Strategy Tab */}
