@@ -593,19 +593,37 @@ Return ONLY valid JSON, no markdown, no explanations. Every text must respect th
       if (generated.callouts?.length > 0 && gaps.needCallouts) {
         const toAdd = generated.callouts.slice(0, 10 - state.campaignAssets.callouts.length);
         for (const callout of toAdd) {
+          const calloutText = cut(String(callout).trim(), 25);
+          if (!calloutText) continue;
           try {
+            // Create the callout asset
             const assetRes = await mutateResource(accessToken, customerId, "assets", [{
-              create: { calloutAsset: { calloutText: cut(String(callout).trim(), 25) } },
+              create: { calloutAsset: { calloutText } },
             }], managerCustomerId);
             const assetRN = assetRes.results?.[0]?.resourceName;
-            if (assetRN) {
+            if (!assetRN) {
+              warnings.push(`Callout "${calloutText}": no resource name returned`);
+              continue;
+            }
+            console.log(`[PMAX-OPT] Callout asset created: ${assetRN}, linking to campaign...`);
+            // Link to campaign - use try/catch separately to handle duplicates
+            try {
               await mutateResource(accessToken, customerId, "campaignAssets", [{
                 create: { campaign: campaignResourceName, asset: assetRN, fieldType: "CALLOUT" },
               }], managerCustomerId);
-              results.push({ action: "add_callout", success: true, details: callout });
+              results.push({ action: "add_callout", success: true, details: calloutText });
+            } catch (linkErr: any) {
+              // If already linked or duplicate, treat as success
+              if (linkErr.message?.includes("ALREADY_EXISTS") || linkErr.message?.includes("DUPLICATE")) {
+                results.push({ action: "add_callout", success: true, details: `${calloutText} (already linked)` });
+              } else {
+                console.error(`[PMAX-OPT] Callout link error for "${calloutText}":`, linkErr.message?.slice(0, 300));
+                warnings.push(`Callout "${calloutText}": ${linkErr.message?.slice(0, 150)}`);
+              }
             }
           } catch (e: any) {
-            warnings.push(`Callout: ${e.message?.slice(0, 100)}`);
+            console.error(`[PMAX-OPT] Callout create error for "${calloutText}":`, e.message?.slice(0, 300));
+            warnings.push(`Callout "${calloutText}": ${e.message?.slice(0, 100)}`);
           }
         }
       }
