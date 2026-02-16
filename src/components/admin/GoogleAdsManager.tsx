@@ -21,7 +21,7 @@ import {
   Plus, RefreshCw, Target, FileText, 
   Key, ChevronDown, ChevronRight, Loader2, Megaphone, DollarSign,
   Download, CheckCircle, AlertCircle, Building2, Brain, Zap, TrendingUp, BarChart3, Lightbulb,
-  Code, Copy, Tag
+  Code, Copy, Tag, Calendar
 } from "lucide-react";
 
 interface GoogleAdsAccount {
@@ -82,7 +82,52 @@ interface ConnectionInfo {
   account_id: string | null;
   metadata: any;
 }
+type StatsPeriod = "today" | "yesterday" | "7d" | "30d" | "90d";
 
+const PERIOD_LABELS: Record<StatsPeriod, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  "7d": "7 jours",
+  "30d": "30 jours",
+  "90d": "90 jours",
+};
+
+function getPeriodDateRange(period: StatsPeriod): { start: string; end: string } {
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  
+  let start: Date;
+  switch (period) {
+    case "today":
+      start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      break;
+    case "yesterday":
+      start = new Date(now);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "7d":
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      break;
+    case "30d":
+      start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      break;
+    case "90d":
+      start = new Date(now);
+      start.setDate(start.getDate() - 90);
+      break;
+  }
+  return {
+    start: start.toISOString().split("T")[0],
+    end: end.toISOString().split("T")[0],
+  };
+}
 
 
 interface GoogleAdsManagerProps {
@@ -109,6 +154,11 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   const [campaignAds, setCampaignAds] = useState<SyncedAd[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
+  // Period selector
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>("7d");
+  const [periodStats, setPeriodStats] = useState<{ spend: number; clicks: number; conversions: number } | null>(null);
+  const [isLoadingPeriodStats, setIsLoadingPeriodStats] = useState(false);
+
   // AI Analysis (for audit tab only)
   const { text: analysisText, isStreaming: isAnalyzing, startAnalysis: handleAnalyze, ref: analysisRef, previousReports: auditReports, isLoadingHistory: auditHistoryLoading, loadPreviousReports: loadAuditReports, loadReport: loadAuditReport } = useAdsStreaming();
   const [showAuditCampaignPicker, setShowAuditCampaignPicker] = useState(false);
@@ -117,6 +167,50 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
   useEffect(() => {
     loadAuditReports("all");
   }, []);
+
+  // Load period stats from performance_history
+  const loadPeriodStats = async (period: StatsPeriod) => {
+    if (period === "7d") {
+      // Use synced campaign data directly
+      setPeriodStats(null);
+      return;
+    }
+    setIsLoadingPeriodStats(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { start, end } = getPeriodDateRange(period);
+      const { data, error } = await supabase
+        .from("performance_history")
+        .select("spend, clicks, conversions")
+        .eq("user_id", session.user.id)
+        .gte("date", start)
+        .lte("date", end);
+      
+      if (!error && data) {
+        const totals = data.reduce(
+          (acc, row) => ({
+            spend: acc.spend + (Number(row.spend) || 0),
+            clicks: acc.clicks + (Number(row.clicks) || 0),
+            conversions: acc.conversions + (Number(row.conversions) || 0),
+          }),
+          { spend: 0, clicks: 0, conversions: 0 }
+        );
+        setPeriodStats(totals);
+      }
+    } catch (err) {
+      console.error("Error loading period stats:", err);
+    } finally {
+      setIsLoadingPeriodStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connectionInfo?.account_id && connectionInfo.account_id !== "pending") {
+      loadPeriodStats(statsPeriod);
+    }
+  }, [statsPeriod, connectionInfo]);
 
   useEffect(() => {
     loadConnectionAndData();
@@ -433,65 +527,91 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
 
       {/* Stats */}
       {hasAccount && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-blue-500/10">
-                  <Megaphone className="h-6 w-6 text-blue-500" />
+        <div className="space-y-3">
+          {/* Period selector */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground mr-1">Période :</span>
+            {(Object.keys(PERIOD_LABELS) as StatsPeriod[]).map((p) => (
+              <Button
+                key={p}
+                variant={statsPeriod === p ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setStatsPeriod(p)}
+              >
+                {PERIOD_LABELS[p]}
+              </Button>
+            ))}
+            {isLoadingPeriodStats && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-blue-500/10">
+                    <Megaphone className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{syncedCampaigns.length}</p>
+                    <p className="text-sm text-muted-foreground">Campagnes</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{syncedCampaigns.length}</p>
-                  <p className="text-sm text-muted-foreground">Campagnes</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-green-500/10">
+                    <DollarSign className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {statsPeriod === "7d"
+                        ? syncedCampaigns.reduce((s, c) => s + (c.spend_7d || 0), 0).toFixed(0)
+                        : (periodStats?.spend || 0).toFixed(0)}€
+                    </p>
+                    <p className="text-sm text-muted-foreground">Dépenses {PERIOD_LABELS[statsPeriod]}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-500/10">
-                  <DollarSign className="h-6 w-6 text-green-500" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-purple-500/10">
+                    <Target className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {statsPeriod === "7d"
+                        ? syncedCampaigns.reduce((s, c) => s + (c.clicks_7d || 0), 0)
+                        : (periodStats?.clicks || 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Clics {PERIOD_LABELS[statsPeriod]}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {syncedCampaigns.reduce((s, c) => s + (c.spend_7d || 0), 0).toFixed(0)}€
-                  </p>
-                  <p className="text-sm text-muted-foreground">Dépenses 7j</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-orange-500/10">
+                    <CheckCircle className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {statsPeriod === "7d"
+                        ? syncedCampaigns.reduce((s, c) => s + (c.conversions_7d || 0), 0).toFixed(0)
+                        : (periodStats?.conversions || 0).toFixed(0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Conversions {PERIOD_LABELS[statsPeriod]}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-purple-500/10">
-                  <Target className="h-6 w-6 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {syncedCampaigns.reduce((s, c) => s + (c.clicks_7d || 0), 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Clics 7j</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-orange-500/10">
-                  <CheckCircle className="h-6 w-6 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {syncedCampaigns.reduce((s, c) => s + (c.conversions_7d || 0), 0).toFixed(0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Conversions 7j</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
