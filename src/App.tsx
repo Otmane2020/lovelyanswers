@@ -51,6 +51,8 @@ import ShoppingProduct from "./pages/ShoppingProduct";
 import ShoppingPlanning from "./pages/ShoppingPlanning";
 import AiShoppingAssistant from "./pages/AiShoppingAssistant";
 import AeoGeo from "./pages/AeoGeo";
+import GoogleTagManager from "./pages/GoogleTagManager";
+import GoogleAnalyticsPage from "./pages/GoogleAnalyticsPage";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +94,8 @@ const App = () => (
                   <Route path="/local" element={<ProtectedRoute requireSubscription={false}><AeoLocal /></ProtectedRoute>} />
                   <Route path="/history" element={<ProtectedRoute requireSubscription={false}><AeoHistory /></ProtectedRoute>} />
                   <Route path="/analytics" element={<ProtectedRoute requireSubscription={false}><AeoAnalytics /></ProtectedRoute>} />
+                  <Route path="/google-tag-manager" element={<ProtectedRoute requireSubscription={false}><GoogleTagManager /></ProtectedRoute>} />
+                  <Route path="/google-analytics" element={<ProtectedRoute requireSubscription={false}><GoogleAnalyticsPage /></ProtectedRoute>} />
                   <Route path="/integrations" element={<ProtectedRoute requireSubscription={false}><AeoIntegrations /></ProtectedRoute>} />
                   <Route path="/subscription" element={<ProtectedRoute requireSubscription={false}><AeoSubscription /></ProtectedRoute>} />
                   <Route path="/billing" element={<ProtectedRoute requireSubscription={false}><AeoBilling /></ProtectedRoute>} />
