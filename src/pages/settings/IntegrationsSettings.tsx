@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Trash2, Settings2, CheckCircle2, Loader2, Search } from "lucide-react";
+import { ExternalLink, Trash2, Settings2, CheckCircle2, Loader2, Search, BarChart3, Tag } from "lucide-react";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -59,12 +59,51 @@ export function IntegrationsSettings() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
+    const state = urlParams.get("state");
     
     if (code) {
-      handleGscOAuthCallback(code);
+      // Check if this is a manage-google-ads OAuth callback (state contains connection_type)
+      let isGoogleAdsOAuth = false;
+      if (state) {
+        try {
+          const decoded = JSON.parse(atob(state));
+          if (decoded.connection_type) {
+            isGoogleAdsOAuth = true;
+          }
+        } catch { /* not manage-google-ads state */ }
+      }
+
+      if (isGoogleAdsOAuth) {
+        handleGoogleAdsOAuthCallback(code, state!);
+      } else {
+        handleGscOAuthCallback(code);
+      }
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  const handleGoogleAdsOAuthCallback = async (code: string, state: string) => {
+    setConnectingGsc(true);
+    try {
+      const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
+        `${window.location.origin}/settings`;
+
+      const { data, error } = await supabase.functions.invoke("manage-google-ads", {
+        body: { action: "oauth_callback", code, state, redirect_uri: redirectUri },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to connect");
+
+      toast.success(`Google ${data.connection_type?.toUpperCase() || "service"} connected!`);
+      sessionStorage.removeItem("gsc_oauth_redirect_uri");
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      toast.error(error.message || "Error connecting to Google");
+    } finally {
+      setConnectingGsc(false);
+    }
+  };
 
   const handleGscOAuthCallback = async (code: string) => {
     setConnectingGsc(true);
@@ -113,6 +152,27 @@ export function IntegrationsSettings() {
     } catch (error: any) {
       console.error("GSC connect error:", error);
       toast.error(error.message || "Failed to connect to Google Search Console");
+      setConnectingGsc(false);
+    }
+  };
+
+  const connectGoogleService = async (connectionType: "ga4" | "gtm") => {
+    setConnectingGsc(true);
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      sessionStorage.setItem("gsc_oauth_redirect_uri", redirectUri);
+
+      const { data, error } = await supabase.functions.invoke("manage-google-ads", {
+        body: { action: "get_auth_url", redirect_uri: redirectUri, connection_type: connectionType },
+      });
+
+      if (error) throw error;
+      if (!data?.auth_url) throw new Error("Failed to get OAuth URL");
+
+      window.location.href = data.auth_url;
+    } catch (error: any) {
+      console.error(`${connectionType} connect error:`, error);
+      toast.error(error.message || `Failed to connect to ${connectionType.toUpperCase()}`);
       setConnectingGsc(false);
     }
   };
@@ -270,6 +330,74 @@ export function IntegrationsSettings() {
               )}
             </Button>
           )}
+        </div>
+      </Card>
+
+      {/* Google Analytics (GA4) - Standalone Card */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shadow-lg">
+              <BarChart3 className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Google Analytics (GA4)</h3>
+              <p className="text-sm text-muted-foreground">
+                Track sessions, conversions, and audience data
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => connectGoogleService("ga4")}
+            disabled={connectingGsc}
+            className="gap-2"
+          >
+            {connectingGsc ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <ExternalLink className="h-4 w-4" />
+                Connect
+              </>
+            )}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Google Tag Manager - Standalone Card */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg">
+              <Tag className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Google Tag Manager</h3>
+              <p className="text-sm text-muted-foreground">
+                Manage tags, triggers, and conversion tracking
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => connectGoogleService("gtm")}
+            disabled={connectingGsc}
+            className="gap-2"
+          >
+            {connectingGsc ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <ExternalLink className="h-4 w-4" />
+                Connect
+              </>
+            )}
+          </Button>
         </div>
       </Card>
 
