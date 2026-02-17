@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Globe, Sparkles, FileText, MessageSquare, BarChart3,
   Loader2, Trash2, ExternalLink, Copy, Check, Plus, Zap,
-  TrendingUp, CalendarDays
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,26 +36,7 @@ export default function AeoGeo() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  const [isFilling30, setIsFilling30] = useState(false);
   const hasSuggestedRef = useRef(false);
-
-  const handleFill30Days = async () => {
-    if (!project || isFilling30) return;
-    setIsFilling30(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-30-gso-contents", {
-        body: { projectId: project.id },
-      });
-      if (error) throw new Error(error.message);
-      toast.success(`${data?.created || 0} GSO contents generated and scheduled!`);
-      // Reload contents
-      window.location.reload();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to generate 30-day GSO plan");
-    } finally {
-      setIsFilling30(false);
-    }
-  };
 
   // Auto-trigger AI suggestion when dialog opens
   useEffect(() => {
@@ -220,19 +201,6 @@ export default function AeoGeo() {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleFill30Days}
-              disabled={isFilling30}
-              className="border-violet-500/30 text-violet-700 hover:bg-violet-50"
-            >
-              {isFilling30 ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating 30 days...</>
-              ) : (
-                <><CalendarDays className="h-4 w-4 mr-2" />Fill 30 Days</>
-              )}
-            </Button>
-
             <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-violet-600 to-blue-600 hover:opacity-90">
