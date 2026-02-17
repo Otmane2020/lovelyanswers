@@ -266,7 +266,7 @@ serve(async (req) => {
 
     console.log(`[check-planning] Found ${projects?.length || 0} active projects`);
 
-    const results: { projectId: string; name: string; status: string; answersCount: number; articlesCount: number }[] = [];
+    const results: { projectId: string; name: string; status: string; answersCount: number; articlesCount: number; gsoCount: number }[] = [];
 
     for (const project of projects || []) {
       // Count answers in next 30 days
@@ -285,22 +285,33 @@ serve(async (req) => {
         .gte("scheduled_date", today.toISOString())
         .lt("scheduled_date", endDate.toISOString());
 
-      const totalItems = (answersCount || 0) + (articlesCount || 0);
-      const expectedItems = 60; // 30 answers + 30 articles
+      // Count GSO contents in next 30 days
+      const { count: gsoCount } = await supabase
+        .from("geo_contents")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id)
+        .gte("scheduled_date", today.toISOString())
+        .lt("scheduled_date", endDate.toISOString());
 
-      console.log(`[check-planning] Project ${project.name}: ${answersCount} answers, ${articlesCount} articles (total: ${totalItems}/${expectedItems})`);
+      const totalAeo = (answersCount || 0) + (articlesCount || 0);
+      const expectedAeo = 60; // 30 answers + 30 articles
+      const totalGso = gsoCount || 0;
+      const expectedGso = 30;
 
-      if (totalItems < expectedItems) {
-        console.log(`[check-planning] Project ${project.name} needs regeneration (${totalItems}/${expectedItems} items)`);
-        
+      console.log(`[check-planning] Project ${project.name}: ${answersCount} answers, ${articlesCount} articles, ${totalGso} GSO (AEO: ${totalAeo}/${expectedAeo}, GSO: ${totalGso}/${expectedGso})`);
+
+      const brandName = project.brand_name || project.name;
+      const description = project.business_description || "";
+      const language = project.language || "fr";
+
+      let aeoStatus = "complete";
+      let gsoStatus = "complete";
+
+      // === AEO Regeneration ===
+      if (totalAeo < expectedAeo) {
+        console.log(`[check-planning] Project ${project.name} AEO needs regeneration (${totalAeo}/${expectedAeo})`);
         try {
-          const brandName = project.brand_name || project.name;
-          const description = project.business_description || "";
-          const language = project.language || "fr";
-
-          // Delete existing scheduled items
-          console.log(`[check-planning] Deleting existing items for project ${project.name}...`);
-          
+          // Delete existing scheduled AEO items
           await supabase
             .from("answers")
             .update({ article_id: null, has_article: false })
@@ -322,10 +333,7 @@ serve(async (req) => {
             .gte("scheduled_date", today.toISOString())
             .lt("scheduled_date", endDate.toISOString());
 
-          // Generate 30 questions
-          console.log(`[check-planning] Generating 30 questions for ${project.name}...`);
           const questions = await generateQuestions(brandName, description, language, apiKey, 30);
-
           let answersCreated = 0;
           let articlesCreated = 0;
 
@@ -333,15 +341,9 @@ serve(async (req) => {
             const q = questions[i];
             const scheduledDate = new Date(today.getTime() + i * 86400000);
             const scheduledDateStr = scheduledDate.toISOString();
-
-            console.log(`[check-planning] Processing ${i + 1}/${questions.length}: ${q.question.substring(0, 40)}...`);
-
             try {
-              // Generate answer
               const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
               const score = computeScore(answerData.answer, brandName);
-
-              // Insert answer
               const { data: insertedAnswer, error: answerError } = await supabase
                 .from("answers")
                 .insert({
@@ -357,17 +359,10 @@ serve(async (req) => {
                 })
                 .select()
                 .single();
-
-              if (answerError) {
-                console.error(`Error inserting answer:`, answerError);
-                continue;
-              }
+              if (answerError) { console.error(`Error inserting answer:`, answerError); continue; }
               answersCreated++;
 
-              // Generate article
               const articleData = await generateArticle(q.question, answerData.answer, brandName, language, apiKey);
-
-              // Insert article
               const { data: insertedArticle, error: articleError } = await supabase
                 .from("articles")
                 .insert({
@@ -385,52 +380,55 @@ serve(async (req) => {
                 })
                 .select()
                 .single();
-
-              if (articleError) {
-                console.error(`Error inserting article:`, articleError);
-              } else {
+              if (articleError) { console.error(`Error inserting article:`, articleError); }
+              else {
                 articlesCreated++;
-                await supabase
-                  .from("answers")
-                  .update({ article_id: insertedArticle.id, has_article: true })
-                  .eq("id", insertedAnswer.id);
+                await supabase.from("answers").update({ article_id: insertedArticle.id, has_article: true }).eq("id", insertedAnswer.id);
               }
-
-              // Small delay to avoid rate limits
               await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (err) {
-              console.error(`Error processing question ${i + 1}:`, err);
-            }
+            } catch (err) { console.error(`Error processing AEO question ${i + 1}:`, err); }
           }
-
-          console.log(`[check-planning] Regeneration complete for ${project.name}: ${answersCreated} answers, ${articlesCreated} articles`);
-          
-          results.push({
-            projectId: project.id,
-            name: project.name,
-            status: "regenerated",
-            answersCount: answersCreated,
-            articlesCount: articlesCreated,
-          });
+          console.log(`[check-planning] AEO regeneration for ${project.name}: ${answersCreated} answers, ${articlesCreated} articles`);
+          aeoStatus = "regenerated";
         } catch (genError) {
-          console.error(`[check-planning] Error during regeneration for ${project.name}:`, genError);
-          results.push({
-            projectId: project.id,
-            name: project.name,
-            status: "error",
-            answersCount: answersCount || 0,
-            articlesCount: articlesCount || 0,
-          });
+          console.error(`[check-planning] AEO error for ${project.name}:`, genError);
+          aeoStatus = "error";
         }
-      } else {
-        results.push({
-          projectId: project.id,
-          name: project.name,
-          status: "complete",
-          answersCount: answersCount || 0,
-          articlesCount: articlesCount || 0,
-        });
       }
+
+      // === GSO Regeneration ===
+      if (totalGso < expectedGso) {
+        console.log(`[check-planning] Project ${project.name} GSO needs regeneration (${totalGso}/${expectedGso})`);
+        try {
+          // Call the existing generate-30-gso-contents function
+          const gsoRes = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-30-gso-contents`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({ projectId: project.id }),
+            }
+          );
+          const gsoData = await gsoRes.json();
+          console.log(`[check-planning] GSO regeneration for ${project.name}: ${gsoData?.created || 0} items`);
+          gsoStatus = "regenerated";
+        } catch (gsoErr) {
+          console.error(`[check-planning] GSO error for ${project.name}:`, gsoErr);
+          gsoStatus = "error";
+        }
+      }
+
+      results.push({
+        projectId: project.id,
+        name: project.name,
+        status: aeoStatus === "error" || gsoStatus === "error" ? "error" : (aeoStatus === "regenerated" || gsoStatus === "regenerated" ? "regenerated" : "complete"),
+        answersCount: answersCount || 0,
+        articlesCount: articlesCount || 0,
+        gsoCount: totalGso,
+      });
     }
 
     console.log("[check-planning] Completed. Results:", JSON.stringify(results));
