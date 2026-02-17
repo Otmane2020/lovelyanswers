@@ -40,6 +40,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import SuperAdmin from "./pages/SuperAdmin";
+import SuperAdminAds from "./pages/SuperAdminAds";
 import Blog from "./pages/Blog";
 import LocalAeoArticle from "./pages/LocalAeoArticle";
 import AuditPremium from "./pages/AuditPremium";
@@ -102,6 +103,7 @@ const App = () => (
                   <Route path="/support" element={<ProtectedRoute requireSubscription={false}><AeoSupport /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><AeoSettings /></ProtectedRoute>} />
                   <Route path="/superadmin" element={<SuperAdmin />} />
+                  <Route path="/superadmin/ads" element={<SuperAdminAds />} />
                   <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
