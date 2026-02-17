@@ -27,6 +27,8 @@ import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
+import { GoogleAnalyticsPanel } from "@/components/admin/GoogleAnalyticsPanel";
+import { GoogleTagManagerPanel } from "@/components/admin/GoogleTagManagerPanel";
 
 interface SupportTicket {
   id: string;
@@ -660,6 +662,16 @@ const SuperAdmin = () => {
               <Tag className="h-4 w-4" />
               Conversions
             </TabsTrigger>
+            <Separator className="my-2" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-1 font-semibold">Google Analytics & GTM</p>
+            <TabsTrigger value="ga4" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <BarChart3 className="h-4 w-4" />
+              GA4
+            </TabsTrigger>
+            <TabsTrigger value="gtm" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Tag className="h-4 w-4" />
+              Tag Manager
+            </TabsTrigger>
           </TabsList>
         </aside>
 
@@ -697,6 +709,12 @@ const SuperAdmin = () => {
           </TabsContent>
           <TabsContent value="gads-conversions">
             <GoogleAdsManager activeTab="conversions" />
+          </TabsContent>
+          <TabsContent value="ga4">
+            <GoogleAnalyticsPanel />
+          </TabsContent>
+          <TabsContent value="gtm">
+            <GoogleTagManagerPanel />
           </TabsContent>
 
           {/* Users Tab */}
