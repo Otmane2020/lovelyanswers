@@ -99,8 +99,14 @@ export function trackPricingView() {
     value: 1.0,
     currency: "USD",
   });
+  // Also fire for second Google Ads account (AW-17956394555)
+  gtag("event", "conversion", {
+    send_to: "AW-17956394555/pricing_page_view",
+    value: 1.0,
+    currency: "USD",
+  });
   gtag("event", "view_item_list", {
     item_list_name: "Pricing Plans",
   });
-  console.log("[GTAG] Conversion: pricing_view");
+  console.log("[GTAG] Conversion: pricing_view (both accounts)");
 }
