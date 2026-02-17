@@ -44,8 +44,8 @@ serve(async (req) => {
       );
     }
 
-    const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-    const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+    const clientId = Deno.env.get("GMB_GOOGLE_CLIENT_ID") || Deno.env.get("GOOGLE_CLIENT_ID");
+    const clientSecret = Deno.env.get("GMB_GOOGLE_CLIENT_SECRET") || Deno.env.get("GOOGLE_CLIENT_SECRET");
 
     if (!clientId || !clientSecret) {
       return new Response(
