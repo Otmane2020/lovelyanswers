@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GlassCard } from "@/components/ui/glass-card";
 import {
-  Globe, Sparkles, Loader2, Trash2, Copy, Check,
+  Globe, Loader2, Trash2, Copy, Check, Eye, EyeOff, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,102 +94,133 @@ export default function AeoGeo() {
   const ContentCard = ({ item }: { item: GeoContent }) => {
     const isExpanded = expandedId === item.id;
     return (
-      <Card className="p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Badge variant="outline" className={cn("text-[10px]", getTypeColor(item.content_type))}>
-                {getTypeLabel(item.content_type)}
-              </Badge>
-              {item.score > 0 && (
-                <ScoreRing score={item.score} size="sm" />
-              )}
+      <GlassCard hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="shrink-0">
+            <ScoreRing score={item.score} size="sm" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">
+                {item.title || item.topic}
+              </h3>
+              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                  onClick={() => item.content && handleCopy(item.content, item.id)}
+                >
+                  {copiedId === item.id ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" /> : <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
+                  onClick={() => deleteMutation.mutate(item.id)}
+                >
+                  <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                </Button>
+              </div>
             </div>
-            <h3 className="font-semibold text-sm truncate">{item.title || item.topic}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
               {item.brand} · {new Date(item.created_at).toLocaleDateString()}
             </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => item.content && handleCopy(item.content, item.id)}
-            >
-              {copiedId === item.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              onClick={() => deleteMutation.mutate(item.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              <Badge variant="outline" className={cn("text-[10px] sm:text-xs", getTypeColor(item.content_type))}>
+                {getTypeLabel(item.content_type)}
+              </Badge>
+              {item.is_public && (
+                <Badge className="bg-emerald-500/20 text-emerald-500 border-0 text-[10px] sm:text-xs">Public</Badge>
+              )}
+              {!item.is_public && item.scheduled_date && (
+                <Badge variant="secondary" className="text-[10px] sm:text-xs gap-1">
+                  <Clock className="h-3 w-3" />
+                  {new Date(item.scheduled_date).toLocaleDateString()}
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 sm:h-8 px-2 sm:px-3">
+                {isExpanded ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {isExpanded ? "Hide" : "View"}
+              </Button>
+            </div>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2 text-xs"
-          onClick={() => setExpandedId(isExpanded ? null : item.id)}
-        >
-          {isExpanded ? "Hide content" : "Show content"}
-        </Button>
         {isExpanded && item.content && (
-          <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap max-h-[400px] overflow-y-auto">
+          <div className="mt-3 sm:mt-4 p-3 rounded-lg bg-muted/50 text-xs sm:text-sm whitespace-pre-wrap max-h-[300px] sm:max-h-[400px] overflow-y-auto">
             {item.content}
           </div>
         )}
-      </Card>
+      </GlassCard>
     );
+  };
+
+  const renderContentList = (items: GeoContent[], emptyLabel: string) => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (items.length === 0) {
+      return (
+        <Card className="p-8 sm:p-12 text-center">
+          <Globe className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold mb-2">{emptyLabel}</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Le planning 30 jours se remplit automatiquement.
+          </p>
+        </Card>
+      );
+    }
+    return items.map(item => <ContentCard key={item.id} item={item} />);
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2">
-              <Globe className="h-6 w-6 sm:h-8 sm:w-8 text-violet-600" />
-              GSO Engine
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Generative Search Optimization — Make your brand appear in AI-generated answers
-            </p>
-          </div>
+        <div>
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-violet-600" />
+            GSO Engine
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Generative Search Optimization — AI visibility for your brand
+          </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">{contents.length}</p>
-            <p className="text-xs text-muted-foreground">Total GSO</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <Card className="p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-2xl font-bold">{contents.length}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total GSO</p>
           </Card>
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">{articles.length}</p>
-            <p className="text-xs text-muted-foreground">Articles</p>
+          <Card className="p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-2xl font-bold">{articles.length}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Articles</p>
           </Card>
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">{mentions.length}</p>
-            <p className="text-xs text-muted-foreground">Mentions</p>
+          <Card className="p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-2xl font-bold">{mentions.length}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Mentions</p>
           </Card>
-          <Card className="p-3 text-center">
-            <p className="text-2xl font-bold">{comparisons.length}</p>
-            <p className="text-xs text-muted-foreground">Comparisons</p>
+          <Card className="p-2 sm:p-3 text-center">
+            <p className="text-lg sm:text-2xl font-bold">{comparisons.length}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Comparisons</p>
           </Card>
         </div>
 
         {/* Auto-fill in progress */}
         {isFilling && (
-          <Card className="p-6 border-violet-500/20 bg-violet-500/5">
+          <Card className="p-4 sm:p-6 border-violet-500/20 bg-violet-500/5">
             <div className="flex items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-violet-600" />
               <div>
-                <p className="font-medium">Remplissage automatique du planning GSO 30 jours...</p>
-                <p className="text-sm text-muted-foreground">Cela peut prendre 30-60 secondes</p>
+                <p className="font-medium text-sm sm:text-base">Remplissage automatique GSO 30 jours...</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">30-60 secondes</p>
               </div>
             </div>
           </Card>
@@ -196,39 +228,32 @@ export default function AeoGeo() {
 
         {/* Content Tabs */}
         <Tabs defaultValue="all">
-          <TabsList>
-            <TabsTrigger value="all">All ({contents.length})</TabsTrigger>
-            <TabsTrigger value="article">Articles ({articles.length})</TabsTrigger>
-            <TabsTrigger value="mentions">Mentions ({mentions.length})</TabsTrigger>
-            <TabsTrigger value="comparison">Comparisons ({comparisons.length})</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="w-max sm:w-auto">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">
+                All ({contents.length})
+              </TabsTrigger>
+              <TabsTrigger value="article" className="text-xs sm:text-sm">
+                Articles ({articles.length})
+              </TabsTrigger>
+              <TabsTrigger value="mentions" className="text-xs sm:text-sm">
+                Mentions ({mentions.length})
+              </TabsTrigger>
+              <TabsTrigger value="comparison" className="text-xs sm:text-sm">
+                Comparisons ({comparisons.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="all" className="space-y-3 mt-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : contents.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No GSO content yet</h3>
-                <p className="text-sm text-muted-foreground">
-                  Le planning 30 jours se remplit automatiquement à l'ouverture de la page.
-                </p>
-              </Card>
-            ) : (
-              contents.map(item => <ContentCard key={item.id} item={item} />)
-            )}
+          <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            {renderContentList(contents, "No GSO content yet")}
           </TabsContent>
 
           {["article", "mentions", "comparison"].map(type => (
-            <TabsContent key={type} value={type} className="space-y-3 mt-4">
-              {contents.filter(c => c.content_type === type).length === 0 ? (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground text-sm">No {getTypeLabel(type)} content yet</p>
-                </Card>
-              ) : (
-                contents.filter(c => c.content_type === type).map(item => <ContentCard key={item.id} item={item} />)
+            <TabsContent key={type} value={type} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+              {renderContentList(
+                contents.filter(c => c.content_type === type),
+                `No ${getTypeLabel(type)} content yet`
               )}
             </TabsContent>
           ))}
