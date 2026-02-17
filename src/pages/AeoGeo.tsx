@@ -101,10 +101,7 @@ export default function AeoGeo() {
                 {getTypeLabel(item.content_type)}
               </Badge>
               {item.score > 0 && (
-                <div className="flex items-center gap-1">
-                  <ScoreRing score={item.score} size="sm" showLabel={false} />
-                  <span className="text-xs text-muted-foreground">{item.score}%</span>
-                </div>
+                <ScoreRing score={item.score} size="sm" />
               )}
             </div>
             <h3 className="font-semibold text-sm truncate">{item.title || item.topic}</h3>
