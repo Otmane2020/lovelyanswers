@@ -27,8 +27,6 @@ import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
-import { GoogleAnalyticsPanel } from "@/components/admin/GoogleAnalyticsPanel";
-import { GoogleTagManagerPanel } from "@/components/admin/GoogleTagManagerPanel";
 
 interface SupportTicket {
   id: string;
@@ -633,45 +631,14 @@ const SuperAdmin = () => {
               Articles Actifs
             </TabsTrigger>
             <Separator className="my-2" />
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-1 font-semibold">Google Ads</p>
-            <TabsTrigger value="gads-campaigns" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+            <Button
+              variant="ghost"
+              className="justify-start gap-2 px-3 py-2.5 w-full font-normal rounded-lg hover:bg-primary/10 hover:text-primary"
+              onClick={() => navigate("/superadmin/ads")}
+            >
               <Megaphone className="h-4 w-4" />
-              Campagnes
-            </TabsTrigger>
-            <TabsTrigger value="gads-audit" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Brain className="h-4 w-4" />
-              Audit complet
-            </TabsTrigger>
-            <TabsTrigger value="gads-keywords" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Key className="h-4 w-4" />
-              Mots-clés
-            </TabsTrigger>
-            <TabsTrigger value="gads-adgroups" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Target className="h-4 w-4" />
-              Ad Groups
-            </TabsTrigger>
-            <TabsTrigger value="gads-roas" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <TrendingUp className="h-4 w-4" />
-              ROAS
-            </TabsTrigger>
-            <TabsTrigger value="gads-strategy" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Lightbulb className="h-4 w-4" />
-              Stratégie
-            </TabsTrigger>
-            <TabsTrigger value="gads-conversions" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Tag className="h-4 w-4" />
-              Conversions
-            </TabsTrigger>
-            <Separator className="my-2" />
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 py-1 font-semibold">Google Analytics & GTM</p>
-            <TabsTrigger value="ga4" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <BarChart3 className="h-4 w-4" />
-              GA4
-            </TabsTrigger>
-            <TabsTrigger value="gtm" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
-              <Tag className="h-4 w-4" />
-              Tag Manager
-            </TabsTrigger>
+              Ads Agency Dashboard
+            </Button>
           </TabsList>
         </aside>
 
@@ -688,34 +655,7 @@ const SuperAdmin = () => {
             <ActiveArticleUsers />
           </TabsContent>
 
-          {/* Google Ads Sub-Tabs */}
-          <TabsContent value="gads-campaigns">
-            <GoogleAdsManager activeTab="campaigns" />
-          </TabsContent>
-          <TabsContent value="gads-audit">
-            <GoogleAdsManager activeTab="audit" />
-          </TabsContent>
-          <TabsContent value="gads-keywords">
-            <GoogleAdsManager activeTab="keywords-analysis" />
-          </TabsContent>
-          <TabsContent value="gads-adgroups">
-            <GoogleAdsManager activeTab="adgroups-analysis" />
-          </TabsContent>
-          <TabsContent value="gads-roas">
-            <GoogleAdsManager activeTab="roas-analysis" />
-          </TabsContent>
-          <TabsContent value="gads-strategy">
-            <GoogleAdsManager activeTab="strategy-analysis" />
-          </TabsContent>
-          <TabsContent value="gads-conversions">
-            <GoogleAdsManager activeTab="conversions" />
-          </TabsContent>
-          <TabsContent value="ga4">
-            <GoogleAnalyticsPanel />
-          </TabsContent>
-          <TabsContent value="gtm">
-            <GoogleTagManagerPanel />
-          </TabsContent>
+
 
           {/* Users Tab */}
           <TabsContent value="users">
