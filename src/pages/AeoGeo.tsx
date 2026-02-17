@@ -3,96 +3,60 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Globe, Sparkles, FileText, MessageSquare, BarChart3,
-  Loader2, Trash2, ExternalLink, Copy, Check, Plus, Zap,
-  TrendingUp
+  Globe, Sparkles, Loader2, Trash2, Copy, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
-import { useGeoContents, useGenerateGeoContent, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
-import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
 
 export default function AeoGeo() {
   const { project } = useActiveProject();
   const { data: contents = [], isLoading } = useGeoContents();
-  const generateMutation = useGenerateGeoContent();
   const deleteMutation = useDeleteGeoContent();
-  const { isSubscribed } = useSubscriptionContext();
 
-  const [showGenerate, setShowGenerate] = useState(false);
-  const [topic, setTopic] = useState("");
-  const [keywords, setKeywords] = useState("");
-  const [contentType, setContentType] = useState("article");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const hasSuggestedRef = useRef(false);
+  const [isFilling, setIsFilling] = useState(false);
+  const hasTriggeredRef = useRef(false);
 
-  // Auto-trigger AI suggestion when dialog opens
+  // Auto-trigger 30-day fill on page open if fewer than 30 scheduled contents
   useEffect(() => {
-    if (showGenerate && !hasSuggestedRef.current && project && !topic) {
-      hasSuggestedRef.current = true;
-      handleAiSuggest();
-    }
-    if (!showGenerate) {
-      hasSuggestedRef.current = false;
-    }
-  }, [showGenerate]);
+    if (!project || hasTriggeredRef.current || isLoading) return;
+    hasTriggeredRef.current = true;
 
-  const brand = project?.brand_name || "";
-  const website = project?.website_url || "";
+    const now = new Date();
+    const in30 = new Date();
+    in30.setDate(now.getDate() + 30);
+    const scheduled = contents.filter(c => {
+      if (!c.scheduled_date) return false;
+      const d = new Date(c.scheduled_date);
+      return d >= now && d <= in30;
+    });
 
-  const handleAiSuggest = async () => {
-    if (!project) return;
-    setIsSuggesting(true);
+    if (scheduled.length < 30) {
+      handleFill30();
+    }
+  }, [project, isLoading, contents]);
+
+  const handleFill30 = async () => {
+    if (!project || isFilling) return;
+    setIsFilling(true);
     try {
-      const res = await supabase.functions.invoke("generate-geo-content", {
-        body: {
-          mode: "suggest",
-          brand: brand || "Brand",
-          website,
-          projectId: project.id,
-          contentType,
-          language: project.language || "en",
-        },
+      const res = await supabase.functions.invoke("generate-30-gso-contents", {
+        body: { projectId: project.id },
       });
       if (res.error) throw new Error(res.error.message);
-      const data = res.data;
-      if (data?.topic) setTopic(data.topic);
-      if (data?.keywords?.length) setKeywords(data.keywords.join(", "));
-      toast.success("AI suggestion applied!");
+      toast.success("Planning GSO 30 jours lancé !");
     } catch (err: any) {
-      toast.error(err.message || "AI suggestion failed");
+      toast.error(err.message || "Erreur lors du remplissage");
     } finally {
-      setIsSuggesting(false);
+      setIsFilling(false);
     }
-  };
-
-  const handleGenerate = async () => {
-    if (!topic.trim() || !project) return;
-    
-    setShowGenerate(false);
-    await generateMutation.mutateAsync({
-      topic: topic.trim(),
-      brand: brand || "Brand",
-      website,
-      keywords: keywords.split(",").map(k => k.trim()).filter(Boolean),
-      projectId: project.id,
-      contentType,
-      language: project.language || "en",
-    });
-    setTopic("");
-    setKeywords("");
   };
 
   const handleCopy = async (content: string, id: string) => {
@@ -125,7 +89,6 @@ export default function AeoGeo() {
   const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
   const mentions = contents.filter(c => c.content_type === "mentions");
   const comparisons = contents.filter(c => c.content_type === "comparison");
-  const pillars = contents.filter(c => c.content_type === "pillar");
 
   const ContentCard = ({ item }: { item: GeoContent }) => {
     const isExpanded = expandedId === item.id;
@@ -199,112 +162,6 @@ export default function AeoGeo() {
               Generative Search Optimization — Make your brand appear in AI-generated answers
             </p>
           </div>
-
-          <div className="flex gap-2">
-            <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-violet-600 to-blue-600 hover:opacity-90">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate GSO Content
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-violet-600" />
-                  Generate GSO Content
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={handleAiSuggest}
-                  disabled={isSuggesting}
-                >
-                  {isSuggesting ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Suggesting...</>
-                  ) : (
-                    <><Sparkles className="h-4 w-4 mr-2" />AI Suggestion</>
-                  )}
-                </Button>
-                <div>
-                  <Label>Topic *</Label>
-                  <Input
-                    placeholder="e.g. best tools to manage Google reviews"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Content Type</Label>
-                  <Select value={contentType} onValueChange={setContentType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="article">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          GSO Article (1500+ words)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="pillar">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4" />
-                          Pillar Page (2000+ words)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="mentions">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4" />
-                          Brand Mentions (10 snippets)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="comparison">
-                        <div className="flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4" />
-                          Comparison Article
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Keywords (comma separated)</Label>
-                  <Textarea
-                    placeholder="review automation, local SEO, AI visibility"
-                    value={keywords}
-                    onChange={(e) => setKeywords(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                  <p className="font-medium">Brand: {brand || "Not set"}</p>
-                  <p className="text-muted-foreground">Website: {website || "Not set"}</p>
-                </div>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!topic.trim() || generateMutation.isPending}
-                  className="w-full bg-gradient-to-r from-violet-600 to-blue-600"
-                >
-                  {generateMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          </div>
         </div>
 
         {/* Stats */}
@@ -327,14 +184,14 @@ export default function AeoGeo() {
           </Card>
         </div>
 
-        {/* Generation in progress */}
-        {generateMutation.isPending && (
+        {/* Auto-fill in progress */}
+        {isFilling && (
           <Card className="p-6 border-violet-500/20 bg-violet-500/5">
             <div className="flex items-center gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
               <div>
-                <p className="font-medium">Generating GEO content...</p>
-                <p className="text-sm text-muted-foreground">This may take 30-60 seconds</p>
+                <p className="font-medium">Remplissage automatique du planning GSO 30 jours...</p>
+                <p className="text-sm text-muted-foreground">Cela peut prendre 30-60 secondes</p>
               </div>
             </div>
           </Card>
@@ -358,13 +215,9 @@ export default function AeoGeo() {
               <Card className="p-12 text-center">
                 <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No GSO content yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Generate AI-optimized content to make your brand appear in ChatGPT, Gemini & Perplexity answers.
+                <p className="text-sm text-muted-foreground">
+                  Le planning 30 jours se remplit automatiquement à l'ouverture de la page.
                 </p>
-                <Button onClick={() => setShowGenerate(true)} className="bg-gradient-to-r from-violet-600 to-blue-600">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate your first GSO content
-                </Button>
               </Card>
             ) : (
               contents.map(item => <ContentCard key={item.id} item={item} />)
