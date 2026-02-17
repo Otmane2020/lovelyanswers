@@ -33,6 +33,7 @@ import AeoWizard from "./pages/AeoWizard";
 import AeoHistory from "./pages/AeoHistory";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
+import ThankYou from "./pages/ThankYou";
 
 import Cart from "./pages/Cart";
 import Terms from "./pages/Terms";
@@ -73,6 +74,7 @@ const App = () => (
                   <Route path="/audit-premium" element={<AuditPremium />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout" element={<ProtectedRoute requireSubscription={false}><Checkout /></ProtectedRoute>} />
+                  <Route path="/thank-you" element={<ProtectedRoute requireSubscription={false}><ThankYou /></ProtectedRoute>} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/signup" element={<Signup />} />

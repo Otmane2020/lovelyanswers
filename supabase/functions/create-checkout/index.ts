@@ -78,10 +78,10 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
 
-    // Determine success URL based on guest vs authenticated
+    // Determine success URL — redirect to thank-you page with session_id
     const successUrl = isGuest 
       ? `${origin}/auth?mode=signup&checkout=success`
-      : `${origin}/dashboard?subscription=success`;
+      : `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
 
     // Create checkout session with 3-day trial and promo codes enabled
     const session = await stripe.checkout.sessions.create({
