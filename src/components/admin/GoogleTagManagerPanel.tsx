@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tag, AlertTriangle } from "lucide-react";
@@ -5,9 +6,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-export function GoogleTagManagerPanel() {
+export const GoogleTagManagerPanel = forwardRef<HTMLDivElement>((_, ref) => {
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Google Tag Manager</h2>
         <p className="text-muted-foreground text-sm mt-1">
@@ -75,4 +76,5 @@ export function GoogleTagManagerPanel() {
       </Card>
     </div>
   );
-}
+});
+GoogleTagManagerPanel.displayName = "GoogleTagManagerPanel";

@@ -1,12 +1,13 @@
+import { forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, AlertTriangle } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-export function GoogleAnalyticsPanel() {
+export const GoogleAnalyticsPanel = forwardRef<HTMLDivElement>((_, ref) => {
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Google Analytics (GA4)</h2>
         <p className="text-muted-foreground text-sm mt-1">
@@ -72,4 +73,5 @@ export function GoogleAnalyticsPanel() {
       </Card>
     </div>
   );
-}
+});
+GoogleAnalyticsPanel.displayName = "GoogleAnalyticsPanel";
