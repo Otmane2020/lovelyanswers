@@ -23,7 +23,6 @@ serve(async (req) => {
     // Google Business Profile API scopes
     const scopes = [
       "https://www.googleapis.com/auth/business.manage",
-      "https://www.googleapis.com/auth/plus.business.manage",
     ].join(" ");
 
     const state = JSON.stringify({ projectId, type: "gmb" });
