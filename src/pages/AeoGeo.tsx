@@ -52,9 +52,9 @@ export default function AeoGeo() {
         body: { projectId: project.id },
       });
       if (res.error) throw new Error(res.error.message);
-      toast.success("Planning GSO 30 jours lancé !");
+      toast.success("GSO 30-day planning started!");
     } catch (err: any) {
-      toast.error(err.message || "Erreur lors du remplissage");
+      toast.error(err.message || "Failed to fill planning");
     } finally {
       setIsFilling(false);
     }
@@ -171,7 +171,7 @@ export default function AeoGeo() {
           <Globe className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
           <h3 className="text-base sm:text-lg font-semibold mb-2">{emptyLabel}</h3>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Le planning 30 jours se remplit automatiquement.
+            The 30-day planning fills automatically.
           </p>
         </Card>
       );
@@ -219,8 +219,8 @@ export default function AeoGeo() {
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-violet-600" />
               <div>
-                <p className="font-medium text-sm sm:text-base">Remplissage automatique GSO 30 jours...</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">30-60 secondes</p>
+                <p className="font-medium text-sm sm:text-base">Auto-filling GSO 30-day planning...</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">This may take 30-60 seconds</p>
               </div>
             </div>
           </Card>
