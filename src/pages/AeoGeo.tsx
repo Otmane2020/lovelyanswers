@@ -148,10 +148,17 @@ export default function AeoGeo() {
             </div>
           </div>
         </div>
-        {isExpanded && item.content && (
-          <div className="mt-3 sm:mt-4 p-3 rounded-lg bg-muted/50 text-xs sm:text-sm whitespace-pre-wrap max-h-[300px] sm:max-h-[400px] overflow-y-auto">
-            {item.content}
-          </div>
+        {isExpanded && (item.html_content || item.content) && (
+          <div 
+            className="mt-3 sm:mt-4 p-3 rounded-lg bg-muted/50 text-xs sm:text-sm max-h-[300px] sm:max-h-[400px] overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: (item.html_content || item.content || "")
+              .replace(/```html\s*/gi, "").replace(/```\s*/g, "")
+              .replace(/^[\s\S]*?<body[^>]*>/i, "").replace(/<\/body>[\s\S]*$/i, "")
+              .replace(/<\/?html[^>]*>/gi, "").replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "")
+              .replace(/<!DOCTYPE[^>]*>/gi, "").replace(/<\/?body[^>]*>/gi, "")
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+            }}
+          />
         )}
       </GlassCard>
     );
