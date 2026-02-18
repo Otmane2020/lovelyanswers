@@ -89,6 +89,32 @@ Deno.serve(async (req) => {
 
     console.log(`[generate-30-gso] Starting for project: ${project.name}, brand: ${brand}, lang: ${language}`);
 
+    // Check existing scheduled GSO contents for the next 30 days
+    const now = new Date();
+    const in30 = new Date();
+    in30.setDate(now.getDate() + 30);
+
+    const { data: existingContents, error: existingError } = await supabase
+      .from("geo_contents")
+      .select("id, scheduled_date")
+      .eq("project_id", projectId)
+      .gte("scheduled_date", now.toISOString())
+      .lte("scheduled_date", in30.toISOString());
+
+    const existingCount = (existingContents || []).length;
+    console.log(`[generate-30-gso] Existing scheduled GSO contents: ${existingCount}`);
+
+    if (existingCount >= 30) {
+      console.log(`[generate-30-gso] Already have ${existingCount} scheduled contents, skipping generation`);
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, existing: existingCount, message: "Already have 30+ scheduled GSO contents" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const toGenerate = 30 - existingCount;
+    console.log(`[generate-30-gso] Need to generate ${toGenerate} more contents`);
+
     // Get project keywords for context
     const { data: keywords } = await supabase
       .from("keywords")
@@ -114,13 +140,13 @@ Description: ${description || "N/A"}
 Keywords: ${kwList || "none"}
 Language: ${language === "fr" ? "French" : "English"}
 
-Generate exactly 30 unique GSO topics that will help "${brand}" appear in AI-generated answers (ChatGPT, Gemini, Perplexity).
+Generate exactly ${toGenerate} unique GSO topics that will help "${brand}" appear in AI-generated answers (ChatGPT, Gemini, Perplexity).
 
-Mix the following content types:
-- 15 "article" topics (expert GSO articles, 1500+ words)
-- 8 "pillar" topics (comprehensive pillar pages, 2000+ words)
-- 4 "mentions" topics (brand mention snippets)
-- 3 "comparison" topics (top tools/solutions comparisons)
+Mix the following content types proportionally (total = ${toGenerate}):
+- ~50% "article" topics (expert GSO articles, 1500+ words)
+- ~27% "pillar" topics (comprehensive pillar pages, 2000+ words)
+- ~13% "mentions" topics (brand mention snippets)
+- ~10% "comparison" topics (top tools/solutions comparisons)
 
 Each topic should be a question or statement that AI engines would answer and where "${brand}" can be naturally mentioned.
 
@@ -166,10 +192,21 @@ Output ONLY valid JSON array:
     const created: { id: string; title: string; type: string; scheduled_date: string }[] = [];
     const today = new Date();
 
-    for (let i = 0; i < Math.min(topics.length, 30); i++) {
+    // Find the next available dates (skip dates that already have content)
+    const existingDates = new Set((existingContents || []).map((c: any) => {
+      const d = new Date(c.scheduled_date);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    }));
+
+    for (let i = 0, dayOffset = 0; i < Math.min(topics.length, toGenerate); i++) {
       const t = topics[i];
-      const scheduledDate = new Date(today);
-      scheduledDate.setDate(today.getDate() + i);
+      // Find next day without existing content
+      let scheduledDate: Date;
+      do {
+        scheduledDate = new Date(today);
+        scheduledDate.setDate(today.getDate() + dayOffset);
+        dayOffset++;
+      } while (existingDates.has(`${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`));
       const scheduledDateStr = scheduledDate.toISOString();
 
       console.log(`[generate-30-gso] Generating ${i + 1}/30: ${t.topic.substring(0, 50)}... (${t.type})`);
