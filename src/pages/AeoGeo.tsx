@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/ui/glass-card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Globe, Loader2, Trash2, Copy, Check, Eye, EyeOff, Clock,
 } from "lucide-react";
@@ -22,6 +23,7 @@ export default function AeoGeo() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewingItem, setViewingItem] = useState<GeoContent | null>(null);
   const [isFilling, setIsFilling] = useState(false);
   const hasTriggeredRef = useRef(false);
 
@@ -141,25 +143,13 @@ export default function AeoGeo() {
               )}
             </div>
             <div className="flex flex-wrap gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 sm:h-8 px-2 sm:px-3">
-                {isExpanded ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {isExpanded ? "Hide" : "View"}
+              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 sm:h-8 px-2 sm:px-3" onClick={() => setViewingItem(item)}>
+                <Eye className="h-3 w-3" />
+                Preview
               </Button>
             </div>
           </div>
         </div>
-        {isExpanded && (item.html_content || item.content) && (
-          <div 
-            className="mt-3 sm:mt-4 p-3 rounded-lg bg-muted/50 text-xs sm:text-sm max-h-[300px] sm:max-h-[400px] overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: (item.html_content || item.content || "")
-              .replace(/```html\s*/gi, "").replace(/```\s*/g, "")
-              .replace(/^[\s\S]*?<body[^>]*>/i, "").replace(/<\/body>[\s\S]*$/i, "")
-              .replace(/<\/?html[^>]*>/gi, "").replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "")
-              .replace(/<!DOCTYPE[^>]*>/gi, "").replace(/<\/?body[^>]*>/gi, "")
-              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-            }}
-          />
-        )}
       </GlassCard>
     );
   };
@@ -266,6 +256,59 @@ export default function AeoGeo() {
           ))}
         </Tabs>
       </div>
+
+      {/* Editorial Preview Dialog */}
+      <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold leading-tight">
+              {viewingItem?.title || viewingItem?.topic}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                <Badge variant="outline" className="text-xs">
+                  {viewingItem?.content_type}
+                </Badge>
+                <span>{viewingItem?.brand}</span>
+                {viewingItem?.score && <ScoreRing score={viewingItem.score} size="sm" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 ml-auto"
+                  onClick={() => {
+                    const content = viewingItem?.html_content || viewingItem?.content || "";
+                    navigator.clipboard.writeText(content);
+                    toast.success("HTML copied!");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy HTML
+                </Button>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-6 sm:p-8">
+            {viewingItem?.html_content || viewingItem?.content ? (
+              <article
+                className="editorial-prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: (viewingItem.html_content || viewingItem.content || "")
+                  .replace(/^[\s\S]*?<body[^>]*>/i, "")
+                  .replace(/<\/body>[\s\S]*$/i, "")
+                  .replace(/<!DOCTYPE[^>]*>/i, "")
+                  .replace(/<\/?html[^>]*>/gi, "")
+                  .replace(/<head>[\s\S]*?<\/head>/i, "")
+                  .replace(/<\/?body[^>]*>/gi, "")
+                  .replace(/```html\s*/gi, "")
+                  .replace(/```\s*$/gi, "")
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                  .trim()
+                }}
+              />
+            ) : (
+              <p className="text-muted-foreground text-center py-8">No content available</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
