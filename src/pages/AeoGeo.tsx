@@ -290,18 +290,28 @@ export default function AeoGeo() {
             {viewingItem?.html_content || viewingItem?.content ? (
               <article
                 className="editorial-prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: (viewingItem.html_content || viewingItem.content || "")
-                  .replace(/^[\s\S]*?<body[^>]*>/i, "")
-                  .replace(/<\/body>[\s\S]*$/i, "")
-                  .replace(/<!DOCTYPE[^>]*>/i, "")
-                  .replace(/<\/?html[^>]*>/gi, "")
-                  .replace(/<head>[\s\S]*?<\/head>/i, "")
-                  .replace(/<\/?body[^>]*>/gi, "")
-                  .replace(/```html\s*/gi, "")
-                  .replace(/```\s*$/gi, "")
-                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-                  .trim()
-                }}
+                dangerouslySetInnerHTML={{ __html: (() => {
+                  let raw = viewingItem.html_content || viewingItem.content || "";
+                  // If the content is a JSON string, extract the "content" field
+                  const trimmed = raw.trim();
+                  if (trimmed.startsWith("{") && trimmed.includes('"content"')) {
+                    try {
+                      const parsed = JSON.parse(trimmed);
+                      if (parsed.content) raw = parsed.content;
+                    } catch { /* not JSON, use as-is */ }
+                  }
+                  return raw
+                    .replace(/^[\s\S]*?<body[^>]*>/i, "")
+                    .replace(/<\/body>[\s\S]*$/i, "")
+                    .replace(/<!DOCTYPE[^>]*>/i, "")
+                    .replace(/<\/?html[^>]*>/gi, "")
+                    .replace(/<head>[\s\S]*?<\/head>/i, "")
+                    .replace(/<\/?body[^>]*>/gi, "")
+                    .replace(/```html\s*/gi, "")
+                    .replace(/```\s*$/gi, "")
+                    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                    .trim();
+                })() }}
               />
             ) : (
               <p className="text-muted-foreground text-center py-8">No content available</p>
