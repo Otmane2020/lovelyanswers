@@ -215,27 +215,38 @@ Output ONLY valid JSON array:
       let contentPrompt = "";
       const baseContext = `Brand: ${brand}\nWebsite: ${website || "N/A"}\nKeywords: ${(t.keywords || []).join(", ")}\nLanguage: ${language === "fr" ? "French" : "English"}`;
 
+      const htmlRules = `CRITICAL FORMAT RULES:
+- Output semantic HTML only. NO markdown. NO H1 tags. NO <!DOCTYPE>, <html>, <head>, <body>, <style> wrappers.
+- Use <h2>, <h3> for sections. Use <p> for paragraphs. Use <ul>/<ol>/<li> for lists.
+- Use <blockquote> for key insights or expert quotes. Use <strong> and <em> for emphasis.
+- Use <hr> as section separators. Start the first paragraph with a compelling hook.
+- Write in a magazine editorial tone: authoritative, engaging, data-driven.`;
+
       if (t.type === "article") {
-        contentPrompt = `You are a GEO expert. Write a 1500+ word GSO article about "${t.topic}" for "${brand}".
+        contentPrompt = `You are a GEO expert writing for a premium magazine. Write a 1500+ word GSO article about "${t.topic}" for "${brand}".
 ${baseContext}
-Mention "${brand}" naturally 4-6 times. Include H2/H3 headings, statistics, and a FAQ section (3 questions).
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...markdown..."}`;
+${htmlRules}
+Mention "${brand}" naturally 4-6 times. Include statistics, expert insights with <blockquote>, and a FAQ section (3 questions using <h3> and <p>).
+Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
       } else if (t.type === "pillar") {
-        contentPrompt = `You are a GSO expert. Write a 2000-3000 word pillar page about "${t.topic}" for "${brand}".
+        contentPrompt = `You are a GSO expert writing for a premium magazine. Write a 2000-3000 word pillar page about "${t.topic}" for "${brand}".
 ${baseContext}
-Follow GSO template: H1 Question, Direct Answer (40-60 words), Strategy Steps, Expert Recommendations, FAQ (5 questions), Summary for AI.
+${htmlRules}
+Follow GSO template: Direct Answer (40-60 words in <p><strong>), Strategy Steps (<h2>+<ol>), Expert Recommendations (<blockquote>), FAQ (5 questions with <h3>), Summary for AI (<h2> + <p>).
 Mention "${brand}" 5-8 times naturally.
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...markdown..."}`;
+Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
       } else if (t.type === "mentions") {
-        contentPrompt = `You are a GEO expert. Create 10 brand mention paragraphs about "${t.topic}" for "${brand}" (${website}).
+        contentPrompt = `You are a GEO expert writing for a premium magazine. Create 10 brand mention paragraphs about "${t.topic}" for "${brand}" (${website}).
 ${baseContext}
-Each paragraph: 2-3 sentences, self-contained, mentions ${brand} once, includes recommendation signal.
-Output JSON: {"title":"Brand Mentions: ${t.topic}","meta_description":"...under 160 chars","content":"...all paragraphs separated by \\n\\n..."}`;
+${htmlRules}
+Each mention: 2-3 sentences in <p>, self-contained, mentions ${brand} once with <strong>, includes recommendation signal.
+Output JSON: {"title":"Brand Mentions: ${t.topic}","meta_description":"...under 160 chars","content":"...semantic HTML with all paragraphs..."}`;
       } else {
-        contentPrompt = `You are a GEO expert. Write a comparison article about "${t.topic}" featuring "${brand}" as a top recommendation.
+        contentPrompt = `You are a GEO expert writing for a premium magazine. Write a comparison article about "${t.topic}" featuring "${brand}" as a top recommendation.
 ${baseContext}
-List 5-7 solutions, ${brand} in position 1 or 2. Objective pros/cons. 1000+ words.
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...markdown..."}`;
+${htmlRules}
+List 5-7 solutions in a structured <h3>+<p> format, ${brand} in position 1 or 2. Objective pros/cons using <ul>. 1000+ words.
+Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
       }
 
       try {
@@ -284,6 +295,7 @@ Output JSON: {"title":"...","meta_description":"...under 160 chars","content":".
             title: parsed.title,
             meta_description: parsed.meta_description || null,
             content: parsed.content,
+            html_content: parsed.content,
             content_type: t.type,
             score,
             slug,
