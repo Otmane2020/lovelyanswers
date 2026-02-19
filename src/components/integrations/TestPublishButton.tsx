@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Play, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Play, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,7 @@ export function TestPublishButton({
 }: TestPublishButtonProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   const handleTest = async () => {
     setIsTesting(true);
@@ -80,6 +81,7 @@ export function TestPublishButton({
 
       if (data?.success) {
         setTestResult("success");
+        setPublishedUrl(data.publishedUrl || null);
         toast.success(`${platformName} test successful!`, {
           description: data.publishedUrl 
             ? `Published to: ${data.publishedUrl}` 
@@ -103,23 +105,37 @@ export function TestPublishButton({
   };
 
   return (
-    <Button
-      variant="outline"
-      size={size}
-      onClick={handleTest}
-      disabled={isTesting}
-      className="gap-1.5"
-    >
-      {isTesting ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : testResult === "success" ? (
-        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-      ) : testResult === "error" ? (
-        <XCircle className="h-3.5 w-3.5 text-destructive" />
-      ) : (
-        <Play className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-1">
+      <Button
+        variant="outline"
+        size={size}
+        onClick={handleTest}
+        disabled={isTesting}
+        className="gap-1.5"
+      >
+        {isTesting ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : testResult === "success" ? (
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+        ) : testResult === "error" ? (
+          <XCircle className="h-3.5 w-3.5 text-destructive" />
+        ) : (
+          <Play className="h-3.5 w-3.5" />
+        )}
+        {isTesting ? "Testing..." : testResult === "success" ? "Passed" : "Test"}
+      </Button>
+      {testResult === "success" && publishedUrl && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          asChild
+        >
+          <a href={publishedUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
       )}
-      {isTesting ? "Testing..." : testResult === "success" ? "Passed" : "Test"}
-    </Button>
+    </div>
   );
 }
