@@ -254,25 +254,14 @@ export default function ShoppingDashboard() {
                         {imported > 0 ? `${imported} products ready` : `${products.length} available`} — Q&A, titles & descriptions for AI
                       </p>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button
-                        onClick={handleGenerateAll}
-                        disabled={generateAll.isPending || generating30}
-                        variant="outline"
-                        className="flex-1 sm:flex-none"
-                      >
-                        {generateAll.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                        Generate All
-                      </Button>
-                      <Button
-                        onClick={handleGenerate30Days}
-                        disabled={generating30 || generateAll.isPending}
-                        className="bg-foreground text-background hover:bg-foreground/90 flex-1 sm:flex-none"
-                      >
-                        {generating30 ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarDays className="w-4 h-4 mr-2" />}
-                        30 jours AEO
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={handleGenerate30Days}
+                      disabled={generating30}
+                      className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto"
+                    >
+                      {generating30 ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarDays className="w-4 h-4 mr-2" />}
+                      30 jours AEO
+                    </Button>
                   </div>
                 </GlassCard>
               )}
