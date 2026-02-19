@@ -893,8 +893,20 @@ async function publishToLovable(
           // Use the configured site URL
           const baseUrl = config.siteUrl.replace(/\/+$/, ''); // Remove trailing slashes
           publicUrl = `${baseUrl}/blog/${articleSlug}`;
+        } else if (!publicUrl && sourceId) {
+          // Try to get website_url from the project
+          const { data: answerProject } = await supabase
+            .from("answers")
+            .select("projects(website_url)")
+            .eq("id", sourceId)
+            .single();
+          const projectUrl = (answerProject?.projects as any)?.website_url;
+          if (projectUrl) {
+            publicUrl = `${projectUrl.replace(/\/+$/, '')}/blog/${articleSlug}`;
+          } else {
+            publicUrl = `/blog/${articleSlug}`;
+          }
         } else if (!publicUrl) {
-          // Fallback: just use the slug
           publicUrl = `/blog/${articleSlug}`;
         }
         
@@ -950,8 +962,39 @@ async function publishToLovable(
       console.log(`[Lovable] Generated fallback slug from title: ${contentSlug}`);
     }
     
-    // Use the published site URL (configured in integration or default to lovelyanswers.com)
-    const siteUrl = config.siteUrl?.replace(/\/+$/, '') || "https://lovelyanswers.com";
+    // Use the published site URL (configured in integration, or from project's website_url)
+    let siteUrl = config.siteUrl?.replace(/\/+$/, '');
+    
+    // If no siteUrl in config, try to get it from the project's website_url
+    if (!siteUrl && sourceId) {
+      // Try answers first to get project website_url
+      const { data: answerProject } = await supabase
+        .from("answers")
+        .select("projects(website_url)")
+        .eq("id", sourceId)
+        .single();
+      
+      const projectUrl = (answerProject?.projects as any)?.website_url;
+      if (projectUrl) {
+        siteUrl = projectUrl.replace(/\/+$/, '');
+      } else {
+        // Try articles
+        const { data: articleProject } = await supabase
+          .from("articles")
+          .select("projects(website_url)")
+          .eq("id", sourceId)
+          .single();
+        const artUrl = (articleProject?.projects as any)?.website_url;
+        if (artUrl) {
+          siteUrl = artUrl.replace(/\/+$/, '');
+        }
+      }
+    }
+    
+    if (!siteUrl) {
+      siteUrl = "https://lovelyanswers.com";
+    }
+    
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
     
     // === EDITORIAL TEMPLATE COMPATIBILITY ===
