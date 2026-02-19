@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
@@ -9,10 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/ui/glass-card";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useShoppingProducts, useShoppingFeeds, useImportFeed, useGenerateAllProductsAI, useDeleteProduct } from "@/hooks/useShoppingProducts";
+import { useShoppingProducts, useShoppingFeeds, useImportFeed, useGenerateAllProductsAI, useDeleteProduct, useDeleteAllProducts } from "@/hooks/useShoppingProducts";
 import { useShoppingPlanning, useFillShoppingPlanning, useClearShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
-import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock } from "lucide-react";
+import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 
@@ -23,6 +24,7 @@ export default function ShoppingDashboard() {
   const importFeed = useImportFeed();
   const generateAll = useGenerateAllProductsAI();
   const deleteProduct = useDeleteProduct();
+  const deleteAll = useDeleteAllProducts();
   const [feedUrl, setFeedUrl] = useState("");
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
   const { data: planning = [], isLoading: planningLoading } = useShoppingPlanning();
@@ -53,12 +55,32 @@ export default function ShoppingDashboard() {
     }
   };
 
+  const [generating30, setGenerating30] = useState(false);
+
   const handleGenerateAll = async () => {
     try {
       await generateAll.mutateAsync();
       toast.success("AI generation started for all products!");
     } catch (e: any) {
       toast.error(e.message || "Failed to start generation");
+    }
+  };
+
+  const handleGenerate30Days = async () => {
+    if (!project) return;
+    setGenerating30(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("auto-generate-shopping", {
+        body: { projectId: project.id },
+      });
+      if (error) throw error;
+      toast.success(`AI generation + 30-day planning done!`);
+      // Refresh data
+      window.location.reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate");
+    } finally {
+      setGenerating30(false);
     }
   };
 
@@ -101,10 +123,38 @@ export default function ShoppingDashboard() {
             <TabsContent value="products" className="space-y-4 sm:space-y-6">
               {/* Feed Import */}
               <Card className="p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-2">
-                  <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Import Feed
-                </h2>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Import Feed
+                  </h2>
+                  {feeds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive gap-1.5"
+                      onClick={() => {
+                        if (confirm("Disconnect feed and delete all products?")) {
+                          deleteAll.mutate(undefined, {
+                            onSuccess: () => toast.success("Feed disconnected, all products deleted"),
+                            onError: (e: any) => toast.error(e.message),
+                          });
+                        }
+                      }}
+                      disabled={deleteAll.isPending}
+                    >
+                      {deleteAll.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+                      Disconnect
+                    </Button>
+                  )}
+                </div>
+                {feeds.length > 0 && (
+                  <div className="mb-3 p-2 rounded-lg bg-muted/50 text-xs text-muted-foreground flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                    <span className="truncate">{feeds[0].feed_url}</span>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{feeds[0].product_count} items</Badge>
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Input
                     placeholder="Feed URL (XML, RSS, Atom)"
@@ -204,14 +254,25 @@ export default function ShoppingDashboard() {
                         {imported > 0 ? `${imported} products ready` : `${products.length} available`} — Q&A, titles & descriptions for AI
                       </p>
                     </div>
-                    <Button
-                      onClick={handleGenerateAll}
-                      disabled={generateAll.isPending}
-                      className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto"
-                    >
-                      {generateAll.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                      Generate All
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        onClick={handleGenerateAll}
+                        disabled={generateAll.isPending || generating30}
+                        variant="outline"
+                        className="flex-1 sm:flex-none"
+                      >
+                        {generateAll.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                        Generate All
+                      </Button>
+                      <Button
+                        onClick={handleGenerate30Days}
+                        disabled={generating30 || generateAll.isPending}
+                        className="bg-foreground text-background hover:bg-foreground/90 flex-1 sm:flex-none"
+                      >
+                        {generating30 ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarDays className="w-4 h-4 mr-2" />}
+                        30 jours AEO
+                      </Button>
+                    </div>
                   </div>
                 </GlassCard>
               )}

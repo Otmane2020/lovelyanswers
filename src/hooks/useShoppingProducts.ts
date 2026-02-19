@@ -156,3 +156,27 @@ export function useDeleteProduct() {
     },
   });
 }
+
+export function useDeleteAllProducts() {
+  const queryClient = useQueryClient();
+  const { project } = useActiveProject();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error("No active project");
+      // Delete planning first (FK dependency)
+      await (supabase.from("shopping_planning" as any).delete().eq("project_id", project.id) as any);
+      // Delete products
+      const { error: prodErr } = await supabase.from("shopping_products").delete().eq("project_id", project.id);
+      if (prodErr) throw prodErr;
+      // Delete feeds
+      const { error: feedErr } = await supabase.from("shopping_feeds").delete().eq("project_id", project.id);
+      if (feedErr) throw feedErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopping-products"] });
+      queryClient.invalidateQueries({ queryKey: ["shopping-feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["shopping-planning"] });
+    },
+  });
+}
