@@ -54,7 +54,7 @@ export default function ShoppingDashboard() {
         supabase.functions.invoke("auto-generate-shopping", {
           body: { projectId: project.id },
         }).then(() => {
-          toast.success("AI generation + planning 30 jours terminé !");
+          toast.success("AI generation + 30-day planning complete!");
           window.location.reload();
         }).catch((e: any) => {
           console.error("Auto-generate error:", e);
@@ -231,9 +231,9 @@ export default function ShoppingDashboard() {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground shrink-0" />
                     <div>
-                      <h3 className="text-sm sm:text-base font-bold">Génération automatique en cours</h3>
+                      <h3 className="text-sm sm:text-base font-bold">Automatic generation in progress</h3>
                       <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                        {imported} produits en attente d'optimisation AI — le cron quotidien gère tout automatiquement
+                        {imported} products pending AI optimization — the daily cron handles everything automatically
                       </p>
                     </div>
                   </div>
@@ -318,10 +318,10 @@ export default function ShoppingDashboard() {
                   <div>
                     <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <Calendar className="w-5 h-5" />
-                      Planning 30 jours
+                      30-Day Planning
                     </h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      {planning.length}/30 jours planifiés · {planning.filter(p => p.published).length} publiés
+                      {planning.length}/30 days planned · {planning.filter(p => p.published).length} published
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -334,7 +334,7 @@ export default function ShoppingDashboard() {
                         className="gap-1.5"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Vider
+                        Clear
                       </Button>
                     )}
                     <Button
@@ -343,7 +343,7 @@ export default function ShoppingDashboard() {
                       className="bg-foreground text-background hover:bg-foreground/90 gap-1.5"
                     >
                       {fillPlanning.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      Remplir 30 jours
+                      Fill 30 Days
                     </Button>
                   </div>
                 </div>
@@ -357,8 +357,8 @@ export default function ShoppingDashboard() {
               ) : planning.length === 0 ? (
                 <Card className="p-8 sm:p-12 text-center">
                   <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-3" />
-                  <h3 className="font-semibold mb-2">Aucun planning</h3>
-                  <p className="text-sm text-muted-foreground">Cliquez sur "Remplir 30 jours" pour programmer des produits aléatoires chaque jour</p>
+                   <h3 className="font-semibold mb-2">No planning yet</h3>
+                   <p className="text-sm text-muted-foreground">Click "Fill 30 Days" to schedule random products each day</p>
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
@@ -374,7 +374,7 @@ export default function ShoppingDashboard() {
                         <div className="flex items-center gap-2 mb-2">
                           <div className={`w-2 h-2 rounded-full shrink-0 ${entry.published ? "bg-green-500" : isToday ? "bg-primary" : isPast ? "bg-orange-400" : "bg-muted-foreground/30"}`} />
                           <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                            {new Date(entry.scheduled_date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                            {new Date(entry.scheduled_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}
                           </span>
                           {entry.published && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto" />}
                           {isToday && !entry.published && <Clock className="w-3.5 h-3.5 text-primary ml-auto" />}
