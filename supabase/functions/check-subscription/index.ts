@@ -91,6 +91,46 @@ serve(async (req) => {
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id" });
 
+      // Check if VIP user has locked content and unlock it
+      const { data: userProjects } = await supabaseClient
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id);
+
+      if (userProjects && userProjects.length > 0) {
+        const projectId = userProjects[0].id;
+        const { data: lockedArticles } = await supabaseClient
+          .from("articles")
+          .select("id")
+          .eq("project_id", projectId)
+          .eq("status", "locked")
+          .limit(1);
+
+        const { data: lockedAnswers } = await supabaseClient
+          .from("answers")
+          .select("id")
+          .eq("project_id", projectId)
+          .eq("answer", "Content locked — subscribe to unlock.")
+          .limit(1);
+
+        const hasLockedContent = (lockedArticles && lockedArticles.length > 0) || 
+                                  (lockedAnswers && lockedAnswers.length > 0);
+
+        if (hasLockedContent) {
+          logStep("VIP user has locked content - triggering unlock", { projectId });
+          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+          // Fire and forget - don't await to avoid delaying the response
+          fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${req.headers.get("Authorization")?.replace("Bearer ", "") || serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+          }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
+        }
+      }
+
       return new Response(JSON.stringify({
         subscribed: true,
         trial: false,
