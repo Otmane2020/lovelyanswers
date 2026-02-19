@@ -12,6 +12,7 @@ import { KeywordsSettings } from "./settings/KeywordsSettings";
 import { AudiencesSettings } from "./settings/AudiencesSettings";
 import { AnalyticsSettings } from "./settings/AnalyticsSettings";
 import { BulkArticleGenerator } from "./settings/BulkArticleGenerator";
+import { BacklinksSettings } from "./settings/BacklinksSettings";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ADMIN_EMAILS = ["otmane.benyahya@sweetdeco.com", "oben.rockman@gmail.com"];
@@ -91,6 +92,12 @@ export default function AeoSettings() {
             >
               Google Analytics
             </TabsTrigger>
+            <TabsTrigger 
+              value="backlinks"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Backlinks IA
+            </TabsTrigger>
             {isAdmin && (
               <TabsTrigger 
                 value="bulk-generator"
@@ -131,6 +138,9 @@ export default function AeoSettings() {
             </TabsContent>
             <TabsContent value="analytics" className="mt-0">
               <AnalyticsSettings />
+            </TabsContent>
+            <TabsContent value="backlinks" className="mt-0 max-w-2xl">
+              <BacklinksSettings />
             </TabsContent>
             {isAdmin && (
               <TabsContent value="bulk-generator" className="mt-0 max-w-4xl">

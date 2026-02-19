@@ -1769,6 +1769,45 @@ export type Database = {
         }
         Relationships: []
       }
+      project_backlinks: {
+        Row: {
+          anchor_examples: string[] | null
+          created_at: string
+          id: string
+          is_enabled: boolean | null
+          source_project_id: string
+          target_description: string | null
+          target_name: string
+          target_project_id: string
+          target_url: string
+          updated_at: string
+        }
+        Insert: {
+          anchor_examples?: string[] | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          source_project_id: string
+          target_description?: string | null
+          target_name: string
+          target_project_id: string
+          target_url: string
+          updated_at?: string
+        }
+        Update: {
+          anchor_examples?: string[] | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          source_project_id?: string
+          target_description?: string | null
+          target_name?: string
+          target_project_id?: string
+          target_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_settings: {
         Row: {
           article_length: number | null
