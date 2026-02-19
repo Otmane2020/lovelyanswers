@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/ui/glass-card";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useShoppingProducts, useShoppingFeeds, useImportFeed, useGenerateAllProductsAI, useDeleteProduct, useDeleteAllProducts } from "@/hooks/useShoppingProducts";
+import { useShoppingProducts, useShoppingFeeds, useImportFeed, useDeleteProduct, useDeleteAllProducts } from "@/hooks/useShoppingProducts";
 import { useShoppingPlanning, useFillShoppingPlanning, useClearShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
 import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock, Unplug } from "lucide-react";
@@ -22,7 +22,6 @@ export default function ShoppingDashboard() {
   const { data: products = [], isLoading } = useShoppingProducts();
   const { data: feeds = [] } = useShoppingFeeds();
   const importFeed = useImportFeed();
-  const generateAll = useGenerateAllProductsAI();
   const deleteProduct = useDeleteProduct();
   const deleteAll = useDeleteAllProducts();
   const [feedUrl, setFeedUrl] = useState("");
@@ -48,39 +47,21 @@ export default function ShoppingDashboard() {
     }
     try {
       const result = await importFeed.mutateAsync({ feedUrl: feedUrl.trim() });
-      toast.success(`${result?.count || 0} products imported successfully!`);
+      toast.success(`${result?.count || 0} products imported! AI generation in progress...`);
       setFeedUrl("");
+      // Auto-trigger AI generation + 30-day planning after import
+      if (project) {
+        supabase.functions.invoke("auto-generate-shopping", {
+          body: { projectId: project.id },
+        }).then(() => {
+          toast.success("AI generation + planning 30 jours terminé !");
+          window.location.reload();
+        }).catch((e: any) => {
+          console.error("Auto-generate error:", e);
+        });
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to import feed");
-    }
-  };
-
-  const [generating30, setGenerating30] = useState(false);
-
-  const handleGenerateAll = async () => {
-    try {
-      await generateAll.mutateAsync();
-      toast.success("AI generation started for all products!");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to start generation");
-    }
-  };
-
-  const handleGenerate30Days = async () => {
-    if (!project) return;
-    setGenerating30(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("auto-generate-shopping", {
-        body: { projectId: project.id },
-      });
-      if (error) throw error;
-      toast.success(`AI generation + 30-day planning done!`);
-      // Refresh data
-      window.location.reload();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to generate");
-    } finally {
-      setGenerating30(false);
     }
   };
 
@@ -244,24 +225,17 @@ export default function ShoppingDashboard() {
 
             {/* ===== AEO SHOPPING TAB ===== */}
             <TabsContent value="aeo" className="space-y-4 sm:space-y-6">
-              {/* Generate CTA */}
-              {products.length > 0 && (
+              {/* Auto-generation info */}
+              {products.length > 0 && imported > 0 && (
                 <GlassCard gradient className="p-4 sm:p-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground shrink-0" />
                     <div>
-                      <h3 className="text-base sm:text-lg font-bold">Generate AEO Content</h3>
+                      <h3 className="text-sm sm:text-base font-bold">Génération automatique en cours</h3>
                       <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                        {imported > 0 ? `${imported} products ready` : `${products.length} available`} — Q&A, titles & descriptions for AI
+                        {imported} produits en attente d'optimisation AI — le cron quotidien gère tout automatiquement
                       </p>
                     </div>
-                    <Button
-                      onClick={handleGenerate30Days}
-                      disabled={generating30}
-                      className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto"
-                    >
-                      {generating30 ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarDays className="w-4 h-4 mr-2" />}
-                      30 jours AEO
-                    </Button>
                   </div>
                 </GlassCard>
               )}
