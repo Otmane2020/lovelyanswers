@@ -22,6 +22,7 @@ const VIP_EMAILS = [
   "support@meubleoccasion.com",
   "support@audit-aeo.com",
   "contact@webify-app.com",
+  "canapedeluxe.com@gmail.com",
 ];
 
 serve(async (req) => {
