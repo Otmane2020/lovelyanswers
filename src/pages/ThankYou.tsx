@@ -44,7 +44,16 @@ export default function ThankYou() {
           tracked = true;
           const value = data.amount ? data.amount / 100 : 29;
           trackPurchase(value, sessionId);
-          console.log("[ThankYou] Purchase conversion fired:", { value, sessionId });
+          // Second account purchase conversion (AW-17956394555)
+          if (typeof window !== "undefined" && window.gtag) {
+            window.gtag("event", "conversion", {
+              send_to: "AW-17956394555/lC8cCNymrfkbELuso_JC",
+              value: value,
+              currency: "USD",
+              transaction_id: sessionId || "",
+            });
+          }
+          console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
         }
       } catch (err) {
         console.error("[ThankYou] Verification error:", err);
