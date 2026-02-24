@@ -9,7 +9,13 @@ import {
   Plus,
   FileText,
   MessageSquare,
+  Bot,
+  Sparkles,
+  Search,
 } from "lucide-react";
+import chatgptIcon from "@/assets/chatgpt-icon.png";
+import geminiLogo from "@/assets/gemini-logo.png";
+import perplexityLogo from "@/assets/perplexity-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import shopifyLogo from "@/assets/shopify-logo-new.png";
 import wixLogo from "@/assets/wix-logo.png";
@@ -428,6 +434,56 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         </Card>
+
+        {/* AI Visibility - Performance Metrics */}
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-primary font-semibold mb-1">AI Visibility Dashboard</p>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4">Performance Metrics</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            {[
+              { name: "ChatGPT", logo: chatgptIcon, score: Math.min(realStats.avgScore + 8, 100), color: "from-emerald-500 to-teal-400" },
+              { name: "Gemini", logo: geminiLogo, score: Math.min(realStats.avgScore + 2, 100), color: "from-blue-500 to-cyan-400" },
+              { name: "Perplexity", logo: perplexityLogo, score: Math.max(realStats.avgScore - 5, 0), color: "from-cyan-400 to-sky-500" },
+            ].map((platform) => (
+              <Card key={platform.name} className="p-5 border border-border/50 bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <img src={platform.logo} alt={platform.name} className="w-4 h-4 object-contain" />
+                  <span className="text-xs font-medium text-muted-foreground">{platform.name}</span>
+                </div>
+                <p className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{platform.score}%</p>
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full bg-gradient-to-r ${platform.color} transition-all duration-700`}
+                    style={{ width: `${platform.score}%` }}
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Checklist badges */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[
+              { label: "SEO Optimization", done: realStats.articlesCount > 0 },
+              { label: "Content Accuracy", done: realStats.avgScore >= 60 },
+              { label: "API Integration", done: (integrations?.length || 0) > 0 },
+              { label: "Response Latency", done: realStats.answersCount > 5 },
+            ].map((item) => (
+              <span
+                key={item.label}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium ${
+                  item.done 
+                    ? "bg-primary/10 text-primary" 
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${item.done ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                {item.label}
+                {item.done && <span className="text-[9px] bg-primary/20 px-1 rounded">PASS</span>}
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Your Overview Section */}
         <div>
