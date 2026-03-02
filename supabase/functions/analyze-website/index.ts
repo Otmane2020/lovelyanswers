@@ -235,9 +235,13 @@ ${description ? `META DESCRIPTION: ${description}` : ''}
 
 TASKS:
 1. COMPETITORS: Find 5 direct competitor websites that:
-   - Offer similar products/services
-   - Target the same audience
-   - Are major players in the same market
+   - Offer THE EXACT SAME type of products/services (not just the same industry)
+   - Target the same audience in the same market segment
+   - Are well-known, established players that actually exist
+   - Must be REAL websites that are currently active
+   - Think: "If a customer is choosing between ${domain} and another site, which sites would they compare?"
+   - Do NOT return generic industry leaders (e.g. don't return amazon.com for a small e-commerce)
+   - Do NOT return social media platforms, marketplaces, or directories unless the site IS one
 
 2. KEYWORDS: Extract 15-20 relevant SEO keywords in ${langName} based on:
    - Page titles and headings
@@ -255,9 +259,12 @@ TASKS:
 4. AUDIENCES: Identify 3 main target audiences IN ${langName}.
 
 IMPORTANT:
-- Competitors: return ONLY real domains (e.g., amazon.com, ebay.com)
+- Competitors: return ONLY real, currently active domains of DIRECT competitors
+- Competitors must sell/offer the SAME type of product or service, not just be in the same broad category
+- Do NOT return generic giants (amazon, google, facebook) unless they truly compete directly
+- Do NOT invent domains — only return domains you are confident actually exist
 - Keywords: focus on real search terms people actually use, in ${langName}
-- DO NOT include the analyzed site itself in competitors
+- DO NOT include the analyzed site itself (${domain}) in competitors
 - Description MUST be richer and more complete than the meta description
 - ALL output text MUST be in ${langName}
 
@@ -340,10 +347,18 @@ Respond ONLY with this JSON (no explanation):
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Fallback: Simple competitor search...");
         
-        const prompt = `Trouve 5 concurrents français pour ce site:
+        const prompt = `Trouve 5 VRAIS concurrents directs pour ce site web. Les concurrents doivent offrir exactement le même type de produit/service.
+
 Site: ${domain}
 ${description ? `Description: ${description}` : ''}
-${allHeadings.length > 0 ? `Contenu: ${allHeadings.slice(0, 5).join(", ")}` : ''}
+${allHeadings.length > 0 ? `Contenu principal: ${allHeadings.slice(0, 8).join(", ")}` : ''}
+
+RÈGLES STRICTES:
+- Les concurrents doivent être des sites RÉELS et actifs
+- Ils doivent offrir le MÊME type de produit/service (pas juste le même secteur)
+- NE PAS inclure de géants génériques (amazon, google, facebook) sauf s'ils sont un concurrent direct
+- NE PAS inventer de domaines
+- Pense: "Si un client hésite entre ${domain} et un autre site, quels seraient ces sites?"
 
 Réponds UNIQUEMENT avec un JSON array de domaines:
 ["concurrent1.com", "concurrent2.fr"]`;
