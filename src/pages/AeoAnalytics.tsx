@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Eye, ExternalLink, Search, ArrowUpRight, MousePointerClick, Target, Zap, AlertCircle, CheckCircle2, Loader2, RefreshCw, LogOut, Calendar, FileText, BarChart3, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Eye, ExternalLink, Search, ArrowUpRight, MousePointerClick, Target, Zap, AlertCircle, CheckCircle2, Loader2, RefreshCw, LogOut, Calendar, FileText, BarChart3, Sparkles, Globe, Newspaper, MessageSquare } from "lucide-react";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { format, subDays, parseISO } from "date-fns";
 
 interface DailyData { date: string; impressions: number; clicks: number; ctr: number; position: number; }
 interface PublishedAnswer { date: string; count: number; questions: string[]; }
+interface ContentItem { id: string; title: string; type: "aeo" | "seo" | "geo"; score: number | null; created_at: string; published_url: string | null; status: string; }
 interface GSCData { impressions: number; clicks: number; ctr: number; position: number; impressionsDelta: number; clicksDelta: number; dailyData: DailyData[]; topQueries: Array<{ query: string; impressions: number; clicks: number; ctr: number; position: number; isAeoSignal: boolean; }>; topPages: Array<{ page: string; impressions: number; clicks: number; ctr: number; position: number; }>; }
 
 const TIME_PERIODS = [{ label: "7 days", value: 7 }, { label: "14 days", value: 14 }, { label: "30 days", value: 30 }, { label: "90 days", value: 90 }];
