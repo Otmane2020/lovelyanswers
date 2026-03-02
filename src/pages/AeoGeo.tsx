@@ -54,7 +54,7 @@ export default function AeoGeo() {
         body: { projectId: project.id },
       });
       if (res.error) throw new Error(res.error.message);
-      toast.success("GSO 30-day planning started!");
+      toast.success("GEO 30-day planning started!");
     } catch (err: any) {
       toast.error(err.message || "Failed to fill planning");
     } finally {
