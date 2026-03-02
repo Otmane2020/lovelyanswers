@@ -183,7 +183,7 @@ export default function AeoGeo() {
         <div>
           <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-violet-600" />
-            GSO Engine
+            GEO Engine
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Generative Search Optimization — AI visibility for your brand
