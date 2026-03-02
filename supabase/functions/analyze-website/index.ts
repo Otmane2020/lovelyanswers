@@ -259,9 +259,12 @@ TASKS:
 4. AUDIENCES: Identify 3 main target audiences IN ${langName}.
 
 IMPORTANT:
-- Competitors: return ONLY real domains (e.g., amazon.com, ebay.com)
+- Competitors: return ONLY real, currently active domains of DIRECT competitors
+- Competitors must sell/offer the SAME type of product or service, not just be in the same broad category
+- Do NOT return generic giants (amazon, google, facebook) unless they truly compete directly
+- Do NOT invent domains — only return domains you are confident actually exist
 - Keywords: focus on real search terms people actually use, in ${langName}
-- DO NOT include the analyzed site itself in competitors
+- DO NOT include the analyzed site itself (${domain}) in competitors
 - Description MUST be richer and more complete than the meta description
 - ALL output text MUST be in ${langName}
 
