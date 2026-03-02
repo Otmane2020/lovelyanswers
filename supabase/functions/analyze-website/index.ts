@@ -347,10 +347,18 @@ Respond ONLY with this JSON (no explanation):
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Fallback: Simple competitor search...");
         
-        const prompt = `Trouve 5 concurrents français pour ce site:
+        const prompt = `Trouve 5 VRAIS concurrents directs pour ce site web. Les concurrents doivent offrir exactement le même type de produit/service.
+
 Site: ${domain}
 ${description ? `Description: ${description}` : ''}
-${allHeadings.length > 0 ? `Contenu: ${allHeadings.slice(0, 5).join(", ")}` : ''}
+${allHeadings.length > 0 ? `Contenu principal: ${allHeadings.slice(0, 8).join(", ")}` : ''}
+
+RÈGLES STRICTES:
+- Les concurrents doivent être des sites RÉELS et actifs
+- Ils doivent offrir le MÊME type de produit/service (pas juste le même secteur)
+- NE PAS inclure de géants génériques (amazon, google, facebook) sauf s'ils sont un concurrent direct
+- NE PAS inventer de domaines
+- Pense: "Si un client hésite entre ${domain} et un autre site, quels seraient ces sites?"
 
 Réponds UNIQUEMENT avec un JSON array de domaines:
 ["concurrent1.com", "concurrent2.fr"]`;
