@@ -54,7 +54,7 @@ export default function AeoGeo() {
         body: { projectId: project.id },
       });
       if (res.error) throw new Error(res.error.message);
-      toast.success("GSO 30-day planning started!");
+      toast.success("GEO 30-day planning started!");
     } catch (err: any) {
       toast.error(err.message || "Failed to fill planning");
     } finally {
@@ -71,7 +71,7 @@ export default function AeoGeo() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "article": return "GSO Article";
+      case "article": return "GEO Article";
       case "pillar": return "Pillar Page";
       case "mentions": return "Brand Mentions";
       case "comparison": return "Comparison";
@@ -183,10 +183,10 @@ export default function AeoGeo() {
         <div>
           <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-violet-600" />
-            GSO Engine
+            GEO Engine
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Generative Search Optimization — AI visibility for your brand
+            Generative Engine Optimization — AI visibility for your brand
           </p>
         </div>
 
@@ -194,7 +194,7 @@ export default function AeoGeo() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="p-2 sm:p-3 text-center">
             <p className="text-lg sm:text-2xl font-bold">{contents.length}</p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Total GSO</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total GEO</p>
           </Card>
           <Card className="p-2 sm:p-3 text-center">
             <p className="text-lg sm:text-2xl font-bold">{articles.length}</p>
@@ -216,7 +216,7 @@ export default function AeoGeo() {
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-violet-600" />
               <div>
-                <p className="font-medium text-sm sm:text-base">Auto-filling GSO 30-day planning...</p>
+                <p className="font-medium text-sm sm:text-base">Auto-filling GEO 30-day planning...</p>
                 <p className="text-xs sm:text-sm text-muted-foreground">This may take 30-60 seconds</p>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function AeoGeo() {
           </div>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
-            {renderContentList(contents, "No GSO content yet")}
+            {renderContentList(contents, "No GEO content yet")}
           </TabsContent>
 
           {["article", "mentions", "comparison"].map(type => (
