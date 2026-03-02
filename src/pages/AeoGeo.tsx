@@ -186,7 +186,7 @@ export default function AeoGeo() {
             GEO Engine
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Generative Search Optimization — AI visibility for your brand
+            Generative Engine Optimization — AI visibility for your brand
           </p>
         </div>
 
