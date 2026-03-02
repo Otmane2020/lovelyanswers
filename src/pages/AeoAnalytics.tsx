@@ -145,6 +145,7 @@ export default function AeoAnalytics() {
     // Sort by date descending
     items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     setContentItems(items);
+  };
 
   const checkGSCConnection = async () => {
     if (!user?.id) return;
