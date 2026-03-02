@@ -71,7 +71,7 @@ export default function AeoGeo() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "article": return "GSO Article";
+      case "article": return "GEO Article";
       case "pillar": return "Pillar Page";
       case "mentions": return "Brand Mentions";
       case "comparison": return "Comparison";
