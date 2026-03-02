@@ -445,6 +445,116 @@ export default function AeoAnalytics() {
                     </div>
                   </Card>
                 )}
+
+                {/* Published Content - AEO / SEO / GEO */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-primary" />
+                        Published Content
+                      </h3>
+                      <p className="text-sm text-muted-foreground">All your AEO, Auto SEO & GEO articles</p>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-md border bg-background p-0.5">
+                      {[
+                        { key: "all" as const, label: "All", count: contentItems.length },
+                        { key: "aeo" as const, label: "AEO", count: contentItems.filter(c => c.type === "aeo").length },
+                        { key: "seo" as const, label: "SEO", count: contentItems.filter(c => c.type === "seo").length },
+                        { key: "geo" as const, label: "GEO", count: contentItems.filter(c => c.type === "geo").length },
+                      ].map(tab => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setContentFilter(tab.key)}
+                          className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                            contentFilter === tab.key
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {tab.label} ({tab.count})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 text-center">
+                      <MessageSquare className="w-4 h-4 text-primary mx-auto mb-1" />
+                      <p className="text-lg font-bold">{contentItems.filter(c => c.type === "aeo").length}</p>
+                      <p className="text-[10px] text-muted-foreground">AEO Answers</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/10 text-center">
+                      <Newspaper className="w-4 h-4 text-teal-600 mx-auto mb-1" />
+                      <p className="text-lg font-bold">{contentItems.filter(c => c.type === "seo").length}</p>
+                      <p className="text-[10px] text-muted-foreground">Auto SEO</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-violet-500/5 border border-violet-500/10 text-center">
+                      <Globe className="w-4 h-4 text-violet-600 mx-auto mb-1" />
+                      <p className="text-lg font-bold">{contentItems.filter(c => c.type === "geo").length}</p>
+                      <p className="text-[10px] text-muted-foreground">GEO Engine</p>
+                    </div>
+                  </div>
+
+                  {/* Content list */}
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {contentItems
+                      .filter(c => contentFilter === "all" || c.type === contentFilter)
+                      .slice(0, 30)
+                      .map(item => (
+                        <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            item.type === "aeo" ? "bg-primary/10" :
+                            item.type === "seo" ? "bg-teal-500/10" :
+                            "bg-violet-500/10"
+                          }`}>
+                            {item.type === "aeo" ? <MessageSquare className="w-4 h-4 text-primary" /> :
+                             item.type === "seo" ? <Newspaper className="w-4 h-4 text-teal-600" /> :
+                             <Globe className="w-4 h-4 text-violet-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                                item.type === "aeo" ? "border-primary/30 text-primary" :
+                                item.type === "seo" ? "border-teal-500/30 text-teal-600" :
+                                "border-violet-500/30 text-violet-600"
+                              }`}>
+                                {item.type === "aeo" ? "AEO" : item.type === "seo" ? "SEO" : "GEO"}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground">
+                                {format(parseISO(item.created_at), "MMM d, yyyy")}
+                              </span>
+                              {item.status === "published" && (
+                                <Badge className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] px-1.5 py-0">Published</Badge>
+                              )}
+                            </div>
+                          </div>
+                          {item.score != null && item.score > 0 && (
+                            <div className={`text-sm font-bold ${
+                              item.score >= 80 ? "text-emerald-600" :
+                              item.score >= 60 ? "text-amber-600" :
+                              "text-red-500"
+                            }`}>
+                              {item.score}%
+                            </div>
+                          )}
+                          {item.published_url && (
+                            <a href={item.published_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    {contentItems.filter(c => contentFilter === "all" || c.type === contentFilter).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">No content yet. Start generating AEO, SEO & GEO content!</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
               </>
             )}
           </>
