@@ -216,7 +216,7 @@ export default function AeoGeo() {
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-violet-600" />
               <div>
-                <p className="font-medium text-sm sm:text-base">Auto-filling GSO 30-day planning...</p>
+                <p className="font-medium text-sm sm:text-base">Auto-filling GEO 30-day planning...</p>
                 <p className="text-xs sm:text-sm text-muted-foreground">This may take 30-60 seconds</p>
               </div>
             </div>
