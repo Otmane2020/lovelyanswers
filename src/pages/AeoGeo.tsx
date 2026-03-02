@@ -243,7 +243,7 @@ export default function AeoGeo() {
           </div>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
-            {renderContentList(contents, "No GSO content yet")}
+            {renderContentList(contents, "No GEO content yet")}
           </TabsContent>
 
           {["article", "mentions", "comparison"].map(type => (

@@ -19,7 +19,7 @@ export function AeoSidebar() {
 
   const mainMenuItems = [
     { title: "Overview", url: "/dashboard", icon: Home },
-    { title: "GSO Engine", url: "/geo", icon: Globe, badge: "Hot" },
+    { title: "GEO Engine", url: "/geo", icon: Globe, badge: "Hot" },
     { title: "AEO Answers", url: "/answers", icon: FileText },
     { title: "Auto SEO", url: "/autoseo", icon: Newspaper },
     { title: "Local AEO", url: "/local", icon: MapPin },

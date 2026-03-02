@@ -87,7 +87,7 @@ export function AuditReportDisplay({ report }: { report: Report }) {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
               {[
                 { label: "Global", value: report.scores?.global },
-                { label: "GSO", value: report.scores?.gso },
+                { label: "GEO", value: report.scores?.gso },
                 { label: "AEO", value: report.scores?.aeo },
                 { label: "Schema", value: report.scores?.schema },
                 { label: "Content", value: report.scores?.content },

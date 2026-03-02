@@ -69,7 +69,7 @@ export function AuditPaywall({ urlInput, setUrlInput, error }: AuditPaywallProps
             Premium Audit
           </Badge>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Get a <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">10x Deeper</span> AEO/GSO Audit
+            Get a <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">10x Deeper</span> AEO/GEO Audit
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             Competitor analysis, AI citation scoring, content gap mapping, and a full strategic roadmap.
