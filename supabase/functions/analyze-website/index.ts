@@ -235,9 +235,13 @@ ${description ? `META DESCRIPTION: ${description}` : ''}
 
 TASKS:
 1. COMPETITORS: Find 5 direct competitor websites that:
-   - Offer similar products/services
-   - Target the same audience
-   - Are major players in the same market
+   - Offer THE EXACT SAME type of products/services (not just the same industry)
+   - Target the same audience in the same market segment
+   - Are well-known, established players that actually exist
+   - Must be REAL websites that are currently active
+   - Think: "If a customer is choosing between ${domain} and another site, which sites would they compare?"
+   - Do NOT return generic industry leaders (e.g. don't return amazon.com for a small e-commerce)
+   - Do NOT return social media platforms, marketplaces, or directories unless the site IS one
 
 2. KEYWORDS: Extract 15-20 relevant SEO keywords in ${langName} based on:
    - Page titles and headings
