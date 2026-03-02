@@ -32,6 +32,8 @@ export default function AeoAnalytics() {
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const [publishedAnswers, setPublishedAnswers] = useState<PublishedAnswer[]>([]);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [contentFilter, setContentFilter] = useState<"all" | "aeo" | "seo" | "geo">("all");
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
