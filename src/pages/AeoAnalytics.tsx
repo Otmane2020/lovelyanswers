@@ -46,7 +46,7 @@ export default function AeoAnalytics() {
   }, []);
 
   useEffect(() => { if (currentProject?.id) loadGSCSettings(); }, [currentProject?.id]);
-  useEffect(() => { if (currentProject?.id && user?.id) { loadProjectStats(); checkGSCConnection(); loadPublishedAnswers(); } }, [currentProject?.id, user?.id]);
+  useEffect(() => { if (currentProject?.id && user?.id) { loadProjectStats(); checkGSCConnection(); loadPublishedAnswers(); loadAllContent(); } }, [currentProject?.id, user?.id]);
   useEffect(() => { if (isConnected && selectedDomain && settingsLoaded) { loadGSCData(); saveGSCSettings(); } }, [isConnected, selectedDomain, selectedPeriod, settingsLoaded]);
 
   const loadGSCSettings = async () => {
