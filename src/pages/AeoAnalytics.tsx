@@ -93,6 +93,59 @@ export default function AeoAnalytics() {
     }
   };
 
+  const loadAllContent = async () => {
+    if (!currentProject?.id) return;
+    const items: ContentItem[] = [];
+
+    // AEO Answers
+    const { data: answers } = await supabase
+      .from("answers")
+      .select("id, question, score, created_at, published_url, is_public")
+      .eq("project_id", currentProject.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (answers) {
+      answers.forEach(a => items.push({
+        id: a.id, title: a.question, type: "aeo", score: a.score,
+        created_at: a.created_at || "", published_url: a.published_url,
+        status: a.is_public ? "published" : "draft",
+      }));
+    }
+
+    // Auto SEO Articles
+    const { data: articles } = await supabase
+      .from("articles")
+      .select("id, title, aeo_score, created_at, status, slug")
+      .eq("project_id", currentProject.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (articles) {
+      articles.forEach(a => items.push({
+        id: a.id, title: a.title, type: "seo", score: a.aeo_score,
+        created_at: a.created_at || "", published_url: null,
+        status: a.status || "draft",
+      }));
+    }
+
+    // GEO Contents
+    const { data: geoContents } = await supabase
+      .from("geo_contents")
+      .select("id, title, topic, score, created_at, published_url, is_public")
+      .eq("project_id", currentProject.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (geoContents) {
+      geoContents.forEach(g => items.push({
+        id: g.id, title: g.title || g.topic, type: "geo", score: g.score,
+        created_at: g.created_at, published_url: g.published_url,
+        status: g.is_public ? "published" : "draft",
+      }));
+    }
+
+    // Sort by date descending
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setContentItems(items);
+
   const checkGSCConnection = async () => {
     if (!user?.id) return;
     try {
