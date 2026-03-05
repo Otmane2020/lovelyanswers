@@ -38,6 +38,7 @@ serve(async (req) => {
         amount: session.amount_total,
         currency: session.currency,
         email: session.customer_details?.email || null,
+        customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
