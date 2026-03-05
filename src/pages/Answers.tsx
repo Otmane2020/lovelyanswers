@@ -156,6 +156,7 @@ export default function Answers() {
   };
 
   const handleViewAnswer = (answer: typeof answers[0]) => {
+    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
     setViewingAnswer(answer);
   };
 
