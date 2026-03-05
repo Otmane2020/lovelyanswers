@@ -671,7 +671,10 @@ export default function Answers() {
               </GlassCard>
             ) : (
               filteredArticles.map((article, index) => (
-                <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setViewingArticle(article)}>
+                 <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => {
+                    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                    setViewingArticle(article);
+                  }}>
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <ScoreRing score={article.aeo_score || 0} size="sm" />
