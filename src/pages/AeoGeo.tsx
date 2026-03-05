@@ -330,6 +330,7 @@ export default function AeoGeo() {
           </div>
         </DialogContent>
       </Dialog>
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </DashboardLayout>
   );
 }
