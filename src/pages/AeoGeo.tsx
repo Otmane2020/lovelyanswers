@@ -15,6 +15,8 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 export default function AeoGeo() {
   const { project } = useActiveProject();
