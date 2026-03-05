@@ -363,6 +363,8 @@ export default function AutoSeo() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </DashboardLayout>
   );
 }
