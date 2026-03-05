@@ -524,6 +524,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
           )}
         </DialogContent>
       </Dialog>
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 }
