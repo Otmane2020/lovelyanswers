@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
