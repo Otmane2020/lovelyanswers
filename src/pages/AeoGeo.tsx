@@ -27,6 +27,8 @@ export default function AeoGeo() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewingItem, setViewingItem] = useState<GeoContent | null>(null);
   const [isFilling, setIsFilling] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
   const hasTriggeredRef = useRef(false);
 
   // Auto-trigger 30-day fill on page open if fewer than 30 scheduled contents
