@@ -53,6 +53,11 @@ export default function ThankYou() {
               transaction_id: sessionId || "",
             });
           }
+          // Tapfiliate trial conversion
+          if (typeof window !== "undefined" && (window as any).tap && data.customer_id) {
+            (window as any).tap("trial", data.customer_id);
+            console.log("[ThankYou] Tapfiliate trial fired:", data.customer_id);
+          }
           console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
         }
       } catch (err) {
