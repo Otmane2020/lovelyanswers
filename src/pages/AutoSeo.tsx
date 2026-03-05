@@ -269,7 +269,10 @@ export default function AutoSeo() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setViewingArticle(article)}
+                        onClick={() => {
+                          if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                          setViewingArticle(article);
+                        }}
                         className="gap-1"
                       >
                         <Eye className="h-3 w-3" />
