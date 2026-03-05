@@ -78,6 +78,8 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
   const [viewingAnswer, setViewingAnswer] = useState<LocalAnswer | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   const language = project?.language || "en";
   const suggestedQuestions = language === "fr" ? SUGGESTED_QUESTIONS_FR : SUGGESTED_QUESTIONS_EN;
