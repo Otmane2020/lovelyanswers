@@ -76,6 +76,8 @@ export default function Answers() {
   const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
   const [loadingArticleContent, setLoadingArticleContent] = useState(false);
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   // Fetch articles
   useEffect(() => {
