@@ -30,7 +30,7 @@ export function SubscriptionGate({ title, description, children }: SubscriptionG
           </div>
           <h3 className="text-xl font-bold mb-2">{title}</h3>
           <p className="text-muted-foreground text-sm mb-6">{description}</p>
-          <Button onClick={() => navigate("/subscription")} size="lg" className="gap-2 w-full">
+          <Button onClick={() => navigate("/checkout")} size="lg" className="gap-2 w-full">
             <Lock className="h-4 w-4" />
             Upgrade to Unlock
           </Button>

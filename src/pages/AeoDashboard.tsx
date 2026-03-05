@@ -296,7 +296,7 @@ export default function AeoDashboard() {
           <Button 
             size="lg" 
             className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" 
-            onClick={() => subscribed ? navigate('/wizard') : startCheckout()}
+            onClick={() => subscribed ? navigate('/wizard') : navigate('/checkout')}
           >
             {subscribed ? 'Start wizard' : 'Subscribe now'} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
