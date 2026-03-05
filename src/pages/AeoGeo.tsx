@@ -184,7 +184,7 @@ export default function AeoGeo() {
         </Card>
       );
     }
-    return items.map(item => <ContentCard key={item.id} item={item} />);
+    return items.map((item, index) => <ContentCard key={item.id} item={item} index={index} />);
   };
 
   return (
