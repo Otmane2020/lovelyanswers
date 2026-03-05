@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 interface Article {
   id: string;
