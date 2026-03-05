@@ -584,7 +584,11 @@ export default function Answers() {
                         <span className="text-xs text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p>
+                    {!isSubscribed && index === 0 ? (
+                      <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p>
+                    ) : isSubscribed ? (
+                      <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       {answer.platforms?.map((p) => <Badge key={p} variant="outline" className="text-xs">{p}</Badge>)}
                       {answer.high_citation && <Badge className="bg-amber-500/20 text-amber-500 border-0 text-xs">High Citation</Badge>}
