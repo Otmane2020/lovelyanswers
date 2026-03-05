@@ -826,6 +826,7 @@ export default function Answers() {
 
       {/* CMS Connect Popup */}
       <CmsConnectPopup open={showCmsPopup} onOpenChange={setShowCmsPopup} />
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
 
       {/* View Article Popup */}
       <Dialog open={!!viewingArticle} onOpenChange={() => setViewingArticle(null)}>
