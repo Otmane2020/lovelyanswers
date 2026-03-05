@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 interface Article {
   id: string;
@@ -34,6 +36,8 @@ export default function AutoSeo() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   useEffect(() => {
     if (!project?.id) return;
@@ -228,7 +232,10 @@ export default function AutoSeo() {
         ) : (
           <div className="space-y-4">
             {filteredArticles.map((article) => (
-              <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setViewingArticle(article)}>
+              <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => {
+                if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                setViewingArticle(article);
+              }}>
                 <div className="flex items-start gap-4">
                   <div className="shrink-0">
                     <ScoreRing score={article.aeo_score || 0} size="sm" />
@@ -262,7 +269,10 @@ export default function AutoSeo() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setViewingArticle(article)}
+                        onClick={() => {
+                          if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                          setViewingArticle(article);
+                        }}
                         className="gap-1"
                       >
                         <Eye className="h-3 w-3" />
@@ -353,6 +363,8 @@ export default function AutoSeo() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </DashboardLayout>
   );
 }

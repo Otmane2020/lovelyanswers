@@ -28,6 +28,8 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { useLocalAnswers, useCreateLocalAnswer, useGenerate30LocalAnswers, LocalAnswer } from "@/hooks/useLocalAnswers";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
@@ -76,6 +78,8 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
   const [viewingAnswer, setViewingAnswer] = useState<LocalAnswer | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   const language = project?.language || "en";
   const suggestedQuestions = language === "fr" ? SUGGESTED_QUESTIONS_FR : SUGGESTED_QUESTIONS_EN;
@@ -347,14 +351,23 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredAnswers.map((answer) => (
-            <GlassCard key={answer.id} hover className="p-4 cursor-pointer" onClick={() => setViewingAnswer(answer)}>
+            <GlassCard key={answer.id} hover className="p-4 cursor-pointer" onClick={() => {
+                if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                setViewingAnswer(answer);
+              }}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h4 className="font-medium line-clamp-2 flex-1">{answer.question}</h4>
                 <ScoreRing score={answer.score} size="sm" />
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                {answer.answer}
-              </p>
+              {isSubscribed ? (
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                  {answer.answer}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground line-clamp-1 mb-4">
+                  {answer.answer.substring(0, 80)}…
+                </p>
+              )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge 
@@ -511,6 +524,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
           )}
         </DialogContent>
       </Dialog>
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 }

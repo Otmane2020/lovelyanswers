@@ -15,6 +15,8 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 export default function AeoGeo() {
   const { project } = useActiveProject();
@@ -25,6 +27,8 @@ export default function AeoGeo() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewingItem, setViewingItem] = useState<GeoContent | null>(null);
   const [isFilling, setIsFilling] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
   const hasTriggeredRef = useRef(false);
 
   // Auto-trigger 30-day fill on page open if fewer than 30 scheduled contents
@@ -93,8 +97,17 @@ export default function AeoGeo() {
   const mentions = contents.filter(c => c.content_type === "mentions");
   const comparisons = contents.filter(c => c.content_type === "comparison");
 
-  const ContentCard = ({ item }: { item: GeoContent }) => {
+  const handlePreview = (item: GeoContent) => {
+    if (!isSubscribed) {
+      setShowUpgradeDialog(true);
+      return;
+    }
+    setViewingItem(item);
+  };
+
+  const ContentCard = ({ item, index }: { item: GeoContent; index: number }) => {
     const isExpanded = expandedId === item.id;
+    const isFirstItem = index === 0;
     return (
       <GlassCard hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
         <div className="flex items-start gap-3 sm:gap-4">
@@ -106,25 +119,23 @@ export default function AeoGeo() {
               <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">
                 {item.title || item.topic}
               </h3>
-              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                  onClick={() => item.content && handleCopy(item.content, item.id)}
-                >
-                  {copiedId === item.id ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" /> : <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
-                  onClick={() => deleteMutation.mutate(item.id)}
-                >
-                  <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                </Button>
-              </div>
+              {isSubscribed && (
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" onClick={() => item.content && handleCopy(item.content, item.id)}>
+                    {copiedId === item.id ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" /> : <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(item.id)}>
+                    <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
+            {/* Show first line teaser for first item only when not subscribed */}
+            {isFirstItem && !isSubscribed && item.content && (
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                {item.content.replace(/<[^>]*>/g, '').substring(0, 120)}…
+              </p>
+            )}
             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
               {item.brand} · {new Date(item.created_at).toLocaleDateString()}
             </p>
@@ -143,7 +154,7 @@ export default function AeoGeo() {
               )}
             </div>
             <div className="flex flex-wrap gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 sm:h-8 px-2 sm:px-3" onClick={() => setViewingItem(item)}>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 sm:h-8 px-2 sm:px-3" onClick={() => handlePreview(item)}>
                 <Eye className="h-3 w-3" />
                 Preview
               </Button>
@@ -173,7 +184,7 @@ export default function AeoGeo() {
         </Card>
       );
     }
-    return items.map(item => <ContentCard key={item.id} item={item} />);
+    return items.map((item, index) => <ContentCard key={item.id} item={item} index={index} />);
   };
 
   return (
@@ -319,6 +330,7 @@ export default function AeoGeo() {
           </div>
         </DialogContent>
       </Dialog>
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </DashboardLayout>
   );
 }

@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
@@ -74,6 +76,8 @@ export default function Answers() {
   const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
   const [loadingArticleContent, setLoadingArticleContent] = useState(false);
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   // Fetch articles
   useEffect(() => {
@@ -152,6 +156,7 @@ export default function Answers() {
   };
 
   const handleViewAnswer = (answer: typeof answers[0]) => {
+    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
     setViewingAnswer(answer);
   };
 
@@ -579,7 +584,11 @@ export default function Answers() {
                         <span className="text-xs text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p>
+                    {!isSubscribed && index === 0 ? (
+                      <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p>
+                    ) : isSubscribed ? (
+                      <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       {answer.platforms?.map((p) => <Badge key={p} variant="outline" className="text-xs">{p}</Badge>)}
                       {answer.high_citation && <Badge className="bg-amber-500/20 text-amber-500 border-0 text-xs">High Citation</Badge>}
@@ -662,7 +671,10 @@ export default function Answers() {
               </GlassCard>
             ) : (
               filteredArticles.map((article, index) => (
-                <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => setViewingArticle(article)}>
+                 <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => {
+                    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                    setViewingArticle(article);
+                  }}>
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <ScoreRing score={article.aeo_score || 0} size="sm" />
@@ -814,6 +826,7 @@ export default function Answers() {
 
       {/* CMS Connect Popup */}
       <CmsConnectPopup open={showCmsPopup} onOpenChange={setShowCmsPopup} />
+      <ContentUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
 
       {/* View Article Popup */}
       <Dialog open={!!viewingArticle} onOpenChange={() => setViewingArticle(null)}>
