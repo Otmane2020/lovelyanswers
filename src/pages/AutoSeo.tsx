@@ -36,6 +36,8 @@ export default function AutoSeo() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isSubscribed } = useSubscriptionContext();
 
   useEffect(() => {
     if (!project?.id) return;
