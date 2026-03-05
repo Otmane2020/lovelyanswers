@@ -28,6 +28,8 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { useLocalAnswers, useCreateLocalAnswer, useGenerate30LocalAnswers, LocalAnswer } from "@/hooks/useLocalAnswers";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
