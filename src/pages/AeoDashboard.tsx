@@ -159,7 +159,7 @@ export default function AeoDashboard() {
                 </p>
               </div>
             </div>
-            <Button onClick={startCheckout} disabled={isLoading} size="lg" className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+            <Button onClick={() => navigate('/checkout')} size="lg" className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
               Subscribe to Unlock <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -296,7 +296,7 @@ export default function AeoDashboard() {
           <Button 
             size="lg" 
             className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" 
-            onClick={() => subscribed ? navigate('/wizard') : startCheckout()}
+            onClick={() => subscribed ? navigate('/wizard') : navigate('/checkout')}
           >
             {subscribed ? 'Start wizard' : 'Subscribe now'} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
