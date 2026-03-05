@@ -351,14 +351,23 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredAnswers.map((answer) => (
-            <GlassCard key={answer.id} hover className="p-4 cursor-pointer" onClick={() => setViewingAnswer(answer)}>
+            <GlassCard key={answer.id} hover className="p-4 cursor-pointer" onClick={() => {
+                if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+                setViewingAnswer(answer);
+              }}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h4 className="font-medium line-clamp-2 flex-1">{answer.question}</h4>
                 <ScoreRing score={answer.score} size="sm" />
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                {answer.answer}
-              </p>
+              {isSubscribed ? (
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                  {answer.answer}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground line-clamp-1 mb-4">
+                  {answer.answer.substring(0, 80)}…
+                </p>
+              )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge 
