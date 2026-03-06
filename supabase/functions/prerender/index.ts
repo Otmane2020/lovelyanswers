@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const BRAND = 'LovelyAnswers'
-const BRAND_URL = 'https://lovelyanswers.com'
+const BRAND = 'AutoPilot Geo'
+const BRAND_URL = 'https://autopilotgeo.com'
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -210,7 +210,6 @@ Deno.serve(async (req) => {
 
     // ─── Blog index: /blog ───
     if (path === '/blog') {
-      // Fetch recent articles for the index
       const { data: articles } = await supabase
         .from('published_articles')
         .select('title, slug, published_at, meta_description')
@@ -225,15 +224,15 @@ Deno.serve(async (req) => {
         .order('published_at', { ascending: false })
         .limit(50)
 
-      const lovelyanswersAnswers = (answers || []).filter((a: any) => {
+      const siteAnswers = (answers || []).filter((a: any) => {
         const domain = (a.projects?.domain || '').toLowerCase()
         const url = (a.projects?.website_url || '').toLowerCase()
-        return domain.includes('lovelyanswers') || url.includes('lovelyanswers')
+        return domain.includes('autopilotgeo') || url.includes('autopilotgeo')
       })
 
       const allItems = [
         ...(articles || []).map((a: any) => ({ title: a.title, slug: a.slug, date: a.published_at, desc: a.meta_description || '' })),
-        ...lovelyanswersAnswers.map((a: any) => ({ title: a.question, slug: a.slug, date: a.published_at, desc: stripHtml(a.answer).substring(0, 150) }))
+        ...siteAnswers.map((a: any) => ({ title: a.question, slug: a.slug, date: a.published_at, desc: stripHtml(a.answer).substring(0, 150) }))
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
       let listHtml = '<h1>Blog — AI-Optimized Answers & Insights</h1>'
@@ -261,7 +260,7 @@ Deno.serve(async (req) => {
         description: 'Track how your brand ranks in ChatGPT, Gemini and AI answers and get cited by AI. Generate AI-optimized content that ranks first.',
         canonical: BRAND_URL,
         body: `
-          <h1>LovelyAnswers — AI Visibility Platform</h1>
+          <h1>AutoPilot Geo — AI Visibility Platform</h1>
           <p>Track how your brand ranks in ChatGPT, Gemini and AI answers. Get cited by AI search engines with automatically generated, expert-level content.</p>
           
           <h2>What is Answer Engine Optimization (AEO)?</h2>
@@ -342,9 +341,9 @@ Deno.serve(async (req) => {
         description: `${BRAND} is the AI visibility platform that helps brands rank first in ChatGPT, Gemini, and AI-powered search engines.`,
         canonical: `${BRAND_URL}/about`,
         body: `
-          <h1>About LovelyAnswers</h1>
-          <p>LovelyAnswers is the AI visibility platform that helps brands get cited by AI search engines. We combine Answer Engine Optimization (AEO), Generative Engine Optimization (GEO), and traditional SEO to ensure your brand appears first when AI answers questions about your industry.</p>
-          <p>Founded to solve the emerging challenge of AI search visibility, LovelyAnswers automates the entire process — from content generation to publishing — so businesses can focus on what they do best.</p>
+          <h1>About AutoPilot Geo</h1>
+          <p>AutoPilot Geo is the AI visibility platform that helps brands get cited by AI search engines. We combine Answer Engine Optimization (AEO), Generative Engine Optimization (GEO), and traditional SEO to ensure your brand appears first when AI answers questions about your industry.</p>
+          <p>Founded to solve the emerging challenge of AI search visibility, AutoPilot Geo automates the entire process — from content generation to publishing — so businesses can focus on what they do best.</p>
           <p><a href="${BRAND_URL}/auth">Get started</a> | <a href="${BRAND_URL}/pricing">View pricing</a></p>
         `
       })
