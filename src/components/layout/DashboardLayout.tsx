@@ -9,8 +9,6 @@ import autopilotLogo from "@/assets/autopilot-geo-logo-full.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
-import { Button } from "@/components/ui/button";
 
 interface DashboardLayoutProps {
   children: ReactNode;
