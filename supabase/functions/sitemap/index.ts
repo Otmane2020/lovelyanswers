@@ -189,9 +189,10 @@ Deno.serve(async (req) => {
     sitemap += `
 </urlset>`
 
-    const totalArticles = (articles || []).length
+    const totalPublishedArticles = (publishedArticles || []).length
+    const totalDirectArticles = lovelyanswersArticles.length
     const totalAnswers = lovelyanswersAnswers.length
-    console.log(`Generated sitemap with ${totalArticles} blog articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
+    console.log(`Generated sitemap with ${totalPublishedArticles} published_articles + ${totalDirectArticles} direct articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
 
     return new Response(sitemap, {
       headers: {
