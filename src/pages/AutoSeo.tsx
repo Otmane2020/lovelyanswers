@@ -139,20 +139,16 @@ export default function AutoSeo() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Hero Header */}
-        <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 p-6 border border-border/50">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Auto SEO</h1>
-              </div>
-              <p className="text-muted-foreground mt-1">
-                SEO articles auto-generated from your AEO answers
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
+        <PageHeader
+          icon={FileText}
+          title="Auto SEO"
+          description="SEO articles auto-generated from your AEO answers"
+          gradientFrom="from-emerald-500/10"
+          gradientVia="via-teal-500/10"
+          gradientTo="to-cyan-500/10"
+          iconFrom="from-emerald-500"
+          iconTo="to-teal-600"
+        >
               <Button variant="outline" onClick={() => navigate("/planning")} className="gap-2">
                 <Calendar className="h-4 w-4" />
                 Planning
