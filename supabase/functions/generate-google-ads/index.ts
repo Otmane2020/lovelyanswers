@@ -13,10 +13,10 @@ serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
-    // Scrape lovelyanswers.com homepage
+    // Scrape autopilotgeo.com homepage
     let pageContent = "";
     try {
-      const res = await fetch("https://lovelyanswers.com", {
+      const res = await fetch("https://autopilotgeo.com", {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; AdsBot/1.0)" },
       });
       const html = await res.text();
@@ -29,26 +29,26 @@ serve(async (req) => {
         .slice(0, 6000);
     } catch (e) {
       console.error("Scrape failed:", e);
-      pageContent = "LovelyAnswers - AI-powered AEO (Answer Engine Optimization) SaaS platform. Helps businesses get cited by ChatGPT, Perplexity, Gemini. Services: AEO content generation, article creation, keyword research, SEO audit, Reddit marketing, Google Ads management, local SEO. Target: marketing agencies, SaaS companies, e-commerce. Pricing plans available.";
+      pageContent = "AutoPilot Geo - AI-powered AEO (Answer Engine Optimization) SaaS platform. Helps businesses get cited by ChatGPT, Perplexity, Gemini. Services: AEO content generation, article creation, keyword research, SEO audit, Reddit marketing, Google Ads management, local SEO. Target: marketing agencies, SaaS companies, e-commerce. Pricing plans available.";
     }
 
     const systemPrompt = type === "search"
-      ? `You are a Google Ads expert. Based on the website content, generate a complete Search campaign configuration for lovelyanswers.com (a SaaS AEO platform).
+      ? `You are a Google Ads expert. Based on the website content, generate a complete Search campaign configuration for autopilotgeo.com (a SaaS AEO platform).
 
 Return ONLY valid JSON with this exact structure:
 {
-  "campaignName": "Search - LovelyAnswers AEO",
+  "campaignName": "Search - AutoPilot Geo AEO",
   "dailyBudget": "30",
   "biddingStrategy": "maximize_conversions",
   "language": "en",
   "locations": ["FR", "US", "GB", "CA"],
   "callouts": ["string array, max 25 chars each, 4-6 items"],
-  "sitelinks": [{"text": "Link Text", "url": "https://lovelyanswers.com/page"}],
+  "sitelinks": [{"text": "Link Text", "url": "https://autopilotgeo.com/page"}],
   "negativeKeywords": ["irrelevant terms"],
   "adGroups": [
     {
       "name": "Ad Group Name",
-      "finalUrl": "https://lovelyanswers.com/relevant-page",
+      "finalUrl": "https://autopilotgeo.com/relevant-page",
       "seedKeywords": ["keyword1", "keyword2", "keyword3"],
       "headlines": ["Headline 1 (30 chars max)", "Headline 2", "Headline 3"],
       "descriptions": ["Description 1 (90 chars max)", "Description 2"],
@@ -68,48 +68,48 @@ RULES:
 - Negative keywords: 10-15 irrelevant terms
 - Focus on conversion intent keywords (buy, pricing, tool, platform, software)
 - Include competitor comparison keywords if relevant`
-      : `You are a Google Ads Performance Max expert. Based on the website content, generate the MOST COMPLETE Performance Max (Service/Lead Gen) campaign possible for lovelyanswers.com.
+      : `You are a Google Ads Performance Max expert. Based on the website content, generate the MOST COMPLETE Performance Max (Service/Lead Gen) campaign possible for autopilotgeo.com.
 
 Return ONLY valid JSON with this exact structure:
 {
-  "campaignName": "PMax - LovelyAnswers AEO",
+  "campaignName": "PMax - AutoPilot Geo AEO",
   "dailyBudget": 25,
   "biddingStrategy": "maximize_conversions",
   "language": "en",
   "locations": ["FR", "US", "GB", "CA"],
-  "brandName": "LovelyAnswers",
-  "finalUrl": "https://lovelyanswers.com",
-  "businessName": "LovelyAnswers",
-  "businessLogoUrl": "https://lovelyanswers.com/favicon.png",
+  "brandName": "AutoPilot Geo",
+  "finalUrl": "https://autopilotgeo.com",
+  "businessName": "AutoPilot Geo",
+  "businessLogoUrl": "https://autopilotgeo.com/favicon.png",
   "searchThemes": ["theme1", "theme2"],
   "headlines": ["Headline (30 chars max)"],
   "longHeadlines": ["Long headline (90 chars max)"],
   "descriptions": ["Description (90 chars max)"],
   "sitelinks": [
-    {"text": "Sitelink Text (max 25 chars)", "description1": "Line 1 (max 35 chars)", "description2": "Line 2 (max 35 chars)", "finalUrl": "https://lovelyanswers.com/page"}
+    {"text": "Sitelink Text (max 25 chars)", "description1": "Line 1 (max 35 chars)", "description2": "Line 2 (max 35 chars)", "finalUrl": "https://autopilotgeo.com/page"}
   ],
   "callouts": ["Callout text (max 25 chars)"],
   "callToAction": "SIGN_UP",
-  "imageUrls": ["https://lovelyanswers.com/og-image.png"],
+  "imageUrls": ["https://autopilotgeo.com/og-image.png"],
   "phoneNumber": "+33123456789",
   "phoneCountry": "FR",
   "promotions": [
-    {"promotionTarget": "Free Trial", "percentOff": 100, "occasion": "NONE", "finalUrl": "https://lovelyanswers.com/pricing"}
+    {"promotionTarget": "Free Trial", "percentOff": 100, "occasion": "NONE", "finalUrl": "https://autopilotgeo.com/pricing"}
   ],
   "structuredSnippets": [
     {"header": "Service catalog", "values": ["AEO Content", "SEO Audit", "Keyword Research", "AI Articles"]}
   ],
   "prices": [
     {"type": "SERVICE_TIERS", "priceOfferings": [
-      {"header": "Starter", "description": "Basic AEO", "price": {"currencyCode": "EUR", "amountMicros": "29000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"},
-      {"header": "Pro", "description": "Full AEO Suite", "price": {"currencyCode": "EUR", "amountMicros": "79000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"},
-      {"header": "Agency", "description": "Multi-project", "price": {"currencyCode": "EUR", "amountMicros": "199000000"}, "unit": "PER_MONTH", "finalUrl": "https://lovelyanswers.com/pricing"}
+      {"header": "Starter", "description": "Basic AEO", "price": {"currencyCode": "EUR", "amountMicros": "29000000"}, "unit": "PER_MONTH", "finalUrl": "https://autopilotgeo.com/pricing"},
+      {"header": "Pro", "description": "Full AEO Suite", "price": {"currencyCode": "EUR", "amountMicros": "79000000"}, "unit": "PER_MONTH", "finalUrl": "https://autopilotgeo.com/pricing"},
+      {"header": "Agency", "description": "Multi-project", "price": {"currencyCode": "EUR", "amountMicros": "199000000"}, "unit": "PER_MONTH", "finalUrl": "https://autopilotgeo.com/pricing"}
     ]}
   ],
-  "leadFormHeadline": "Get Started with LovelyAnswers",
+  "leadFormHeadline": "Get Started with AutoPilot Geo",
   "leadFormDescription": "Sign up for a free trial and boost your AI visibility",
   "leadFormFields": ["FULL_NAME", "EMAIL", "PHONE_NUMBER", "COMPANY_NAME"],
-  "leadFormPrivacyPolicyUrl": "https://lovelyanswers.com/privacy",
+  "leadFormPrivacyPolicyUrl": "https://autopilotgeo.com/privacy",
   "leadFormSubmitButtonText": "Submit",
   "audienceSignals": {
     "customSegments": ["AI SEO tools users", "Content marketing professionals"],

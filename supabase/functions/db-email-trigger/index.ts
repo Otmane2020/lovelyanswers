@@ -38,7 +38,7 @@ serve(async (req: Request): Promise<Response> => {
         
         await sendEmail({
           to: profile.email,
-          subject: "Bienvenue sur Lovely Answers! 🎉",
+          subject: "Bienvenue sur AutoPilot Geo! 🎉",
           html: generateWelcomeEmail(profile.full_name || profile.email.split("@")[0]),
         });
       }
@@ -116,7 +116,7 @@ async function sendEmail(options: { to: string; subject: string; html: string })
       to: [options.to],
       subject: options.subject,
       html: options.html,
-      reply_to: "support@autopilotgeo,
+      reply_to: "support@autopilotgeo.com",
     }),
   });
 
@@ -141,14 +141,14 @@ function generateWelcomeEmail(name: string): string {
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur LAAAAAutoPilot Geo1>
+        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur AutoPilot Geo! 🎉</h1>
       </div>
       
       <p>Bonjour ${name},</p>
       
       <p>Merci de nous avoir rejoint! Nous sommes ravis de vous compter parmi nous.</p>
       
-      <p>Avec LoAuAuAuAutoPilot Geoez:</p>
+      <p>Avec AutoPilot Geo, vous pouvez:</p>
       <ul>
         <li>🚀 Générer des réponses AEO optimisées pour les moteurs de recherche</li>
         <li>📝 Créer des articles de blog automatiquement</li>
@@ -157,17 +157,17 @@ function generateWelcomeEmail(name: string): string {
       </ul>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.lovelyanswers.com/dashboard" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Accéder à mon dashboard</a>
+        <a href="https://app.autopilotgeo.com/dashboard" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Accéder à mon dashboard</a>
       </div>
       
       <p>Si vous avez des questions, n'hésitez pas à nous contacter via le support.</p>
       
-      <p>À bientôt,<br><strong>L'équipe Lovely Answers</strong></p>
+      <p>À bientôt,<br><strong>L'équipe AutoPilot Geo</strong></p>
       
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
       <p style="font-size: 12px; color: #888; text-align: center;">
-        Lovely Answers - Optimisez votre contenu pour l'ère de l'IA<br>
-        <a href="https://lovelyanswers.com" style="color: #7c3aed;">lovelyanswers.com</a>
+        AutoPilot Geo - Optimisez votre contenu pour l'ère de l'IA<br>
+        <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
       </p>
     </body>
     </html>
@@ -192,7 +192,7 @@ function generateAdminTicketNotification(ticket: Record<string, any>): string {
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.utopilotgeom/super-admin" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Répondre au ticket</a>
+        <a href="https://app.autopilotgeo.com/super-admin" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Répondre au ticket</a>
       </div>
       
       <p style="font-size: 12px; color: #888;">Ticket ID: ${ticket.id}</p>

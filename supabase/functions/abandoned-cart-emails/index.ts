@@ -4,8 +4,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-const FROM_EMAIL = "Lovely Answers <support@lovelyanswers.com>";
-const APP_URL = "https://lovelyanswers.lovable.app";
+const FROM_EMAIL = "AutoPilot Geo <support@autopilotgeo.com>";
+const APP_URL = "https://autopilotgeo.com";
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -58,7 +58,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       to: [to],
       subject,
       html,
-      reply_to: "support@lovelyanswers.com",
+      reply_to: "support@autopilotgeo.com",
     }),
   });
 
@@ -83,7 +83,7 @@ function getEmail1Hour(name?: string, brandName?: string): { subject: string; ht
           <h1 style="color: #7c3aed; margin: 0;">Hey${name ? ` ${name}` : ""}! 👋</h1>
         </div>
         
-        <p>You started setting up Lovely Answers${brandName ? ` for <strong>${brandName}</strong>` : ""} — you were just one step away from boosting your AI search visibility!</p>
+        <p>You started setting up AutoPilot Geo${brandName ? ` for <strong>${brandName}</strong>` : ""} — you were just one step away from boosting your AI search visibility!</p>
         
         <p style="font-weight: 600;">Here's what you're missing out on:</p>
         <ul>
@@ -99,11 +99,11 @@ function getEmail1Hour(name?: string, brandName?: string): { subject: string; ht
         
         <p>Questions? Just reply to this email.</p>
         
-        <p>Best,<br><strong>The Lovely Answers Team</strong></p>
+        <p>Best,<br><strong>The AutoPilot Geo Team</strong></p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="font-size: 12px; color: #888; text-align: center;">
-          <a href="${APP_URL}" style="color: #7c3aed;">lovelyanswers.com</a>
+          <a href="${APP_URL}" style="color: #7c3aed;">autopilotgeo.com</a>
         </p>
       </body>
       </html>
@@ -140,11 +140,11 @@ function getEmail24Hours(name?: string, couponCode: string = "SAVE20"): { subjec
         
         <p style="font-size: 14px; color: #666;">This code is valid for <strong>48 hours</strong>.</p>
         
-        <p>See you inside! 🚀<br><strong>The Lovely Answers Team</strong></p>
+        <p>See you inside! 🚀<br><strong>The AutoPilot Geo Team</strong></p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="font-size: 12px; color: #888; text-align: center;">
-          <a href="${APP_URL}" style="color: #7c3aed;">lovelyanswers.com</a>
+          <a href="${APP_URL}" style="color: #7c3aed;">autopilotgeo.com</a>
         </p>
       </body>
       </html>
@@ -176,7 +176,7 @@ function getEmail72Hours(name?: string, couponCode: string = "WELCOME50"): { sub
           <p style="margin: 8px 0 0; font-size: 14px; color: #666;">That's just <strong>$14.50/month</strong> instead of $29</p>
         </div>
         
-        <p>With Lovely Answers you get:</p>
+        <p>With AutoPilot Geo you get:</p>
         <ul>
           <li>🏆 Rank #1 on AI search engines (ChatGPT, Gemini, Perplexity)</li>
           <li>📝 30 SEO-optimized articles published automatically every month</li>
@@ -191,11 +191,11 @@ function getEmail72Hours(name?: string, couponCode: string = "WELCOME50"): { sub
         
         <p style="font-size: 14px; color: #dc2626; font-weight: 600; text-align: center;">⏰ Expires in 24 hours — this is our final offer.</p>
         
-        <p>Don't miss out!<br><strong>The Lovely Answers Team</strong></p>
+        <p>Don't miss out!<br><strong>The AutoPilot Geo Team</strong></p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="font-size: 12px; color: #888; text-align: center;">
-          <a href="${APP_URL}" style="color: #7c3aed;">lovelyanswers.com</a>
+          <a href="${APP_URL}" style="color: #7c3aed;">autopilotgeo.com</a>
         </p>
       </body>
       </html>
