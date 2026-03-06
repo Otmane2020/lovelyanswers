@@ -52,7 +52,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
 
-            <AppTopbar />
             
             {/* Global Progress Bar */}
             {isGenerating && (
