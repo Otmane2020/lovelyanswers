@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             )}
 
-            {/* Mobile-first app header */}
+            {/* App header */}
             <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
               <NavLink to="/dashboard" className="flex items-center gap-2.5">
                 <AnimatedLogo size="sm" />
