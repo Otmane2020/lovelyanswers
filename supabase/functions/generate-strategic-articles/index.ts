@@ -184,7 +184,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "AEO as a Service: how it works", category: "commercial", intent: "what" },
   { topic: "SEO automation for no-code websites", category: "commercial", intent: "commercial" },
   { topic: "Get cited by AI assistants: professional solution", category: "commercial", intent: "commercial" },
-  { topic: "LovelyAnswers pricing and plans for AI builders", category: "commercial", intent: "commercial" },
+  { topic: "AutoPilot Geo pricing and plans for AI builders", category: "commercial", intent: "commercial" },
   { topic: "Enterprise AEO for AI-generated platforms", category: "commercial", intent: "commercial" },
   { topic: "Free trial: optimize your AI site for ChatGPT", category: "commercial", intent: "commercial" },
 
