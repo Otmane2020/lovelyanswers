@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Calendar, MapPin, TrendingUp, Check, ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useLocalBusiness } from "@/hooks/useLocalBusiness";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
