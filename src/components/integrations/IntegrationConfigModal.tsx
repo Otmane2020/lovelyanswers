@@ -39,7 +39,7 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
       "Log in to your WordPress admin dashboard",
       "Go to Users → Your Profile",
       "Scroll down to the 'Application Passwords' section",
-      "Enter a name (e.g., 'AeoRocket') and click 'Add New Application Password'",
+      "Enter a name (e.g., 'AutoPilot AEO') and click 'Add New Application Password'",
       "Copy the generated password (format: xxxx xxxx xxxx xxxx)",
       "Enter your WordPress username in the 'Username' field",
       "Paste the application password in the 'Application Password' field",

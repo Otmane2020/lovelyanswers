@@ -635,7 +635,7 @@ export default function Auth() {
             </div>
             <blockquote className="space-y-4">
               <p className="text-white/80 font-medium text-lg leading-relaxed">
-                "AeoRocket transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently."
+                "AutoPilot AEO transformed how we approach AI visibility. Our brand now appears in ChatGPT and Perplexity responses consistently."
               </p>
               <p className="text-white/40 text-sm leading-relaxed">
                 Within 3 months, we saw a 340% increase in AI-driven traffic.
