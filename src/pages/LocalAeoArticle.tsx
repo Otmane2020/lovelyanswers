@@ -38,9 +38,7 @@ export default function LocalAeoArticle() {
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-lg">
-                Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-              </span>
+              <span className="font-bold text-lg">AutoPilot Geo</span>
             </Link>
             <nav className="flex items-center gap-4">
               <Link to="/blog">
