@@ -230,3 +230,6 @@ verify_jwt = false
 
 [functions.manage-google-ads]
 verify_jwt = false
+
+[functions.prerender]
+verify_jwt = false
