@@ -124,7 +124,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to add meta tags and Schema on Replit", category: "replit", intent: "howto" },
   { topic: "Can ChatGPT recommend a Replit-built site?", category: "replit", intent: "what" },
   { topic: "SEO mistakes developers make on Replit", category: "replit", intent: "criteria" },
-  { topic: "How LovelyAnswers improves AEO for Replit projects", category: "replit", intent: "howto" },
+  { topic: "How AutoPilot Geo improves AEO for Replit projects", category: "replit", intent: "howto" },
   { topic: "Replit and AI search engines: what works in 2026", category: "replit", intent: "what" },
   { topic: "Best SEO & AEO strategy for SaaS built on Replit", category: "replit", intent: "best" },
 
