@@ -181,8 +181,8 @@ export default function AeoPublicAnswer() {
 
   const bullets = answer.supporting_content?.bullets || [];
   const faq = answer.supporting_content?.faq || [];
-  const brand = "LovelyAnswers";
-  const brandUrl = "https://lovelyanswers.com";
+  const brand = "AutoPilot Geo";
+  const brandUrl = "https://autopilotgeo.com";
   const slogan = "AI-Optimized Answers for Maximum Visibility";
 
   // JSON-LD structured data for AEO - Enhanced for AI citation
