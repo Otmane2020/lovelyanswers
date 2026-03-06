@@ -1,4 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageHeader } from "@/components/PageHeader";
+import { Settings } from "lucide-react";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSettings } from "./settings/UserSettings";
