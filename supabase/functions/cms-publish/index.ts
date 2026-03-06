@@ -1316,8 +1316,8 @@ function generatePublicArticleHTML(article: any): string {
     </article>
   </main>
   <footer>
-    <p>Optimize your AI visibility with LovelyAnswers</p>
-    <a href="https://lovelyanswers.com">Create Your AEO Articles</a>
+    <p>Optimize your AI visibility with AutoPilot Geo</p>
+    <a href="https://autopilotgeo.com">Create Your AEO Articles</a>
   </footer>
 </body>
 </html>`;
