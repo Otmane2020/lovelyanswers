@@ -17,7 +17,7 @@ async function parseSitemapXml(sitemapUrl: string): Promise<string[]> {
   
   const response = await fetch(sitemapUrl, {
     headers: {
-      "User-Agent": "LovelyAnswers-Bot/1.0",
+      "User-Agent": "AutopilotGEO-Bot/1.0",
     },
   });
   
@@ -63,7 +63,7 @@ async function fetchPageMetadata(url: string, firecrawlApiKey?: string): Promise
     // Simple fetch fallback
     try {
       const response = await fetch(url, {
-        headers: { "User-Agent": "LovelyAnswers-Bot/1.0" },
+        headers: { "User-Agent": "AutopilotGEO-Bot/1.0" },
       });
       const html = await response.text();
       
