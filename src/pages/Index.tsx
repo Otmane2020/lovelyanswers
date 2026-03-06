@@ -274,7 +274,7 @@ export default function Index() {
         <InactivityPopup inactivityDelay={45} />
 
         {/* Navigation */}
-        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+        <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-white/90 backdrop-blur-xl shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
@@ -282,33 +282,33 @@ export default function Index() {
             <div className="hidden md:flex items-center gap-1">
               <Button
                 variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                 asChild
               >
                 <Link to="/signup">Get Started Free</Link>
               </Button>
               <Button
                 variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                 asChild
               >
                 <Link to="/pricing">Pricing</Link>
               </Button>
               <Button
                 variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                 asChild
               >
                 <Link to="/blog">Blog</Link>
               </Button>
               <Button
                 variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                 asChild
               >
                 <Link to="/auth">Log in</Link>
               </Button>
-              <Button className="ml-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
+              <Button className="ml-2 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                 <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
@@ -316,12 +316,12 @@ export default function Index() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-white/70 hover:text-white"
+                className="text-foreground/70 hover:text-foreground"
                 asChild
               >
                 <Link to="/auth">Log in</Link>
               </Button>
-              <Button size="sm" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                 <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
