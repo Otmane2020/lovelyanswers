@@ -350,9 +350,9 @@ Rules:
         🚀 Fix these issues automatically
       </h3>
       <p style="font-size: 14px; color: #666; margin: 0 0 16px;">
-        LovelyAnswers publishes 30 SEO articles/month and optimizes your site for AI search — on autopilot.
+        AutoPilot Geo publishes 30 SEO articles/month and optimizes your site for AI search — on autopilot.
       </p>
-      <a href="https://lovelyanswers.lovable.app/onboarding" style="display: inline-block; padding: 12px 28px; background: #1a1a1a; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+      <a href="https://autopilotgeo.com/onboarding" style="display: inline-block; padding: 12px 28px; background: #1a1a1a; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
         Start Free Trial →
       </a>
     </div>
