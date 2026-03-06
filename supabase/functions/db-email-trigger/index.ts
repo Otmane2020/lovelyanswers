@@ -218,10 +218,10 @@ function generateTicketReplyEmail(name: string, subject: string, message: string
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.lovelyanswers.com/support" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Voir la conversation</a>
+        <a href="https://autopilotgeo.com/support" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Voir la conversation</a>
       </div>
       
-      <p>Cordialement,<br><strong>L'équipe Support Lovely Answers</strong></p>
+      <p>Cordialement,<br><strong>L'équipe Support AutoPilot Geo</strong></p>
       
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
       <p style="font-size: 12px; color: #888; text-align: center;">
