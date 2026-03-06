@@ -1,54 +1,58 @@
 
 
-## Diagnostic: Pourquoi les sites Lovable manquent de visibilité
+## Rebranding : LovelyAnswers → AutoPilot Geo
 
-L'analyse externe que tu as reçue identifie un vrai problème : **les sites Lovable sont des SPA React** (Single Page Application). Quand Google ou un bot AI crawle la page, il voit uniquement le HTML statique de `index.html` — soit un `<div id="root"></div>` vide. Le contenu est rendu en JavaScript côté client.
+### Scope
 
-**Cependant, le diagnostic est partiellement exagéré :**
-- Googlebot exécute JavaScript depuis 2019 et indexe les SPA (avec un délai)
-- Ton `index.html` contient déjà des meta tags, structured data, et OG tags correctement configurés
-- Tu as un sitemap dynamique et un `robots.txt` complet
-- `react-helmet-async` injecte les meta tags par page côté client
+1078 occurrences dans 51 fichiers. Voici le mapping :
 
-**Le vrai problème n'est pas que Google ne voit RIEN — c'est qu'il voit le contenu avec retard et moins de fiabilité qu'un site SSR.**
+| Ancien | Nouveau |
+|--------|---------|
+| `LovelyAnswers` | `AutoPilot Geo` |
+| `Lovely Answers` | `AutoPilot Geo` |
+| `lovelyanswers.com` | `autopilotgeo.com` |
+| `lovelyanswers.io` | `autopilotgeo.com` |
+| `lovelyanswers.lovable.app` | `autopilotgeo.com` |
+| `app.lovelyanswers.com` | `app.autopilotgeo.com` |
+| `support@lovelyanswers.com` | `support@autopilotgeo.com` |
+| `support@lovelyanswers.io` | `support@autopilotgeo.com` |
+| `LovelyAnswers Ltd` | `AutoPilot Geo Ltd` |
 
----
+### Fichiers impactés (51 fichiers)
 
-## Plan d'action : Pre-rendering des pages publiques
+**Frontend pages & components (~30 fichiers)** :
+- `index.html` — titre, meta tags, OG, structured data, noscript
+- `public/robots.txt` — sitemap URL
+- `public/site.webmanifest` — app name
+- `src/components/layout/PublicFooter.tsx` — brand, company info, links
+- `src/components/blog/ArticleTemplate.tsx` — brand name, URL
+- `src/pages/Index.tsx`, `About.tsx`, `Pricing.tsx`, `Terms.tsx`, `Privacy.tsx`, `Auth.tsx`, `Blog.tsx`, `AiSeo.tsx`, `AeoAccount.tsx`, `Onboarding.tsx`, etc.
+- `src/components/landing/AIDemoSection.tsx`
+- `src/components/admin/ads/*` — brand references in ads config
+- `src/components/aeo/*`, `src/components/audit/*`
 
-La solution la plus efficace dans les contraintes Lovable (pas de Next.js, pas de contrôle serveur) est de créer une **edge function de pre-rendering** qui sert du HTML complet aux crawlers.
+**Edge functions (~20 fichiers)** :
+- `supabase/functions/prerender/index.ts` — brand dans HTML généré
+- `supabase/functions/sitemap/index.ts` — URLs domaine
+- `supabase/functions/db-email-trigger/index.ts` — FROM_EMAIL, liens
+- `supabase/functions/create-checkout/index.ts` — origin fallback
+- `supabase/functions/create-cart-checkout/index.ts` — origin fallback
+- `supabase/functions/receive-article/index.ts` — public URL
+- `supabase/functions/analyze-aeo/index.ts` — HTTP-Referer
+- `supabase/functions/send-email/index.ts`, `send-audit-email/index.ts`
+- Toutes les fonctions avec des références `lovelyanswers`
 
-### 1. Créer une edge function `prerender`
+**Config** :
+- `supabase/config.toml` — si référence au nom
 
-Une edge function qui :
-- Détecte les user-agents des bots (Googlebot, GPTBot, ClaudeBot, Bingbot, etc.)
-- Pour les pages publiques (`/`, `/blog`, `/blog/:slug`, `/pricing`, `/about`), génère un HTML complet avec le contenu réel tiré de la base de données
-- Pour `/blog/:slug` : requête la table `answers` ou `published_articles`, injecte le titre, la description, le contenu, et le structured data directement dans le HTML
-- Pour `/` et `/pricing` : sert une version statique HTML avec tout le contenu textuel important
+### Approche
 
-### 2. Alternative plus simple et immédiate : enrichir `index.html` avec un `<noscript>` fallback
+Remplacement systématique fichier par fichier avec `line_replace`. Pas de changement de logique — uniquement du renommage de chaînes.
 
-Ajouter du contenu HTML visible en `<noscript>` dans `index.html` pour que les crawlers qui n'exécutent pas JS aient quand même du contenu. C'est limité mais gratuit.
+### Note importante
 
-### 3. Utiliser un service externe de pre-rendering (Prerender.io)
-
-Si tu as accès au DNS/CDN, configurer Prerender.io pour intercepter les requêtes des bots et servir du HTML pré-rendu. Coût : ~$15/mois.
-
----
-
-## Recommandation pragmatique
-
-Étant donné les contraintes de Lovable (pas de contrôle serveur, pas de middleware), voici ce qu'on peut faire **maintenant** :
-
-1. **Créer une edge function `get-public-page`** qui retourne le HTML complet d'une page blog pour les crawlers — utilisable comme URL alternative dans le sitemap
-2. **Enrichir le sitemap** pour pointer vers ces URLs pre-rendues
-3. **Ajouter du contenu `<noscript>`** dans `index.html` avec les mots-clés et liens principaux
-4. **Optimiser les meta tags** déjà présents dans `index.html` pour inclure plus de contenu textuel que les crawlers peuvent lire sans JS
-
-### Limitations
-
-- Lovable ne permet pas de contrôler le serveur/CDN, donc on ne peut pas faire de vrai SSR ou middleware de pre-rendering
-- La solution la plus robuste reste une migration du blog vers un outil SSR (Ghost, Hashnode, ou Next.js sur un sous-domaine)
-
-Veux-tu que je procède avec les optimisations réalisables dans Lovable (noscript, meta tags enrichis, edge function de pre-rendering pour le blog) ?
+Après le rebranding dans le code, il faudra aussi :
+1. Configurer le domaine custom `autopilotgeo.com` dans Lovable (Settings → Domains)
+2. Mettre à jour les DNS pour pointer vers `185.158.133.1`
+3. Mettre à jour le Cloudflare Worker avec le nouveau domaine
 
