@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { History, MessageSquare, FileText, CheckCircle, Clock, AlertCircle, ExternalLink, Eye, Pencil, Globe, Loader2, Copy, MapPin, Sparkles, Search } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useAnswers } from "@/hooks/useAnswers";
 import { useArticles } from "@/hooks/useArticles";
 import { useLocalAnswers } from "@/hooks/useLocalAnswers";
