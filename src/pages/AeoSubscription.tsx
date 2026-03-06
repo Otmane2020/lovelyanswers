@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const features = [
