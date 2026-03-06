@@ -193,8 +193,8 @@ function generateAnswerHTML(
   ${faqSection}
   
   <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://lovelyanswers.com" style="color: #667eea; text-decoration: none; font-weight: 500;" target="_blank">LovelyAnswers</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
-    <p style="margin: 0; font-size: 12px; color: #999;">LovelyAnswers – Rank in ChatGPT</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea; text-decoration: none; font-weight: 500;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
   </footer>
 </article>`;
 
