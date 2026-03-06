@@ -76,9 +76,7 @@ export default function ThankYou() {
         <div className="container flex items-center justify-center">
           <Link to="/" className="flex items-center gap-2">
             <AnimatedLogo size="md" />
-            <span className="text-xl font-bold tracking-tight text-foreground">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-            </span>
+            <span className="text-xl font-bold tracking-tight text-foreground">AutoPilot Geo</span>
           </Link>
         </div>
       </header>
