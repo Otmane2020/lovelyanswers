@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Lovely Answers <support@lovelyanswers.com>";
+const FROM_EMAIL = "AutoPilot Geo <support@autopilotgeo.com>";
 
 interface EmailRequest {
   type: "welcome" | "ticket_created" | "ticket_reply" | "custom";
