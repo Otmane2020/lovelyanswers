@@ -133,7 +133,7 @@ export default function LocalAeoArticle() {
                 </div>
                 <p className="text-muted-foreground text-lg leading-relaxed">
                   AI assistants are becoming the new way people discover local businesses. 
-                  <strong> LovelyAnswers</strong> helps you create optimized content that these AI systems 
+                  <strong> AutoPilot Geo</strong> helps you create optimized content that these AI systems 
                   understand, trust, and cite when answering local queries.
                 </p>
               </div>
