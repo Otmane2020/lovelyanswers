@@ -149,7 +149,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to structure pages for generative AI", category: "aeo-pure", intent: "howto" },
   { topic: "Why classic SEO is no longer enough", category: "aeo-pure", intent: "why" },
   { topic: "How ChatGPT chooses which sites to recommend", category: "aeo-pure", intent: "what" },
-  { topic: "How LovelyAnswers optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
+  { topic: "How AutoPilot Geo optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
   { topic: "AEO checklist for 2026", category: "aeo-pure", intent: "criteria" },
 
   // === CASE STUDIES (10 articles) ===
