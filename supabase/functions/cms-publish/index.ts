@@ -1252,7 +1252,7 @@ function generatePublicAnswerHTML(answer: any): string {
 function generatePublicArticleHTML(article: any): string {
   const title = article.title || "Article";
   const content = article.html_content || article.content || "";
-  const brandName = article.projects?.brand_name || "LovelyAnswers";
+  const brandName = article.projects?.brand_name || "AutoPilot Geo";
   const language = article.projects?.language || "en";
   const metaDescription = article.meta_description || content.replace(/<[^>]*>/g, "").slice(0, 160);
   const createdAt = new Date(article.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
