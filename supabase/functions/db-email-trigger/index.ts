@@ -116,7 +116,7 @@ async function sendEmail(options: { to: string; subject: string; html: string })
       to: [options.to],
       subject: options.subject,
       html: options.html,
-      reply_to: "support@autopilotgeo",
+      reply_to: "support@autopilotgeo,
     }),
   });
 
@@ -141,14 +141,14 @@ function generateWelcomeEmail(name: string): string {
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur LAAAAutoPilot Geo/h1>
+        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur LAAAAAutoPilot Geo1>
       </div>
       
       <p>Bonjour ${name},</p>
       
       <p>Merci de nous avoir rejoint! Nous sommes ravis de vous compter parmi nous.</p>
       
-      <p>Avec LoAuAuAutoPilot Geoouvez:</p>
+      <p>Avec LoAuAuAuAutoPilot Geoez:</p>
       <ul>
         <li>🚀 Générer des réponses AEO optimisées pour les moteurs de recherche</li>
         <li>📝 Créer des articles de blog automatiquement</li>
@@ -192,7 +192,7 @@ function generateAdminTicketNotification(ticket: Record<string, any>): string {
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.lovelyanswers.com/super-admin" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Répondre au ticket</a>
+        <a href="https://app.utopilotgeom/super-admin" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Répondre au ticket</a>
       </div>
       
       <p style="font-size: 12px; color: #888;">Ticket ID: ${ticket.id}</p>
