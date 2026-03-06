@@ -185,9 +185,8 @@ export default function AiSeo() {
         {/* Nav */}
         <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 hidden sm:inline-flex" asChild>

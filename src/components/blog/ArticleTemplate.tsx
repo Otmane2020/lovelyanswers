@@ -142,12 +142,8 @@ export default function ArticleTemplate({
         {/* ─── Topbar ─── */}
         <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 flex h-14 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-lg">
-                AutoPilot
-                <span className="gradient-text"> Geo</span>
-              </span>
             </Link>
             <div className="flex items-center gap-2">
               <Link to="/blog">

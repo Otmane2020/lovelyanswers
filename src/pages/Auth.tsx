@@ -316,11 +316,8 @@ export default function Auth() {
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mb-12">
-            <AnimatedLogo size="md" />
-            <span className="text-2xl font-bold tracking-tight">
-              AutoPilot<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500"> Geo</span>
-            </span>
+          <Link to="/" className="flex items-center mb-12">
+            <AnimatedLogo size="lg" />
           </Link>
 
           <motion.div

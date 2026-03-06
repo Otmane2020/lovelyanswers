@@ -145,9 +145,8 @@ export default function AuditPremium() {
         {/* Navbar */}
         <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight">AutoPilot Geo</span>
             </Link>
             <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
               <Link to="/onboarding">

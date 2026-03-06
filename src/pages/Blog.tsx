@@ -108,11 +108,8 @@ export default function Blog() {
         {/* Header - Dark */}
         <header className="border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-lg text-white">
-                AutoPilot<span className="text-violet-400"> Geo</span>
-              </span>
             </Link>
             <nav className="flex items-center gap-4">
               <Link to="/pricing"><Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">Pricing</Button></Link>

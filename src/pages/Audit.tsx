@@ -315,9 +315,8 @@ export default function Audit() {
         {/* Header - Dark */}
         <header className="border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
