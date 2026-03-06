@@ -369,7 +369,7 @@ Rules:
 </html>`;
 
     const { error: emailError } = await resend.emails.send({
-      from: "LovelyAnswers <audit@lovelyanswers.com>",
+      from: "AutoPilot Geo <audit@autopilotgeo.com>",
       to: [email],
       subject: `🔍 Your SEO & AEO Audit: ${domain} scored ${overallScore}/100`,
       html: emailHtml,
