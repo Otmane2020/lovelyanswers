@@ -1,28 +1,58 @@
 
 
-## Logo Consistency Fix
+## Rebranding : LovelyAnswers → AutoPilot Geo
 
-### Problem
-The logo SVG (`autopilotgeo-logo-light.svg`) has a built-in background pill (`<rect>` with gradient fill and border stroke) that creates a visible box. When rendered at small sizes (h-8), the full 520x120 wordmark becomes tiny and unreadable. It also appears duplicated in both the sidebar and header.
+### Scope
 
-### Plan
+1078 occurrences dans 51 fichiers. Voici le mapping :
 
-**1. Fix the SVG asset** -- Remove the background rect and border stroke from `src/assets/autopilotgeo-logo-light.svg` so it renders transparently and blends with any background. Also remove the subtle grid lines. Keep all orbit graphics and text.
+| Ancien | Nouveau |
+|--------|---------|
+| `LovelyAnswers` | `AutoPilot Geo` |
+| `Lovely Answers` | `AutoPilot Geo` |
+| `lovelyanswers.com` | `autopilotgeo.com` |
+| `lovelyanswers.io` | `autopilotgeo.com` |
+| `lovelyanswers.lovable.app` | `autopilotgeo.com` |
+| `app.lovelyanswers.com` | `app.autopilotgeo.com` |
+| `support@lovelyanswers.com` | `support@autopilotgeo.com` |
+| `support@lovelyanswers.io` | `support@autopilotgeo.com` |
+| `LovelyAnswers Ltd` | `AutoPilot Geo Ltd` |
 
-**2. Create an icon-only SVG** -- Extract just the orbit/core graphic (viewBox ~15 15 90 90) into `src/assets/autopilotgeo-icon.svg` for use when the sidebar is collapsed or space is tight.
+### Fichiers impactés (51 fichiers)
 
-**3. Update AnimatedLogo component** -- Add a `variant` prop: `"full"` (wordmark, default) and `"icon"` (orbit only). Adjust size classes so the full logo renders at readable sizes (h-10 sidebar, h-9 header).
+**Frontend pages & components (~30 fichiers)** :
+- `index.html` — titre, meta tags, OG, structured data, noscript
+- `public/robots.txt` — sitemap URL
+- `public/site.webmanifest` — app name
+- `src/components/layout/PublicFooter.tsx` — brand, company info, links
+- `src/components/blog/ArticleTemplate.tsx` — brand name, URL
+- `src/pages/Index.tsx`, `About.tsx`, `Pricing.tsx`, `Terms.tsx`, `Privacy.tsx`, `Auth.tsx`, `Blog.tsx`, `AiSeo.tsx`, `AeoAccount.tsx`, `Onboarding.tsx`, etc.
+- `src/components/landing/AIDemoSection.tsx`
+- `src/components/admin/ads/*` — brand references in ads config
+- `src/components/aeo/*`, `src/components/audit/*`
 
-**4. Update AeoSidebar** -- Use `variant="icon"` when sidebar is collapsed (`state !== "expanded"`), `variant="full"` when expanded. Match the sidebar top area background to `linear-gradient(135deg, #f0f4ff, #e8eeff)` so the logo blends.
+**Edge functions (~20 fichiers)** :
+- `supabase/functions/prerender/index.ts` — brand dans HTML généré
+- `supabase/functions/sitemap/index.ts` — URLs domaine
+- `supabase/functions/db-email-trigger/index.ts` — FROM_EMAIL, liens
+- `supabase/functions/create-checkout/index.ts` — origin fallback
+- `supabase/functions/create-cart-checkout/index.ts` — origin fallback
+- `supabase/functions/receive-article/index.ts` — public URL
+- `supabase/functions/analyze-aeo/index.ts` — HTTP-Referer
+- `supabase/functions/send-email/index.ts`, `send-audit-email/index.ts`
+- Toutes les fonctions avec des références `lovelyanswers`
 
-**5. Update DashboardLayout header** -- Keep the gradient background (`#f0f4ff` to `#e8eeff`). Use `AnimatedLogo` with `variant="full"` at proper size. Remove border so it blends seamlessly with the page background.
+**Config** :
+- `supabase/config.toml` — si référence au nom
 
-**6. Verify other usages** -- All ~20 files already use `<AnimatedLogo />`, so fixes propagate automatically. Spot-check pages with dark backgrounds (Auth, landing) to ensure the transparent logo still looks good; add a white/light container if needed.
+### Approche
 
-### Files to modify
-- `src/assets/autopilotgeo-logo-light.svg` -- remove background rect, border, grid lines
-- `src/assets/autopilotgeo-icon.svg` -- new file, icon only
-- `src/components/AnimatedLogo.tsx` -- add variant prop
-- `src/components/layout/AeoSidebar.tsx` -- responsive variant + background
-- `src/components/layout/DashboardLayout.tsx` -- clean header styling
+Remplacement systématique fichier par fichier avec `line_replace`. Pas de changement de logique — uniquement du renommage de chaînes.
+
+### Note importante
+
+Après le rebranding dans le code, il faudra aussi :
+1. Configurer le domaine custom `autopilotgeo.com` dans Lovable (Settings → Domains)
+2. Mettre à jour les DNS pour pointer vers `185.158.133.1`
+3. Mettre à jour le Cloudflare Worker avec le nouveau domaine
 
