@@ -135,7 +135,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Base44 vs Bubble vs WordPress for SEO", category: "base44", intent: "comparison" },
   { topic: "How to structure Base44 pages for AEO", category: "base44", intent: "howto" },
   { topic: "Common SEO issues on no-code AI builders", category: "base44", intent: "criteria" },
-  { topic: "How LovelyAnswers boosts visibility for Base44 sites", category: "base44", intent: "howto" },
+  { topic: "How AutoPilot Geo boosts visibility for Base44 sites", category: "base44", intent: "howto" },
   { topic: "AEO strategy for no-code AI applications", category: "base44", intent: "howto" },
   { topic: "Why AI-built no-code sites need AEO", category: "base44", intent: "why" },
   { topic: "Best SEO & AEO checklist for Base44 projects", category: "base44", intent: "best" },
