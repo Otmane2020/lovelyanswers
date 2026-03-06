@@ -1,4 +1,4 @@
-import autopilotGeoLogo from "@/assets/autopilotgeo-logo.png";
+import autopilotGeoLogo from "@/assets/autopilotgeo-logo-light.svg";
 import autopilotGeoIcon from "@/assets/autopilotgeo-icon.svg";
 
 interface AnimatedLogoProps {
