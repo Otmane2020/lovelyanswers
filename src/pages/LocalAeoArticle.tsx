@@ -73,7 +73,7 @@ export default function LocalAeoArticle() {
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                 When someone asks ChatGPT, Gemini, or Perplexity for the best local services, 
-                will they mention your business? With LovelyAnswers' Local AEO, they will.
+                will they mention your business? With AutoPilot Geo's Local AEO, they will.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/auth">
