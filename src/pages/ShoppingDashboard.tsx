@@ -14,6 +14,7 @@ import { useShoppingProducts, useShoppingFeeds, useImportFeed, useDeleteProduct,
 import { useShoppingPlanning, useFillShoppingPlanning, useClearShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
 import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock, Unplug } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 
