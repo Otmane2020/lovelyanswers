@@ -52,9 +52,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             {/* App header */}
-            <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
-              <NavLink to="/dashboard" className="flex items-center gap-2.5">
-                <AnimatedLogo size="sm" />
+            <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 backdrop-blur-sm border-0" style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
+              <NavLink to="/dashboard" className="flex items-center">
+                <AnimatedLogo size="sm" variant="full" />
               </NavLink>
               <SidebarTrigger className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted/60 active:scale-95 transition-all duration-150">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground">

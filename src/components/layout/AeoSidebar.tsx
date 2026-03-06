@@ -60,7 +60,7 @@ export function AeoSidebar() {
     <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} className="border-r border-border/50 bg-background [&>div]:bg-background">
       <div className="p-4 pb-6">
         <NavLink to="/dashboard" onClick={handleNavClick} className="flex items-center group">
-          <AnimatedLogo size="sm" />
+          <AnimatedLogo size="sm" variant={state === "expanded" ? "full" : "icon"} />
         </NavLink>
       </div>
 
