@@ -5,7 +5,7 @@ import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Menu, ArrowRight, Sparkles } from "lucide-react";
-import { AnimatedLogo } from "@/components/AnimatedLogo";
+import autopilotLogo from "@/assets/autopilot-geo-logo-full.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -52,10 +52,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             {/* Mobile-first app header */}
-            <header className="h-14 flex items-center justify-between px-4 bg-transparent border-b border-border/10 sticky top-0 z-30 backdrop-blur-sm">
+            <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
               <NavLink to="/dashboard" className="flex items-center gap-2.5">
-                <AnimatedLogo size="sm" />
-                <span className="font-bold text-lg text-foreground tracking-tight">AutoPilot Geo</span>
+                <img src={autopilotLogo} alt="AutoPilot Geo" className="h-9 w-auto" />
               </NavLink>
               <SidebarTrigger className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted/60 active:scale-95 transition-all duration-150">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground">
