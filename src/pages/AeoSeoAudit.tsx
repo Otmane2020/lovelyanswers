@@ -18,6 +18,7 @@ import {
   Clock,
   FileText
 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
