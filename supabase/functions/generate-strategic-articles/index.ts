@@ -174,7 +174,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Webflow vs Lovable: SEO and AEO comparison", category: "comparisons", intent: "comparison" },
   { topic: "V0 vs Lovable: which ranks better on Google?", category: "comparisons", intent: "comparison" },
   { topic: "AI content generation vs human writing for SEO", category: "comparisons", intent: "comparison" },
-  { topic: "Why LovelyAnswers outperforms traditional SEO tools for AI sites", category: "comparisons", intent: "why" },
+  { topic: "Why AutoPilot Geo outperforms traditional SEO tools for AI sites", category: "comparisons", intent: "why" },
 
   // === COMMERCIAL INTENT (10 articles) ===
   { topic: "AEO tool for Lovable sites", category: "commercial", intent: "commercial" },
