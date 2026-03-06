@@ -67,7 +67,9 @@ export default function Blog() {
           return projectDomain === 'lovelyanswers.com' || projectDomain.includes('lovelyanswers') || projectUrl.includes('lovelyanswers.com') || projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
         });
 
-        const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers];
+        const now = new Date();
+        const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers]
+          .filter((a: any) => new Date(a.published_at) <= now);
         allAnswers.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
         setAnswers(allAnswers);
       } catch (error) {
