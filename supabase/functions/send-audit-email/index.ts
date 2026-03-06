@@ -248,7 +248,7 @@ Rules:
 
     // Step 3: Send email via Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const auditUrl = `https://lovelyanswers.lovable.app/audit?id=${auditId}`;
+    const auditUrl = `https://autopilotgeo.com/audit?id=${auditId}`;
 
     // Build top 3 critical issues for email
     const criticalIssues = auditResults
