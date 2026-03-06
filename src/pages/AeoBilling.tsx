@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, CreditCard, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
