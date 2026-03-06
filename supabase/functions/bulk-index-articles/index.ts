@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       const { data: project } = await supabase
         .from("projects")
         .select("user_id")
-        .or("domain.eq.lovelyanswers.com,website_url.ilike.%lovelyanswers.com%")
+        .or("domain.eq.autopilotgeo.com,website_url.ilike.%autopilotgeoom%")
         .limit(1)
         .single();
       
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     const errors: { slug: string; error: string }[] = [];
 
     for (const article of articles) {
-      const publishedUrl = `https://lovelyanswers.com/blog/${article.slug}`;
+      const publishedUrl = `https://loautopilotgeoom/blog/${article.slug}`;
       
       try {
         const response = await fetch(

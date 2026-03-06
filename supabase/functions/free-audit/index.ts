@@ -211,8 +211,8 @@ Rules:
       headers: {
         Authorization: `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lovelyanswers.com",
-        "X-Title": "LovelyAnswers Audit",
+        "HTTP-Referer": "https://autopilotgeo.com",
+        "X-Title": "AutoPilot Geo Audit",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",

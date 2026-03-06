@@ -258,7 +258,7 @@ export function CreatePmaxCampaignDialog() {
   const handleGenerateAIImage = async (format: "landscape" | "square" | "portrait", dimensions: string) => {
     setIsGeneratingImage(true);
     try {
-      const prompt = `Professional marketing banner for "${brandName || "LovelyAnswers"}" - an AI-powered SEO & AEO platform. ${
+      const prompt = `Professional marketing banner for "${brandName || "AutoPilot Geo"}" - an AI-powered SEO & AEO platform. ${
         format === "landscape" ? "Wide landscape format (1.91:1 ratio)" :
         format === "square" ? "Square format (1:1 ratio)" :
         "Portrait format (4:5 ratio)"
@@ -498,7 +498,7 @@ export function CreatePmaxCampaignDialog() {
 
                   {/* Brand Name */}
                   <Field label="🏢 Business Name — REQUIS">
-                    <Input value={brandName} onChange={e => setBrandName(e.target.value)} className="text-xs" placeholder="LovelyAnswers" />
+                    <Input value={brandName} onChange={e => setBrandName(e.target.value)} className="text-xs" placeholder="AutoPilot Geo" />
                   </Field>
 
                   <Separator className="my-2" />
@@ -648,7 +648,7 @@ export function CreatePmaxCampaignDialog() {
                 {/* Display Path */}
                 <Section title="Display Path" icon={<Link className="h-4 w-4" />}>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">www.lovelyanswers.com /</span>
+                    <span className="text-muted-foreground">www.autopilotgeo.com /</span>
                     <Input value={displayPath1} onChange={e => setDisplayPath1(e.target.value)} placeholder="path1" className="text-xs w-28" maxLength={15} />
                     <span>/</span>
                     <Input value={displayPath2} onChange={e => setDisplayPath2(e.target.value)} placeholder="path2" className="text-xs w-28" maxLength={15} />

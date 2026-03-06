@@ -246,8 +246,8 @@ Pour chaque recommandation, donne une **Action concrète :** avec des détails p
       case "conversions":
         focusInstruction = `
 FOCUS: Génération d'objectifs de conversion
-Business: ${businessContext?.brandName || "LovelyAnswers"} - ${businessContext?.businessDescription || "AI SEO platform"}
-Website: ${businessContext?.websiteUrl || "https://lovelyanswers.com"}
+Business: ${businessContext?.brandName || "AutoPilot Geo"} - ${businessContext?.businessDescription || "AI SEO platform"}
+Website: ${businessContext?.websiteUrl || "https://autopilotgeo.com"}
 
 Analyse le tunnel de conversion du site et propose des objectifs Google Ads.
 Retourne un JSON avec une clé "goals" contenant un tableau d'objets:

@@ -101,7 +101,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to add Schema markup to a Lovable website", category: "lovable", intent: "howto" },
   { topic: "Can ChatGPT recommend a site built with Lovable?", category: "lovable", intent: "what" },
   { topic: "Common SEO mistakes on Lovable-generated sites", category: "lovable", intent: "criteria" },
-  { topic: "How LovelyAnswers improves SEO for Lovable projects", category: "lovable", intent: "howto" },
+  { topic: "How AutoPilot Geo improves SEO for Lovable projects", category: "lovable", intent: "howto" },
   { topic: "Best AEO strategy for Lovable-built SaaS websites", category: "lovable", intent: "best" },
 
   // === BOLT.NEW (10 articles) ===
@@ -113,7 +113,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Technical SEO checklist for Bolt-generated sites", category: "bolt", intent: "criteria" },
   { topic: "Bolt.new and AEO: how to appear in AI answers", category: "bolt", intent: "howto" },
   { topic: "Common indexing problems on Bolt.new projects", category: "bolt", intent: "criteria" },
-  { topic: "How LovelyAnswers complements Bolt.new for SEO", category: "bolt", intent: "howto" },
+  { topic: "How AutoPilot Geo complements Bolt.new for SEO", category: "bolt", intent: "howto" },
   { topic: "Best SEO and AEO practices for Bolt-based SaaS", category: "bolt", intent: "best" },
 
   // === REPLIT (10 articles) ===
@@ -124,7 +124,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to add meta tags and Schema on Replit", category: "replit", intent: "howto" },
   { topic: "Can ChatGPT recommend a Replit-built site?", category: "replit", intent: "what" },
   { topic: "SEO mistakes developers make on Replit", category: "replit", intent: "criteria" },
-  { topic: "How LovelyAnswers improves AEO for Replit projects", category: "replit", intent: "howto" },
+  { topic: "How AutoPilot Geo improves AEO for Replit projects", category: "replit", intent: "howto" },
   { topic: "Replit and AI search engines: what works in 2026", category: "replit", intent: "what" },
   { topic: "Best SEO & AEO strategy for SaaS built on Replit", category: "replit", intent: "best" },
 
@@ -135,7 +135,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Base44 vs Bubble vs WordPress for SEO", category: "base44", intent: "comparison" },
   { topic: "How to structure Base44 pages for AEO", category: "base44", intent: "howto" },
   { topic: "Common SEO issues on no-code AI builders", category: "base44", intent: "criteria" },
-  { topic: "How LovelyAnswers boosts visibility for Base44 sites", category: "base44", intent: "howto" },
+  { topic: "How AutoPilot Geo boosts visibility for Base44 sites", category: "base44", intent: "howto" },
   { topic: "AEO strategy for no-code AI applications", category: "base44", intent: "howto" },
   { topic: "Why AI-built no-code sites need AEO", category: "base44", intent: "why" },
   { topic: "Best SEO & AEO checklist for Base44 projects", category: "base44", intent: "best" },
@@ -149,15 +149,15 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to structure pages for generative AI", category: "aeo-pure", intent: "howto" },
   { topic: "Why classic SEO is no longer enough", category: "aeo-pure", intent: "why" },
   { topic: "How ChatGPT chooses which sites to recommend", category: "aeo-pure", intent: "what" },
-  { topic: "How LovelyAnswers optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
+  { topic: "How AutoPilot Geo optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
   { topic: "AEO checklist for 2026", category: "aeo-pure", intent: "criteria" },
 
   // === CASE STUDIES (10 articles) ===
   { topic: "How a Lovable site went from invisible to ChatGPT-recommended", category: "case-studies", intent: "howto" },
   { topic: "Before/after AEO on an AI-built site", category: "case-studies", intent: "comparison" },
-  { topic: "How LovelyAnswers improves AI traffic", category: "case-studies", intent: "howto" },
+  { topic: "How AutoPilot Geo improves AI traffic", category: "case-studies", intent: "howto" },
   { topic: "Case study: AI-generated site + AEO optimization", category: "case-studies", intent: "howto" },
-  { topic: "Why Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
+  { topic: "Why Lovable clients add AutoPilot Geo", category: "case-studies", intent: "why" },
   { topic: "From zero visibility to AI citations: method", category: "case-studies", intent: "howto" },
   { topic: "How to capture traffic from ChatGPT", category: "case-studies", intent: "howto" },
   { topic: "AI traffic vs Google traffic: real numbers", category: "case-studies", intent: "comparison" },
@@ -174,7 +174,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Webflow vs Lovable: SEO and AEO comparison", category: "comparisons", intent: "comparison" },
   { topic: "V0 vs Lovable: which ranks better on Google?", category: "comparisons", intent: "comparison" },
   { topic: "AI content generation vs human writing for SEO", category: "comparisons", intent: "comparison" },
-  { topic: "Why LovelyAnswers outperforms traditional SEO tools for AI sites", category: "comparisons", intent: "why" },
+  { topic: "Why AutoPilot Geo outperforms traditional SEO tools for AI sites", category: "comparisons", intent: "why" },
 
   // === COMMERCIAL INTENT (10 articles) ===
   { topic: "AEO tool for Lovable sites", category: "commercial", intent: "commercial" },
@@ -184,7 +184,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "AEO as a Service: how it works", category: "commercial", intent: "what" },
   { topic: "SEO automation for no-code websites", category: "commercial", intent: "commercial" },
   { topic: "Get cited by AI assistants: professional solution", category: "commercial", intent: "commercial" },
-  { topic: "LovelyAnswers pricing and plans for AI builders", category: "commercial", intent: "commercial" },
+  { topic: "AutoPilot Geo pricing and plans for AI builders", category: "commercial", intent: "commercial" },
   { topic: "Enterprise AEO for AI-generated platforms", category: "commercial", intent: "commercial" },
   { topic: "Free trial: optimize your AI site for ChatGPT", category: "commercial", intent: "commercial" },
 
@@ -260,7 +260,7 @@ serve(async (req) => {
 
       try {
         // Generate AEO-optimized article
-        const prompt = `You are a world-class SEO and AEO expert writing for LovelyAnswers.
+        const prompt = `You are a world-class SEO and AEO expert writing for AutoPilot Geo.
 
 TOPIC: ${articleTopic.topic}
 CATEGORY: ${articleTopic.category}
@@ -268,7 +268,7 @@ INTENT: ${articleTopic.intent}
 LANGUAGE: ${language}
 
 CONTEXT:
-- LovelyAnswers (lovelyanswers.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
+- AutoPilot Geo (autopilotgeo.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
 - Target audience: entrepreneurs using AI builders who struggle with SEO/visibility
 
 EDITORIAL TEMPLATE RULES (CRITICAL):
@@ -282,7 +282,7 @@ EDITORIAL TEMPLATE RULES (CRITICAL):
 8. Include bulleted and numbered lists for scannability
 9. Write 1000-1500 words expert content
 10. Mention Lovable, Bolt, Replit naturally
-11. Position LovelyAnswers as the solution
+11. Position AutoPilot Geo as the solution
 12. Add 3-4 FAQ at the end
 
 CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes for any quotes inside strings.
@@ -455,7 +455,7 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
             .update({ 
               is_public: true, 
               published_at: new Date().toISOString(),
-              published_url: `https://lovelyanswers.com/blog/${slug}`
+              published_url: `https://autopilotgeo.com/blog/${slug}`
             })
             .eq("id", answer.id);
 

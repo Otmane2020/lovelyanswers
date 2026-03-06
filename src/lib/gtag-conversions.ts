@@ -1,5 +1,5 @@
 /**
- * Google Ads Conversion Tracking for LovelyAnswers
+ * Google Ads Conversion Tracking for AutoPilot Geo
  * 
  * Conversion Plan:
  * 1. SIGN_UP - User creates an account (Lead)
@@ -70,7 +70,7 @@ export function trackCheckoutStart(plan: string, value: number) {
   gtag("event", "begin_checkout", {
     value,
     currency: "USD",
-    items: [{ item_name: `LovelyAnswers ${plan}`, price: value }],
+    items: [{ item_name: `AutoPilot Geo ${plan}`, price: value }],
   });
   console.log("[GTAG] Conversion: checkout_start", { plan, value });
 }
@@ -87,7 +87,7 @@ export function trackPurchase(value: number, transactionId?: string) {
     value,
     currency: "USD",
     transaction_id: transactionId,
-    items: [{ item_name: "LovelyAnswers Subscription", price: value }],
+    items: [{ item_name: "AutoPilot Geo Subscription", price: value }],
   });
   console.log("[GTAG] Conversion: purchase", { value, transactionId });
 }
