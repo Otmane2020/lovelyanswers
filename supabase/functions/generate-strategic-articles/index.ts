@@ -113,7 +113,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "Technical SEO checklist for Bolt-generated sites", category: "bolt", intent: "criteria" },
   { topic: "Bolt.new and AEO: how to appear in AI answers", category: "bolt", intent: "howto" },
   { topic: "Common indexing problems on Bolt.new projects", category: "bolt", intent: "criteria" },
-  { topic: "How LovelyAnswers complements Bolt.new for SEO", category: "bolt", intent: "howto" },
+  { topic: "How AutoPilot Geo complements Bolt.new for SEO", category: "bolt", intent: "howto" },
   { topic: "Best SEO and AEO practices for Bolt-based SaaS", category: "bolt", intent: "best" },
 
   // === REPLIT (10 articles) ===
