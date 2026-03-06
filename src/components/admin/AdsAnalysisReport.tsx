@@ -294,8 +294,8 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
         
         const { data, error } = await supabase.functions.invoke("create-competitor-ad-group", {
           body: {
-            websiteUrl: "https://lovelyanswers.com",
-            brandName: "LovelyAnswers",
+            websiteUrl: "https://autopilotgeo.com",
+            brandName: "AutoPilot Geo",
             businessDescription: "AI-powered SEO and Answer Engine Optimization (AEO) platform that helps businesses get cited by AI chatbots like ChatGPT, Perplexity, and Gemini. Generates optimized content, articles, and Q&A to boost AI visibility.",
             language: "en",
             competitors: ["Surfer SEO", "MarketMuse", "Frase", "Clearscope"],

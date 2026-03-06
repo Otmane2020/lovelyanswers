@@ -61,14 +61,14 @@ export default function Blog() {
         }));
 
         const internalAnswers = [...(aeoData || []), ...(localData || [])];
-        const lovelyanswersAnswers = internalAnswers.filter((answer: any) => {
+        const siteAnswers = internalAnswers.filter((answer: any) => {
           const projectDomain = (answer.projects?.domain || '').toLowerCase();
           const projectUrl = (answer.projects?.website_url || '').toLowerCase();
-          return projectDomain === 'lovelyanswers.com' || projectDomain.includes('lovelyanswers') || projectUrl.includes('lovelyanswers.com') || projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
+          return projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
         });
 
         const now = new Date();
-        const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers]
+        const allAnswers = [...siteAnswers, ...publishedAnswers]
           .filter((a: any) => new Date(a.published_at) <= now);
         allAnswers.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
         setAnswers(allAnswers);

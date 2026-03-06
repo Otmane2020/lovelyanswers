@@ -168,8 +168,8 @@ Rules:
       headers: {
         Authorization: `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lovelyanswers.com",
-        "X-Title": "LovelyAnswers Audit",
+        "HTTP-Referer": "https://autopilotgeo.com",
+        "X-Title": "AutoPilot Geo Audit",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -248,7 +248,7 @@ Rules:
 
     // Step 3: Send email via Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const auditUrl = `https://lovelyanswers.lovable.app/audit?id=${auditId}`;
+    const auditUrl = `https://autopilotgeo.com/audit?id=${auditId}`;
 
     // Build top 3 critical issues for email
     const criticalIssues = auditResults
@@ -339,7 +339,7 @@ Rules:
       <p style="font-size: 14px; color: #666; margin: 0 0 16px;">
         Get a Premium AEO Audit with competitor landscape, market trends, and strategic recommendations — completely free.
       </p>
-      <a href="https://lovelyanswers.lovable.app/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+      <a href="https://autopilotgeo.com/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
         🔍 Get Premium Audit (Free) →
       </a>
     </div>
@@ -350,9 +350,9 @@ Rules:
         🚀 Fix these issues automatically
       </h3>
       <p style="font-size: 14px; color: #666; margin: 0 0 16px;">
-        LovelyAnswers publishes 30 SEO articles/month and optimizes your site for AI search — on autopilot.
+        AutoPilot Geo publishes 30 SEO articles/month and optimizes your site for AI search — on autopilot.
       </p>
-      <a href="https://lovelyanswers.lovable.app/onboarding" style="display: inline-block; padding: 12px 28px; background: #1a1a1a; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+      <a href="https://autopilotgeo.com/onboarding" style="display: inline-block; padding: 12px 28px; background: #1a1a1a; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
         Start Free Trial →
       </a>
     </div>
@@ -360,8 +360,8 @@ Rules:
     <!-- Footer -->
     <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
       <p style="font-size: 12px; color: #999;">
-        LovelyAnswers — AI-Powered SEO & AEO Platform<br>
-        <a href="https://lovelyanswers.lovable.app" style="color: #7c3aed;">lovelyanswers.lovable.app</a>
+        AutoPilot Geo — AI-Powered SEO & AEO Platform<br>
+        <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
       </p>
     </div>
   </div>
@@ -369,7 +369,7 @@ Rules:
 </html>`;
 
     const { error: emailError } = await resend.emails.send({
-      from: "LovelyAnswers <audit@lovelyanswers.com>",
+      from: "AutoPilot Geo <audit@autopilotgeo.com>",
       to: [email],
       subject: `🔍 Your SEO & AEO Audit: ${domain} scored ${overallScore}/100`,
       html: emailHtml,

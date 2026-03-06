@@ -874,7 +874,7 @@ async function publishToLovable(
             slug: articleSlug,
             sourceId: sourceId,
             publishedAt: new Date().toISOString(),
-            source: "LovelyAnswers",
+            source: "AutoPilot Geo",
           }),
         });
         
@@ -992,7 +992,7 @@ async function publishToLovable(
     }
     
     if (!siteUrl) {
-      siteUrl = "https://lovelyanswers.com";
+      siteUrl = "https://autopilotgeom";
     }
     
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
@@ -1098,7 +1098,7 @@ function generateErrorHTML(title: string, message: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} | LovelyAnswers</title>
+  <title>${title} | LAAAutoPilot Geoitle>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 2rem; }
@@ -1113,7 +1113,7 @@ function generateErrorHTML(title: string, message: string): string {
   <div class="container">
     <h1>${title}</h1>
     <p>${message}</p>
-    <a href="https://lovelyanswers.com">← Back to LovelyAnswers</a>
+    <a href="https://laautopilotgeo.com">← Back to AutoPilot Geo>
   </div>
 </body>
 </html>`;
@@ -1122,7 +1122,7 @@ function generateErrorHTML(title: string, message: string): string {
 function generatePublicAnswerHTML(answer: any): string {
   const question = answer.question || "Question";
   const answerText = answer.answer || "";
-  const brandName = answer.projects?.brand_name || "LovelyAnswers";
+  const brandName = answer.projects?.brand_name || "LoAutoPilot Geo
   const language = answer.projects?.language || "en";
   const createdAt = new Date(answer.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
     year: "numeric", month: "long", day: "numeric"
@@ -1212,7 +1212,7 @@ function generatePublicAnswerHTML(answer: any): string {
   <header>
     <div class="header-content">
       <div class="logo">L</div>
-      <span class="brand-name">LovelyAnswers</span>
+      <span class="brand-name">AutoPilot Geo</span>
     </div>
   </header>
   <main>
@@ -1242,8 +1242,8 @@ function generatePublicAnswerHTML(answer: any): string {
     </article>
   </main>
   <footer>
-    <p>Optimize your AI visibility with LovelyAnswers</p>
-    <a href="https://lovelyanswers.com">Create Your AEO Answers</a>
+    <p>Optimize your AI visibility with AutoPilot Geo</p>
+    <a href="https://autopilotgeo.com">Create Your AEO Answers</a>
   </footer>
 </body>
 </html>`;
@@ -1252,7 +1252,7 @@ function generatePublicAnswerHTML(answer: any): string {
 function generatePublicArticleHTML(article: any): string {
   const title = article.title || "Article";
   const content = article.html_content || article.content || "";
-  const brandName = article.projects?.brand_name || "LovelyAnswers";
+  const brandName = article.projects?.brand_name || "AutoPilot Geo";
   const language = article.projects?.language || "en";
   const metaDescription = article.meta_description || content.replace(/<[^>]*>/g, "").slice(0, 160);
   const createdAt = new Date(article.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
@@ -1302,7 +1302,7 @@ function generatePublicArticleHTML(article: any): string {
   <header>
     <div class="header-content">
       <div class="logo">L</div>
-      <span class="brand-name">LovelyAnswers</span>
+      <span class="brand-name">AutoPilot Geo</span>
     </div>
   </header>
   <main>
@@ -1316,8 +1316,8 @@ function generatePublicArticleHTML(article: any): string {
     </article>
   </main>
   <footer>
-    <p>Optimize your AI visibility with LovelyAnswers</p>
-    <a href="https://lovelyanswers.com">Create Your AEO Articles</a>
+    <p>Optimize your AI visibility with AutoPilot Geo</p>
+    <a href="https://autopilotgeo.com">Create Your AEO Articles</a>
   </footer>
 </body>
 </html>`;

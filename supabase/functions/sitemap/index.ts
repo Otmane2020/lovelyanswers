@@ -45,39 +45,38 @@ Deno.serve(async (req) => {
     // 2. Fetch all published blog articles from published_articles
     const publishedArticles = await fetchAll('published_articles', 'slug, published_at, updated_at')
 
-    // 3. Fetch published articles from articles table (for projects like lovelyanswers)
+    // 3. Fetch published articles from articles table
     const directArticles = await fetchAll(
       'articles',
       'slug, created_at, updated_at, projects!inner(domain, website_url)',
       (q: any) => q.eq('status', 'published').not('slug', 'is', null)
     )
 
-    // Filter only lovelyanswers.com Q&A answers
-    const lovelyanswersAnswers = (answers || []).filter((answer: any) => {
+    // Filter only autopilotgeo.com Q&A answers
+    const siteAnswers = (answers || []).filter((answer: any) => {
       const projectUrl = (answer.projects?.website_url || '').toLowerCase()
       const projectDomain = (answer.projects?.domain || '').toLowerCase()
-      return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
+      return projectUrl.includes('autopilotgeo.com') || projectDomain === 'autopilotgeo.com'
     })
 
-    // Filter only lovelyanswers.com direct articles
-    const lovelyanswersArticles = (directArticles || []).filter((article: any) => {
+    // Filter only autopilotgeo.com direct articles
+    const siteArticles = (directArticles || []).filter((article: any) => {
       const projectUrl = (article.projects?.website_url || '').toLowerCase()
       const projectDomain = (article.projects?.domain || '').toLowerCase()
-      return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
+      return projectUrl.includes('autopilotgeo.com') || projectDomain === 'autopilotgeo.com'
     })
 
     const today = new Date().toISOString().split('T')[0]
-    const prerenderBase = `${supabaseUrl}/functions/v1/prerender?path=`
 
     // Collect all slugs to deduplicate
     const seenSlugs = new Set<string>()
 
-    // Build sitemap XML with xhtml:link for pre-rendered alternates
+    // Build sitemap XML
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Homepage -->
   <url>
-    <loc>https://lovelyanswers.com/</loc>
+    <loc>https://autopilotgeo.com/</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -85,7 +84,7 @@ Deno.serve(async (req) => {
   
   <!-- Blog Index -->
   <url>
-    <loc>https://lovelyanswers.com/blog</loc>
+    <loc>https://autopilotgeo.com/blog</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -93,7 +92,7 @@ Deno.serve(async (req) => {
   
   <!-- Pricing -->
   <url>
-    <loc>https://lovelyanswers.com/pricing</loc>
+    <loc>https://autopilotgeo.com/pricing</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
@@ -101,7 +100,7 @@ Deno.serve(async (req) => {
   
   <!-- Authentication -->
   <url>
-    <loc>https://lovelyanswers.com/auth</loc>
+    <loc>https://autopilotgeo.com/auth</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -109,7 +108,7 @@ Deno.serve(async (req) => {
   
   <!-- About -->
   <url>
-    <loc>https://lovelyanswers.com/about</loc>
+    <loc>https://autopilotgeo.com/about</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -117,7 +116,7 @@ Deno.serve(async (req) => {
   
   <!-- Terms -->
   <url>
-    <loc>https://lovelyanswers.com/terms</loc>
+    <loc>https://autopilotgeo.com/terms</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
@@ -125,7 +124,7 @@ Deno.serve(async (req) => {
   
   <!-- Privacy -->
   <url>
-    <loc>https://lovelyanswers.com/privacy</loc>
+    <loc>https://autopilotgeo.com/privacy</loc>
     <lastmod>2026-01-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
@@ -143,15 +142,15 @@ Deno.serve(async (req) => {
       
       sitemap += `
   <url>
-    <loc>https://lovelyanswers.com/blog/${article.slug}</loc>
+    <loc>https://autopilotgeo.com/blog/${article.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`
     }
 
-    // Add published articles from articles table (lovelyanswers project)
-    for (const article of lovelyanswersArticles) {
+    // Add published articles from articles table
+    for (const article of siteArticles) {
       if (!article.slug || seenSlugs.has(article.slug)) continue
       seenSlugs.add(article.slug)
 
@@ -161,7 +160,7 @@ Deno.serve(async (req) => {
       
       sitemap += `
   <url>
-    <loc>https://lovelyanswers.com/blog/${article.slug}</loc>
+    <loc>https://autopilotgeo.com/blog/${article.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -169,7 +168,7 @@ Deno.serve(async (req) => {
     }
 
     // Add Q&A answers (only if slug not already seen)
-    for (const answer of lovelyanswersAnswers) {
+    for (const answer of siteAnswers) {
       if (seenSlugs.has(answer.slug)) continue
       seenSlugs.add(answer.slug)
 
@@ -179,7 +178,7 @@ Deno.serve(async (req) => {
       
       sitemap += `
   <url>
-    <loc>https://lovelyanswers.com/blog/${answer.slug}</loc>
+    <loc>https://autopilotgeo.com/blog/${answer.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -190,8 +189,8 @@ Deno.serve(async (req) => {
 </urlset>`
 
     const totalPublishedArticles = (publishedArticles || []).length
-    const totalDirectArticles = lovelyanswersArticles.length
-    const totalAnswers = lovelyanswersAnswers.length
+    const totalDirectArticles = siteArticles.length
+    const totalAnswers = siteAnswers.length
     console.log(`Generated sitemap with ${totalPublishedArticles} published_articles + ${totalDirectArticles} direct articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
 
     return new Response(sitemap, {

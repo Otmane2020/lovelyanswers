@@ -121,13 +121,13 @@ export function CreatePmaxCampaignDialog() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setCampaignName(data.campaignName || "PMax - LovelyAnswers");
+      setCampaignName(data.campaignName || "PMax - AutoPilot Geo");
       setDailyBudget(String(data.dailyBudget || 25));
       setBiddingStrategy(data.biddingStrategy || "maximize_conversions");
       setLanguage(data.language || "en");
       setSelectedLocations(data.locations || ["FR", "US"]);
-      setBrandName(data.brandName || "LovelyAnswers");
-      setFinalUrl(data.finalUrl || "https://lovelyanswers.com");
+      setBrandName(data.brandName || "AutoPilot Geo");
+      setFinalUrl(data.finalUrl || "https://autopilotgeo.com");
       setSearchThemes((data.searchThemes || []).join("\n"));
       setHeadlines((data.headlines || []).join("\n"));
       setLongHeadlines((data.longHeadlines || []).join("\n"));
