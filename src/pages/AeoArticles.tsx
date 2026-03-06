@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageHeader } from "@/components/PageHeader";
 import { FileText, Search, Eye, Edit, Trash2, Calendar, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
