@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, TrendingUp, Eye, Zap, Copy, ExternalLink, RefreshCw, Sparkles, MessageCircle, CheckCircle, AlertCircle, Search, Shield, User, EyeOff, MapPin, FileText } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
