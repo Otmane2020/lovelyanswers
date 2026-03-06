@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       const { data: project } = await supabase
         .from("projects")
         .select("user_id")
-        .or("domain.eq.lovelyanswers.com,website_url.ilike.%lovelyanswers.com%")
+        .or("domain.eq.autopilotgeo.com,website_url.ilike.%autopilotgeo.com%")
         .limit(1)
         .single();
       
