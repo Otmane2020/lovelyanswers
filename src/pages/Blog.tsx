@@ -68,7 +68,7 @@ export default function Blog() {
         });
 
         const now = new Date();
-        const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers]
+        const allAnswers = [...siteAnswers, ...publishedAnswers]
           .filter((a: any) => new Date(a.published_at) <= now);
         allAnswers.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
         setAnswers(allAnswers);
