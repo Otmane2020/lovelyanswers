@@ -44,7 +44,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { id: "22", topic: "Lovable + AEO: how to appear in AI responses", category: "comparisons", intent: "howto" },
   { id: "23", topic: "Bolt + SEO: technical limitations and solutions", category: "comparisons", intent: "criteria" },
   { id: "24", topic: "Best AI builder for Google ranking in 2026", category: "comparisons", intent: "best" },
-  { id: "25", topic: "Why LovelyAnswers complements Lovable for SEO", category: "comparisons", intent: "why" },
+  { id: "25", topic: "Why AutoPilot Geo complements Lovable for SEO", category: "comparisons", intent: "why" },
   
   // Pillar 3: Pure AEO
   { id: "26", topic: "What is AEO (Answer Engine Optimization)?", category: "aeo-pure", intent: "what" },
