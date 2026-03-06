@@ -274,7 +274,7 @@ export default function Index() {
         <InactivityPopup inactivityDelay={45} />
 
         {/* Navigation */}
-        <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-white/90 backdrop-blur-xl shadow-sm">
+        <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-white backdrop-blur-xl shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
