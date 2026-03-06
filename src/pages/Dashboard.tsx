@@ -14,6 +14,7 @@ import {
   Search,
 } from "lucide-react";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
+import geminiLogo from "@/assets/gemini-logo.png";
 import { PageHeader } from "@/components/PageHeader";
 import perplexityLogo from "@/assets/perplexity-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
