@@ -1,5 +1,5 @@
 /**
- * Google Ads Conversion Tracking for LovelyAnswers
+ * Google Ads Conversion Tracking for AutoPilot Geo
  * 
  * Conversion Plan:
  * 1. SIGN_UP - User creates an account (Lead)
