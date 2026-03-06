@@ -992,7 +992,7 @@ async function publishToLovable(
     }
     
     if (!siteUrl) {
-      siteUrl = "https://lovelyanswers.com";
+      siteUrl = "https://autopilotgeo.com";
     }
     
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
