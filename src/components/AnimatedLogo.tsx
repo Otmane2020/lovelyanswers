@@ -7,9 +7,9 @@ interface AnimatedLogoProps {
 }
 
 const sizeMap = {
-  sm: { width: 170, height: 60 },
-  md: { width: 204, height: 72 },
-  lg: { width: 272, height: 96 },
+  sm: { width: 220, height: 78 },
+  md: { width: 280, height: 99 },
+  lg: { width: 340, height: 120 },
 };
 
 const iconSizeClasses = {
