@@ -1212,7 +1212,7 @@ function generatePublicAnswerHTML(answer: any): string {
   <header>
     <div class="header-content">
       <div class="logo">L</div>
-      <span class="brand-name">LovelyAnswers</span>
+      <span class="brand-name">AutoPilot Geo</span>
     </div>
   </header>
   <main>
