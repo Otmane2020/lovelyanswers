@@ -155,9 +155,9 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   // === CASE STUDIES (10 articles) ===
   { topic: "How a Lovable site went from invisible to ChatGPT-recommended", category: "case-studies", intent: "howto" },
   { topic: "Before/after AEO on an AI-built site", category: "case-studies", intent: "comparison" },
-  { topic: "How LovelyAnswers improves AI traffic", category: "case-studies", intent: "howto" },
+  { topic: "How AutoPilot Geo improves AI traffic", category: "case-studies", intent: "howto" },
   { topic: "Case study: AI-generated site + AEO optimization", category: "case-studies", intent: "howto" },
-  { topic: "Why Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
+  { topic: "Why Lovable clients add AutoPilot Geo", category: "case-studies", intent: "why" },
   { topic: "From zero visibility to AI citations: method", category: "case-studies", intent: "howto" },
   { topic: "How to capture traffic from ChatGPT", category: "case-studies", intent: "howto" },
   { topic: "AI traffic vs Google traffic: real numbers", category: "case-studies", intent: "comparison" },
