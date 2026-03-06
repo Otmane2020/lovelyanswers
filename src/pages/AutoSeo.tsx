@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Search, Calendar, Loader2, Eye, Pencil, Copy, Clock, ExternalLink, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
