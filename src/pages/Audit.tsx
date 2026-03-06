@@ -661,7 +661,7 @@ export default function Audit() {
                   Ready to dominate AI search results?
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  LovelyAnswers fixes these issues and publishes expert content daily — automatically.
+                  AutoPilot Geo fixes these issues and publishes expert content daily — automatically.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Button
