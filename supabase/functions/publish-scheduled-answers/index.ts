@@ -219,8 +219,8 @@ function generateArticleHTML(
   <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
   ${article.html_content}
   <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://lovelyanswers.com" style="color: #667eea;" target="_blank">LovelyAnswers</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
-    <p style="margin: 0; font-size: 12px; color: #999;">LovelyAnswers – Rank in ChatGPT</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
   </footer>
 </article>`
     };
