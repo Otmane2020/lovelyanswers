@@ -282,7 +282,7 @@ EDITORIAL TEMPLATE RULES (CRITICAL):
 8. Include bulleted and numbered lists for scannability
 9. Write 1000-1500 words expert content
 10. Mention Lovable, Bolt, Replit naturally
-11. Position LovelyAnswers as the solution
+11. Position AutoPilot Geo as the solution
 12. Add 3-4 FAQ at the end
 
 CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes for any quotes inside strings.
