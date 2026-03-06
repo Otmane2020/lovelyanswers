@@ -72,9 +72,9 @@ export default function AeoPublicAnswer() {
         const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
         const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
         
-        const isLovelyAnswersProject = 
-          projectUrl.includes('lovelyanswers.com') || 
-          projectDomain === 'lovelyanswers.com';
+        const isAutoPilotProject = 
+          projectUrl.includes('autopilotgeo.com') || 
+          projectDomain === 'autopilotgeo.com';
         
         if (isLovelyAnswersProject) {
           const supportingContent = data.supporting_content as SupportingContent | null;
