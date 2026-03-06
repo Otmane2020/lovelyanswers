@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, AlertTriangle } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Table,
   TableBody,
