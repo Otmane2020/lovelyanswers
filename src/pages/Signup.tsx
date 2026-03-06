@@ -92,9 +92,8 @@ export default function Signup() {
       {/* Left Panel */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="w-full max-w-md mx-auto">
-          <Link to="/" className="flex items-center gap-2 mb-12">
-            <AnimatedLogo size="md" />
-            <span className="text-2xl font-bold tracking-tight text-[hsl(222,47%,11%)]">AutoPilot Geo</span>
+          <Link to="/" className="flex items-center mb-12">
+            <AnimatedLogo size="lg" />
           </Link>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">

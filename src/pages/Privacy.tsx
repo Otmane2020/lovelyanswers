@@ -18,11 +18,8 @@ export default function Privacy() {
         {/* Navigation */}
         <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight text-white">
-                AutoPilot<span className="text-violet-400"> Geo</span>
-              </span>
             </Link>
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
               <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" />Back to Home</Link>

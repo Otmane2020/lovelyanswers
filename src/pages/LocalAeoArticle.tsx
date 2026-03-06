@@ -36,9 +36,8 @@ export default function LocalAeoArticle() {
         {/* Header */}
         <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-lg">AutoPilot Geo</span>
             </Link>
             <nav className="flex items-center gap-4">
               <Link to="/blog">

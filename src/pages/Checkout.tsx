@@ -110,9 +110,9 @@ export default function Checkout() {
       {/* Header */}
       <header className="py-4 px-4 border-b border-border">
         <div className="container flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
+           <Link to="/" className="flex items-center">
             <AnimatedLogo size="md" />
-            <span className="text-xl font-bold tracking-tight text-foreground">AutoPilot Geo</span>
+          </Link>
           </Link>
           <Button
             variant="ghost" 

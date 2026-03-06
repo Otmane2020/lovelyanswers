@@ -491,11 +491,8 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="py-6 px-4 border-b border-border">
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center">
           <AnimatedLogo size="md" />
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            AutoPilot<span className="text-primary"> Geo</span>
-          </span>
         </div>
       </header>
 
