@@ -9,6 +9,7 @@ import { useRedditPreload } from "@/hooks/useRedditPreload";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
 import { MessageSquare, TrendingUp, Globe, ArrowRight, Sparkles, Lightbulb, Link, Settings, Crown, Target, Check, Lock, FileText, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
