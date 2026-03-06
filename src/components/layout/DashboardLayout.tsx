@@ -5,7 +5,7 @@ import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Menu, ArrowRight, Sparkles } from "lucide-react";
-import autopilotLogo from "@/assets/autopilot-geo-logo-full.png";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
