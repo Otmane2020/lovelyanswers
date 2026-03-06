@@ -39,7 +39,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { id: "17", topic: "Is Bolt.new good for Google ranking?", category: "comparisons", intent: "criteria" },
   { id: "18", topic: "Is Replit suitable for production SEO?", category: "comparisons", intent: "criteria" },
   { id: "19", topic: "Lovable vs WordPress: which is better for SEO?", category: "comparisons", intent: "comparison" },
-  { id: "20", topic: "Lovable + LovelyAnswers: winning combo for ChatGPT", category: "comparisons", intent: "comparison" },
+  { id: "20", topic: "Lovable + AutoPilot Geo: winning combo for ChatGPT", category: "comparisons", intent: "comparison" },
   { id: "21", topic: "Can you rank on Google with an AI-generated site?", category: "comparisons", intent: "what" },
   { id: "22", topic: "Lovable + AEO: how to appear in AI responses", category: "comparisons", intent: "howto" },
   { id: "23", topic: "Bolt + SEO: technical limitations and solutions", category: "comparisons", intent: "criteria" },
