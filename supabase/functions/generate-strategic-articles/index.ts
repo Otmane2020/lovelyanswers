@@ -101,7 +101,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { topic: "How to add Schema markup to a Lovable website", category: "lovable", intent: "howto" },
   { topic: "Can ChatGPT recommend a site built with Lovable?", category: "lovable", intent: "what" },
   { topic: "Common SEO mistakes on Lovable-generated sites", category: "lovable", intent: "criteria" },
-  { topic: "How LovelyAnswers improves SEO for Lovable projects", category: "lovable", intent: "howto" },
+  { topic: "How AutoPilot Geo improves SEO for Lovable projects", category: "lovable", intent: "howto" },
   { topic: "Best AEO strategy for Lovable-built SaaS websites", category: "lovable", intent: "best" },
 
   // === BOLT.NEW (10 articles) ===
