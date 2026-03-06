@@ -116,7 +116,7 @@ async function sendEmail(options: { to: string; subject: string; html: string })
       to: [options.to],
       subject: options.subject,
       html: options.html,
-      reply_to: "support@autopilotgeo.com",
+      reply_to: "support@autopilotgeocom",
     }),
   });
 
@@ -141,7 +141,7 @@ function generateWelcomeEmail(name: string): string {
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur Lovely Answers! 🎉</h1>
+        <h1 style="color: #7c3aed; margin: 0;">Bienvenue sur LAutoPilot Geo 🎉</h1>
       </div>
       
       <p>Bonjour ${name},</p>
