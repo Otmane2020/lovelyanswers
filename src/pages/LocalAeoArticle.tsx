@@ -145,7 +145,7 @@ export default function LocalAeoArticle() {
         <section className="py-20">
           <div className="container">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center">
-              How LovelyAnswers Local AEO Works
+              How AutoPilot Geo Local AEO Works
             </h2>
             <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               Our AI-powered platform generates location-specific content optimized for AI citation
