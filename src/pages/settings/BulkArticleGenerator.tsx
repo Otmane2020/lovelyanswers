@@ -63,7 +63,7 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { id: "37", topic: "Before/after AEO on an AI site", category: "case-studies", intent: "comparison" },
   { id: "38", topic: "How AutoPilot Geo improves AI traffic", category: "case-studies", intent: "howto" },
   { id: "39", topic: "Case study: AI-generated site + AEO optimization", category: "case-studies", intent: "howto" },
-  { id: "40", topic: "Why our Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
+  { id: "40", topic: "Why our Lovable clients add AutoPilot Geo", category: "case-studies", intent: "why" },
   { id: "41", topic: "From zero visibility to AI citations: method", category: "case-studies", intent: "howto" },
   { id: "42", topic: "How to capture traffic from ChatGPT", category: "case-studies", intent: "howto" },
   { id: "43", topic: "AI traffic vs Google traffic: real numbers", category: "case-studies", intent: "comparison" },

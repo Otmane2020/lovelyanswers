@@ -247,8 +247,8 @@ export default function AeoPublicAnswer() {
         <header className="border-b bg-background/80 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
             <a href={brandUrl} className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 via-violet-500 to-blue-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0099cc] to-[#5b10d6] flex items-center justify-center">
+                <span className="text-white font-bold text-sm">A</span>
               </div>
               <span className="font-semibold">{brand}</span>
             </a>
