@@ -106,7 +106,7 @@ export default function Blog() {
 
       <div className="min-h-screen">
         {/* Header - Dark */}
-        <header className="border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl sticky top-0 z-50">
+        <header className="border-b border-border bg-white sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center">
               <AnimatedLogo size="sm" />
