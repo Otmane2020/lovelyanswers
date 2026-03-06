@@ -19,7 +19,7 @@ const iconSizeClasses = {
   lg: "h-14 w-14",
 };
 
-export function AnimatedLogo({ size = "md", variant = "full", className = "" }: AnimatedLogoProps) {
+export function AnimatedLogo({ size = "md", variant = "full", theme = "auto", className = "" }: AnimatedLogoProps) {
   if (variant === "icon") {
     return (
       <img
@@ -31,6 +31,11 @@ export function AnimatedLogo({ size = "md", variant = "full", className = "" }: 
   }
 
   const { width, height } = sizeMap[size];
+  const isDark = theme === "dark";
+  const textGradStops = isDark
+    ? { s0: "#ffffff", s60: "#c0d0ff", s100: "#0099cc" }
+    : { s0: "#1a1a3a", s60: "#1a2a6a", s100: "#0099cc" };
+  const subtitleFill = isDark ? "#a0b0d0" : "#7080a0";
 
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width={width} height={height} className={className}>
@@ -39,10 +44,10 @@ export function AnimatedLogo({ size = "md", variant = "full", className = "" }: 
           <stop offset="0%" style={{ stopColor: "#0099cc" }} />
           <stop offset="100%" style={{ stopColor: "#5b10d6" }} />
         </linearGradient>
-        <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style={{ stopColor: "#1a1a3a" }} />
-          <stop offset="60%" style={{ stopColor: "#1a2a6a" }} />
-          <stop offset="100%" style={{ stopColor: "#0099cc" }} />
+        <linearGradient id={`textGrad-${theme}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style={{ stopColor: textGradStops.s0 }} />
+          <stop offset="60%" style={{ stopColor: textGradStops.s60 }} />
+          <stop offset="100%" style={{ stopColor: textGradStops.s100 }} />
         </linearGradient>
         <filter id="glow">
           <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -70,9 +75,9 @@ export function AnimatedLogo({ size = "md", variant = "full", className = "" }: 
       <circle cx="102" cy="60" r="2" fill="#0099cc" opacity="0.5" />
       <circle cx="60" cy="60" r="14" fill="none" stroke="#0099cc" strokeWidth="0.8" strokeOpacity="0.2" />
       <circle cx="60" cy="60" r="22" fill="none" stroke="#5b10d6" strokeWidth="0.6" strokeOpacity="0.12" />
-      <text x="132" y="52" fontFamily="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" fontSize="15" fontWeight="400" letterSpacing="3.5" fill="#7080a0" textAnchor="start">AUTOPILOT</text>
+      <text x="132" y="52" fontFamily="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" fontSize="15" fontWeight="400" letterSpacing="3.5" fill={subtitleFill} textAnchor="start">AUTOPILOT</text>
       <line x1="132" y1="59" x2="310" y2="59" stroke="url(#orbitGrad)" strokeWidth="0.5" strokeOpacity="0.25" />
-      <text x="128" y="98" fontFamily="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" fontSize="46" fontWeight="800" letterSpacing="-1" fill="url(#textGrad)" textAnchor="start">GEO</text>
+      <text x="128" y="98" fontFamily="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" fontSize="46" fontWeight="800" letterSpacing="-1" fill={`url(#textGrad-${theme})`} textAnchor="start">GEO</text>
     </svg>
   );
 }
