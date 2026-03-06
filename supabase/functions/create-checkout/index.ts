@@ -76,7 +76,7 @@ serve(async (req) => {
       console.log("[CREATE-CHECKOUT] Existing customer found:", customerId);
     }
 
-    const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
+    const origin = req.headers.get("origin") || "https://autopilotgeo.com";
 
     // Determine success URL — redirect to thank-you page with session_id
     const successUrl = isGuest 

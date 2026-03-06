@@ -60,7 +60,7 @@ serve(async (req) => {
       console.log("[CREATE-CART-CHECKOUT] Existing customer found:", customerId);
     }
 
-    const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
+    const origin = req.headers.get("origin") || "https://autopilotgeo.com";
 
     // Build line items
     const lineItems = items.map((item) => ({

@@ -266,8 +266,8 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://lovelyanswers.lovable.app",
-        "X-Title": "LovelyAnswers Premium Audit",
+        "HTTP-Referer": "https://autopilotgeo.com",
+        "X-Title": "AutoPilot Geo Premium Audit",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",

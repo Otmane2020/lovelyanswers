@@ -100,8 +100,8 @@ serve(async (req) => {
     }
 
     // Build the public URL for this article
-    // Use the Lovable app URL (not the edge function URL)
-    const publicUrl = `https://lovelyanswers.lovable.app/blog/${slug}`;
+    // Use the app URL (not the edge function URL)
+    const publicUrl = `https://autopilotgeo.com/blog/${slug}`;
 
     console.log("[receive-article] Article saved successfully:", slug);
 

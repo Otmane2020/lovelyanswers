@@ -58,7 +58,7 @@ serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://lovelyanswers.lovable.app";
+    const origin = req.headers.get("origin") || "https://autopilotgeo.com";
     const encodedUrl = encodeURIComponent(url);
 
     const session = await stripe.checkout.sessions.create({

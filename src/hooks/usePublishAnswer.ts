@@ -231,15 +231,15 @@ function generateArticleHTML(
       </section>` 
     : '';
 
-  // Build footer with LovelyAnswers branding
-  const lovelyAnswersUrl = "https://lovelyanswers.com";
-  const lovelyAnswersTagline = "Rank in ChatGPT Gemini & Google with AI Answers";
-  const lovelyAnswersShort = "Rank in ChatGPT";
+  // Build footer with AutoPilot Geo branding
+  const brandUrl = "https://autopilotgeo.com";
+  const brandTagline = "Rank in ChatGPT Gemini & Google with AI Answers";
+  const brandShort = "Rank in ChatGPT";
   
   const footer = `<footer class="aeo-footer">
-    <p><a href="${lovelyAnswersUrl}" rel="author" target="_blank">LovelyAnswers</a> – ${lovelyAnswersTagline}</p>
+    <p><a href="${brandUrl}" rel="author" target="_blank">AutoPilot Geo</a> – ${brandTagline}</p>
     <div class="aeo-meta">
-      <span>LovelyAnswers – ${lovelyAnswersShort}</span>
+      <span>AutoPilot Geo – ${brandShort}</span>
     </div>
   </footer>`;
 

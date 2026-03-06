@@ -166,7 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
         to: [data.to],
         subject,
         html,
-        reply_to: "support@lovelyanswers.com",
+        reply_to: "support@autopilotgeo.com",
       }),
     });
 

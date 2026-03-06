@@ -68,7 +68,7 @@ export default function AeoPublicAnswer() {
         .single();
 
       if (!error && data) {
-        // Strict filter: ONLY show if it's a lovelyanswers.com project
+        // Strict filter: ONLY show if it's an autopilotgeo.com project
         const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
         const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
         
