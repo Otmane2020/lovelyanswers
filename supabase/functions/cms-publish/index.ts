@@ -874,7 +874,7 @@ async function publishToLovable(
             slug: articleSlug,
             sourceId: sourceId,
             publishedAt: new Date().toISOString(),
-            source: "LovelyAnswers",
+            source: "AutoPilot Geo",
           }),
         });
         
