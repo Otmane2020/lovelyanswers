@@ -3,6 +3,7 @@ import autopilotGeoIcon from "@/assets/autopilotgeo-icon.svg";
 interface AnimatedLogoProps {
   size?: "sm" | "md" | "lg";
   variant?: "full" | "icon";
+  theme?: "auto" | "light" | "dark";
   className?: string;
 }
 
