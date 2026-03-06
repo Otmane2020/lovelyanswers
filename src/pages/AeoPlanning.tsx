@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, Globe, LayoutGrid, Link2, List, Loader2, MapPin, Play, MessageSquare, Send, Settings, ShoppingCart } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { addDays, eachDayOfInterval, format, isToday } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
