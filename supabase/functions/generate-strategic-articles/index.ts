@@ -260,7 +260,7 @@ serve(async (req) => {
 
       try {
         // Generate AEO-optimized article
-        const prompt = `You are a world-class SEO and AEO expert writing for LovelyAnswers.
+        const prompt = `You are a world-class SEO and AEO expert writing for AutoPilot Geo.
 
 TOPIC: ${articleTopic.topic}
 CATEGORY: ${articleTopic.category}
