@@ -52,7 +52,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             {/* Mobile-first app header */}
-            <header className="h-14 flex items-center justify-between px-4 bg-background border-b border-border/30 sticky top-0 z-30">
+            <header className="h-14 flex items-center justify-between px-4 bg-transparent border-b border-border/10 sticky top-0 z-30 backdrop-blur-sm">
               <NavLink to="/dashboard" className="flex items-center gap-2.5">
                 <AnimatedLogo size="sm" />
                 <span className="font-bold text-lg text-foreground tracking-tight">AutoPilot Geo</span>
