@@ -309,7 +309,7 @@ export default function Index() {
                 <Link to="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link to="/onboarding">Start Free</Link>
+                <Link to="/onboarding">Start Free Audit</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
@@ -322,7 +322,7 @@ export default function Index() {
                 <Link to="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link to="/onboarding">Start Free</Link>
+                <Link to="/onboarding">Start Free Audit</Link>
               </Button>
             </div>
           </div>
