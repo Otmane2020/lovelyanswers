@@ -132,14 +132,32 @@ Deno.serve(async (req) => {
   </url>
 `
 
-    // Add published blog articles (priority - these are the main content)
-    for (const article of (articles || [])) {
+    // Add published blog articles from published_articles table
+    for (const article of (publishedArticles || [])) {
       if (seenSlugs.has(article.slug)) continue
       seenSlugs.add(article.slug)
 
       const lastmod = article.updated_at 
         ? new Date(article.updated_at).toISOString().split('T')[0]
         : new Date(article.published_at).toISOString().split('T')[0]
+      
+      sitemap += `
+  <url>
+    <loc>https://lovelyanswers.com/blog/${article.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+    }
+
+    // Add published articles from articles table (lovelyanswers project)
+    for (const article of lovelyanswersArticles) {
+      if (!article.slug || seenSlugs.has(article.slug)) continue
+      seenSlugs.add(article.slug)
+
+      const lastmod = article.updated_at 
+        ? new Date(article.updated_at).toISOString().split('T')[0]
+        : new Date(article.created_at).toISOString().split('T')[0]
       
       sitemap += `
   <url>
