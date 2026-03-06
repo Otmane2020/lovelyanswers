@@ -9,14 +9,14 @@ interface AnimatedLogoProps {
 
 const sizeClasses = {
   full: {
-    sm: "h-9 w-auto",
-    md: "h-11 w-auto",
-    lg: "h-14 w-auto",
+    sm: "h-12 w-auto",
+    md: "h-14 w-auto",
+    lg: "h-18 w-auto",
   },
   icon: {
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-12 w-12",
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-14 w-14",
   },
 };
 
