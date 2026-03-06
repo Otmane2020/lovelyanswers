@@ -24,12 +24,12 @@ export default function LocalAeoArticle() {
   return (
     <>
       <Helmet>
-        <title>Local AEO: Get Your Business Cited by AI Assistants | LovelyAnswers</title>
+        <title>Local AEO: Get Your Business Cited by AI Assistants | AutoPilot Geo</title>
         <meta
           name="description"
-          content="Discover how LovelyAnswers' Local AEO technology helps local businesses get cited by ChatGPT, Gemini, and other AI assistants. Dominate local AI search results."
+          content="Discover how AutoPilot Geo's Local AEO technology helps local businesses get cited by ChatGPT, Gemini, and other AI assistants. Dominate local AI search results."
         />
-        <link rel="canonical" href="https://lovelyanswers.com/localAEO" />
+        <link rel="canonical" href="https://autopilotgeo.com/localAEO" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
