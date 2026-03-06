@@ -24,12 +24,12 @@ export default function LocalAeoArticle() {
   return (
     <>
       <Helmet>
-        <title>Local AEO: Get Your Business Cited by AI Assistants | LovelyAnswers</title>
+        <title>Local AEO: Get Your Business Cited by AI Assistants | AutoPilot Geo</title>
         <meta
           name="description"
-          content="Discover how LovelyAnswers' Local AEO technology helps local businesses get cited by ChatGPT, Gemini, and other AI assistants. Dominate local AI search results."
+          content="Discover how AutoPilot Geo's Local AEO technology helps local businesses get cited by ChatGPT, Gemini, and other AI assistants. Dominate local AI search results."
         />
-        <link rel="canonical" href="https://lovelyanswers.com/localAEO" />
+        <link rel="canonical" href="https://autopilotgeo.com/localAEO" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -38,9 +38,7 @@ export default function LocalAeoArticle() {
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-lg">
-                Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-              </span>
+              <span className="font-bold text-lg">AutoPilot Geo</span>
             </Link>
             <nav className="flex items-center gap-4">
               <Link to="/blog">
@@ -75,7 +73,7 @@ export default function LocalAeoArticle() {
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                 When someone asks ChatGPT, Gemini, or Perplexity for the best local services, 
-                will they mention your business? With LovelyAnswers' Local AEO, they will.
+                will they mention your business? With AutoPilot Geo's Local AEO, they will.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/auth">
@@ -135,7 +133,7 @@ export default function LocalAeoArticle() {
                 </div>
                 <p className="text-muted-foreground text-lg leading-relaxed">
                   AI assistants are becoming the new way people discover local businesses. 
-                  <strong> LovelyAnswers</strong> helps you create optimized content that these AI systems 
+                  <strong> AutoPilot Geo</strong> helps you create optimized content that these AI systems 
                   understand, trust, and cite when answering local queries.
                 </p>
               </div>
@@ -147,7 +145,7 @@ export default function LocalAeoArticle() {
         <section className="py-20">
           <div className="container">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center">
-              How LovelyAnswers Local AEO Works
+              How AutoPilot Geo Local AEO Works
             </h2>
             <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               Our AI-powered platform generates location-specific content optimized for AI citation
@@ -213,7 +211,7 @@ export default function LocalAeoArticle() {
         <section className="py-20 bg-muted/30">
           <div className="container">
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">
-              Why Local Businesses Choose LovelyAnswers
+              Why Local Businesses Choose AutoPilot Geo
             </h2>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -309,7 +307,7 @@ export default function LocalAeoArticle() {
                 Ready to Dominate Local AI Search?
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
-                Join hundreds of local businesses already using LovelyAnswers to get cited by AI assistants.
+                Join hundreds of local businesses already using AutoPilot Geo to get cited by AI assistants.
                 Start your free trial today.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

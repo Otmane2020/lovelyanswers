@@ -317,9 +317,7 @@ export default function Audit() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
-              </span>
+              <span className="text-xl font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
@@ -663,7 +661,7 @@ export default function Audit() {
                   Ready to dominate AI search results?
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  LovelyAnswers fixes these issues and publishes expert content daily — automatically.
+                  AutoPilot Geo fixes these issues and publishes expert content daily — automatically.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Button

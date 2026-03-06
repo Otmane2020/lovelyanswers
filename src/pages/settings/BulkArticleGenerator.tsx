@@ -39,12 +39,12 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { id: "17", topic: "Is Bolt.new good for Google ranking?", category: "comparisons", intent: "criteria" },
   { id: "18", topic: "Is Replit suitable for production SEO?", category: "comparisons", intent: "criteria" },
   { id: "19", topic: "Lovable vs WordPress: which is better for SEO?", category: "comparisons", intent: "comparison" },
-  { id: "20", topic: "Lovable + LovelyAnswers: winning combo for ChatGPT", category: "comparisons", intent: "comparison" },
+  { id: "20", topic: "Lovable + AutoPilot Geo: winning combo for ChatGPT", category: "comparisons", intent: "comparison" },
   { id: "21", topic: "Can you rank on Google with an AI-generated site?", category: "comparisons", intent: "what" },
   { id: "22", topic: "Lovable + AEO: how to appear in AI responses", category: "comparisons", intent: "howto" },
   { id: "23", topic: "Bolt + SEO: technical limitations and solutions", category: "comparisons", intent: "criteria" },
   { id: "24", topic: "Best AI builder for Google ranking in 2026", category: "comparisons", intent: "best" },
-  { id: "25", topic: "Why LovelyAnswers complements Lovable for SEO", category: "comparisons", intent: "why" },
+  { id: "25", topic: "Why AutoPilot Geo complements Lovable for SEO", category: "comparisons", intent: "why" },
   
   // Pillar 3: Pure AEO
   { id: "26", topic: "What is AEO (Answer Engine Optimization)?", category: "aeo-pure", intent: "what" },
@@ -55,15 +55,15 @@ const STRATEGIC_ARTICLES: ArticleTopic[] = [
   { id: "31", topic: "How to structure pages for generative AI", category: "aeo-pure", intent: "howto" },
   { id: "32", topic: "Why classic SEO is no longer enough", category: "aeo-pure", intent: "why" },
   { id: "33", topic: "How ChatGPT chooses which sites to recommend", category: "aeo-pure", intent: "what" },
-  { id: "34", topic: "How LovelyAnswers optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
+  { id: "34", topic: "How AutoPilot Geo optimizes a site for AEO", category: "aeo-pure", intent: "howto" },
   { id: "35", topic: "AEO checklist for 2026", category: "aeo-pure", intent: "criteria" },
   
   // Pillar 4: Case Studies
   { id: "36", topic: "How a Lovable site went from invisible to ChatGPT-recommended", category: "case-studies", intent: "howto" },
   { id: "37", topic: "Before/after AEO on an AI site", category: "case-studies", intent: "comparison" },
-  { id: "38", topic: "How LovelyAnswers improves AI traffic", category: "case-studies", intent: "howto" },
+  { id: "38", topic: "How AutoPilot Geo improves AI traffic", category: "case-studies", intent: "howto" },
   { id: "39", topic: "Case study: AI-generated site + AEO optimization", category: "case-studies", intent: "howto" },
-  { id: "40", topic: "Why our Lovable clients add LovelyAnswers", category: "case-studies", intent: "why" },
+  { id: "40", topic: "Why our Lovable clients add AutoPilot Geo", category: "case-studies", intent: "why" },
   { id: "41", topic: "From zero visibility to AI citations: method", category: "case-studies", intent: "howto" },
   { id: "42", topic: "How to capture traffic from ChatGPT", category: "case-studies", intent: "howto" },
   { id: "43", topic: "AI traffic vs Google traffic: real numbers", category: "case-studies", intent: "comparison" },

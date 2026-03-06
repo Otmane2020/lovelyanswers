@@ -173,9 +173,7 @@ export default function AeoWizard() {
       {/* Header */}
       <div className="flex items-center justify-center gap-2 pt-6 pb-2 px-4">
         <AnimatedLogo size="sm" />
-        <span className="text-lg font-bold tracking-tight text-foreground">
-          Lovely<span className="text-primary">Answers</span>
-        </span>
+        <span className="text-lg font-bold tracking-tight text-foreground">AutoPilot Geo</span>
       </div>
 
       {/* Progress bar */}

@@ -137,7 +137,7 @@ export default function AuditPremium() {
   return (
     <>
       <Helmet>
-        <title>Premium AEO Audit – Competitor Analysis | LovelyAnswers</title>
+        <title>Premium AEO Audit – Competitor Analysis | AutoPilot Geo</title>
         <meta name="description" content="Get a comprehensive AEO audit with competitor analysis, market trends, and strategic recommendations." />
       </Helmet>
 
@@ -147,9 +147,7 @@ export default function AuditPremium() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight">
-                Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
-              </span>
+              <span className="text-lg font-bold tracking-tight">AutoPilot Geo</span>
             </Link>
             <Button className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
               <Link to="/onboarding">

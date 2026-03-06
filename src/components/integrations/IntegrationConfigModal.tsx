@@ -64,7 +64,7 @@ const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
       "1️⃣ Go to dev.wix.com and sign in",
       "2️⃣ In the left menu, click 'API Keys'",
       "3️⃣ Click the '+ Generate API Key' button",
-      "4️⃣ Give it a name (e.g., 'LovelyAnswers')",
+      "4️⃣ Give it a name (e.g., 'AutoPilot Geo')",
       "5️⃣ IMPORTANT: Check 'All site permissions' or select your site",
       "6️⃣ In permissions, enable 'Wix Blog' → 'Read & Write Blog'",
       "7️⃣ Click 'Generate' and copy the key (starts with IST...)",
