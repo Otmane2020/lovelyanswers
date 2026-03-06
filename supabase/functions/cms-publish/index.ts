@@ -1242,8 +1242,8 @@ function generatePublicAnswerHTML(answer: any): string {
     </article>
   </main>
   <footer>
-    <p>Optimize your AI visibility with LovelyAnswers</p>
-    <a href="https://lovelyanswers.com">Create Your AEO Answers</a>
+    <p>Optimize your AI visibility with AutoPilot Geo</p>
+    <a href="https://autopilotgeo.com">Create Your AEO Answers</a>
   </footer>
 </body>
 </html>`;
