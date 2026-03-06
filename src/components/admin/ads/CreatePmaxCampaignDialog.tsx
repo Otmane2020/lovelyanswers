@@ -498,7 +498,7 @@ export function CreatePmaxCampaignDialog() {
 
                   {/* Brand Name */}
                   <Field label="🏢 Business Name — REQUIS">
-                    <Input value={brandName} onChange={e => setBrandName(e.target.value)} className="text-xs" placeholder="LovelyAnswers" />
+                    <Input value={brandName} onChange={e => setBrandName(e.target.value)} className="text-xs" placeholder="AutoPilot Geo" />
                   </Field>
 
                   <Separator className="my-2" />
