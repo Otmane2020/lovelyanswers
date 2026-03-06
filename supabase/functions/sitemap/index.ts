@@ -42,13 +42,27 @@ Deno.serve(async (req) => {
       (q: any) => q.eq('is_public', true).not('published_at', 'is', null)
     )
 
-    // 2. Fetch all published blog articles
-    const articles = await fetchAll('published_articles', 'slug, published_at, updated_at')
+    // 2. Fetch all published blog articles from published_articles
+    const publishedArticles = await fetchAll('published_articles', 'slug, published_at, updated_at')
+
+    // 3. Fetch published articles from articles table (for projects like lovelyanswers)
+    const directArticles = await fetchAll(
+      'articles',
+      'slug, created_at, updated_at, projects!inner(domain, website_url)',
+      (q: any) => q.eq('status', 'published').not('slug', 'is', null)
+    )
 
     // Filter only lovelyanswers.com Q&A answers
     const lovelyanswersAnswers = (answers || []).filter((answer: any) => {
       const projectUrl = (answer.projects?.website_url || '').toLowerCase()
       const projectDomain = (answer.projects?.domain || '').toLowerCase()
+      return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
+    })
+
+    // Filter only lovelyanswers.com direct articles
+    const lovelyanswersArticles = (directArticles || []).filter((article: any) => {
+      const projectUrl = (article.projects?.website_url || '').toLowerCase()
+      const projectDomain = (article.projects?.domain || '').toLowerCase()
       return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
     })
 
