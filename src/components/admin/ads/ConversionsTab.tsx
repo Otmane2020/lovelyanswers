@@ -40,8 +40,8 @@ export function ConversionsTab({ conversionId }: ConversionsTabProps) {
         body: { 
           focus: "conversions",
           businessContext: {
-            websiteUrl: "https://lovelyanswers.com",
-            brandName: "LovelyAnswers",
+            websiteUrl: "https://autopilotgeo.com",
+            brandName: "AutoPilot Geo",
             businessDescription: "AI-powered SEO and Answer Engine Optimization (AEO) platform that helps businesses get cited by AI chatbots like ChatGPT, Perplexity, and Gemini.",
             language: "en",
           },

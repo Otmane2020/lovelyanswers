@@ -76,7 +76,7 @@ export default function AeoPublicAnswer() {
           projectUrl.includes('autopilotgeo.com') || 
           projectDomain === 'autopilotgeo.com';
         
-        if (isLovelyAnswersProject) {
+        if (isAutoPilotProject) {
           const supportingContent = data.supporting_content as SupportingContent | null;
           setAnswer({
             ...data,

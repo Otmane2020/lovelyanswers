@@ -307,7 +307,7 @@ export default function LocalAeoArticle() {
                 Ready to Dominate Local AI Search?
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
-                Join hundreds of local businesses already using LovelyAnswers to get cited by AI assistants.
+                Join hundreds of local businesses already using AutoPilot Geo to get cited by AI assistants.
                 Start your free trial today.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

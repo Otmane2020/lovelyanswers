@@ -94,9 +94,7 @@ export default function Signup() {
         <div className="w-full max-w-md mx-auto">
           <Link to="/" className="flex items-center gap-2 mb-12">
             <AnimatedLogo size="md" />
-            <span className="text-2xl font-bold tracking-tight text-[hsl(222,47%,11%)]">
-              Lovely<span className="text-violet-500">Answers</span>
-            </span>
+            <span className="text-2xl font-bold tracking-tight text-[hsl(222,47%,11%)]">AutoPilot Geo</span>
           </Link>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">

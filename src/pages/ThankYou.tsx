@@ -103,7 +103,7 @@ export default function ThankYou() {
                   Payment confirmed! 🎉
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Welcome to LovelyAnswers. Your subscription is now active.
+                  Welcome to AutoPilot Geo. Your subscription is now active.
                 </p>
               </div>
               <Button
