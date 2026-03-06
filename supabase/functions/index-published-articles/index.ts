@@ -140,16 +140,16 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Get OAuth tokens from the primary account
-    // Find the user who owns the lovelyanswers.com project
+    // Find the user who owns the autopilotgeo.com project
     const { data: project } = await supabase
       .from("projects")
       .select("user_id")
-      .or("domain.eq.lovelyanswers.com,website_url.ilike.%lovelyanswers.com%")
+      .or("domain.eq.autopilotgeo.com,website_url.ilike.%autopilotgeo.com%")
       .limit(1)
       .single();
 
     if (!project?.user_id) {
-      throw new Error("Could not find lovelyanswers.com project owner");
+      throw new Error("Could not find autopilotgeo.com project owner");
     }
 
     const { data: profile, error: profileError } = await supabase
