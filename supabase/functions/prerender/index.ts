@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
         })
         return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } })
       }
-
+ 
       return new Response('Not found', { status: 404, headers: corsHeaders })
     }
 
