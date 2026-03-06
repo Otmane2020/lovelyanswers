@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             )}
 
-            {/* App header with topbar */}
+
             <AppTopbar />
             
             {/* Global Progress Bar */}
