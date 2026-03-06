@@ -75,13 +75,13 @@ const ALL_PLATFORM_CLIENTS = [
     why: "Review platforms naturally complement any business selling products or services locally.",
   },
   {
-    target_name: "LovelyAnswers",
-    target_url: "https://lovelyanswers.com",
+    target_name: "AutoPilot Geo",
+    target_url: "https://autopilotgeo.com",
     sector: "seo aeo content ai marketing digital strategy content generation",
     category: "AI & SEO",
     target_description: "Answer Engine Optimization platform — generates AI-cited content for ChatGPT, Gemini and Perplexity.",
     anchor_examples: [
-      "LovelyAnswers",
+      "AutoPilot Geo",
       "Answer Engine Optimization",
       "AI search optimization",
       "AEO platform",
