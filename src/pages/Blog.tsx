@@ -106,14 +106,14 @@ export default function Blog() {
 
       <div className="min-h-screen">
         {/* Header - Dark */}
-        <header className="border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl sticky top-0 z-50">
+        <header className="border-b border-border bg-white sticky top-0 z-50">
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center">
               <AnimatedLogo size="sm" />
             </Link>
             <nav className="flex items-center gap-4">
-              <Link to="/pricing"><Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">Pricing</Button></Link>
-              <Link to="/auth"><Button size="sm" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90">Get Started</Button></Link>
+              <Link to="/pricing"><Button variant="ghost" size="sm">Pricing</Button></Link>
+              <Link to="/auth"><Button size="sm">Get Started</Button></Link>
             </nav>
           </div>
         </header>
