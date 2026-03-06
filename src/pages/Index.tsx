@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
+import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
+import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
