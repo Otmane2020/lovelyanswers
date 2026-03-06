@@ -206,12 +206,16 @@ export default function AeoPlanning() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold">Content Planning</h1>
-            <p className="text-sm text-muted-foreground mt-1">Today + 30 days</p>
-          </div>
-          <div className="flex gap-2 flex-wrap items-center">
+        <PageHeader
+          icon={Calendar}
+          title="Content Planning"
+          description="Today + 30 days"
+          gradientFrom="from-teal-500/10"
+          gradientVia="via-emerald-500/10"
+          gradientTo="to-green-500/10"
+          iconFrom="from-teal-500"
+          iconTo="to-emerald-600"
+        >
             {isGenerating && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -219,8 +223,7 @@ export default function AeoPlanning() {
               </div>
             )}
             {project && <AutoPublishSettings projectId={project.id} />}
-          </div>
-        </div>
+        </PageHeader>
 
         <Card className="p-3 sm:p-4">
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">

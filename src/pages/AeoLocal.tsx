@@ -120,15 +120,16 @@ export default function AeoLocal() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[hsl(222,47%,11%)] text-white">
-              <MapPin className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Local AEO</h1>
-              <p className="text-muted-foreground">Optimize your local AI visibility</p>
-            </div>
+        <PageHeader
+          icon={MapPin}
+          title="Local AEO"
+          description="Optimize your local AI visibility"
+          gradientFrom="from-orange-500/10"
+          gradientVia="via-amber-500/10"
+          gradientTo="to-yellow-500/10"
+          iconFrom="from-orange-500"
+          iconTo="to-amber-600"
+        />
           </div>
         </div>
 

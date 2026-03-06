@@ -78,10 +78,16 @@ export default function AeoBilling() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Billing</h1>
-          <p className="text-muted-foreground mt-1">Manage your subscription and payment history</p>
-        </div>
+        <PageHeader
+          icon={CreditCard}
+          title="Billing"
+          description="Manage your subscription and payment history"
+          gradientFrom="from-green-500/10"
+          gradientVia="via-emerald-500/10"
+          gradientTo="to-teal-500/10"
+          iconFrom="from-green-500"
+          iconTo="to-emerald-600"
+        />
 
         {/* Subscription Card */}
         <Card className="p-6">

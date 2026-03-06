@@ -16,14 +16,16 @@ const GoogleTagManager = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Google Tag Manager</h1>
-            <p className="text-muted-foreground mt-1">
-              Diagnostic technique — tags, triggers, erreurs
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Tag}
+          title="Google Tag Manager"
+          description="Diagnostic technique — tags, triggers, erreurs"
+          gradientFrom="from-blue-500/10"
+          gradientVia="via-cyan-500/10"
+          gradientTo="to-teal-500/10"
+          iconFrom="from-blue-500"
+          iconTo="to-cyan-600"
+        />
 
         {/* Summary */}
         <div className="flex gap-3">

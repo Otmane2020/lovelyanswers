@@ -94,13 +94,16 @@ export default function AeoKeywords() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Keyword Research</h1>
-          <p className="text-muted-foreground mt-1">
-            Discover high-impact keywords for your content
-          </p>
-        </div>
+        <PageHeader
+          icon={Key}
+          title="Keyword Research"
+          description="Discover high-impact keywords for your content"
+          gradientFrom="from-amber-500/10"
+          gradientVia="via-yellow-500/10"
+          gradientTo="to-orange-500/10"
+          iconFrom="from-amber-500"
+          iconTo="to-yellow-600"
+        />
 
         {/* Input */}
         <GlassCard className="p-6">

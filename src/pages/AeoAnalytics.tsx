@@ -280,10 +280,18 @@ export default function AeoAnalytics() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div className="flex items-start justify-between">
-          <div><h1 className="text-3xl font-bold text-foreground">Analytics</h1><p className="text-muted-foreground mt-1">AEO Signals via Google Search Console</p></div>
-          <div className="flex items-center gap-2">{isConnected && googleEmail && (<Badge className="bg-primary/10 text-primary border-primary/20"><CheckCircle2 className="w-3 h-3 mr-1" />{googleEmail}</Badge>)}</div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="Analytics"
+          description="AEO Signals via Google Search Console"
+          gradientFrom="from-cyan-500/10"
+          gradientVia="via-sky-500/10"
+          gradientTo="to-blue-500/10"
+          iconFrom="from-cyan-500"
+          iconTo="to-sky-600"
+        >
+          {isConnected && googleEmail && (<Badge className="bg-primary/10 text-primary border-primary/20"><CheckCircle2 className="w-3 h-3 mr-1" />{googleEmail}</Badge>)}
+        </PageHeader>
 
         {!isConnected ? (
            <Card className="p-8 border-dashed border-2 bg-primary/5">

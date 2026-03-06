@@ -27,10 +27,16 @@ export default function AeoSettings() {
     <DashboardLayout>
       <SubscriptionGate title="Unlock Advanced Settings" description="Fine-tune your AI content strategy, manage team members, and configure publishing preferences.">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-1">Configure your AEO project</p>
-        </div>
+        <PageHeader
+          icon={Settings}
+          title="Settings"
+          description="Configure your AEO project"
+          gradientFrom="from-gray-500/10"
+          gradientVia="via-slate-500/10"
+          gradientTo="to-zinc-500/10"
+          iconFrom="from-gray-500"
+          iconTo="to-slate-600"
+        />
 
         <Tabs defaultValue="user" className="w-full">
           <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent flex-wrap gap-0">

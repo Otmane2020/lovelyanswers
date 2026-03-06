@@ -34,10 +34,17 @@ export default function AeoAccount() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">My Account</h1>
-        {planName && (
+      <PageHeader
+        icon={User}
+        title="My Account"
+        description="Manage your profile and subscription"
+        gradientFrom="from-indigo-500/10"
+        gradientVia="via-blue-500/10"
+        gradientTo="to-sky-500/10"
+        iconFrom="from-indigo-500"
+        iconTo="to-blue-600"
+      />
+      {planName && (
           <Badge variant="secondary" className="mt-2 bg-primary/10 text-primary">
             <Sparkles className="w-3 h-3 mr-1" />
             {isTrialing ? 'Free trial' : planName}

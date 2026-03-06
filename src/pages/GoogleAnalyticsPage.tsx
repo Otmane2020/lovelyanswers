@@ -16,14 +16,16 @@ const GoogleAnalyticsPage = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Google Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              Lecture &amp; cohérence avec Google Ads — données GA4
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="Google Analytics"
+          description="Lecture & cohérence avec Google Ads — données GA4"
+          gradientFrom="from-yellow-500/10"
+          gradientVia="via-amber-500/10"
+          gradientTo="to-orange-500/10"
+          iconFrom="from-yellow-500"
+          iconTo="to-amber-600"
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

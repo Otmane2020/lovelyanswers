@@ -186,10 +186,19 @@ export default function AeoReddit() {
     <DashboardLayout>
       <SubscriptionGate title="Unlock Reddit Engagement" description="Find high-value Reddit threads and generate human-like replies that drive traffic to your brand.">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div><h1 className="text-3xl font-bold text-foreground">Reddit Engagement</h1><p className="text-muted-foreground mt-1">Generate human-like replies for {activeProject?.brand_name || "your brand"}</p></div>
-          <div className="flex gap-2"><Button variant="outline" onClick={refreshPosts} disabled={loading}><RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh</Button><Button onClick={generateAllReplies} disabled={loading} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white"><Sparkles className="w-4 h-4 mr-2" />Generate All</Button></div>
-        </div>
+        <PageHeader
+          icon={MessageCircle}
+          title="Reddit Engagement"
+          description={`Generate human-like replies for ${activeProject?.brand_name || "your brand"}`}
+          gradientFrom="from-orange-500/10"
+          gradientVia="via-red-500/10"
+          gradientTo="to-rose-500/10"
+          iconFrom="from-orange-500"
+          iconTo="to-red-500"
+        >
+          <Button variant="outline" onClick={refreshPosts} disabled={loading}><RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh</Button>
+          <Button onClick={generateAllReplies} disabled={loading} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white"><Sparkles className="w-4 h-4 mr-2" />Generate All</Button>
+        </PageHeader>
 
         <Card className="p-4 border-primary/20 bg-primary/5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
