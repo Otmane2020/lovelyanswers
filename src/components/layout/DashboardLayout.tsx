@@ -1,10 +1,11 @@
 import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
+import { AppTopbar } from "./AppTopbar";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Menu, ArrowRight, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -50,17 +51,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             )}
 
-            {/* App header */}
-            <header className="h-14 flex items-center justify-end px-4 sticky top-0 z-30 backdrop-blur-sm border-0" style={{ background: 'linear-gradient(135deg, #f0f4ff, #e8eeff)' }}>
-              <div className="flex-1" />
-              <SidebarTrigger className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted/60 active:scale-95 transition-all duration-150">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground">
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="17" y2="12" />
-                  <line x1="3" y1="18" x2="13" y2="18" />
-                </svg>
-              </SidebarTrigger>
-            </header>
+            {/* App header with topbar */}
+            <AppTopbar />
             
             {/* Global Progress Bar */}
             {isGenerating && (
