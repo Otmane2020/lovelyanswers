@@ -144,24 +144,24 @@ export default function AiSeo() {
   return (
     <>
       <Helmet>
-        <title>AI SEO Services – Get Found by ChatGPT, Gemini & Google | LovelyAnswers</title>
+        <title>AI SEO Services – Get Found by ChatGPT, Gemini & Google | AutoPilot Geo</title>
         <meta
           name="description"
           content="AI SEO services that get your brand recommended by ChatGPT, Gemini, Perplexity and Google. Automated content, keyword research, and AI visibility monitoring. Start free."
         />
-        <link rel="canonical" href="https://lovelyanswers.com/ai-seo" />
+        <link rel="canonical" href="https://autopilotgeo.com/ai-seo" />
         <meta property="og:title" content="AI SEO Services – Get Found by AI Search Engines" />
         <meta property="og:description" content="Get your brand recommended by ChatGPT, Gemini, Perplexity and Google with AI-powered SEO." />
-        <meta property="og:url" content="https://lovelyanswers.com/ai-seo" />
+        <meta property="og:url" content="https://autopilotgeo.com/ai-seo" />
         <meta property="og:type" content="website" />
         <script
           type="application/ld+json"
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Service",
-            name: "AI SEO Services by LovelyAnswers",
+            name: "AI SEO Services by AutoPilot Geo",
             description: "AI-powered SEO service that optimizes your content for Google and AI search engines like ChatGPT, Gemini, and Perplexity.",
-            provider: { "@type": "Organization", name: "LovelyAnswers", url: "https://lovelyanswers.com" },
+            provider: { "@type": "Organization", name: "AutoPilot Geo", url: "https://autopilotgeo.com" },
             offers: { "@type": "Offer", price: "29", priceCurrency: "USD", description: "Starting at $29/month" },
             areaServed: "Worldwide",
           })}
@@ -187,7 +187,7 @@ export default function AiSeo() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight text-white">LovelyAnswers</span>
+              <span className="text-lg font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 hidden sm:inline-flex" asChild>

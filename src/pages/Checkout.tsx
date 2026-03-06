@@ -235,7 +235,7 @@ export default function Checkout() {
 
           {/* TrustAvis Social Proof */}
           <a 
-            href="https://trust-avis.com/entreprise/lovelyanswers" 
+            href="https://trust-avis.com/entreprise/autopilotgeo" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 py-3 px-5 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors mx-auto"

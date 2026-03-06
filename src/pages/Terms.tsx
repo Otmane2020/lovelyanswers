@@ -9,9 +9,9 @@ export default function Terms() {
   return (
     <>
       <Helmet>
-        <title>Terms of Service - LovelyAnswers</title>
-        <meta name="description" content="Read the Terms of Service for LovelyAnswers AEO platform." />
-        <link rel="canonical" href="https://lovelyanswers.com/terms" />
+        <title>Terms of Service - AutoPilot Geo</title>
+        <meta name="description" content="Read the Terms of Service for AutoPilot Geo AEO platform." />
+        <link rel="canonical" href="https://autopilotgeo.com/terms" />
       </Helmet>
 
       <div className="min-h-screen">
@@ -21,7 +21,7 @@ export default function Terms() {
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
               <span className="text-xl font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
+                AutoPilot<span className="text-violet-400"> Geo</span>
               </span>
             </Link>
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
@@ -44,11 +44,11 @@ export default function Terms() {
             <div className="space-y-8 text-gray-500">
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">1. Agreement to Terms</h2>
-                <p>By accessing or using LovelyAnswers's services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+                <p>By accessing or using AutoPilot Geo's services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">2. Description of Service</h2>
-                <p>LovelyAnswers provides Answer Engine Optimization (AEO) services, including AI-generated content, SEO optimization, and content publishing tools.</p>
+                <p>AutoPilot Geo provides Answer Engine Optimization (AEO) services, including AI-generated content, SEO optimization, and content publishing tools.</p>
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">3. Subscription and Payment</h2>
@@ -69,11 +69,11 @@ export default function Terms() {
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">6. Contact</h2>
-                <p>For any questions regarding these terms, please contact us at <a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">support@lovelyanswers.io</a></p>
+                <p>For any questions regarding these terms, please contact us at <a href="mailto:support@autopilotgeo.com" className="text-violet-600 hover:underline">support@autopilotgeo.com</a></p>
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">7. Company Information</h2>
-                <p>LovelyAnswers Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
+                <p>AutoPilot Geo Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
               </section>
             </div>
           </div>

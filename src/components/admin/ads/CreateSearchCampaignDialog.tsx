@@ -81,7 +81,7 @@ export function CreateSearchCampaignDialog() {
       if (data?.error) throw new Error(data.error);
 
       // Pre-fill all fields
-      setCampaignName(data.campaignName || "Search - LovelyAnswers");
+      setCampaignName(data.campaignName || "Search - AutoPilot Geo");
       setDailyBudget(String(data.dailyBudget || 30));
       setBiddingStrategy(data.biddingStrategy || "maximize_conversions");
       setLanguage(data.language || "en");
@@ -133,7 +133,7 @@ export function CreateSearchCampaignDialog() {
         dailyBudget: parseFloat(dailyBudget) || 25,
         biddingStrategy, locations: selectedLocations, language,
         adGroups: adGroups.filter(ag => ag.name.trim()).map(ag => ({
-          name: ag.name, finalUrl: ag.finalUrl || "https://lovelyanswers.com",
+          name: ag.name, finalUrl: ag.finalUrl || "https://autopilotgeo.com",
           ...(ag.seedKeywords.trim() ? { seedKeywords: ag.seedKeywords.split("\n").map(s => s.trim()).filter(Boolean) } : {}),
           ...(ag.headlines.trim() ? { headlines: ag.headlines.split("\n").map(s => s.trim()).filter(Boolean) } : {}),
           ...(ag.descriptions.trim() ? { descriptions: ag.descriptions.split("\n").map(s => s.trim()).filter(Boolean) } : {}),
@@ -182,7 +182,7 @@ export function CreateSearchCampaignDialog() {
             <Brain className="h-10 w-10 mx-auto text-primary" />
             <div>
               <p className="font-semibold">Génération IA automatique</p>
-              <p className="text-sm text-muted-foreground">Analyse lovelyanswers.com et génère ad groups, keywords, headlines, sitelinks...</p>
+              <p className="text-sm text-muted-foreground">Analyse autopilotgeo.com et génère ad groups, keywords, headlines, sitelinks...</p>
             </div>
             <Button onClick={handleAIGenerate} className="gap-2">
               <Sparkles className="h-4 w-4" />Générer avec l'IA

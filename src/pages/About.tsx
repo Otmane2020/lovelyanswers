@@ -10,9 +10,9 @@ const aboutStructuredData = {
   "@type": "AboutPage",
   "mainEntity": {
     "@type": "Organization",
-    "name": "LovelyAnswers",
+    "name": "AutoPilot Geo",
     "description": "Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era.",
-    "url": "https://lovelyanswers.com",
+    "url": "https://autopilotgeo.com",
     "foundingLocation": { "@type": "Place", "address": { "@type": "PostalAddress", "streetAddress": "Suite 4, Piccadilly House", "addressLocality": "Manchester", "postalCode": "M1 1AB", "addressCountry": "GB" } },
     "numberOfEmployees": { "@type": "QuantitativeValue", "value": "10-50" }
   }
@@ -22,9 +22,9 @@ export default function About() {
   return (
     <>
       <Helmet>
-        <title>About LovelyAnswers - AI Answer Engine Optimization Company</title>
-        <meta name="description" content="Learn about LovelyAnswers, the pioneering AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants. Based in Manchester, UK." />
-        <link rel="canonical" href="https://lovelyanswers.com/about" />
+        <title>About AutoPilot Geo - AI Answer Engine Optimization Company</title>
+        <meta name="description" content="Learn about AutoPilot Geo, the pioneering AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants. Based in Manchester, UK." />
+        <link rel="canonical" href="https://autopilotgeo.com/about" />
         <script type="application/ld+json">{JSON.stringify(aboutStructuredData)}</script>
       </Helmet>
 
@@ -35,7 +35,7 @@ export default function About() {
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
               <span className="text-xl font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
+                AutoPilot<span className="text-violet-400"> Geo</span>
               </span>
             </Link>
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
@@ -49,7 +49,7 @@ export default function About() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[150px]" />
           <div className="container relative max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-white">
-              About <span className="text-violet-400">LovelyAnswers</span>
+              About <span className="text-violet-400">AutoPilot Geo</span>
             </h1>
             <p className="text-xl text-white/50">
               Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era.
@@ -64,7 +64,7 @@ export default function About() {
               {[
                 { icon: Target, title: "Our Mission", desc: "Make every business discoverable by AI assistants and search engines." },
                 { icon: Zap, title: "Our Technology", desc: "AI-powered content generation optimized for LLM understanding and citation." },
-                { icon: Users, title: "Our Clients", desc: "500+ businesses trust LovelyAnswers for their AI visibility strategy." },
+                { icon: Users, title: "Our Clients", desc: "500+ businesses trust AutoPilot Geo for their AI visibility strategy." },
               ].map((item, i) => (
                 <div key={i} className="rounded-2xl border border-gray-200 p-6 text-center">
                   <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(222,47%,11%)]">
@@ -83,7 +83,7 @@ export default function About() {
           <div className="container max-w-3xl">
             <h2 className="text-3xl font-bold mb-8 text-center text-[hsl(222,47%,11%)]">Our Story</h2>
             <div className="space-y-6 text-gray-500">
-              <p>LovelyAnswers was founded with a simple observation: the way people find information is changing. With the rise of AI assistants like ChatGPT, Gemini, and Perplexity, traditional SEO alone is no longer enough to ensure your business gets discovered.</p>
+              <p>AutoPilot Geo was founded with a simple observation: the way people find information is changing. With the rise of AI assistants like ChatGPT, Gemini, and Perplexity, traditional SEO alone is no longer enough to ensure your business gets discovered.</p>
               <p>We developed Answer Engine Optimization (AEO) - a new approach that makes your content not just searchable, but citable by AI systems. Our platform helps businesses create structured, authoritative content that AI assistants trust and recommend.</p>
               <p>Based in Manchester, UK, our team combines expertise in AI, SEO, and content marketing to deliver a comprehensive solution for the AI-first era.</p>
             </div>
@@ -94,7 +94,7 @@ export default function About() {
         <section className="py-20 bg-[hsl(222,47%,11%)]">
           <div className="container max-w-2xl text-center">
             <h2 className="text-3xl font-bold mb-4 text-white">Ready to Get Started?</h2>
-            <p className="text-white/50 mb-8">Join 500+ businesses already using LovelyAnswers to dominate AI search.</p>
+            <p className="text-white/50 mb-8">Join 500+ businesses already using AutoPilot Geo to dominate AI search.</p>
             <Button className="gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" size="lg" asChild>
               <Link to="/auth">Start Free Trial <ArrowRight className="h-5 w-5" /></Link>
             </Button>
@@ -106,11 +106,11 @@ export default function About() {
           <div className="container max-w-3xl text-center">
             <h2 className="text-2xl font-bold mb-6 text-[hsl(222,47%,11%)]">Company Information</h2>
             <div className="text-gray-500">
-              <p className="font-medium text-[hsl(222,47%,11%)]">LovelyAnswers Ltd</p>
+               <p className="font-medium text-[hsl(222,47%,11%)]">AutoPilot Geo Ltd</p>
               <p>Suite 4, Piccadilly House</p>
               <p>Manchester, M1 1AB</p>
               <p>United Kingdom</p>
-              <p className="mt-4"><a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">support@lovelyanswers.io</a></p>
+              <p className="mt-4"><a href="mailto:support@autopilotgeo.com" className="text-violet-600 hover:underline">support@autopilotgeo.com</a></p>
             </div>
           </div>
         </section>

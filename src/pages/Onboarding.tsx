@@ -494,7 +494,7 @@ export default function Onboarding() {
         <div className="flex items-center justify-center gap-2">
           <AnimatedLogo size="md" />
           <span className="text-xl font-bold tracking-tight text-foreground">
-            Lovely<span className="text-primary">Answers</span>
+            AutoPilot<span className="text-primary"> Geo</span>
           </span>
         </div>
       </header>

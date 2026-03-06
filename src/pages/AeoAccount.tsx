@@ -81,16 +81,16 @@ export default function AeoAccount() {
         </Card>
       </div>
 
-      {/* Link to LovelyAnswers.io */}
+      {/* Link to autopilotgeo.com */}
       <div className="text-center pt-4">
         <a 
-          href="https://lovelyanswers.io" 
+          href="https://autopilotgeo.com" 
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-pink-600 transition-colors text-sm"
         >
           <ExternalLink className="h-4 w-4" />
-          lovelyanswers.io
+          autopilotgeo.com
         </a>
       </div>
     </div>

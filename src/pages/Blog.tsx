@@ -64,7 +64,7 @@ export default function Blog() {
         const lovelyanswersAnswers = internalAnswers.filter((answer: any) => {
           const projectDomain = (answer.projects?.domain || '').toLowerCase();
           const projectUrl = (answer.projects?.website_url || '').toLowerCase();
-          return projectDomain === 'lovelyanswers.com' || projectDomain.includes('lovelyanswers') || projectUrl.includes('lovelyanswers.com');
+          return projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
         });
 
         const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers];
@@ -91,16 +91,16 @@ export default function Blog() {
 
   const blogStructuredData = {
     "@context": "https://schema.org", "@type": "Blog",
-    "name": "LovelyAnswers Blog", "url": "https://lovelyanswers.com/blog",
-    "publisher": { "@type": "Organization", "name": "LovelyAnswers" }
+    "name": "AutoPilot Geo Blog", "url": "https://autopilotgeo.com/blog",
+    "publisher": { "@type": "Organization", "name": "AutoPilot Geo" }
   };
 
   return (
     <>
       <Helmet>
-        <title>Blog - AI-Optimized Answers | LovelyAnswers</title>
+        <title>Blog - AI-Optimized Answers | AutoPilot Geo</title>
         <meta name="description" content="Discover AI-optimized answers and insights. Expert content designed for maximum visibility across AI platforms." />
-        <link rel="canonical" href="https://lovelyanswers.com/blog" />
+        <link rel="canonical" href="https://autopilotgeo.com/blog" />
         <script type="application/ld+json">{JSON.stringify(blogStructuredData)}</script>
       </Helmet>
 
@@ -111,7 +111,7 @@ export default function Blog() {
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="sm" />
               <span className="font-bold text-lg text-white">
-                Lovely<span className="text-violet-400">Answers</span>
+                AutoPilot<span className="text-violet-400"> Geo</span>
               </span>
             </Link>
             <nav className="flex items-center gap-4">
@@ -211,7 +211,7 @@ export default function Blog() {
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
               <h2 className="text-3xl font-bold mb-4 text-white">Want AI-Optimized Content for Your Business?</h2>
-              <p className="text-white/50 mb-8">LovelyAnswers helps you create content that ranks first in AI search engines.</p>
+              <p className="text-white/50 mb-8">AutoPilot Geo helps you create content that ranks first in AI search engines.</p>
               <Link to="/auth">
                 <Button size="lg" className="gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90">
                   Get Started Free <ArrowRight className="h-4 w-4" />

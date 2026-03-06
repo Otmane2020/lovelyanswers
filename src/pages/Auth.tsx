@@ -319,7 +319,7 @@ export default function Auth() {
           <Link to="/" className="flex items-center gap-2 mb-12">
             <AnimatedLogo size="md" />
             <span className="text-2xl font-bold tracking-tight">
-              Lovely<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500">Answers</span>
+              AutoPilot<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-500"> Geo</span>
             </span>
           </Link>
 

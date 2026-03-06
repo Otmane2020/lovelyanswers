@@ -1,5 +1,5 @@
-# Robots.txt for LovelyAnswers
-# https://lovelyanswers.com
+# Robots.txt for AutoPilot Geo
+# https://autopilotgeo.com
 
 # Allow all major search engines
 User-agent: Googlebot

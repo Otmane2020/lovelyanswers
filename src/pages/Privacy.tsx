@@ -9,9 +9,9 @@ export default function Privacy() {
   return (
     <>
       <Helmet>
-        <title>Privacy Policy - LovelyAnswers</title>
-        <meta name="description" content="Learn how LovelyAnswers protects your data. Our privacy policy covers data collection, security, GDPR compliance, and your rights." />
-        <link rel="canonical" href="https://lovelyanswers.com/privacy" />
+        <title>Privacy Policy - AutoPilot Geo</title>
+        <meta name="description" content="Learn how AutoPilot Geo protects your data. Our privacy policy covers data collection, security, GDPR compliance, and your rights." />
+        <link rel="canonical" href="https://autopilotgeo.com/privacy" />
       </Helmet>
 
       <div className="min-h-screen">
@@ -21,7 +21,7 @@ export default function Privacy() {
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
               <span className="text-xl font-bold tracking-tight text-white">
-                Lovely<span className="text-violet-400">Answers</span>
+                AutoPilot<span className="text-violet-400"> Geo</span>
               </span>
             </Link>
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild>
@@ -93,11 +93,11 @@ export default function Privacy() {
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">7. Contact</h2>
-                <p>For privacy inquiries, contact us at <a href="mailto:support@lovelyanswers.io" className="text-violet-600 hover:underline">support@lovelyanswers.io</a></p>
+                <p>For privacy inquiries, contact us at <a href="mailto:support@autopilotgeo.com" className="text-violet-600 hover:underline">support@autopilotgeo.com</a></p>
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">8. Company Information</h2>
-                <p>LovelyAnswers Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
+                <p>AutoPilot Geo Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
               </section>
             </div>
           </div>

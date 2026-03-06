@@ -344,7 +344,7 @@ export function AuditReportDisplay({ report }: { report: Report }) {
           <CardContent className="p-8 text-center">
             <h3 className="text-xl font-bold mb-2">Ready to fix these issues?</h3>
             <p className="text-muted-foreground mb-6">
-              LovelyAnswers publishes 30 expert articles/month and optimizes your site for AI search — on autopilot.
+              AutoPilot Geo publishes 30 expert articles/month and optimizes your site for AI search — on autopilot.
             </p>
             <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
               <Link to="/onboarding">
