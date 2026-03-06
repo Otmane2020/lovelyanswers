@@ -157,9 +157,7 @@ export default function AutoSeo() {
                 <ExternalLink className="h-4 w-4" />
                 AEO Answers
               </Button>
-            </div>
-          </div>
-        </div>
+        </PageHeader>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
