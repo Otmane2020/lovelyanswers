@@ -289,7 +289,7 @@ function ActionButton({ action, onExecuted }: { action: ParsedAction; onExecuted
         onExecuted?.();
 
       } else if (action.type === "create_ad_group") {
-        // Call competitor ad group creation function with explicit lovelyanswers context
+        // Call competitor ad group creation function with explicit autopilotgeo context
         toast({ title: "🔍 Recherche de concurrents...", description: "Identification des concurrents et création de l'ad group en cours..." });
         
         const { data, error } = await supabase.functions.invoke("create-competitor-ad-group", {

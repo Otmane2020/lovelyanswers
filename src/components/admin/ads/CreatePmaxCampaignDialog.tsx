@@ -648,7 +648,7 @@ export function CreatePmaxCampaignDialog() {
                 {/* Display Path */}
                 <Section title="Display Path" icon={<Link className="h-4 w-4" />}>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">www.lovelyanswers.com /</span>
+                    <span className="text-muted-foreground">www.autopilotgeo.com /</span>
                     <Input value={displayPath1} onChange={e => setDisplayPath1(e.target.value)} placeholder="path1" className="text-xs w-28" maxLength={15} />
                     <span>/</span>
                     <Input value={displayPath2} onChange={e => setDisplayPath2(e.target.value)} placeholder="path2" className="text-xs w-28" maxLength={15} />

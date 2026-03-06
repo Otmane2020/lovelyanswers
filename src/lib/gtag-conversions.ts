@@ -87,7 +87,7 @@ export function trackPurchase(value: number, transactionId?: string) {
     value,
     currency: "USD",
     transaction_id: transactionId,
-    items: [{ item_name: "LovelyAnswers Subscription", price: value }],
+    items: [{ item_name: "AutoPilot Geo Subscription", price: value }],
   });
   console.log("[GTAG] Conversion: purchase", { value, transactionId });
 }
