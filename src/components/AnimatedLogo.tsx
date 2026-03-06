@@ -1,4 +1,4 @@
-import autopilotGeoLogo from "@/assets/autopilot-geo-logo.svg";
+import autopilotGeoLogo from "@/assets/autopilotgeo-logo-light.svg";
 
 interface AnimatedLogoProps {
   size?: "sm" | "md" | "lg";
@@ -6,9 +6,9 @@ interface AnimatedLogoProps {
 }
 
 const sizeClasses = {
-  sm: "h-7 w-7",
-  md: "h-8 w-8 md:h-9 md:w-9",
-  lg: "h-10 w-10 md:h-12 md:w-12",
+  sm: "h-8 w-auto",
+  md: "h-10 w-auto",
+  lg: "h-14 w-auto",
 };
 
 export function AnimatedLogo({ size = "md", className = "" }: AnimatedLogoProps) {
