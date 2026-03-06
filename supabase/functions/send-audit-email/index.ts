@@ -339,7 +339,7 @@ Rules:
       <p style="font-size: 14px; color: #666; margin: 0 0 16px;">
         Get a Premium AEO Audit with competitor landscape, market trends, and strategic recommendations — completely free.
       </p>
-      <a href="https://lovelyanswers.lovable.app/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+      <a href="https://autopilotgeo.com/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
         🔍 Get Premium Audit (Free) →
       </a>
     </div>
