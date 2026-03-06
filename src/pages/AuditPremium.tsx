@@ -137,7 +137,7 @@ export default function AuditPremium() {
   return (
     <>
       <Helmet>
-        <title>Premium AEO Audit – Competitor Analysis | LovelyAnswers</title>
+        <title>Premium AEO Audit – Competitor Analysis | AutoPilot Geo</title>
         <meta name="description" content="Get a comprehensive AEO audit with competitor analysis, market trends, and strategic recommendations." />
       </Helmet>
 
