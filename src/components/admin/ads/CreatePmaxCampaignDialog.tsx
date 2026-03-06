@@ -258,7 +258,7 @@ export function CreatePmaxCampaignDialog() {
   const handleGenerateAIImage = async (format: "landscape" | "square" | "portrait", dimensions: string) => {
     setIsGeneratingImage(true);
     try {
-      const prompt = `Professional marketing banner for "${brandName || "LovelyAnswers"}" - an AI-powered SEO & AEO platform. ${
+      const prompt = `Professional marketing banner for "${brandName || "AutoPilot Geo"}" - an AI-powered SEO & AEO platform. ${
         format === "landscape" ? "Wide landscape format (1.91:1 ratio)" :
         format === "square" ? "Square format (1:1 ratio)" :
         "Portrait format (4:5 ratio)"
