@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     let errorCount = 0;
 
     for (const article of articles) {
-      const publishedUrl = `https://lovelyanswers.com/blog/${article.slug}`;
+      const publishedUrl = `https://autopilotgeo.com/blog/${article.slug}`;
       console.log(`[index] Submitting: ${publishedUrl}`);
 
       const result = await submitToIndexingAPI(publishedUrl, accessToken!);
