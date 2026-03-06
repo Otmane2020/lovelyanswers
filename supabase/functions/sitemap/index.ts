@@ -53,11 +53,12 @@ Deno.serve(async (req) => {
     })
 
     const today = new Date().toISOString().split('T')[0]
+    const prerenderBase = `${supabaseUrl}/functions/v1/prerender?path=`
 
     // Collect all slugs to deduplicate
     const seenSlugs = new Set<string>()
 
-    // Build sitemap XML
+    // Build sitemap XML with xhtml:link for pre-rendered alternates
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Homepage -->
