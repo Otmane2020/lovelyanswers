@@ -70,8 +70,8 @@ export default function ArticleTemplate({
   slug,
   author,
 }: ArticleTemplateProps) {
-  const brand = "LovelyAnswers";
-  const brandUrl = "https://lovelyanswers.com";
+  const brand = "AutoPilot Geo";
+  const brandUrl = "https://autopilotgeo.com";
 
   const readingTime = useMemo(() => estimateReadingTime(htmlContent), [htmlContent]);
   const headings = useMemo(() => extractHeadings(htmlContent), [htmlContent]);
@@ -145,8 +145,8 @@ export default function ArticleTemplate({
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="sm" />
               <span className="font-bold text-lg">
-                Lovely
-                <span className="gradient-text">Answers</span>
+                AutoPilot
+                <span className="gradient-text"> Geo</span>
               </span>
             </Link>
             <div className="flex items-center gap-2">
@@ -177,7 +177,7 @@ export default function ArticleTemplate({
             {/* Byline */}
             <div className="editorial-byline">
               <div className="editorial-byline-avatar">
-                <span className="text-primary-foreground font-bold text-xs">LA</span>
+                <span className="text-primary-foreground font-bold text-xs">AG</span>
               </div>
               <div className="flex flex-col items-start text-sm">
                 <span className="font-semibold text-foreground">{author || brand}</span>
@@ -240,7 +240,7 @@ export default function ArticleTemplate({
               Want AI-Optimized Content Like This?
             </h2>
             <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-              LovelyAnswers helps you rank first in ChatGPT, Gemini, and Google with automatically
+              AutoPilot Geo helps you rank first in ChatGPT, Gemini, and Google with automatically
               generated, SEO-optimized articles.
             </p>
             <a href={`${brandUrl}/auth?mode=signup`}>

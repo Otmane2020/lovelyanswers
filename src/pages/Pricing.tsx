@@ -12,10 +12,10 @@ import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
 const pricingStructuredData = {
-  "@context": "https://schema.org", "@type": "Product", "name": "LovelyAnswers AEO Platform",
+  "@context": "https://schema.org", "@type": "Product", "name": "AutoPilot Geo AEO Platform",
   "description": "All-in-one AI SEO solution with 30 articles/month, automatic backlinks, keyword research, and AI Answer Engine Optimization for ChatGPT, Gemini, and Google.",
-  "brand": { "@type": "Brand", "name": "LovelyAnswers" },
-  "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD", "priceValidUntil": "2027-12-31", "availability": "https://schema.org/InStock", "url": "https://lovelyanswers.com/pricing" },
+  "brand": { "@type": "Brand", "name": "AutoPilot Geo" },
+  "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD", "priceValidUntil": "2027-12-31", "availability": "https://schema.org/InStock", "url": "https://autopilotgeo.com/pricing" },
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "527", "bestRating": "5" }
 };
 
@@ -34,7 +34,7 @@ const features = [
 ];
 
 const faqs = [
-  { question: "I am not an SEO expert?", answer: "Don't worry! LovelyAnswers is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content." },
+  { question: "I am not an SEO expert?", answer: "Don't worry! AutoPilot Geo is designed to support individuals without any SEO knowledge. We take care of everything from keyword research, clustering, content creation to content optimization. You just need to publish the generated content." },
   { question: "Will Google penalize AI written content?", answer: "No, Google penalizes low quality content, regardless of whether it's AI or human written. Their official take confirms that quality AI content is welcome." },
   { question: "Can AI content even rank on Google?", answer: "Yes, absolutely. If executed correctly. We've proven multiple times that quality AI content can rank well on Google." },
   { question: "Which languages are supported?", answer: "We support content generation in all major languages including English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, and many others." },
@@ -49,11 +49,11 @@ export default function Pricing() {
   return (
     <>
       <SocialProofToast />
-      <ExitIntentPopup ctaUrl="/onboarding" headline="🎁 Special offer: 2 months free!" description="Join the 500+ sites boosting their AI visibility with LovelyAnswers. Get 2 months free now." ctaLabel="Start for free" />
+      <ExitIntentPopup ctaUrl="/onboarding" headline="🎁 Special offer: 2 months free!" description="Join the 500+ sites boosting their AI visibility with AutoPilot Geo. Get 2 months free now." ctaLabel="Start for free" />
       <Helmet>
-        <title>Pricing - LovelyAnswers AEO Platform | $29/month AI SEO</title>
+        <title>Pricing - AutoPilot Geo AEO Platform | $29/month AI SEO</title>
         <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
-        <link rel="canonical" href="https://lovelyanswers.com/pricing" />
+        <link rel="canonical" href="https://autopilotgeo.com/pricing" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
       </Helmet>
 
@@ -62,7 +62,7 @@ export default function Pricing() {
           <div className="container flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-xl font-bold tracking-tight text-white">LovelyAnswers</span>
+              <span className="text-xl font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="flex items-center gap-4">
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link to="/">Home</Link></Button>
@@ -137,7 +137,7 @@ export default function Pricing() {
               <h2 className="text-3xl font-bold mb-4 text-[hsl(222,47%,11%)]">FAQs</h2>
               <p className="text-gray-500">
                 Haven't found what you are looking for?{" "}
-                <a href="mailto:support@lovelyanswers.io" className="text-[hsl(222,47%,30%)] hover:underline">Send us an email</a>
+                <a href="mailto:support@autopilotgeo.com" className="text-[hsl(222,47%,30%)] hover:underline">Send us an email</a>
               </p>
             </div>
             <Accordion type="single" collapsible className="space-y-4">

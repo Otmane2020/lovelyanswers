@@ -307,7 +307,7 @@ export default function Audit() {
     <>
       <SocialProofToast />
       <Helmet>
-        <title>Free AEO & SEO Audit | LovelyAnswers</title>
+        <title>Free AEO & SEO Audit | AutoPilot Geo</title>
         <meta name="description" content="Get a free comprehensive SEO and AEO audit for your website. Find out how to rank on ChatGPT, Gemini, and Google." />
       </Helmet>
 
@@ -513,7 +513,7 @@ export default function Audit() {
               {/* CTA Banner - leads to onboarding/signup */}
               <div className="bg-gradient-to-r from-primary/10 via-violet-500/10 to-fuchsia-500/10 border border-primary/20 rounded-2xl p-6 text-center">
                 <h3 className="text-lg font-bold mb-2">
-                  🚀 Fix these issues automatically with LovelyAnswers
+                  🚀 Fix these issues automatically with AutoPilot Geo
                 </h3>
                 <p className="text-muted-foreground text-sm mb-4">
                   Get 30 SEO articles/month, AEO optimization, and auto-publishing — all on autopilot.

@@ -223,29 +223,29 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>LovelyAnswers – AI Search Optimization for SaaS | Rank in ChatGPT, Gemini & Google</title>
+        <title>AutoPilot Geo – AI Search Optimization for SaaS | Rank in ChatGPT, Gemini & Google</title>
         <meta
           name="description"
           content="AI search optimization platform for SaaS. Get your SaaS brand recommended by ChatGPT, Gemini, Perplexity & Google. AEO + GEO + SEO automation. Start free."
         />
-        <link rel="canonical" href="https://lovelyanswers.com/" />
-        <meta property="og:title" content="LovelyAnswers – AI Search Optimization for SaaS" />
+        <link rel="canonical" href="https://autopilotgeo.com/" />
+        <meta property="og:title" content="AutoPilot Geo – AI Search Optimization for SaaS" />
         <meta
           property="og:description"
           content="The #1 platform to get your SaaS recommended by AI search engines. AEO, GEO & SEO automation."
         />
-        <meta property="og:url" content="https://lovelyanswers.com/" />
+        <meta property="og:url" content="https://autopilotgeo.com/" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://lovelyanswers.com/og-image.png" />
+        <meta property="og:image" content="https://autopilotgeo.com/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <script
           type="application/ld+json"
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
-            name: "LovelyAnswers",
-            url: "https://lovelyanswers.com",
-            logo: "https://lovelyanswers.com/favicon.png",
+            name: "AutoPilot Geo",
+            url: "https://autopilotgeo.com",
+            logo: "https://autopilotgeo.com/favicon.png",
             description:
               "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
           })}
@@ -255,7 +255,7 @@ export default function Index() {
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            name: "LovelyAnswers",
+            name: "AutoPilot Geo",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
@@ -278,7 +278,7 @@ export default function Index() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight text-white">LovelyAnswers</span>
+              <span className="text-lg font-bold tracking-tight text-white">AutoPilot Geo</span>
             </Link>
             <div className="hidden md:flex items-center gap-1">
               <Button
@@ -576,7 +576,7 @@ export default function Index() {
           <div className="container px-4">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                What people say about <span className="font-extrabold">LovelyAnswers</span>
+                What people say about <span className="font-extrabold">AutoPilot Geo</span>
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
                 Join 500+ businesses already growing with AI search optimization.

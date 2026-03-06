@@ -198,15 +198,15 @@ export default function AiShoppingAssistant() {
   return (
     <>
       <Helmet>
-        <title>AI Shopping Assistant — Optimize Products for ChatGPT & AI Search | LovelyAnswers</title>
+        <title>AI Shopping Assistant — Optimize Products for ChatGPT & AI Search | AutoPilot Geo</title>
         <meta
           name="description"
           content="Get your e-commerce products recommended by ChatGPT, Gemini & Google SGE. Auto-generate AI-optimized titles, descriptions, FAQ & Schema from your product feed."
         />
-        <link rel="canonical" href="https://lovelyanswers.com/ai-shopping-assistant" />
+        <link rel="canonical" href="https://autopilotgeo.com/ai-shopping-assistant" />
         <meta property="og:title" content="AI Shopping Assistant — Products Optimized for AI Search" />
         <meta property="og:description" content="Transform your product catalog into AI-recommended content. Auto-generated Q&A, Schema markup & smart descriptions." />
-        <meta property="og:url" content="https://lovelyanswers.com/ai-shopping-assistant" />
+        <meta property="og:url" content="https://autopilotgeo.com/ai-shopping-assistant" />
         <meta property="og:type" content="website" />
       </Helmet>
 
@@ -216,7 +216,7 @@ export default function AiShoppingAssistant() {
           <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center gap-2">
               <AnimatedLogo size="md" />
-              <span className="text-lg font-bold tracking-tight text-foreground">LovelyAnswers</span>
+              <span className="text-lg font-bold tracking-tight text-foreground">AutoPilot Geo</span>
             </Link>
             <div className="hidden md:flex items-center gap-1">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
@@ -671,10 +671,10 @@ export default function AiShoppingAssistant() {
             <motion.div {...fadeUp} className="max-w-2xl mx-auto text-center">
               <p className="text-sm font-medium text-primary uppercase tracking-wider mb-3">Pricing</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">
-                Included in your LovelyAnswers plan
+                Included in your AutoPilot Geo plan
               </h2>
               <p className="text-muted-foreground mb-8">
-                AI Shopping Assistant is included with all LovelyAnswers plans. No extra cost — optimize your products alongside your blog content.
+                AI Shopping Assistant is included with all AutoPilot Geo plans. No extra cost — optimize your products alongside your blog content.
               </p>
 
               <div className="p-8 rounded-2xl bg-card border border-border shadow-lg">
@@ -763,7 +763,7 @@ export default function AiShoppingAssistant() {
                 Start getting your products recommended today
               </h2>
               <p className="text-muted-foreground mb-8">
-                Join 500+ businesses already using LovelyAnswers to dominate AI search.
+                Join 500+ businesses already using AutoPilot Geo to dominate AI search.
               </p>
               <Button
                 size="lg"

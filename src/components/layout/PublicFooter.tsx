@@ -10,11 +10,11 @@ export function PublicFooter() {
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
               <AnimatedLogo size="sm" />
-              <span className="font-bold text-white">LovelyAnswers</span>
+              <span className="font-bold text-white">AutoPilot Geo</span>
             </Link>
             <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
             <div className="text-sm text-white/40 space-y-1">
-              <p className="font-medium text-white/60">LovelyAnswers Ltd</p>
+              <p className="font-medium text-white/60">AutoPilot Geo Ltd</p>
               <p>Suite 4, Piccadilly House</p>
               <p>Manchester, M1 1AB</p>
               <p>United Kingdom</p>
@@ -36,8 +36,8 @@ export function PublicFooter() {
               <li><Link to="/about" className="text-white/40 hover:text-white transition-colors">About Us</Link></li>
               <li><Link to="/terms" className="text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
               <li><Link to="/privacy" className="text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><a href="mailto:support@lovelyanswers.io" className="text-white/40 hover:text-white transition-colors">Contact</a></li>
-              <li><a href="https://lovelyanswers.io" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">lovelyanswers.io <ExternalLink className="h-3 w-3" /></a></li>
+              <li><a href="mailto:support@autopilotgeo.com" className="text-white/40 hover:text-white transition-colors">Contact</a></li>
+              <li><a href="https://autopilotgeo.com" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">autopilotgeo.com <ExternalLink className="h-3 w-3" /></a></li>
             </ul>
           </div>
           <div>
@@ -58,7 +58,7 @@ export function PublicFooter() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/30">© {new Date().getFullYear()} LovelyAnswers Ltd. All rights reserved.</p>
+          <p className="text-sm text-white/30">© {new Date().getFullYear()} AutoPilot Geo Ltd. All rights reserved.</p>
           <div className="flex items-center gap-4 text-sm text-white/30">
             <span>Answer Engine Optimization Platform</span>
             <span className="hidden md:inline">•</span>
