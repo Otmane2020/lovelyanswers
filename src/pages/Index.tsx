@@ -322,7 +322,7 @@ export default function Index() {
                 <Link to="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link to="/onboarding">Start Free</Link>
+                <Link to="/onboarding">Start Free Audit</Link>
               </Button>
             </div>
           </div>
