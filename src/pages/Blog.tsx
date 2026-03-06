@@ -112,8 +112,8 @@ export default function Blog() {
               <AnimatedLogo size="sm" />
             </Link>
             <nav className="flex items-center gap-4">
-              <Link to="/pricing"><Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">Pricing</Button></Link>
-              <Link to="/auth"><Button size="sm" className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90">Get Started</Button></Link>
+              <Link to="/pricing"><Button variant="ghost" size="sm">Pricing</Button></Link>
+              <Link to="/auth"><Button size="sm">Get Started</Button></Link>
             </nav>
           </div>
         </header>
