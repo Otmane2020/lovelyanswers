@@ -1,10 +1,11 @@
 import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
+import { AppTopbar } from "./AppTopbar";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Menu, ArrowRight, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
