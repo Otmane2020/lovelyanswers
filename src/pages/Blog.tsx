@@ -64,7 +64,7 @@ export default function Blog() {
         const lovelyanswersAnswers = internalAnswers.filter((answer: any) => {
           const projectDomain = (answer.projects?.domain || '').toLowerCase();
           const projectUrl = (answer.projects?.website_url || '').toLowerCase();
-          return projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
+          return projectDomain === 'lovelyanswers.com' || projectDomain.includes('lovelyanswers') || projectUrl.includes('lovelyanswers.com') || projectDomain === 'autopilotgeo.com' || projectDomain.includes('autopilotgeo') || projectUrl.includes('autopilotgeo.com');
         });
 
         const allAnswers = [...lovelyanswersAnswers, ...publishedAnswers];
