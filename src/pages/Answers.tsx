@@ -466,41 +466,8 @@ export default function Answers() {
           iconFrom="from-orange-500"
           iconTo="to-red-500"
           customIcon={<img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />}
-        >
-              <Button variant="outline" onClick={() => setShowNewAnswerModal(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Answer
-              </Button>
-              <Button
-                variant="outline"
-                onClick={regenerateAllAnswers}
-                disabled={regeneratingAll}
-                className="gap-2"
-              >
-                {regeneratingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Auto Generate
-                {unusedKeywordsCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs">{unusedKeywordsCount} keywords</Badge>
-                )}
-              </Button>
-              <Button
-                onClick={generate30Answers}
-                disabled={generating30}
-                className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-              >
-                {generating30 ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4" />
-                    30 Q/A (30 days)
-                  </>
-                )}
-              </Button>
-        </PageHeader>
+        />
+
 
         {/* Progress Bar */}
         {isGeneratingWithProgress && (
