@@ -7,6 +7,7 @@ import { useShoppingProducts } from "@/hooks/useShoppingProducts";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarDays, Sparkles, Loader2, Check } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 
