@@ -360,8 +360,8 @@ Rules:
     <!-- Footer -->
     <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
       <p style="font-size: 12px; color: #999;">
-        LovelyAnswers — AI-Powered SEO & AEO Platform<br>
-        <a href="https://lovelyanswers.lovable.app" style="color: #7c3aed;">lovelyanswers.lovable.app</a>
+        AutoPilot Geo — AI-Powered SEO & AEO Platform<br>
+        <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
       </p>
     </div>
   </div>
