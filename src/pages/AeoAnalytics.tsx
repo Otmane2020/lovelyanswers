@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Eye, ExternalLink, Search, ArrowUpRight, MousePointerClick, Target, Zap, AlertCircle, CheckCircle2, Loader2, RefreshCw, LogOut, Calendar, FileText, BarChart3, Sparkles, Globe, Newspaper, MessageSquare } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
