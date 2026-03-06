@@ -42,13 +42,27 @@ Deno.serve(async (req) => {
       (q: any) => q.eq('is_public', true).not('published_at', 'is', null)
     )
 
-    // 2. Fetch all published blog articles
-    const articles = await fetchAll('published_articles', 'slug, published_at, updated_at')
+    // 2. Fetch all published blog articles from published_articles
+    const publishedArticles = await fetchAll('published_articles', 'slug, published_at, updated_at')
+
+    // 3. Fetch published articles from articles table (for projects like lovelyanswers)
+    const directArticles = await fetchAll(
+      'articles',
+      'slug, created_at, updated_at, projects!inner(domain, website_url)',
+      (q: any) => q.eq('status', 'published').not('slug', 'is', null)
+    )
 
     // Filter only lovelyanswers.com Q&A answers
     const lovelyanswersAnswers = (answers || []).filter((answer: any) => {
       const projectUrl = (answer.projects?.website_url || '').toLowerCase()
       const projectDomain = (answer.projects?.domain || '').toLowerCase()
+      return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
+    })
+
+    // Filter only lovelyanswers.com direct articles
+    const lovelyanswersArticles = (directArticles || []).filter((article: any) => {
+      const projectUrl = (article.projects?.website_url || '').toLowerCase()
+      const projectDomain = (article.projects?.domain || '').toLowerCase()
       return projectUrl.includes('lovelyanswers.com') || projectDomain === 'lovelyanswers.com'
     })
 
@@ -118,14 +132,32 @@ Deno.serve(async (req) => {
   </url>
 `
 
-    // Add published blog articles (priority - these are the main content)
-    for (const article of (articles || [])) {
+    // Add published blog articles from published_articles table
+    for (const article of (publishedArticles || [])) {
       if (seenSlugs.has(article.slug)) continue
       seenSlugs.add(article.slug)
 
       const lastmod = article.updated_at 
         ? new Date(article.updated_at).toISOString().split('T')[0]
         : new Date(article.published_at).toISOString().split('T')[0]
+      
+      sitemap += `
+  <url>
+    <loc>https://lovelyanswers.com/blog/${article.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+    }
+
+    // Add published articles from articles table (lovelyanswers project)
+    for (const article of lovelyanswersArticles) {
+      if (!article.slug || seenSlugs.has(article.slug)) continue
+      seenSlugs.add(article.slug)
+
+      const lastmod = article.updated_at 
+        ? new Date(article.updated_at).toISOString().split('T')[0]
+        : new Date(article.created_at).toISOString().split('T')[0]
       
       sitemap += `
   <url>
@@ -157,9 +189,10 @@ Deno.serve(async (req) => {
     sitemap += `
 </urlset>`
 
-    const totalArticles = (articles || []).length
+    const totalPublishedArticles = (publishedArticles || []).length
+    const totalDirectArticles = lovelyanswersArticles.length
     const totalAnswers = lovelyanswersAnswers.length
-    console.log(`Generated sitemap with ${totalArticles} blog articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
+    console.log(`Generated sitemap with ${totalPublishedArticles} published_articles + ${totalDirectArticles} direct articles + ${totalAnswers} Q&A answers (${seenSlugs.size} unique URLs)`)
 
     return new Response(sitemap, {
       headers: {
