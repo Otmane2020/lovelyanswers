@@ -9,7 +9,7 @@ export function PublicFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center mb-4 hover:opacity-80 transition-opacity">
-              <AnimatedLogo size="sm" />
+              <AnimatedLogo size="sm" theme="dark" />
             </Link>
             <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
             <div className="text-sm text-white/40 space-y-1">
