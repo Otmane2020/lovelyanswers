@@ -18,6 +18,7 @@ import {
   Clock,
   FileText
 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useToast } from "@/hooks/use-toast";
@@ -154,13 +155,16 @@ export default function AeoSeoAudit() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">SEO Audit</h1>
-          <p className="text-muted-foreground mt-1">
-            Analysez votre site web pour les problèmes SEO et AEO
-          </p>
-        </div>
+        <PageHeader
+          icon={Search}
+          title="SEO Audit"
+          description="Analysez votre site web pour les problèmes SEO et AEO"
+          gradientFrom="from-rose-500/10"
+          gradientVia="via-pink-500/10"
+          gradientTo="to-red-500/10"
+          iconFrom="from-rose-500"
+          iconTo="to-pink-600"
+        />
 
         {/* URL Input */}
         <GlassCard className="p-6">

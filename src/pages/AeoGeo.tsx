@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   Globe, Loader2, Trash2, Copy, Check, Eye, EyeOff, Clock,
 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -190,16 +191,16 @@ export default function AeoGeo() {
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Globe className="h-5 w-5 sm:h-7 sm:w-7 text-violet-600" />
-            GEO Engine
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Generative Engine Optimization — AI visibility for your brand
-          </p>
-        </div>
+        <PageHeader
+          icon={Globe}
+          title="GEO Engine"
+          description="Generative Engine Optimization — AI visibility for your brand"
+          gradientFrom="from-violet-500/10"
+          gradientVia="via-purple-500/10"
+          gradientTo="to-indigo-500/10"
+          iconFrom="from-violet-500"
+          iconTo="to-purple-600"
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">

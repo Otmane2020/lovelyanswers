@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { History, MessageSquare, FileText, CheckCircle, Clock, AlertCircle, ExternalLink, Eye, Pencil, Globe, Loader2, Copy, MapPin, Sparkles, Search } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useAnswers } from "@/hooks/useAnswers";
 import { useArticles } from "@/hooks/useArticles";
 import { useLocalAnswers } from "@/hooks/useLocalAnswers";
@@ -75,12 +76,16 @@ export default function AeoHistory() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-[hsl(222,47%,11%)] flex items-center justify-center">
-            <History className="h-6 w-6 text-white" />
-          </div>
-          <div><h1 className="text-3xl font-bold">History</h1><p className="text-muted-foreground">Track all your published content: AEO, Local AEO & SEO</p></div>
-        </div>
+        <PageHeader
+          icon={History}
+          title="History"
+          description="Track all your published content: AEO, Local AEO & SEO"
+          gradientFrom="from-slate-500/10"
+          gradientVia="via-zinc-500/10"
+          gradientTo="to-gray-500/10"
+          iconFrom="from-slate-600"
+          iconTo="to-zinc-700"
+        />
 
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">

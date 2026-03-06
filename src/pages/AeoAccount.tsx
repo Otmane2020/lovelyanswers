@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { AccountSettings } from '@/components/dashboard/AccountSettings';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Sparkles, ExternalLink, CreditCard, ArrowRight } from 'lucide-react';
+import { Sparkles, ExternalLink, CreditCard, ArrowRight, User } from 'lucide-react';
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -33,16 +34,22 @@ export default function AeoAccount() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">My Account</h1>
-        {planName && (
-          <Badge variant="secondary" className="mt-2 bg-primary/10 text-primary">
+      <PageHeader
+        icon={User}
+        title="My Account"
+        description="Manage your profile and subscription"
+        gradientFrom="from-indigo-500/10"
+        gradientVia="via-blue-500/10"
+        gradientTo="to-sky-500/10"
+        iconFrom="from-indigo-500"
+        iconTo="to-blue-600"
+      />
+      {planName && (
+          <Badge variant="secondary" className="bg-primary/10 text-primary">
             <Sparkles className="w-3 h-3 mr-1" />
             {isTrialing ? 'Free trial' : planName}
           </Badge>
-        )}
-      </div>
+      )}
 
       {/* Profile Settings */}
       <Card className="p-6">

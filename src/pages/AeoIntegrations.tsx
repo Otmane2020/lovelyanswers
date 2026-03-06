@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut, Clock, Calendar, Lock, Crown } from "lucide-react";
+import { ExternalLink, CheckCircle2, Settings2, Trash2, Loader2, Search, Globe, AlertCircle, Send, ChevronDown, Stethoscope, ChevronRight, Copy, Check, LogOut, Clock, Calendar, Lock, Crown, Link2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
@@ -422,23 +423,16 @@ export default function AeoIntegrations() {
       
       <div className="space-y-6 max-w-4xl">
         {/* Hero Header */}
-        <Card className="p-6 bg-gradient-to-br from-primary/10 via-purple-500/10 to-blue-500/10 border-primary/20">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-background/80 backdrop-blur rounded-xl p-3 shadow-sm border border-border/50">
-              <img src={shopifyLogo} alt="Shopify" className="h-8 w-auto object-contain" />
-              <img src={wordpressLogo} alt="WordPress" className="h-8 w-auto object-contain dark:invert" />
-              <img src={wixLogo} alt="Wix" className="h-6 w-auto object-contain dark:invert" />
-              <img src={boltLogo} alt="Bolt" className="h-6 w-auto object-contain" />
-              <img src={lovableLogo} alt="Lovable" className="h-6 w-auto object-contain" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Integrations</h2>
-              <p className="text-muted-foreground text-sm">
-                Connect your platforms to auto-publish AEO content
-              </p>
-            </div>
-          </div>
-        </Card>
+        <PageHeader
+          icon={Link2}
+          title="Integrations"
+          description="Connect your platforms to auto-publish AEO content"
+          gradientFrom="from-primary/10"
+          gradientVia="via-purple-500/10"
+          gradientTo="to-blue-500/10"
+          iconFrom="from-primary"
+          iconTo="to-purple-600"
+        />
 
         {/* Connected Integrations */}
         {integrations.length > 0 && (

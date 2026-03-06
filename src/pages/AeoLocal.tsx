@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Calendar, MapPin, TrendingUp, Check, ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useLocalBusiness } from "@/hooks/useLocalBusiness";
 import { useActiveProject } from "@/hooks/useProjects";
 import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
@@ -119,17 +120,16 @@ export default function AeoLocal() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[hsl(222,47%,11%)] text-white">
-              <MapPin className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Local AEO</h1>
-              <p className="text-muted-foreground">Optimize your local AI visibility</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={MapPin}
+          title="Local AEO"
+          description="Optimize your local AI visibility"
+          gradientFrom="from-orange-500/10"
+          gradientVia="via-amber-500/10"
+          gradientTo="to-yellow-500/10"
+          iconFrom="from-orange-500"
+          iconTo="to-amber-600"
+        />
 
         {/* GMB Connection Card */}
         <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">

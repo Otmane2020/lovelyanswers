@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 import geminiLogo from "@/assets/gemini-logo.png";
+import { PageHeader } from "@/components/PageHeader";
 import perplexityLogo from "@/assets/perplexity-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -268,12 +269,16 @@ export default function Dashboard() {
       <div className="space-y-6">
         {/* Progress bar is now in DashboardLayout - global and persistent */}
 
-        {/* Welcome Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
-            Welcome back, {userName}!
-          </h1>
-        </div>
+        <PageHeader
+          icon={Sparkles}
+          title={`Welcome back, ${userName}!`}
+          description="Your AI visibility command center"
+          gradientFrom="from-primary/10"
+          gradientVia="via-violet-500/10"
+          gradientTo="to-blue-500/10"
+          iconFrom="from-primary"
+          iconTo="to-violet-600"
+        />
 
         {/* Potential Traffic Reach Chart */}
         <Card className="p-4 sm:p-6 border border-border/50">

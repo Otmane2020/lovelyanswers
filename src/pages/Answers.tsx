@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send, FileText, Clock } from "lucide-react";
+import { Search, Filter, Plus, Eye, Pencil, Newspaper, ExternalLink, Copy, Globe, Loader2, RefreshCw, Zap, Send, FileText, Clock, MessageSquare } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
+import { PageHeader } from "@/components/PageHeader";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
@@ -454,27 +455,18 @@ export default function Answers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* ChatGPT Logo + Badge */}
-        <div className="flex items-center gap-3">
-          <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
-          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 font-bold text-sm px-3 py-1">
-            Rank First!
-          </Badge>
-        </div>
-
         {/* Hero Header */}
-        <div className="rounded-xl bg-gradient-to-r from-orange-500/10 via-red-500/10 to-amber-500/10 p-6 border border-border/50">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
-                <h1 className="text-3xl font-bold tracking-tight">AEO Answers</h1>
-              </div>
-              <p className="text-muted-foreground">
-                Optimized, citable answers for AI assistants
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
+        <PageHeader
+          icon={MessageSquare}
+          title="AEO Answers"
+          description="Optimized, citable answers for AI assistants"
+          gradientFrom="from-orange-500/10"
+          gradientVia="via-red-500/10"
+          gradientTo="to-amber-500/10"
+          iconFrom="from-orange-500"
+          iconTo="to-red-500"
+          customIcon={<img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />}
+        >
               <Button variant="outline" onClick={() => setShowNewAnswerModal(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Answer
@@ -508,9 +500,7 @@ export default function Answers() {
                   </>
                 )}
               </Button>
-            </div>
-          </div>
-        </div>
+        </PageHeader>
 
         {/* Progress Bar */}
         {isGeneratingWithProgress && (

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const features = [
@@ -26,15 +27,16 @@ export default function AeoSubscription() {
   return (
     <DashboardLayout>
       <div className="space-y-8 max-w-2xl mx-auto">
-        <div className="text-center">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-            {trial ? "Trial Active" : subscribed ? "Active Subscription" : "Limited Time Offer"}
-          </Badge>
-          <h1 className="text-3xl font-bold">All-in-One Plan</h1>
-          <p className="text-muted-foreground mt-2">
-            Everything you need to dominate AI search results
-          </p>
-        </div>
+        <PageHeader
+          icon={Crown}
+          title="All-in-One Plan"
+          description="Everything you need to dominate AI search results"
+          gradientFrom="from-amber-500/10"
+          gradientVia="via-orange-500/10"
+          gradientTo="to-yellow-500/10"
+          iconFrom="from-amber-500"
+          iconTo="to-orange-600"
+        />
 
         <Card className={`p-8 relative ${isActive ? 'border-emerald-500 shadow-lg shadow-emerald-500/20' : 'border-primary shadow-lg shadow-primary/20'}`}>
           {isActive && (

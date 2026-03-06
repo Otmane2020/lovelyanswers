@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PageHeader } from "@/components/PageHeader";
 import { FileText, Search, Eye, Edit, Trash2, Calendar, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -57,15 +58,20 @@ export default function AeoArticles() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold">AEO Articles</h1>
-            <p className="text-sm text-muted-foreground mt-1">Articles optimized for AI citation</p>
-          </div>
+        <PageHeader
+          icon={FileText}
+          title="AEO Articles"
+          description="Articles optimized for AI citation"
+          gradientFrom="from-blue-500/10"
+          gradientVia="via-indigo-500/10"
+          gradientTo="to-sky-500/10"
+          iconFrom="from-blue-500"
+          iconTo="to-indigo-600"
+        >
           <Button onClick={() => navigate("/aeo/answers")} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
             <Plus className="w-4 h-4 mr-2" />Create article
           </Button>
-        </div>
+        </PageHeader>
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

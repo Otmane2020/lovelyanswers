@@ -14,6 +14,7 @@ import { useShoppingProducts, useShoppingFeeds, useImportFeed, useDeleteProduct,
 import { useShoppingPlanning, useFillShoppingPlanning, useClearShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
 import { ShoppingCart, Upload, Sparkles, Package, Trash2, ExternalLink, Loader2, CalendarDays, Newspaper, Calendar, CheckCircle2, Clock, Unplug } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 
@@ -76,13 +77,16 @@ export default function ShoppingDashboard() {
       <SubscriptionGate title="Unlock AI Shopping" description="Optimize your product listings for ChatGPT, Gemini, and AI-powered search engines.">
         <div className="space-y-5 sm:space-y-8">
           {/* Header */}
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8" />
-              AI Shopping
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Optimize products for AI engines</p>
-          </div>
+          <PageHeader
+            icon={ShoppingCart}
+            title="AI Shopping"
+            description="Optimize products for AI engines"
+            gradientFrom="from-pink-500/10"
+            gradientVia="via-rose-500/10"
+            gradientTo="to-red-500/10"
+            iconFrom="from-pink-500"
+            iconTo="to-rose-600"
+          />
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="mb-4 sm:mb-6 w-full sm:w-auto">

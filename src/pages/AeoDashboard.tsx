@@ -9,6 +9,7 @@ import { useRedditPreload } from "@/hooks/useRedditPreload";
 import { useActiveProject } from "@/hooks/useProjects";
 import { toast } from "sonner";
 import { MessageSquare, TrendingUp, Globe, ArrowRight, Sparkles, Lightbulb, Link, Settings, Crown, Target, Check, Lock, FileText, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 const AI_PLATFORMS = ['ChatGPT', 'Gemini', 'Perplexity', 'Copilot', 'Claude'];
 
@@ -77,10 +78,16 @@ export default function AeoDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">AEO Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Optimize your visibility on AI answer engines</p>
-      </div>
+      <PageHeader
+        icon={Sparkles}
+        title="AEO Dashboard"
+        description="Optimize your visibility on AI answer engines"
+        gradientFrom="from-violet-500/10"
+        gradientVia="via-purple-500/10"
+        gradientTo="to-fuchsia-500/10"
+        iconFrom="from-violet-500"
+        iconTo="to-purple-600"
+      />
 
       {/* Generate locked content CTA for subscribers */}
       {subscribed && lockedCount > 0 && (

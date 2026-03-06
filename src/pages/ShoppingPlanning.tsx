@@ -7,6 +7,7 @@ import { useShoppingProducts } from "@/hooks/useShoppingProducts";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarDays, Sparkles, Loader2, Check } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 
@@ -54,13 +55,16 @@ export default function ShoppingPlanning() {
   return (
     <DashboardLayout>
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <CalendarDays className="w-8 h-8" />
-          Shopping Planning
-        </h1>
-        <p className="text-muted-foreground mt-1">Schedule optimized product content for automatic publishing</p>
-      </div>
+      <PageHeader
+        icon={CalendarDays}
+        title="Shopping Planning"
+        description="Schedule optimized product content for automatic publishing"
+        gradientFrom="from-pink-500/10"
+        gradientVia="via-fuchsia-500/10"
+        gradientTo="to-purple-500/10"
+        iconFrom="from-pink-500"
+        iconTo="to-fuchsia-600"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
