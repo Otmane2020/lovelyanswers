@@ -455,7 +455,7 @@ CRITICAL: Return ONLY valid JSON. No markdown code blocks. Use escaped quotes fo
             .update({ 
               is_public: true, 
               published_at: new Date().toISOString(),
-              published_url: `https://lovelyanswers.com/blog/${slug}`
+              published_url: `https://autopilotgeo.com/blog/${slug}`
             })
             .eq("id", answer.id);
 
