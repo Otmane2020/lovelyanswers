@@ -45,12 +45,11 @@ export default function AeoAccount() {
         iconTo="to-blue-600"
       />
       {planName && (
-          <Badge variant="secondary" className="mt-2 bg-primary/10 text-primary">
+          <Badge variant="secondary" className="bg-primary/10 text-primary">
             <Sparkles className="w-3 h-3 mr-1" />
             {isTrialing ? 'Free trial' : planName}
           </Badge>
-        )}
-      </div>
+      )}
 
       {/* Profile Settings */}
       <Card className="p-6">

@@ -130,8 +130,6 @@ export default function AeoLocal() {
           iconFrom="from-orange-500"
           iconTo="to-amber-600"
         />
-          </div>
-        </div>
 
         {/* GMB Connection Card */}
         <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">

@@ -500,9 +500,7 @@ export default function Answers() {
                   </>
                 )}
               </Button>
-            </div>
-          </div>
-        </div>
+        </PageHeader>
 
         {/* Progress Bar */}
         {isGeneratingWithProgress && (
