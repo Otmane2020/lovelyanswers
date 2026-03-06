@@ -992,7 +992,7 @@ async function publishToLovable(
     }
     
     if (!siteUrl) {
-      siteUrl = "https://autopilotgeocom";
+      siteUrl = "https://autopilotgeoom";
     }
     
     const publishedUrl = `${siteUrl}/blog/${contentSlug}`;
@@ -1098,7 +1098,7 @@ function generateErrorHTML(title: string, message: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} | LAutoPilot Geo/title>
+  <title>${title} | LAAutoPilot Geotitle>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 2rem; }
@@ -1113,7 +1113,7 @@ function generateErrorHTML(title: string, message: string): string {
   <div class="container">
     <h1>${title}</h1>
     <p>${message}</p>
-    <a href="https://lovelyanswers.com">← Back to LovelyAnswers</a>
+    <a href="https://lautopilotgeo.com">← Back to AutoPilot Geo/a>
   </div>
 </body>
 </html>`;
