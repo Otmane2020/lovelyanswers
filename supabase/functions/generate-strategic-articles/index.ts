@@ -268,7 +268,7 @@ INTENT: ${articleTopic.intent}
 LANGUAGE: ${language}
 
 CONTEXT:
-- LovelyAnswers (lovelyanswers.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
+- AutoPilot Geo (autopilotgeo.com) is the AEO/SEO solution for AI-built sites (Lovable, Bolt, Replit)
 - Target audience: entrepreneurs using AI builders who struggle with SEO/visibility
 
 EDITORIAL TEMPLATE RULES (CRITICAL):
