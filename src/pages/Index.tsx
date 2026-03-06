@@ -476,6 +476,12 @@ export default function Index() {
           </div>
         </section>
 
+        {/* ═══════ Shopping Visibility ═══════ */}
+        <ShoppingVisibilitySection />
+
+        {/* ═══════ Traffic Growth ═══════ */}
+        <TrafficGrowthSection />
+
         {/* ═══════ AI Platform Logos ═══════ */}
         <section className="py-8 md:py-12 border-b border-border">
           <div className="container px-4">
