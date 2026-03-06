@@ -62,7 +62,6 @@ export function AeoSidebar() {
         <NavLink to="/dashboard" onClick={handleNavClick} className="flex items-center group">
           <AnimatedLogo size="sm" />
         </NavLink>
-        </NavLink>
       </div>
 
       <SidebarContent className="px-3">

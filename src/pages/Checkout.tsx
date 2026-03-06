@@ -113,7 +113,6 @@ export default function Checkout() {
            <Link to="/" className="flex items-center">
             <AnimatedLogo size="md" />
           </Link>
-          </Link>
           <Button
             variant="ghost" 
             size="sm" 
