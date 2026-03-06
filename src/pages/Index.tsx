@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
+import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
+import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
@@ -473,6 +475,12 @@ export default function Index() {
             </div>
           </div>
         </section>
+
+        {/* ═══════ Shopping Visibility ═══════ */}
+        <ShoppingVisibilitySection />
+
+        {/* ═══════ Traffic Growth ═══════ */}
+        <TrafficGrowthSection />
 
         {/* ═══════ AI Platform Logos ═══════ */}
         <section className="py-8 md:py-12 border-b border-border">
