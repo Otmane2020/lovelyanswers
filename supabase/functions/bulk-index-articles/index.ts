@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     const errors: { slug: string; error: string }[] = [];
 
     for (const article of articles) {
-      const publishedUrl = `https://loautopilotgeoom/blog/${article.slug}`;
+      const publishedUrl = `https://autopilotgeo.com/blog/${article.slug}`;
       
       try {
         const response = await fetch(
