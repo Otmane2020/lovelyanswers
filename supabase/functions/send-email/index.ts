@@ -100,8 +100,8 @@ const handler = async (req: Request): Promise<Response> => {
             
             <p>Vous pouvez suivre l'état de votre ticket depuis votre dashboard.</p>
             
-            <p>Cordialement,<br><strong>L'équipe Support Lovely Answers</strong></p>
-            
+            <p>Cordialement,<br><strong>L'équipe Support AutoPilot Geo</strong></p>
+
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
             <p style="font-size: 12px; color: #888; text-align: center;">
               Cet email a été envoyé automatiquement. Répondez directement à ce mail pour continuer la conversation.
@@ -134,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
               <a href="https://app.autopilotgeo.com/support" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">Voir la conversation</a>
             </div>
             
-            <p>Cordialement,<br><strong>L'équipe Support Lovely Answers</strong></p>
+            <p>Cordialement,<br><strong>L'équipe Support AutoPilot Geo</strong></p>
             
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
             <p style="font-size: 12px; color: #888; text-align: center;">
@@ -146,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case "custom":
-        subject = data.subject || "Message de Lovely Answers";
+        subject = data.subject || "Message de AutoPilot Geo";
         html = data.html || `<p>${data.message}</p>`;
         break;
 

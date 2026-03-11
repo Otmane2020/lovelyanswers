@@ -27,7 +27,7 @@
     --ring: 222 47% 30%;
     --radius: 0.75rem;
     
-    /* Custom LovelyAnswers tokens - Light */
+    /* Custom AutoPilot Geo tokens - Light */
     --gradient-primary: linear-gradient(135deg, hsl(222, 47%, 30%) 0%, hsl(222, 47%, 20%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(222, 47%, 30%) 0%, hsl(222, 47%, 20%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(240, 20%, 98%) 100%);
@@ -59,7 +59,7 @@
     --input: 240 5% 16%;
     --ring: 222 47% 55%;
     
-    /* Custom LovelyAnswers tokens - Dark */
+    /* Custom AutoPilot Geo tokens - Dark */
     --gradient-primary: linear-gradient(135deg, hsl(222, 47%, 45%) 0%, hsl(222, 47%, 35%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(222, 47%, 45%) 0%, hsl(222, 47%, 35%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(240, 10%, 6%) 0%, hsl(240, 10%, 4%) 100%);
