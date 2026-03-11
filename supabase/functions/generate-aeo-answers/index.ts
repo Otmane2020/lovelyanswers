@@ -170,6 +170,7 @@ const FORBIDDEN_PATTERNS = [
 
 // Sanitize answer to remove marketing language
 function sanitizeAnswer(answer: string): string {
+  if (!answer) return "";
   let clean = answer;
   FORBIDDEN_PATTERNS.forEach(rx => {
     clean = clean.replace(rx, "");
@@ -183,8 +184,9 @@ function sanitizeAnswer(answer: string): string {
 // Based on: 1 Question = 1 Answer, Direct response, Neutral tone, Structured data
 // MINIMUM SCORE: 75 - All AEO content must be high quality
 function computeCitationScoreAEO(answer: string, platforms: Platform[]): number {
-  // Randomized base between 78-86 to create natural score variation
-  const baseScore = 78 + Math.floor(Math.random() * 9);
+  // Content-derived jitter (0-8) for stable variation without pure randomness
+  const jitter = answer.length % 9;
+  const baseScore = 78 + jitter;
   let score = baseScore;
   const lowerAnswer = answer.toLowerCase();
   const currentYear = new Date().getFullYear();
@@ -273,8 +275,8 @@ function computeCitationScoreAEO(answer: string, platforms: Platform[]): number 
 
 // Determine if answer qualifies as High Citation
 function isHighCitation(score: number, answer: string): boolean {
-  // Score threshold: 70+ for high citation
-  if (score < 70) return false;
+  // Score threshold: 80+ for high citation (minimum score is 75, so 80 is meaningful)
+  if (score < 80) return false;
   
   // Additional quality checks
   const firstSentence = answer.split(/[.!?]/)[0] || "";
@@ -559,18 +561,15 @@ function detectIntent(question: string, language: string): IntentType {
 
 // Generate slug from question
 function generateSlug(question: string): string {
-  let slug = question.toLowerCase();
-  slug = slug.replace(/[àáâãäå]/g, 'a');
-  slug = slug.replace(/[èéêë]/g, 'e');
-  slug = slug.replace(/[ìíîï]/g, 'i');
-  slug = slug.replace(/[òóôõö]/g, 'o');
-  slug = slug.replace(/[ùúûü]/g, 'u');
-  slug = slug.replace(/[ç]/g, 'c');
-  slug = slug.replace(/[^a-z0-9\s-]/g, '');
-  slug = slug.replace(/\s+/g, '-');
-  slug = slug.replace(/-+/g, '-');
-  slug = slug.replace(/^-|-$/g, '');
-  return slug.slice(0, 100);
+  return question
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 100);
 }
 
 serve(async (req) => {

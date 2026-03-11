@@ -11,7 +11,7 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
 // ==================== SAFE JSON PARSING ====================
-function safeParseJSON(str: string): any {
+function safeParseJSON<T = unknown>(str: string): T {
   // Strategy 1: Direct parse
   try { 
     return JSON.parse(str); 
@@ -110,8 +110,9 @@ function escapeRegex(str: string): string {
 }
 
 function computeScore(answer: string, brand: string): number {
-  // Randomized base between 78-86 to create natural score variation
-  const baseScore = 78 + Math.floor(Math.random() * 9);
+  // Content-derived jitter (0-8) for natural variation without pure randomness
+  const jitter = answer.length % 9;
+  const baseScore = 78 + jitter;
   let score = baseScore;
   const currentYear = new Date().getFullYear();
 
