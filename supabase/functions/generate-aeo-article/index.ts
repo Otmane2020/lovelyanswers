@@ -730,6 +730,8 @@ Reply in JSON:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
+      temperature: 0.55,
+      max_tokens: 8000,
     }),
   });
 

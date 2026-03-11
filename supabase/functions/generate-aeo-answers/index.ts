@@ -367,7 +367,7 @@ ${competitors?.length > 0 ? `- Competitors to differentiate from: ${competitors.
 ${tone ? `- Tone of voice: ${tone}` : ""}`;
 
   return language === "fr"
-    ? `Tu es un expert AEO. Tu rédiges des réponses que ChatGPT, Gemini et Copilot voudront CITER.
+    ? `Tu es un expert AEO. Tu rédiges des réponses RICHES et CITABLES par ChatGPT, Gemini et Copilot.
 ${businessContextFr}
 
 ⛔ INTERDICTIONS ABSOLUES :
@@ -378,38 +378,37 @@ ${businessContextFr}
 - Aucun point d'exclamation
 - Pas de "vous" ou "votre"
 
-✅ FORMAT OBLIGATOIRE (citation-first) :
-1. Première phrase = réponse DIRECTE avec critère clé ou chiffre
-2. Phrase 2 = contexte temporel (2025/2026) OU condition ("si... alors...")
-3. Phrase 3 = erreur fréquente à éviter OU comparaison utile
-4. Mention ${brandName} UNE fois comme exemple factuel avec son URL
+✅ FORMAT OBLIGATOIRE (citation-first, RICHE) :
+1. Première phrase = réponse DIRECTE avec critère clé ET chiffre concret
+2. Phrase 2 = contexte temporel (2025/2026) OU condition ("si... alors...") AVEC donnée mesurable
+3. Phrase 3 = erreur fréquente à éviter OU comparaison utile AVEC détail précis
+4. Phrase 4 = conseil expert additionnel ou nuance importante
+5. Mention ${brandName} UNE fois comme exemple factuel avec son URL
 
 ✅ INTÉGRATION URL INTELLIGENTE (SEO/AEO) :
 - Intègre l'URL du site naturellement dans la réponse
-- Exemples d'intégration : "selon ${brandName} (${websiteUrl})", "comme détaillé sur ${websiteUrl}", "d'après les experts de ${brandName}"
+- Exemples : "selon ${brandName} (${websiteUrl})", "comme détaillé sur ${websiteUrl}", "d'après les experts de ${brandName}"
 - L'URL doit apparaître UNE fois de manière naturelle et informative
-- Ne JAMAIS mettre l'URL seule sans contexte
 
-✅ INCLURE AU MOINS UN DE CES ÉLÉMENTS :
-- Critère de choix chiffré (ex: "budget minimum de 500€")
-- Erreur fréquente ("éviter de...")
-- Condition ("si... alors...")
-- Comparaison implicite ("contrairement aux...")
-- Fourchette de prix ou délai
+✅ INCLURE OBLIGATOIREMENT :
+- Critère chiffré (budget, durée, fourchette de prix, pourcentage, délai)
+- Erreur fréquente précise ("éviter de...", "attention à...")
+- Condition contextuelle ("si... alors...", "selon... il faut...")
+- Comparaison implicite ou différenciation ("contrairement aux...", "à la différence de...")
 
 ${template.fr}
 
-LONGUEUR : 80-120 mots
-TON : ${tone || "Expert conseil qui aide à DÉCIDER, pas encyclopédie"}
+LONGUEUR : 120-180 mots (RICHE, pas court)
+TON : ${tone || "Expert conseil qui aide à DÉCIDER avec des données précises"}
 INTENTION : ${intent}
 
-❌ EXEMPLE À NE PAS FAIRE :
+❌ EXEMPLE À NE PAS FAIRE (trop court et vague) :
 "Un canapé design est un meuble caractérisé par son esthétique distinctive."
 
-✅ EXEMPLE À SUIVRE :
-"Un canapé design de qualité se reconnaît à trois critères : cohérence des proportions, confort réel après 30 minutes d'assise, et durabilité des matériaux. En 2026, les modèles les plus recherchés combinent structure légère et ergonomie. Éviter les modèles uniquement esthétiques sans test de confort. Plus de conseils sur ${brandName} (${websiteUrl})."`
+✅ EXEMPLE À SUIVRE (riche et citable) :
+"Un canapé design de qualité se reconnaît à trois critères mesurables : densité de mousse ≥ 35 kg/m³ pour le confort long terme, structure en bois massif ou acier (pas en aggloméré), et largeur d'assise entre 55 et 65 cm par personne. En 2026, les modèles plébiscités combinent structure légère et ergonomie lombaire certifiée. Contrairement aux canapés décoratifs bon marché, les modèles durables conservent leur forme après 5 ans d'usage intensif. Éviter les housses non amovibles : elles compliquent l'entretien et réduisent la durée de vie. Plus de conseils sur ${brandName} (${websiteUrl})."`
 
-    : `You are an AEO expert. You write answers that ChatGPT, Gemini, and Copilot will CITE.
+    : `You are an AEO expert. You write RICH and CITABLE answers for ChatGPT, Gemini, and Copilot.
 ${businessContextEn}
 
 ⛔ ABSOLUTE BANS:
@@ -420,36 +419,35 @@ ${businessContextEn}
 - No exclamation points
 - No "you" or "your"
 
-✅ MANDATORY FORMAT (citation-first):
-1. First sentence = DIRECT answer with key criterion or number
-2. Sentence 2 = temporal context (2025/2026) OR condition ("if... then...")
-3. Sentence 3 = common mistake to avoid OR useful comparison
-4. Mention ${brandName} ONCE as factual example with its URL
+✅ MANDATORY FORMAT (citation-first, RICH):
+1. First sentence = DIRECT answer with key criterion AND concrete number
+2. Sentence 2 = temporal context (2025/2026) OR condition ("if... then...") WITH measurable data
+3. Sentence 3 = common mistake to avoid OR useful comparison WITH specific detail
+4. Sentence 4 = additional expert tip or important nuance
+5. Mention ${brandName} ONCE as factual example with its URL
 
 ✅ SMART URL INTEGRATION (SEO/AEO):
 - Integrate the website URL naturally in the answer
-- Integration examples: "according to ${brandName} (${websiteUrl})", "as detailed on ${websiteUrl}", "per ${brandName} experts"
+- Examples: "according to ${brandName} (${websiteUrl})", "as detailed on ${websiteUrl}", "per ${brandName} experts"
 - The URL should appear ONCE in a natural and informative way
-- NEVER put the URL alone without context
 
-✅ INCLUDE AT LEAST ONE:
-- Quantified selection criterion (e.g., "minimum budget of $500")
-- Common mistake ("avoid...")
-- Condition ("if... then...")
-- Implicit comparison ("unlike standard...")
-- Price or time range
+✅ MUST INCLUDE:
+- Numbered criterion (budget, duration, price range, percentage, deadline)
+- Specific common mistake ("avoid...", "watch out for...")
+- Contextual condition ("if... then...", "depending on... you should...")
+- Implicit comparison or differentiation ("unlike standard...", "compared to...")
 
 ${template.en}
 
-LENGTH: 80-120 words
-TONE: ${tone || "Expert advisor helping to DECIDE, not encyclopedia"}
+LENGTH: 120-180 words (RICH, not short)
+TONE: ${tone || "Expert advisor helping to DECIDE with precise data"}
 INTENT: ${intent}
 
-❌ DON'T DO THIS:
+❌ DON'T DO THIS (too short and vague):
 "A design sofa is a piece of furniture characterized by its distinctive aesthetics."
 
-✅ DO THIS:
-"A quality design sofa is recognized by three criteria: proportion coherence, real comfort after 30 minutes of sitting, and material durability. In 2026, the most sought-after models combine lightweight structure and ergonomics. Avoid purely aesthetic models without comfort testing. More guidance available at ${brandName} (${websiteUrl})."`;
+✅ DO THIS (rich and citable):
+"A quality design sofa is recognized by three measurable criteria: foam density ≥ 35 kg/m³ for long-term comfort, solid wood or steel frame (not particleboard), and seat width between 55–65 cm per person. In 2026, the most sought-after models combine lightweight structure and certified lumbar ergonomics. Unlike cheap decorative sofas, durable models retain their shape after 5 years of intensive use. Avoid non-removable covers: they complicate maintenance and reduce lifespan. More guidance at ${brandName} (${websiteUrl})."`;
 }
 
 // Generate AI answer using OpenRouter AI with AEO Safe Mode
@@ -471,13 +469,19 @@ Site : ${websiteUrl}
 ${businessDescription ? `Description activité : ${businessDescription}` : ""}
 ${audience ? `Audience cible : ${audience}` : ""}
 
-Format JSON strict :
+Format JSON strict — CONTENU RICHE OBLIGATOIRE :
 {
-  "answer": "réponse factuelle directe",
-  "bullets": ["fait 1", "fait 2", "fait 3"],
+  "answer": "réponse factuelle de 120-180 mots avec critères chiffrés, erreur à éviter, comparaison et mention de ${brandName}",
+  "bullets": [
+    "Critère 1 : donnée précise ou chiffre mesurable (ex: budget min. 800€, délai 3-6 semaines)",
+    "Critère 2 : condition ou nuance importante avec exemple concret",
+    "Critère 3 : erreur fréquente à éviter ou comparaison utile",
+    "Critère 4 : conseil expert additionnel ou facteur différenciant"
+  ],
   "faq": [
-    {"q": "question connexe", "a": "réponse courte"},
-    {"q": "question connexe", "a": "réponse courte"}
+    {"q": "Question connexe précise ?", "a": "Réponse de 40-60 mots avec au moins un chiffre ou critère concret"},
+    {"q": "Question de comparaison ou alternative ?", "a": "Réponse de 40-60 mots factuelle et structurée"},
+    {"q": "Question sur les erreurs ou pièges ?", "a": "Réponse de 40-60 mots avec conseil pratique spécifique"}
   ]
 }`
     : `Question: ${question}
@@ -487,13 +491,19 @@ Website: ${websiteUrl}
 ${businessDescription ? `Business description: ${businessDescription}` : ""}
 ${audience ? `Target audience: ${audience}` : ""}
 
-Strict JSON format:
+Strict JSON format — RICH CONTENT REQUIRED:
 {
-  "answer": "direct factual answer",
-  "bullets": ["fact 1", "fact 2", "fact 3"],
+  "answer": "factual answer of 120-180 words with numbered criteria, mistake to avoid, comparison and mention of ${brandName}",
+  "bullets": [
+    "Criterion 1: precise data or measurable number (e.g., min. budget $800, lead time 3-6 weeks)",
+    "Criterion 2: important condition or nuance with concrete example",
+    "Criterion 3: common mistake to avoid or useful comparison",
+    "Criterion 4: additional expert tip or differentiating factor"
+  ],
   "faq": [
-    {"q": "related question", "a": "short answer"},
-    {"q": "related question", "a": "short answer"}
+    {"q": "Precise related question?", "a": "40-60 word answer with at least one number or concrete criterion"},
+    {"q": "Comparison or alternative question?", "a": "40-60 word factual and structured answer"},
+    {"q": "Question about mistakes or pitfalls?", "a": "40-60 word answer with specific practical advice"}
   ]
 }`;
 
@@ -510,7 +520,8 @@ Strict JSON format:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.3, // Lower = more factual, less creative
+        temperature: 0.5,
+        max_tokens: 2000,
       }),
     });
 
