@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Escape HTML special characters to prevent XSS
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 // Generate AEO-optimized HTML article wrapper with proper SEO structure
 function generateAEOArticleHTML(
   answer: {
@@ -56,26 +66,31 @@ function generateAEOArticleHTML(
 
   const faqTitle = language === 'fr' ? 'Questions Fréquentes' : 'Frequently Asked Questions';
 
+  const safeQuestion = escapeHtml(answer.question);
+  const safeBrandName = escapeHtml(brandName);
+  const safeWebsiteUrl = escapeHtml(websiteUrl);
+  const safeMetaDesc = escapeHtml(metaDescription || answer.answer.slice(0, 160));
+
   return `<!DOCTYPE html>
 <html lang="${language}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${answer.question} | ${brandName}</title>
-  <meta name="description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  <title>${safeQuestion} | ${safeBrandName}</title>
+  <meta name="description" content="${safeMetaDesc}">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="${websiteUrl}">
-  
+  <link rel="canonical" href="${safeWebsiteUrl}">
+
   <!-- Open Graph -->
-  <meta property="og:title" content="${answer.question}">
-  <meta property="og:description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  <meta property="og:title" content="${safeQuestion}">
+  <meta property="og:description" content="${safeMetaDesc}">
   <meta property="og:type" content="article">
-  <meta property="og:url" content="${websiteUrl}">
-  
+  <meta property="og:url" content="${safeWebsiteUrl}">
+
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${answer.question}">
-  <meta name="twitter:description" content="${metaDescription || answer.answer.slice(0, 160)}">
+  <meta name="twitter:title" content="${safeQuestion}">
+  <meta name="twitter:description" content="${safeMetaDesc}">
   
   <!-- Schema.org Article -->
   <script type="application/ld+json">
@@ -334,37 +349,37 @@ ${JSON.stringify(faqSchema, null, 2)}
   <article itemscope itemtype="https://schema.org/Article">
     <header>
       <meta itemprop="datePublished" content="${new Date().toISOString()}">
-      <meta itemprop="author" content="${brandName}">
+      <meta itemprop="author" content="${safeBrandName}">
     </header>
-    
+
     <!-- Main Article Content with SEO Structure -->
     <main itemprop="articleBody">
       ${articleContent}
-      
+
       <!-- AEO Featured Answer Box -->
       <div class="aeo-featured-answer">
-        <p><strong>En résumé :</strong> ${answer.answer}</p>
+        <p><strong>En résumé :</strong> ${escapeHtml(answer.answer)}</p>
       </div>
     </main>
-    
+
     ${faq.length > 0 ? `
     <!-- FAQ Section with Schema -->
     <section class="faq-section" itemscope itemtype="https://schema.org/FAQPage">
       <h2>❓ ${faqTitle}</h2>
       ${faq.map(f => `
       <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-        <h3 itemprop="name">${f.q}</h3>
+        <h3 itemprop="name">${escapeHtml(f.q)}</h3>
         <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">${f.a}</p>
+          <p itemprop="text">${escapeHtml(f.a)}</p>
         </div>
       </div>
       `).join('')}
     </section>
     ` : ''}
-    
+
     <footer>
-      <p>© ${new Date().getFullYear()} <a href="${websiteUrl}" target="_blank" rel="noopener">${brandName}</a></p>
-      <p style="margin-top: 0.75rem;"><a href="${websiteUrl}/blog" target="_blank" rel="noopener">${language === 'fr' ? '📚 Voir tous nos articles' : '📚 View all our articles'}</a></p>
+      <p>© ${new Date().getFullYear()} <a href="${safeWebsiteUrl}" target="_blank" rel="noopener">${safeBrandName}</a></p>
+      <p style="margin-top: 0.75rem;"><a href="${safeWebsiteUrl}/blog" target="_blank" rel="noopener">${language === 'fr' ? '📚 Voir tous nos articles' : '📚 View all our articles'}</a></p>
     </footer>
   </article>
 </body>
@@ -715,6 +730,8 @@ Reply in JSON:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
+      temperature: 0.55,
+      max_tokens: 8000,
     }),
   });
 
@@ -744,18 +761,15 @@ function safeParseJSON<T>(raw: string, fallback: T): T {
 
 // Generate slug for articles
 function generateArticleSlug(text: string): string {
-  let slug = text.toLowerCase();
-  slug = slug.replace(/[àáâãäå]/g, 'a');
-  slug = slug.replace(/[èéêë]/g, 'e');
-  slug = slug.replace(/[ìíîï]/g, 'i');
-  slug = slug.replace(/[òóôõö]/g, 'o');
-  slug = slug.replace(/[ùúûü]/g, 'u');
-  slug = slug.replace(/[ç]/g, 'c');
-  slug = slug.replace(/[^a-z0-9\s-]/g, '');
-  slug = slug.replace(/\s+/g, '-');
-  slug = slug.replace(/-+/g, '-');
-  slug = slug.replace(/^-|-$/g, '');
-  return slug.slice(0, 100);
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 100);
 }
 
 serve(async (req) => {

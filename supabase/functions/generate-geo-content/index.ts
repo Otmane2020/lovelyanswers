@@ -313,8 +313,8 @@ IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
     if (parsed.faq?.length >= 3) score += 5;
     if (content.includes("recommend") || content.includes("recommand")) score += 3;
     score = Math.min(score, 98);
-    // Add some randomness
-    score += Math.floor(Math.random() * 5) - 2;
+    // Content-derived jitter for stable, non-pure-random variation
+    score += (content.length % 5) - 2;
     score = Math.max(75, Math.min(98, score));
 
     // Calculate scheduled_date (tomorrow + random offset)

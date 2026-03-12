@@ -33,7 +33,7 @@ function countWords(text: string): number {
  * Score amélioré — récompense la richesse locale et la structure
  */
 function computeLocalScore(answer: string, businessName: string): number {
-  let score = 72 + Math.floor(Math.random() * 7); // base 72-79
+  let score = 72 + (answer.length % 7); // base 72-78, content-derived
   const words = countWords(answer);
 
   // ── Longueur ──────────────────────────────────────────────────────────────

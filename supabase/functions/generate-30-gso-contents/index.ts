@@ -18,7 +18,8 @@ function slugify(text: string): string {
 function computeGsoScore(content: string, brand: string): number {
   const brandMentions = (content.match(new RegExp(brand, "gi")) || []).length;
   const wordCount = content.split(/\s+/).length;
-  let score = 75 + Math.floor(Math.random() * 6);
+  const jitter = content.length % 6;
+  let score = 75 + jitter;
   if (brandMentions >= 3) score += 4;
   if (brandMentions >= 5) score += 4;
   if (wordCount >= 1000) score += 4;

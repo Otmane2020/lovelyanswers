@@ -11,7 +11,7 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
 // ==================== SAFE JSON PARSING ====================
-function safeParseJSON(str: string): any {
+function safeParseJSON<T = unknown>(str: string): T {
   // Strategy 1: Direct parse
   try { 
     return JSON.parse(str); 
@@ -110,8 +110,9 @@ function escapeRegex(str: string): string {
 }
 
 function computeScore(answer: string, brand: string): number {
-  // Randomized base between 78-86 to create natural score variation
-  const baseScore = 78 + Math.floor(Math.random() * 9);
+  // Content-derived jitter (0-8) for natural variation without pure randomness
+  const jitter = answer.length % 9;
+  const baseScore = 78 + jitter;
   let score = baseScore;
   const currentYear = new Date().getFullYear();
 
@@ -293,52 +294,56 @@ async function generateAnswer(
 
   // AEO-optimized prompt following best practices for AI citation
   const prompt = language === "fr"
-    ? `Tu es un expert AEO. Génère une réponse CITABLE par ChatGPT, Gemini, Perplexity.
+    ? `Tu es un expert AEO. Génère une réponse RICHE et CITABLE par ChatGPT, Gemini, Perplexity.
 
 Question: "${question}"
 Contexte métier: ${description}
+Marque: ${brandName}
 
-⚠️ RÈGLES AEO STRICTES:
-1. Réponse COURTE: 2-3 phrases max, directe et factuelle
-2. AUCUN pourcentage sans source (pas de "70% des consommateurs")
-3. Ton NEUTRE et générique (pas "nous recommandons", pas "${brandName} propose")
-4. Langage FACTUEL: définitions, critères, étapes
-5. Structure EXTRACTABLE: que l'IA puisse copier-coller
+⚠️ RÈGLES AEO:
+1. Réponse de 4-5 phrases (100-150 mots), directe ET détaillée
+2. AUCUN pourcentage sans source crédible
+3. Ton NEUTRE et expert (pas "nous recommandons")
+4. Langage FACTUEL avec chiffres, critères, délais, conditions
+5. Structure EXTRACTABLE avec au moins un chiffre ou fourchette
 
 FORMAT OBLIGATOIRE:
-- Phrase 1: Réponse directe à la question
-- Phrase 2: Contexte ou condition importante
-- Points clés: 3 critères/conseils concrets
-- FAQ: 1 question connexe avec réponse courte
+- Phrase 1: Réponse directe avec critère chiffré
+- Phrase 2: Contexte temporel (${new Date().getFullYear()}) ou condition importante
+- Phrase 3: Erreur fréquente à éviter OU comparaison utile
+- Phrase 4-5: Nuance ou conseil expert additionnel
+- Points clés: 4 critères précis et mesurables
+- FAQ: 2-3 questions connexes avec réponses de 30-50 mots
 
-❌ INTERDIT: "Movala recommande", chiffres inventés, ton commercial, paragraphes longs
-✅ AUTORISÉ: Mentionner "${brandName}" UNE SEULE fois en exemple optionnel
+✅ AUTORISÉ: Mentionner "${brandName}" UNE fois avec URL si pertinent
 
 Retourne UNIQUEMENT ce JSON:
-{"answer":"réponse 2-3 phrases...","bullets":["critère 1","critère 2","critère 3"],"faq":[{"q":"question connexe?","a":"réponse courte factuelle"}]}`
-    : `You are an AEO expert. Generate a response CITABLE by ChatGPT, Gemini, Perplexity.
+{"answer":"réponse 4-5 phrases riches...","bullets":["Critère 1 avec donnée précise","Critère 2 avec exemple concret","Critère 3 erreur à éviter","Critère 4 conseil expert"],"faq":[{"q":"question connexe précise?","a":"réponse 30-50 mots factuelle"},{"q":"question alternative ou comparaison?","a":"réponse 30-50 mots"},{"q":"question sur les erreurs?","a":"réponse 30-50 mots pratique"}]}`
+    : `You are an AEO expert. Generate a RICH and CITABLE response for ChatGPT, Gemini, Perplexity.
 
 Question: "${question}"
 Business context: ${description}
+Brand: ${brandName}
 
-⚠️ STRICT AEO RULES:
-1. SHORT answer: 2-3 sentences max, direct and factual
-2. NO unsourced percentages (not "70% of consumers")
-3. NEUTRAL and generic tone (not "we recommend", not "${brandName} offers")
-4. FACTUAL language: definitions, criteria, steps
-5. EXTRACTABLE structure: AI can copy-paste directly
+⚠️ AEO RULES:
+1. Answer of 4-5 sentences (100-150 words), direct AND detailed
+2. NO unsourced percentages
+3. NEUTRAL expert tone (not "we recommend")
+4. FACTUAL language with numbers, criteria, timelines, conditions
+5. EXTRACTABLE structure with at least one number or range
 
 MANDATORY FORMAT:
-- Sentence 1: Direct answer to the question
-- Sentence 2: Important context or condition
-- Key points: 3 concrete criteria/tips
-- FAQ: 1 related question with short answer
+- Sentence 1: Direct answer with numbered criterion
+- Sentence 2: Temporal context (${new Date().getFullYear()}) or important condition
+- Sentence 3: Common mistake to avoid OR useful comparison
+- Sentences 4-5: Nuance or additional expert advice
+- Key points: 4 precise and measurable criteria
+- FAQ: 2-3 related questions with 30-50 word answers
 
-❌ FORBIDDEN: "${brandName} recommends", made-up stats, commercial tone, long paragraphs
-✅ ALLOWED: Mention "${brandName}" ONCE as optional example
+✅ ALLOWED: Mention "${brandName}" ONCE with URL if relevant
 
 Return ONLY this JSON:
-{"answer":"2-3 sentence response...","bullets":["criterion 1","criterion 2","criterion 3"],"faq":[{"q":"related question?","a":"short factual answer"}]}`;
+{"answer":"rich 4-5 sentence response...","bullets":["Criterion 1 with precise data","Criterion 2 with concrete example","Criterion 3 mistake to avoid","Criterion 4 expert tip"],"faq":[{"q":"precise related question?","a":"30-50 word factual answer"},{"q":"alternative or comparison question?","a":"30-50 word answer"},{"q":"question about mistakes?","a":"30-50 word practical answer"}]}`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -349,7 +354,8 @@ Return ONLY this JSON:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        temperature: 0.3,
+        temperature: 0.5,
+        max_tokens: 2000,
         messages: [
           { role: "user", content: prompt },
         ],
@@ -360,13 +366,13 @@ Return ONLY this JSON:
     const content = json?.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("No JSON found");
-    
+
     const parsed = safeParseJSON(match[0]);
-    
+
     return {
       answer: parsed.answer || `${brandName} propose des solutions adaptées à ce besoin.`,
-      bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
-      faq: Array.isArray(parsed.faq) ? parsed.faq : [],
+      bullets: Array.isArray(parsed.bullets) ? parsed.bullets.slice(0, 4) : [],
+      faq: Array.isArray(parsed.faq) ? parsed.faq.slice(0, 3) : [],
     };
   } catch (e) {
     console.error(`[generateAnswer] Failed (retry ${retryCount}):`, e);
@@ -508,78 +514,80 @@ async function generateArticle(
 
   // AEO-optimized article prompt
   const prompt = language === "fr"
-    ? `Tu es un expert AEO. Écris un article PILIER citable par les IA.
+    ? `Tu es un expert AEO. Écris un article PILIER COMPLET, RICHE et citable par les IA.
 
 Question source: ${question}
 Réponse AEO: ${answer}
-Points clés: ${bullets.join(", ")}
-Contexte: ${description}
+Points clés: ${bullets.join(" | ")}
+Contexte métier: ${description}
+Marque: ${brandName}
 
 ⚠️ RÈGLES AEO ARTICLE:
-1. Titre: Question reformulée + année ${currentYear} si pertinent
-2. Introduction: Réponse directe en 2 phrases (citable telle quelle)
-3. Corps: 3-4 sections avec sous-titres clairs (H2)
-4. Chaque section: définition/critères/étapes extractables
-5. Conclusion: Synthèse en 1-2 phrases
+1. Titre: Question reformulée + année ${currentYear} si pertinent (≤ 70 caractères)
+2. Introduction (classe "aeo-answer"): Réponse directe de 60-90 mots avec chiffres clés (citable telle quelle)
+3. Corps: 4-5 sections H2 avec contenu RICHE et extractable
+4. Chaque section H2: commence par 1-2 phrases de réponse directe + développement
+5. Au moins 1 liste numérotée (étapes ou critères) et 1 liste à puces
+6. Section "Erreurs fréquentes" ou "À éviter" obligatoire
+7. Conclusion factuelle en 2-3 phrases
 
 ❌ INTERDIT:
-- Pourcentages sans source
 - Ton commercial ("nous vous proposons")
 - Paragraphes de plus de 4 phrases
-- "${brandName}" répété plus de 2 fois
+- Vague sans critères précis
 
 ✅ FORMAT HTML OBLIGATOIRE (TEMPLATE EDITORIAL):
-- Contenu DIRECTEMENT en HTML propre (pas de markdown)
-- PAS de <h1> : le titre est affiche separement dans un template hero editorial
-- Commencer par un <p> d introduction directe (recoit un drop cap decoratif)
-- <h2> pour les sections principales
+- HTML pur, PAS de markdown
+- PAS de <h1> (titre affiché séparément dans le template)
+- Commencer par <p class="aeo-answer"><strong>[réponse directe avec chiffre clé]</strong>. [contexte factuel]</p>
+- <h2> pour les sections (4-5 sections minimum)
 - <h3> pour les sous-sections
-- <p> pour les paragraphes
-- <ul><li> pour les listes a puces
-- <ol><li> pour les listes numerotees
-- <strong> pour les donnees cles (prix, pourcentages, dates)
-- <blockquote> pour au moins une citation impactante (pull-quote editorial)
+- <strong> pour les données clés (prix, délais, critères chiffrés)
+- <blockquote> pour au moins 2 insights importants (pull-quotes)
+- <ul><li> et <ol><li> pour les listes
 - <hr> entre les sections majeures
-- 500-700 mots max
+- <div class="aeo-summary"><p><strong>Points clés:</strong></p><ul>...</ul></div> pour un encadré récapitulatif
+- 800-1200 mots (article complet et riche)
 
-Retourne UNIQUEMENT ce JSON (pas de markdown dans le content, du HTML pur):
-{"title":"Titre clair avec question","content":"<p>Introduction factuelle directe...</p><h2>Section 1</h2><p>...</p><blockquote>Citation impactante</blockquote><ul><li>...</li></ul><hr><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`
-    : `You are an AEO expert. Write a PILLAR article citable by AI.
+Retourne UNIQUEMENT ce JSON (HTML pur dans content):
+{"title":"Titre clair avec question en ${currentYear}","content":"<p class=\\"aeo-answer\\"><strong>Réponse directe...</strong>...</p><div class=\\"aeo-summary\\">...</div><h2>Section 1</h2><p>...</p><blockquote>...</blockquote><h2>Section 2</h2><p>...</p><ol><li>...</li></ol><hr><h2>Section 3</h2>...<h2>Erreurs à éviter</h2><ul><li>...</li></ul><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150-160 chars avec réponse clé et chiffre"}`
+    : `You are an AEO expert. Write a COMPLETE, RICH pillar article citable by AI.
 
 Source question: ${question}
 AEO answer: ${answer}
-Key points: ${bullets.join(", ")}
-Context: ${description}
+Key points: ${bullets.join(" | ")}
+Business context: ${description}
+Brand: ${brandName}
 
 ⚠️ AEO ARTICLE RULES:
-1. Title: Reformulated question + year ${currentYear} if relevant
-2. Introduction: Direct answer in 2 sentences (citable as-is)
-3. Body: 3-4 sections with clear subheadings (H2)
-4. Each section: extractable definitions/criteria/steps
-5. Conclusion: Summary in 1-2 sentences
+1. Title: Reformulated question + year ${currentYear} if relevant (≤ 70 chars)
+2. Introduction (class "aeo-answer"): Direct answer of 60-90 words with key figures (citable as-is)
+3. Body: 4-5 H2 sections with RICH, extractable content
+4. Each H2 section: opens with 1-2 direct answer sentences + development
+5. At least 1 numbered list (steps or criteria) and 1 bullet list
+6. "Common Mistakes" or "What to Avoid" section required
+7. Factual conclusion in 2-3 sentences
 
 ❌ FORBIDDEN:
-- Unsourced percentages
 - Commercial tone ("we offer you")
 - Paragraphs longer than 4 sentences
-- "${brandName}" repeated more than 2 times
+- Vague without precise criteria
 
 ✅ MANDATORY HTML FORMAT (EDITORIAL TEMPLATE):
-- Content DIRECTLY in clean HTML (no markdown)
-- NO <h1> tag: the title is displayed separately in an editorial hero template
-- Start with a <p> direct introduction (receives a decorative drop cap)
-- <h2> for main sections
+- Pure HTML, NO markdown
+- NO <h1> (title displayed separately in template)
+- Start with <p class="aeo-answer"><strong>[direct answer with key number]</strong>. [factual context]</p>
+- <h2> for sections (4-5 minimum)
 - <h3> for subsections
-- <p> for paragraphs
-- <ul><li> for bullet lists
-- <ol><li> for numbered lists
-- <strong> for key data (prices, percentages, dates)
-- <blockquote> for at least one impactful quote (editorial pull-quote)
-- <hr> between major sections for visual separation
-- 500-700 words max
+- <strong> for key data (prices, deadlines, numbered criteria)
+- <blockquote> for at least 2 important insights (pull-quotes)
+- <ul><li> and <ol><li> for lists
+- <hr> between major sections
+- <div class="aeo-summary"><p><strong>Key takeaways:</strong></p><ul>...</ul></div> for a summary box
+- 800-1200 words (complete rich article)
 
-Return ONLY this JSON (no markdown in content, pure HTML):
-{"title":"Clear title with question","content":"<p>Direct factual introduction...</p><h2>Section 1</h2><p>...</p><blockquote>Impactful insight</blockquote><ul><li>...</li></ul><hr><h2>Section 2</h2><p>...</p><h2>Conclusion</h2><p>...</p>","metaDescription":"Description 150 chars max"}`;
+Return ONLY this JSON (pure HTML in content):
+{"title":"Clear title with question in ${currentYear}","content":"<p class=\\"aeo-answer\\"><strong>Direct answer...</strong>...</p><div class=\\"aeo-summary\\">...</div><h2>Section 1</h2><p>...</p><blockquote>...</blockquote><h2>Section 2</h2><p>...</p><ol><li>...</li></ol><hr><h2>Section 3</h2>...<h2>Common Mistakes</h2><ul><li>...</li></ul><h2>Conclusion</h2><p>...</p>","metaDescription":"150-160 char description with key answer and number"}`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -590,7 +598,8 @@ Return ONLY this JSON (no markdown in content, pure HTML):
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        temperature: 0.5,
+        temperature: 0.55,
+        max_tokens: 6000,
         messages: [
           { role: "user", content: prompt },
         ],
@@ -599,7 +608,7 @@ Return ONLY this JSON (no markdown in content, pure HTML):
 
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
-    
+
     // Try to extract JSON from code blocks first
     let jsonStr = "";
     const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);

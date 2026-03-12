@@ -45,7 +45,7 @@ function computeQualityScore(content: string, brand: string, faqs: any[]): numbe
   if (hasHeadings >= 4) score += 5;
   if (hasDirectAnswer) score += 4;
   if (faqs?.length >= 4) score += 5;
-  score += Math.floor(Math.random() * 4) - 1;
+  score += (content.length % 4) - 1;
   return Math.max(70, Math.min(98, score));
 }
 
