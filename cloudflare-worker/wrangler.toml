@@ -1,0 +1,7 @@
+name = "cloudflare-worker-v2"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+account_id = "eb2c6beebc3fdb4a4f7f1513765dee4b"
+
+[observability]
+enabled = true
