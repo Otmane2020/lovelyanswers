@@ -269,6 +269,61 @@ export default function Index() {
             },
           })}
         />
+        <script
+          type="application/ld+json"
+          children={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "AutoPilot Geo",
+            url: "https://autopilotgeo.com",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: "https://autopilotgeo.com/blog?q={search_term_string}",
+              "query-input": "required name=search_term_string",
+            },
+          })}
+        />
+        <script
+          type="application/ld+json"
+          children={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "What is AEO (Answer Engine Optimization)?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AEO is the practice of optimizing your content so it gets recommended and cited by AI search engines like ChatGPT, Gemini, and Perplexity. AutoPilot Geo automates this process with AI-generated, structured content.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How does AutoPilot Geo help my business get found by AI?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AutoPilot Geo generates expert articles and structured content daily, optimized with the exact keywords and formats that AI search engines use when answering user queries. It publishes automatically to your CMS.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Which AI platforms does AutoPilot Geo optimize for?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AutoPilot Geo optimizes your brand's visibility across ChatGPT, Google Gemini, Perplexity AI, Claude by Anthropic, and traditional Google Search.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How much does AutoPilot Geo cost?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "AutoPilot Geo starts at $29/month. You can start for free and see results before committing to a paid plan.",
+                },
+              },
+            ],
+          })}
+        />
       </Helmet>
 
       <div className="min-h-screen bg-background">
