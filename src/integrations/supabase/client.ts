@@ -2,16 +2,24 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Support Next.js (NEXT_PUBLIC_) and Vite (VITE_) env var prefixes
+const SUPABASE_URL =
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_URL) ||
+  "";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY) ||
+  "";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== "undefined" ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
 });

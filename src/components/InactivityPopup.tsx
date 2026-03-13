@@ -1,8 +1,9 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X, Gift, ArrowRight, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 interface InactivityPopupProps {
   /** Time of inactivity in seconds before showing the popup */
@@ -13,7 +14,7 @@ interface InactivityPopupProps {
 
 export function InactivityPopup({ inactivityDelay = 45, oncePerSession = true }: InactivityPopupProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const dismiss = useCallback(() => {
     setIsVisible(false);
@@ -49,7 +50,7 @@ export function InactivityPopup({ inactivityDelay = 45, oncePerSession = true }:
 
   const handleCTA = () => {
     dismiss();
-    navigate("/onboarding?promo=2MONTHSFREE");
+    router.push("/onboarding?promo=2MONTHSFREE");
   };
 
   return (

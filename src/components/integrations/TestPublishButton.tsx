@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Play, CheckCircle2, XCircle, ExternalLink } from "lucide-react";

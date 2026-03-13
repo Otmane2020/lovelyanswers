@@ -1,14 +1,15 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Gift, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 interface ExitIntentPopupProps { ctaUrl?: string; headline?: string; description?: string; ctaLabel?: string; }
 
 export const ExitIntentPopup = ({ ctaUrl = "/signup", headline = "Wait! Don't leave empty-handed 🎁", description = "Get your free AEO audit in 30 seconds and discover how to appear in ChatGPT and Google AI.", ctaLabel = "Get started free", }: ExitIntentPopupProps) => {
   const [show, setShow] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
   const handleMouseLeave = useCallback((e: MouseEvent) => { if (e.clientY <= 5 && !sessionStorage.getItem("exit_intent_shown")) { setShow(true); sessionStorage.setItem("exit_intent_shown", "true"); } }, []);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export const ExitIntentPopup = ({ ctaUrl = "/signup", headline = "Wait! Don't le
     return () => { clearTimeout(mobileTimer); window.removeEventListener("scroll", handleScroll); };
   }, [handleMouseLeave]);
 
-  const handleCta = () => { setShow(false); navigate(ctaUrl); };
+  const handleCta = () => { setShow(false); router.push(ctaUrl); };
 
   return (
     <AnimatePresence>

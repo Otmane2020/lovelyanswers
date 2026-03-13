@@ -1,3 +1,4 @@
+"use client";
 import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
@@ -6,7 +7,7 @@ import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, ArrowRight, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 
@@ -17,7 +18,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isGenerating, generationProgress, generationMessage } = useGeneration();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Force light theme on dashboard
   useEffect(() => {
@@ -43,7 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Button 
                   size="sm" 
                   variant="secondary"
-                  onClick={() => navigate("/checkout")}
+                  onClick={() => router.push("/checkout")}
                   className="shrink-0 bg-white text-primary hover:bg-white/90 font-semibold text-xs h-8 px-3"
                 >
                   Upgrade now <ArrowRight className="h-3.5 w-3.5 ml-1" />

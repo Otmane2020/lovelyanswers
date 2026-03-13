@@ -1,3 +1,4 @@
+"use client";
 /**
  * AEO Answer Embed Component
  * 
@@ -44,8 +45,8 @@ interface AeoAnswerEmbedProps {
 
 export function AeoAnswerEmbed({
   slug,
-  projectId = import.meta.env.VITE_AEO_PROJECT_ID,
-  apiUrl = import.meta.env.VITE_AEO_API_URL || 'https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/get-public-answer',
+  projectId = (process.env.NEXT_PUBLIC_AEO_PROJECT_ID ?? (import.meta as any).env?.VITE_AEO_PROJECT_ID),
+  apiUrl = (process.env.NEXT_PUBLIC_AEO_API_URL ?? (import.meta as any).env?.VITE_AEO_API_URL) || 'https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/get-public-answer',
   className = '',
   showBranding = true,
   showFaq = true,

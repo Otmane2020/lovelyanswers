@@ -1,3 +1,4 @@
+"use client";
 /**
  * useAnalytics — lightweight wrapper around GA4 (gtag) + Microsoft Clarity.
  *
@@ -10,12 +11,6 @@
  *   - Microsoft Clarity  — set as custom tag so you can filter sessions by event
  */
 
-declare global {
-  interface Window {
-    gtag?: (...args: any[]) => void;
-    clarity?: (method: string, ...args: any[]) => void;
-  }
-}
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 
@@ -38,15 +33,15 @@ export type AnalyticsEvent =
   | "tool_visibility_checker_used";
 
 function sendGa4(event: string, params: EventParams) {
-  if (typeof window.gtag === "function") {
-    window.gtag("event", event, params);
+  if (typeof (window as any).gtag === "function") {
+    (window as any).gtag("event", event, params);
   }
 }
 
 function sendClarity(event: string, params: EventParams) {
-  if (typeof window.clarity === "function") {
+  if (typeof (window as any).clarity === "function") {
     // Clarity custom tags: key=event name, value=stringified main param
-    window.clarity("set", event, JSON.stringify(params));
+    (window as any).clarity("set", event, JSON.stringify(params));
   }
 }
 

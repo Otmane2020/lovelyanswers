@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -51,12 +52,12 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
       try {
         const { data } = await supabase
           .from("project_settings")
-          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency, human_review_enabled")
+          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency")
           .eq("project_id", projectId)
           .single();
 
         if (data) {
-          setAutoPublishEnabled(data.auto_publish_enabled !== false);
+          setAutoPublishEnabled((data as any).auto_publish_enabled !== false);
           setHumanReviewEnabled((data as any).human_review_enabled === true);
           // Convert 24h to 12h format for display
           const hour24 = parseInt(data.publish_hour || "08");

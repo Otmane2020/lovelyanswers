@@ -1,20 +1,21 @@
+"use client";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import shopifyLogo from "@/assets/shopify-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo.png";
 
 const CMS_OPTIONS = [
-  { id: "wordpress", name: "WordPress", icon: wordpressLogo, isImage: true },
-  { id: "shopify", name: "Shopify", icon: shopifyLogo, isImage: true },
-  { id: "wix", name: "Wix", icon: wixLogo, isImage: true },
+  { id: "wordpress", name: "WordPress", icon: (wordpressLogo as any).src ?? wordpressLogo, isImage: true },
+  { id: "shopify", name: "Shopify", icon: (shopifyLogo as any).src ?? shopifyLogo, isImage: true },
+  { id: "wix", name: "Wix", icon: (wixLogo as any).src ?? wixLogo, isImage: true },
   { id: "webflow", name: "Webflow", icon: "🔷", isImage: false },
   { id: "duda", name: "Duda", icon: "🟠", isImage: false },
   { id: "framer", name: "Framer", icon: "⬛", isImage: false },
-];
+] as Array<{ id: string; name: string; icon: string; isImage: boolean }>;
 
 interface CmsConnectPopupProps {
   open: boolean;
@@ -22,11 +23,11 @@ interface CmsConnectPopupProps {
 }
 
 export function CmsConnectPopup({ open, onOpenChange }: CmsConnectPopupProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [selectedCms, setSelectedCms] = useState<string | null>(null);
 
   const handleConnect = () => {
-    navigate("/integrations");
+    router.push("/integrations");
     onOpenChange(false);
   };
 

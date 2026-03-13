@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Globe, ChevronDown, Crown, Bell, LogOut, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useActiveProject, useProjects, useSetActiveProject } from "@/hooks/useProjects";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const languages = [
   { code: "fr", label: "Français", flag: "🇫🇷" },
@@ -17,7 +18,7 @@ const languages = [
 ];
 
 export function AppTopbar() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const { project, projects = [] } = useActiveProject();
   const { subscribed, isLoading: subLoading, startCheckout } = useSubscription();
@@ -26,7 +27,7 @@ export function AppTopbar() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    router.push("/");
   };
 
   const handleProjectChange = (projectId: string) => {
@@ -58,7 +59,7 @@ export function AppTopbar() {
             ))}
             {projects.length === 0 && <DropdownMenuItem disabled>No projects yet</DropdownMenuItem>}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-primary" onClick={() => navigate("/onboarding")}>+ Add new project</DropdownMenuItem>
+            <DropdownMenuItem className="text-primary" onClick={() => router.push("/onboarding")}>+ Add new project</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -109,7 +110,7 @@ export function AppTopbar() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">{user?.email}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/subscription")}>
+            <DropdownMenuItem onClick={() => router.push("/subscription")}>
               <Crown className="mr-2 h-4 w-4" />Subscription
             </DropdownMenuItem>
             <DropdownMenuSeparator />

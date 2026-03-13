@@ -1,8 +1,10 @@
+"use client";
+import { NavLink } from "@/components/NavLink";
 import {
   Home, FileText, BarChart3, Link2, MessageSquareText, Settings, CreditCard, LogOut, CalendarDays, History, HelpCircle, Newspaper, MapPin, ShoppingCart, Package, Globe,
 } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,10 +13,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AeoSidebar() {
   const { state, isMobile: sidebarIsMobile, openMobile, toggleSidebar } = useSidebar();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const router = useRouter();
   const { user, signOut } = useAuth();
-  const currentPath = location.pathname;
+  const currentPath = pathname;
   const isMobile = useIsMobile();
 
   const mainMenuItems = [
@@ -46,15 +48,15 @@ export function AeoSidebar() {
     if (path.includes('?tab=')) {
       const [base, query] = path.split('?');
       const tab = new URLSearchParams(query).get('tab');
-      return currentPath === base && new URLSearchParams(location.search).get('tab') === tab;
+      return currentPath === base && new URLSearchParams().get('tab') === tab;
     }
     if (path === '/shopping') {
-      return currentPath === '/shopping' && !location.search.includes('tab=');
+      return currentPath === '/shopping' && !window.location.search.includes('tab=');
     }
     return currentPath === path;
   };
   const handleNavClick = () => { if ((sidebarIsMobile || isMobile) && openMobile) toggleSidebar(); };
-  const handleSignOut = async () => { await signOut(); navigate('/'); };
+  const handleSignOut = async () => { await signOut(); router.push('/'); };
 
   return (
     <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} className="border-r border-border/50 bg-background [&>div]:bg-background">

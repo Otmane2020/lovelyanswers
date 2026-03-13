@@ -1,3 +1,4 @@
+"use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -81,13 +82,13 @@ export function useAdsStreaming() {
       if (!session) throw new Error("Not authenticated");
 
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-google-ads`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? import.meta.env?.VITE_SUPABASE_URL}/functions/v1/analyze-google-ads`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ focus, campaign_id: campaignId }),
         }
