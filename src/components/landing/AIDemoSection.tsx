@@ -15,7 +15,7 @@ export function AIDemoSection() {
   const [chatTypedAnswer, setChatTypedAnswer] = useState("");
   const [showChatResponse, setShowChatResponse] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Google search typing animation
   useEffect(() => {
