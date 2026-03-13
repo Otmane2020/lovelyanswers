@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Loader2, Globe, Calendar, Save } from "lucide-react";
+import { Clock, Loader2, Globe, Calendar, Save, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,11 @@ interface AutoPublishSettingsProps {
 
 export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
+  const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
-  const [frequency, setFrequency] = useState("daily");
+  const [frequency, setFrequency] = useState("3x_week");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -33,7 +34,10 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
     { value: "UTC", label: "UTC" },
   ];
 
+  // Recommended: 3x/week (Mon/Wed/Fri) — best balance of quality vs volume
   const frequencies = [
+    { value: "3x_week", label: "3x/week ✓" },
+    { value: "2x_week", label: "2x/week" },
     { value: "daily", label: "Daily" },
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
@@ -42,35 +46,35 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
   useEffect(() => {
     const loadSettings = async () => {
       if (!projectId) return;
-      
+
       setIsLoading(true);
       try {
         const { data } = await supabase
           .from("project_settings")
-          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency")
+          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency, human_review_enabled")
           .eq("project_id", projectId)
           .single();
-        
+
         if (data) {
           setAutoPublishEnabled(data.auto_publish_enabled !== false);
+          setHumanReviewEnabled((data as any).human_review_enabled === true);
           // Convert 24h to 12h format for display
           const hour24 = parseInt(data.publish_hour || "08");
           const period: "AM" | "PM" = hour24 >= 12 ? "PM" : "AM";
-          // Convert: 0->12AM, 1-11->1-11AM, 12->12PM, 13-23->1-11PM
           let hour12: number;
           if (hour24 === 0) {
-            hour12 = 12; // midnight = 12 AM
+            hour12 = 12;
           } else if (hour24 > 12) {
             hour12 = hour24 - 12;
           } else if (hour24 === 12) {
-            hour12 = 12; // noon = 12 PM
+            hour12 = 12;
           } else {
             hour12 = hour24;
           }
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
-          setFrequency((data as any).publish_frequency || "daily");
+          setFrequency((data as any).publish_frequency || "3x_week");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -89,20 +93,21 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
       let hour24 = parseInt(publishHour);
       if (publishPeriod === "PM" && hour24 !== 12) hour24 += 12;
       if (publishPeriod === "AM" && hour24 === 12) hour24 = 0;
-      
+
       const { error } = await supabase
         .from("project_settings")
         .upsert({
           project_id: projectId,
           auto_publish_enabled: autoPublishEnabled,
+          human_review_enabled: humanReviewEnabled,
           publish_hour: hour24.toString().padStart(2, "0"),
           timezone: timezone,
           publish_frequency: frequency,
           updated_at: new Date().toISOString()
         }, { onConflict: "project_id" });
-      
+
       if (error) throw error;
-      
+
       toast.success("Settings saved");
       setHasChanges(false);
     } catch (error) {
@@ -143,11 +148,24 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
         </Label>
       </div>
 
-      {/* Frequency */}
+      {/* Human Review Queue Toggle */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
+        <Switch
+          checked={humanReviewEnabled}
+          onCheckedChange={handleChange(setHumanReviewEnabled)}
+          className="data-[state=checked]:bg-amber-500"
+        />
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium cursor-pointer">
+          Human Review
+        </Label>
+      </div>
+
+      {/* Frequency — default 3x/week (Mon/Wed/Fri) recommended by Google HCU */}
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <Select value={frequency} onValueChange={handleChange(setFrequency)}>
-          <SelectTrigger className="w-[100px] h-9">
+          <SelectTrigger className="w-[120px] h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -205,7 +223,7 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
 
       {/* Save Button */}
       {hasChanges && (
-        <Button 
+        <Button
           size="sm"
           onClick={handleSave}
           disabled={isSaving}
