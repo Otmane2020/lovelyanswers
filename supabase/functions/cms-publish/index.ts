@@ -1122,7 +1122,7 @@ function generateErrorHTML(title: string, message: string): string {
 function generatePublicAnswerHTML(answer: any): string {
   const question = answer.question || "Question";
   const answerText = answer.answer || "";
-  const brandName = answer.projects?.brand_name || "LoAutoPilot Geo
+  const brandName = answer.projects?.brand_name || "AutoPilot Geo";
   const language = answer.projects?.language || "en";
   const createdAt = new Date(answer.created_at).toLocaleDateString(language === "fr" ? "fr-FR" : "en-US", {
     year: "numeric", month: "long", day: "numeric"
