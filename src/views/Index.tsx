@@ -21,15 +21,10 @@ import {
   MessageSquare,
   Sparkles,
   ChevronRight,
+  X,
 } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
-import { ChatGPTLogo, GoogleLogo } from "@/components/icons/ChatGPTLogo";
 import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
 import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
@@ -44,38 +39,55 @@ import claudeLogo from "@/assets/claude-logo.png";
 import perplexityLogo from "@/assets/perplexity-logo.png";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 
+const aiPlatforms = [
+  { name: "ChatGPT", logo: chatgptIcon, color: "#10a37f" },
+  { name: "Gemini", logo: geminiLogo, color: "#4285f4" },
+  { name: "Perplexity", logo: perplexityLogo, color: "#6366f1" },
+  { name: "Claude", logo: claudeLogo, color: "#cc785c" },
+];
+
+const socialProofPills = [
+  { initial: "M", bg: "#fef3c7", color: "#92400e", name: "Mike", role: "Roofing", result: "+180% impressions" },
+  { initial: "A", bg: "#d1fae5", color: "#065f46", name: "Amanda", role: "Store", result: "Page 1 in 8 weeks" },
+  { initial: "R", bg: "#dbeafe", color: "#1e3a8a", name: "Ryan", role: "Agency", result: "-$1,200/mo in tools" },
+];
+
+const beforeItems = [
+  "AI never mentions your brand",
+  "Competitors get cited instead",
+  "Content takes weeks to write",
+  "Stuck on page 3 of Google",
+];
+
+const afterItems = [
+  "ChatGPT recommends your brand",
+  "30 expert articles/month, auto",
+  "Auto-published to your CMS",
+  "+60% avg traffic in 3 months",
+];
+
 const heroStats = [
   { value: "4.5", suffix: "x", label: "More AI visibility" },
   { value: "9.7", suffix: "x", label: "More brand mentions" },
   { value: "60", suffix: "%", label: "Traffic increase avg" },
-  { value: "1.5", suffix: "bn", label: "AI searches monthly" },
-];
-
-const aiPlatforms = [
-  { name: "ChatGPT", logo: chatgptIcon },
-  { name: "Gemini", logo: geminiLogo },
-  { name: "Perplexity", logo: perplexityLogo },
-  { name: "Claude", logo: claudeLogo },
+  { value: "$29", suffix: "/mo", label: "All-in pricing" },
 ];
 
 const featureCards = [
   {
     icon: <Eye className="h-5 w-5" />,
     title: "AI Visibility Score",
-    description:
-      "See exactly how AI platforms talk about your brand and where you rank against competitors.",
+    description: "See exactly how AI platforms talk about your brand and where you rank against competitors.",
   },
   {
     icon: <BarChart3 className="h-5 w-5" />,
     title: "Brand Mention Tracking",
-    description:
-      "Monitor every time AI recommends your business or your competitors in real-time.",
+    description: "Monitor every time AI recommends your business or your competitors in real-time.",
   },
   {
     icon: <Target className="h-5 w-5" />,
     title: "Content Optimization",
-    description:
-      "Get actionable insights to optimize your content for AI citation and recommendation.",
+    description: "Get actionable insights to optimize your content for AI citation and recommendation.",
   },
 ];
 
@@ -83,20 +95,17 @@ const showcaseFeatures = [
   {
     tag: "MONITOR YOUR AI PRESENCE",
     title: "Track your visibility across all AI platforms",
-    description:
-      "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
+    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
   },
   {
     tag: "OPTIMIZE YOUR CONTENT",
     title: "AI-powered content that gets you cited",
-    description:
-      "Generate expert articles designed to be recommended by AI search engines.",
+    description: "Generate expert articles designed to be recommended by AI search engines.",
   },
   {
     tag: "GROW ON AUTOPILOT",
     title: "Automated publishing & SEO",
-    description:
-      "1 article per day, auto-published to your CMS with full SEO optimization.",
+    description: "1 article per day, auto-published to your CMS with full SEO optimization.",
   },
 ];
 
@@ -188,8 +197,7 @@ const faqs = [
   },
   {
     question: "Will this work for my industry?",
-    answer:
-      "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
+    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
   },
   {
     question: "Is the content actually good?",
@@ -205,38 +213,30 @@ export default function Index() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      router.push("/dashboard");
-    }
+    if (user) router.push("/dashboard");
   }, [user, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
 
-  const handleGetStarted = () => {
-    if (websiteUrl.trim()) {
-      router.push(`/signup`);
-    } else {
-      router.push(`/signup`);
-    }
-  };
+  const handleGetStarted = () => router.push("/signup");
 
   return (
     <>
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>AutoPilot Geo – AI Search Optimization for SaaS | Rank in ChatGPT, Gemini & Google</title>
+        <title>AutoPilot Geo – Get Your Business Recommended by ChatGPT & Google</title>
         <meta
           name="description"
-          content="AI search optimization platform for SaaS. Get your SaaS brand recommended by ChatGPT, Gemini, Perplexity & Google. AEO + GEO + SEO automation. Start free."
+          content="Get your business recommended by ChatGPT, Gemini, Perplexity & Google. AI-powered AEO, GEO & SEO automation. Start free. Works for any industry."
         />
         <link rel="canonical" href="https://autopilotgeo.com/" />
-        <meta property="og:title" content="AutoPilot Geo – AI Search Optimization for SaaS" />
+        <meta property="og:title" content="AutoPilot Geo – Get Recommended by ChatGPT & Google" />
         <meta
           property="og:description"
-          content="The #1 platform to get your SaaS recommended by AI search engines. AEO, GEO & SEO automation."
+          content="Automatically publish expert content that makes AI search engines recommend you — not your competitors. Works for any industry."
         />
         <meta property="og:url" content="https://autopilotgeo.com/" />
         <meta property="og:type" content="website" />
@@ -250,8 +250,7 @@ export default function Index() {
             name: "AutoPilot Geo",
             url: "https://autopilotgeo.com",
             logo: "https://autopilotgeo.com/favicon.png",
-            description:
-              "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
+            description: "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
           })}
         />
         <script
@@ -263,12 +262,7 @@ export default function Index() {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
-            aggregateRating: {
-              "@type": "AggregateRating",
-              ratingValue: "4.9",
-              reviewCount: "527",
-              bestRating: "5",
-            },
+            aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "527", bestRating: "5" },
           })}
         />
         <script
@@ -290,165 +284,123 @@ export default function Index() {
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            mainEntity: [
-              {
-                "@type": "Question",
-                name: "What is AEO (Answer Engine Optimization)?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "AEO is the practice of optimizing your content so it gets recommended and cited by AI search engines like ChatGPT, Gemini, and Perplexity. AutoPilot Geo automates this process with AI-generated, structured content.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "How does AutoPilot Geo help my business get found by AI?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "AutoPilot Geo generates expert articles and structured content daily, optimized with the exact keywords and formats that AI search engines use when answering user queries. It publishes automatically to your CMS.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Which AI platforms does AutoPilot Geo optimize for?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "AutoPilot Geo optimizes your brand's visibility across ChatGPT, Google Gemini, Perplexity AI, Claude by Anthropic, and traditional Google Search.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "How much does AutoPilot Geo cost?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "AutoPilot Geo starts at $29/month. You can start for free and see results before committing to a paid plan.",
-                },
-              },
-            ],
+            mainEntity: faqs.map((f) => ({
+              "@type": "Question",
+              name: f.question,
+              acceptedAnswer: { "@type": "Answer", text: f.answer },
+            })),
           })}
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ background: "#f8f7f4" }}>
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
-        {/* Navigation */}
-        <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-white backdrop-blur-xl shadow-sm">
+        {/* ═══════ NAV ═══════ */}
+        <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
             </Link>
             <div className="hidden md:flex items-center gap-1">
-              <Button
-                variant="ghost"
-                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
-                asChild
-              >
-                <Link href="/signup">Get Started Free</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
-                asChild
-              >
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
                 <Link href="/pricing">Pricing</Link>
               </Button>
-              <Button
-                variant="ghost"
-                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
-                asChild
-              >
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
                 <Link href="/blog">Blog</Link>
               </Button>
-              <Button
-                variant="ghost"
-                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5"
-                asChild
-              >
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
                 <Link href="/auth">Log in</Link>
               </Button>
-              <Button className="ml-2 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/onboarding">Start Free Audit</Link>
+              <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
+                <Link href="/onboarding">Start Free Audit →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-foreground/70 hover:text-foreground"
-                asChild
-              >
+              <Button variant="ghost" size="sm" className="text-gray-600" asChild>
                 <Link href="/auth">Log in</Link>
               </Button>
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/onboarding">Start Free Audit</Link>
+              <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
+                <Link href="/onboarding">Start Free</Link>
               </Button>
             </div>
           </div>
         </nav>
 
-        {/* ═══════ HERO — Dark Navy ═══════ */}
-        <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] pt-28 md:pt-36 pb-20 md:pb-32">
+        {/* ═══════ HERO — Light ═══════ */}
+        <section
+          className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
+          style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%)" }}
+        >
+          {/* Subtle radial glow */}
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 pointer-events-none"
             style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37,99,235,0.055) 0%, transparent 70%)",
             }}
           />
-          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/8 rounded-full blur-[120px]" />
 
           <div className="container relative px-4">
-            <div className="mx-auto max-w-4xl text-center">
+            <div className="mx-auto max-w-3xl text-center">
+              {/* Live badge */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.4 }}
+                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm text-gray-600 mb-7 shadow-sm"
               >
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70 mb-6">
-                  <Sparkles className="h-3.5 w-3.5 text-white/60" />
-                  AI Search Optimization for SaaS — AEO + GEO + SEO
-                </div>
+                <span className="w-2 h-2 rounded-full bg-green-500" style={{ animation: "pulse-dot 2s infinite" }} />
+                500+ businesses growing with AI search
               </motion.div>
 
+              {/* H1 */}
               <motion.h1
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]"
+                className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
+                style={{ letterSpacing: "-0.03em" }}
               >
-                Rank your SaaS in{" "}
-                <span className="text-white">AI search & Google</span>
+                Get your business
+                <br />
+                recommended by <span className="text-blue-600">ChatGPT</span> <span className="text-gray-900">&</span>{" "}
+                <span className="text-blue-600">Google</span>
               </motion.h1>
 
+              {/* Sub */}
               <motion.p
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-8"
+                className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
               >
-                Get your SaaS recommended by ChatGPT, Gemini, Perplexity and Google. AI-powered AEO, GEO & SEO automation.
+                Automatically publish expert content that makes AI search engines recommend{" "}
+                <em className="not-italic font-semibold text-gray-700">you</em> — not your competitors. Works for any
+                industry.
               </motion.p>
 
+              {/* CTAs */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-col sm:flex-row gap-3 justify-center mb-8"
+                className="flex flex-col sm:flex-row gap-3 justify-center mb-4"
               >
                 <Button
                   size="lg"
-                  className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
+                  className="h-13 px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
+                  style={{ height: "52px" }}
                   onClick={() => router.push("/onboarding")}
                 >
-                  Start for free
+                  Get your free AI score
                   <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 px-8 border-white/20 text-white bg-white/5 hover:bg-white/10 text-base"
+                  className="h-13 px-8 border-gray-200 text-gray-700 bg-white hover:bg-gray-50 text-base rounded-xl"
+                  style={{ height: "52px" }}
                   onClick={() => {
                     const el = document.getElementById("features");
                     el?.scrollIntoView({ behavior: "smooth" });
@@ -458,79 +410,121 @@ export default function Index() {
                 </Button>
               </motion.div>
 
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.45 }}
+                className="text-sm text-gray-400 mb-12"
+              >
+                No credit card · Results in <span className="text-gray-600 font-medium">30 seconds</span> · Cancel
+                anytime
+              </motion.p>
+
+              {/* Social proof pills */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="flex flex-wrap gap-2 justify-center mb-12"
+              >
+                {socialProofPills.map((p, i) => (
+                  <div
+                    key={i}
+                    className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-full px-4 py-2 text-sm text-gray-600 shadow-sm"
+                  >
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ background: p.bg, color: p.color }}
+                    >
+                      {p.initial}
+                    </div>
+                    <span>
+                      {p.name} · {p.role} ·
+                    </span>
+                    <span className="font-semibold text-gray-900">{p.result}</span>
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* Before / After */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="max-w-lg mx-auto mb-10"
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-12"
               >
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-                    <Input
-                      type="url"
-                      placeholder="yourwebsite.com"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/30"
-                    />
-                  </div>
-                  <Button
-                    className="h-11 px-5 bg-white/10 hover:bg-white/20 text-white border border-white/10"
-                    onClick={handleGetStarted}
-                  >
-                    Free Audit
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
+                {/* Before */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-5 text-left shadow-sm">
+                  <p className="text-xs font-bold tracking-widest text-red-500 uppercase mb-4">
+                    ✕ Without AutoPilot Geo
+                  </p>
+                  {beforeItems.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5 mb-3">
+                      <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <X className="h-3 w-3 text-red-500" />
+                      </div>
+                      <span className="text-sm text-gray-500 leading-snug">{item}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* After */}
+                <div className="bg-white border border-blue-100 rounded-2xl p-5 text-left shadow-sm">
+                  <p className="text-xs font-bold tracking-widest text-green-600 uppercase mb-4">
+                    ✓ With AutoPilot Geo
+                  </p>
+                  {afterItems.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5 mb-3">
+                      <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-3 w-3 text-green-600" />
+                      </div>
+                      <span className="text-sm text-gray-700 leading-snug font-medium">{item}</span>
+                    </div>
+                  ))}
                 </div>
               </motion.div>
 
-              {/* Dashboard mockup */}
+              {/* Stats */}
               <motion.div
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.5 }}
-                className="relative mx-auto max-w-3xl"
+                transition={{ duration: 0.5, delay: 0.7 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-12"
               >
-                <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-1.5 shadow-2xl">
-                  <div className="rounded-lg bg-[hsl(222,47%,14%)] p-4 md:p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-red-400/60" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-400/60" />
-                        <div className="w-3 h-3 rounded-full bg-green-400/60" />
-                      </div>
-                      <div className="flex-1 h-6 bg-white/5 rounded-md" />
+                {heroStats.map((stat, i) => (
+                  <div key={i} className="bg-white border border-gray-100 rounded-2xl px-4 py-4 text-center shadow-sm">
+                    <div className="text-2xl font-extrabold text-gray-900 leading-none">
+                      {stat.value}
+                      <span className="text-blue-500 text-lg">{stat.suffix}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="rounded-lg bg-white/5 p-3">
-                        <div className="text-xs text-white/40 mb-1">AI Score</div>
-                        <div className="text-2xl font-bold text-white">87</div>
-                      </div>
-                      <div className="rounded-lg bg-white/5 p-3">
-                        <div className="text-xs text-white/40 mb-1">Mentions</div>
-                        <div className="text-2xl font-bold text-white/80">142</div>
-                      </div>
-                      <div className="rounded-lg bg-white/5 p-3">
-                        <div className="text-xs text-white/40 mb-1">Growth</div>
-                        <div className="text-2xl font-bold text-white/70">+67%</div>
-                      </div>
-                    </div>
-                    <div className="h-24 md:h-32 rounded-lg bg-white/5 flex items-end p-3 gap-1">
-                      {[30, 45, 35, 55, 50, 65, 60, 75, 70, 85, 80, 90].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-t bg-gradient-to-t from-blue-400/40 to-blue-300/10"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
-                    </div>
+                    <p className="text-xs text-gray-400 mt-1.5">{stat.label}</p>
                   </div>
+                ))}
+              </motion.div>
+
+              {/* Platform pills */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+                <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Optimizes your presence on</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {aiPlatforms.map((p) => (
+                    <div
+                      key={p.name}
+                      className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-full px-4 py-2 text-sm text-gray-600 font-medium shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                      {p.name}
+                    </div>
+                  ))}
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[hsl(222,47%,11%)] to-transparent" />
               </motion.div>
             </div>
           </div>
+
+          <style>{`
+            @keyframes pulse-dot {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.3; }
+            }
+          `}</style>
         </section>
 
         {/* ═══════ Shopping Visibility ═══════ */}
@@ -540,54 +534,65 @@ export default function Index() {
         <TrafficGrowthSection />
 
         {/* ═══════ AI Platform Logos ═══════ */}
-        <section className="py-8 md:py-12 border-b border-border">
+        <section className="py-10 md:py-14 border-b border-gray-100 bg-white">
           <div className="container px-4">
-            <p className="text-center text-sm text-muted-foreground mb-6">
+            <p className="text-center text-sm text-gray-400 mb-6 uppercase tracking-widest">
               Optimize your presence across all major AI platforms
             </p>
             <div className="flex items-center justify-center gap-8 md:gap-14">
               {aiPlatforms.map((platform) => (
                 <div
                   key={platform.name}
-                  className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
                 >
                   <img
                     src={platform.logo as unknown as string}
                     alt={platform.name}
                     className="h-6 md:h-8 w-auto object-contain"
                   />
-                  <span className="hidden md:inline text-sm font-medium text-muted-foreground">
-                    {platform.name}
-                  </span>
+                  <span className="hidden md:inline text-sm font-medium text-gray-500">{platform.name}</span>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ═══════ Stats ═══════ */}
-        <section className="py-16 md:py-24">
+        {/* ═══════ Stats Section ═══════ */}
+        <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                AI search is the new <span className="font-extrabold">SaaS growth channel</span>
+              <h2
+                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                AI search is the new <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
+              <p className="text-gray-500 text-lg max-w-xl mx-auto">
+                Businesses that show up in AI answers get more clicks, more trust, more customers.
+              </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {heroStats.map((stat, i) => (
+              {[
+                { value: "4.5x", label: "More AI visibility" },
+                { value: "9.7x", label: "More brand mentions" },
+                { value: "60%", label: "Traffic increase avg" },
+                { value: "1.5bn", label: "AI searches monthly" },
+              ].map((stat, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="text-center"
+                  className="text-center bg-gray-50 rounded-2xl p-6 border border-gray-100"
                 >
-                  <div className="text-4xl md:text-5xl font-extrabold text-foreground">
+                  <div
+                    className="text-4xl md:text-5xl font-extrabold text-gray-900"
+                    style={{ letterSpacing: "-0.03em" }}
+                  >
                     {stat.value}
-                    <span className="text-foreground/60">{stat.suffix}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
+                  <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -595,13 +600,16 @@ export default function Index() {
         </section>
 
         {/* ═══════ Features ═══════ */}
-        <section id="features" className="py-16 md:py-24 bg-muted/30">
+        <section id="features" className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Understand how AI talks about <span className="font-extrabold">your brand</span>
+              <h2
+                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                Understand how AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
               </h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                 Monitor and optimize your brand's presence across every major AI platform.
               </p>
             </div>
@@ -613,19 +621,19 @@ export default function Index() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="rounded-2xl border border-border bg-card p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                  className="rounded-2xl border border-gray-100 bg-white p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-4">
                     {card.icon}
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{card.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
-                  <div className="mt-4 rounded-lg bg-muted/50 border border-border p-3 h-32 flex items-end gap-1">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-2">{card.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{card.description}</p>
+                  <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 p-3 h-28 flex items-end gap-1">
                     {Array.from({ length: 8 }).map((_, j) => (
                       <div
                         key={j}
-                        className="flex-1 rounded-t bg-gradient-to-t from-foreground/10 to-foreground/3"
-                        style={{ height: `${30 + Math.random() * 60}%` }}
+                        className="flex-1 rounded-t bg-blue-200"
+                        style={{ height: `${30 + Math.random() * 60}%`, opacity: 0.4 + j * 0.08 }}
                       />
                     ))}
                   </div>
@@ -636,13 +644,16 @@ export default function Index() {
         </section>
 
         {/* ═══════ Testimonials ═══════ */}
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                What people say about <span className="font-extrabold">AutoPilot Geo</span>
+              <h2
+                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                What people say about <span className="text-blue-600 font-extrabold">AutoPilot Geo</span>
               </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
+              <p className="text-gray-500 max-w-xl mx-auto">
                 Join 500+ businesses already growing with AI search optimization.
               </p>
             </div>
@@ -653,8 +664,8 @@ export default function Index() {
                   onClick={() => setActiveTestimonialPlatform(i)}
                   className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
                     activeTestimonialPlatform === i
-                      ? "bg-foreground text-background"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   }`}
                 >
                   {t.platform}
@@ -668,21 +679,21 @@ export default function Index() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="rounded-2xl border border-border bg-card p-6"
+                  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
                 >
                   <div className="flex items-center gap-1 mb-3">
                     {Array.from({ length: review.rating }).map((_, j) => (
                       <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-sm text-foreground/80 leading-relaxed mb-4">"{review.text}"</p>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">"{review.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-[hsl(222,47%,11%)] flex items-center justify-center text-white text-sm font-bold">
+                    <div className="h-9 w-9 rounded-full bg-gray-900 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                       {review.name[0]}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{review.name}</p>
-                      <p className="text-xs text-muted-foreground">{review.role}</p>
+                      <p className="text-sm font-semibold text-gray-900">{review.name}</p>
+                      <p className="text-xs text-gray-400">{review.role}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -692,13 +703,16 @@ export default function Index() {
         </section>
 
         {/* ═══════ Showcase ═══════ */}
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Turn AI search into a <span className="font-extrabold">growth channel</span>
+              <h2
+                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                Turn AI search into a <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                 Track, optimize, and grow your presence in AI-powered search results.
               </p>
             </div>
@@ -710,35 +724,30 @@ export default function Index() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="rounded-2xl overflow-hidden border border-border bg-card"
+                  className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm"
                 >
-                  <div className="h-40 bg-[hsl(222,47%,14%)] p-5 flex items-end">
-                    <div className="rounded-lg bg-white/10 backdrop-blur-sm p-3 w-full">
-                      <div className="h-2 bg-white/20 rounded w-3/4 mb-1.5" />
-                      <div className="h-2 bg-white/10 rounded w-1/2" />
+                  <div className="h-40 bg-gray-900 p-5 flex items-end">
+                    <div className="rounded-lg bg-white/10 p-3 w-full">
+                      <div className="h-2 bg-white/25 rounded w-3/4 mb-1.5" />
+                      <div className="h-2 bg-white/12 rounded w-1/2" />
                     </div>
                   </div>
                   <div className="p-5">
-                    <span className="text-[10px] font-bold tracking-wider text-foreground/50 uppercase">
-                      {feature.tag}
-                    </span>
-                    <h3 className="font-semibold mt-1 mb-2">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                    <span className="text-[10px] font-bold tracking-widest text-blue-500 uppercase">{feature.tag}</span>
+                    <h3 className="font-semibold text-gray-900 mt-1 mb-2">{feature.title}</h3>
+                    <p className="text-sm text-gray-500">{feature.description}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
               {bottomFeatures.map((f, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-border bg-card p-4 text-center"
-                >
-                  <div className="h-10 w-10 rounded-lg bg-foreground/5 flex items-center justify-center text-foreground mx-auto mb-3">
+                <div key={i} className="rounded-xl border border-gray-100 bg-white p-5 text-center shadow-sm">
+                  <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mx-auto mb-3">
                     {f.icon}
                   </div>
-                  <h4 className="font-medium text-sm mb-1">{f.title}</h4>
-                  <p className="text-xs text-muted-foreground">{f.description}</p>
+                  <h4 className="font-semibold text-sm text-gray-900 mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-400">{f.description}</p>
                 </div>
               ))}
             </div>
@@ -746,10 +755,12 @@ export default function Index() {
         </section>
 
         {/* ═══════ FAQ ═══════ */}
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">Frequently Asked Questions</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900" style={{ letterSpacing: "-0.02em" }}>
+                Frequently Asked Questions
+              </h2>
             </div>
             <div className="max-w-2xl mx-auto">
               <Accordion type="single" collapsible className="space-y-3">
@@ -757,14 +768,12 @@ export default function Index() {
                   <AccordionItem
                     key={i}
                     value={`faq-${i}`}
-                    className="rounded-xl border border-border bg-card px-5 transition-all hover:border-foreground/20"
+                    className="rounded-xl border border-gray-100 bg-gray-50 px-5 transition-all hover:border-gray-200"
                   >
-                    <AccordionTrigger className="text-left font-medium py-4 hover:no-underline text-sm md:text-base">
+                    <AccordionTrigger className="text-left font-medium text-gray-900 py-4 hover:no-underline text-sm md:text-base">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground text-sm pb-4">
-                      {faq.answer}
-                    </AccordionContent>
+                    <AccordionContent className="text-gray-500 text-sm pb-4">{faq.answer}</AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
@@ -773,40 +782,48 @@ export default function Index() {
         </section>
 
         {/* ═══════ Dark CTA ═══════ */}
-        <section className="relative overflow-hidden bg-[hsl(222,47%,11%)] py-20 md:py-32">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-400/8 rounded-full blur-[150px]" />
+        <section className="relative overflow-hidden bg-gray-900 py-20 md:py-32">
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)" }}
+          />
           <div className="container relative px-4">
             <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6">
+                <h2
+                  className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
                   Buyers ask AI which brand to choose.
                 </h2>
-                <p className="text-white/60 text-lg mb-8">
+                <p className="text-gray-400 text-lg mb-8">
                   Make sure it's yours. Get discovered in ChatGPT, Gemini, Perplexity and Google today.
                 </p>
                 <Button
                   size="lg"
-                  className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
+                  className="h-13 px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
+                  style={{ height: "52px" }}
                   onClick={() => router.push("/onboarding")}
                 >
                   Start for free <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="h-5 w-5 text-white/50" />
-                  <span className="text-white/60 text-sm">AI Assistant</span>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <MessageSquare className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-400 text-sm font-medium">AI Assistant</span>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-end">
-                    <div className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm max-w-[80%]">
+                    <div className="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm max-w-[80%]">
                       What's the best SEO tool for small businesses?
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="px-4 py-2 rounded-xl bg-white/5 text-white/80 text-sm max-w-[90%]">
+                    <div className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm max-w-[90%]">
                       Based on recent data, I'd recommend{" "}
-                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized content and have strong results for small businesses.
+                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized
+                      content and have strong results for small businesses.
                     </div>
                   </div>
                 </div>
@@ -816,31 +833,35 @@ export default function Index() {
         </section>
 
         {/* ═══════ Final CTA ═══════ */}
-        <section className="bg-[hsl(222,47%,11%)] py-12 md:py-16">
+        <section className="bg-gray-900 py-14 md:py-20 border-t border-white/5">
           <div className="container px-4 text-center">
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">Be visible, today.</h2>
-            <p className="text-white/70 mb-8 max-w-xl mx-auto">
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4" style={{ letterSpacing: "-0.02em" }}>
+              Be visible, today.
+            </h2>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
               Start your free trial and get your brand recommended by AI search engines.
             </p>
             <Button
               size="lg"
-              className="h-12 px-8 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 text-base font-semibold gap-2"
+              className="h-13 px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
+              style={{ height: "52px" }}
               onClick={() => router.push("/onboarding")}
             >
               Get started — it's free <ArrowRight className="h-4 w-4" />
             </Button>
+            <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
           </div>
         </section>
 
         <PublicFooter />
 
         {/* Sticky Mobile CTA */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border shadow-2xl">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-white border-t border-gray-100 shadow-2xl">
           <Button
-            className="w-full h-11 bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white font-semibold gap-2"
+            className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
             onClick={() => router.push("/onboarding")}
           >
-            Start Free <ArrowRight className="h-4 w-4" />
+            Get free AI score <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
