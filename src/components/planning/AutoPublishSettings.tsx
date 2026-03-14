@@ -138,6 +138,8 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {/* Content Quality */}
+      <ContentQualitySection projectId={projectId} />
       {/* Auto-Publish Toggle */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
         <Switch
