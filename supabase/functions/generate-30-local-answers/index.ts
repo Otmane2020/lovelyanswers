@@ -487,11 +487,6 @@ serve(async (req) => {
             scheduled_date: scheduledDateStr,
             language,
             is_public: false,
-            category,
-            supporting_content: {
-              bullets: generated.bullets,
-              word_count: words,
-            },
           })
           .select("id")
           .single();
