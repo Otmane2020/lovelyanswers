@@ -440,10 +440,19 @@ serve(async (req) => {
     const today = new Date();
     const createdAnswers: { id: string; question: string; score: number; scheduled_date: string }[] = [];
 
+    // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
+    const PUBLISH_DAYS = new Set([1, 3, 5]);
+    // Build list of next 30 valid publish dates
+    const publishDates: Date[] = [];
+    for (let offset = 0; publishDates.length < 30; offset++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset);
+      if (PUBLISH_DAYS.has(d.getDay())) publishDates.push(d);
+    }
+
     for (let i = 0; i < 30; i++) {
       const { question, category } = questionList[i % questionList.length];
-      const scheduledDate = new Date(today);
-      scheduledDate.setDate(today.getDate() + i);
+      const scheduledDate = publishDates[i % publishDates.length];
       const scheduledDateStr = scheduledDate.toISOString().split("T")[0];
 
       console.log(`[generate-30-local] [${i + 1}/30] ${category} | "${question.substring(0, 50)}..."`);
