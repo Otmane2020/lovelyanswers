@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ArrowRight,
   Check,
@@ -11,14 +10,11 @@ import {
   FileText,
   Star,
   TrendingUp,
-  Zap,
   BarChart3,
   Search,
   Eye,
   Target,
   MessageSquare,
-  Sparkles,
-  ChevronRight,
   X,
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -205,21 +201,17 @@ const faqs = [
 ];
 
 export default function Index() {
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
-
   const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) navigate("/dashboard");
-  }, [user, router]);
+  }, [user, navigate]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
-
-  const handleGetStarted = () => navigate("/signup");
 
   return (
     <>
@@ -245,37 +237,12 @@ export default function Index() {
           type="application/ld+json"
           children={JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "AutoPilot Geo",
-            url: "https://autopilotgeo.com",
-            logo: "https://autopilotgeo.com/favicon.png",
-            description: "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
-          })}
-        />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             name: "AutoPilot Geo",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
             aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "527", bestRating: "5" },
-          })}
-        />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: "AutoPilot Geo",
-            url: "https://autopilotgeo.com",
-            potentialAction: {
-              "@type": "SearchAction",
-              target: "https://autopilotgeo.com/blog?q={search_term_string}",
-              "query-input": "required name=search_term_string",
-            },
           })}
         />
         <script
@@ -296,53 +263,50 @@ export default function Index() {
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
-        {/* ═══════ NAV ═══════ */}
+        {/* NAV */}
         <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link href="/" className="flex items-center">
+            <Link to="/" className="flex items-center">
               <AnimatedLogo size="md" />
             </Link>
             <div className="hidden md:flex items-center gap-1">
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link href="/pricing">Pricing</Link>
+                <Link to="/pricing">Pricing</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link href="/blog">Blog</Link>
+                <Link to="/blog">Blog</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link href="/auth">Log in</Link>
+                <Link to="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link href="/onboarding">Start Free Audit →</Link>
+                <Link to="/onboarding">Start Free Audit →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
               <Button variant="ghost" size="sm" className="text-gray-600" asChild>
-                <Link href="/auth">Log in</Link>
+                <Link to="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
-                <Link href="/onboarding">Start Free</Link>
+                <Link to="/onboarding">Start Free</Link>
               </Button>
             </div>
           </div>
         </nav>
 
-        {/* ═══════ HERO — Light ═══════ */}
+        {/* HERO */}
         <section
           className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
           style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%)" }}
         >
-          {/* Subtle radial glow */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37,99,235,0.055) 0%, transparent 70%)",
             }}
           />
-
           <div className="container relative px-4">
             <div className="mx-auto max-w-3xl text-center">
-              {/* Live badge */}
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -353,7 +317,6 @@ export default function Index() {
                 500+ businesses growing with AI search
               </motion.div>
 
-              {/* H1 */}
               <motion.h1
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -363,11 +326,10 @@ export default function Index() {
               >
                 Get your business
                 <br />
-                recommended by <span className="text-blue-600">ChatGPT</span> <span className="text-gray-900">&</span>{" "}
+                recommended by <span className="text-blue-600">ChatGPT</span> &{" "}
                 <span className="text-blue-600">Google</span>
               </motion.h1>
 
-              {/* Sub */}
               <motion.p
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -375,11 +337,9 @@ export default function Index() {
                 className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
               >
                 Automatically publish expert content that makes AI search engines recommend{" "}
-                <em className="not-italic font-semibold text-gray-700">you</em> — not your competitors. Works for any
-                industry.
+                <span className="font-semibold text-gray-700">you</span> — not your competitors. Works for any industry.
               </motion.p>
 
-              {/* CTAs */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -388,7 +348,7 @@ export default function Index() {
               >
                 <Button
                   size="lg"
-                  className="h-13 px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
+                  className="px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
                   style={{ height: "52px" }}
                   onClick={() => navigate("/onboarding")}
                 >
@@ -398,7 +358,7 @@ export default function Index() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-13 px-8 border-gray-200 text-gray-700 bg-white hover:bg-gray-50 text-base rounded-xl"
+                  className="px-8 border-gray-200 text-gray-700 bg-white hover:bg-gray-50 text-base rounded-xl"
                   style={{ height: "52px" }}
                   onClick={() => {
                     const el = document.getElementById("features");
@@ -452,7 +412,6 @@ export default function Index() {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-12"
               >
-                {/* Before */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 text-left shadow-sm">
                   <p className="text-xs font-bold tracking-widest text-red-500 uppercase mb-4">
                     ✕ Without AutoPilot Geo
@@ -466,7 +425,6 @@ export default function Index() {
                     </div>
                   ))}
                 </div>
-                {/* After */}
                 <div className="bg-white border border-blue-100 rounded-2xl p-5 text-left shadow-sm">
                   <p className="text-xs font-bold tracking-widest text-green-600 uppercase mb-4">
                     ✓ With AutoPilot Geo
@@ -517,22 +475,13 @@ export default function Index() {
               </motion.div>
             </div>
           </div>
-
-          <style>{`
-            @keyframes pulse-dot {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.3; }
-            }
-          `}</style>
+          <style>{`@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
         </section>
 
-        {/* ═══════ Shopping Visibility ═══════ */}
         <ShoppingVisibilitySection />
-
-        {/* ═══════ Traffic Growth ═══════ */}
         <TrafficGrowthSection />
 
-        {/* ═══════ AI Platform Logos ═══════ */}
+        {/* AI Platform Logos */}
         <section className="py-10 md:py-14 border-b border-gray-100 bg-white">
           <div className="container px-4">
             <p className="text-center text-sm text-gray-400 mb-6 uppercase tracking-widest">
@@ -556,7 +505,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Stats Section ═══════ */}
+        {/* Stats Section */}
         <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-12">
@@ -598,7 +547,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Features ═══════ */}
+        {/* Features */}
         <section id="features" className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
@@ -632,7 +581,7 @@ export default function Index() {
                       <div
                         key={j}
                         className="flex-1 rounded-t bg-blue-200"
-                        style={{ height: `${30 + Math.random() * 60}%`, opacity: 0.4 + j * 0.08 }}
+                        style={{ height: `${30 + (j + 1) * 8}%`, opacity: 0.4 + j * 0.08 }}
                       />
                     ))}
                   </div>
@@ -642,7 +591,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Testimonials ═══════ */}
+        {/* Testimonials */}
         <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-10">
@@ -661,11 +610,7 @@ export default function Index() {
                 <button
                   key={i}
                   onClick={() => setActiveTestimonialPlatform(i)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                    activeTestimonialPlatform === i
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTestimonialPlatform === i ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
                 >
                   {t.platform}
                 </button>
@@ -701,7 +646,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Showcase ═══════ */}
+        {/* Showcase */}
         <section className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
@@ -728,7 +673,7 @@ export default function Index() {
                   <div className="h-40 bg-gray-900 p-5 flex items-end">
                     <div className="rounded-lg bg-white/10 p-3 w-full">
                       <div className="h-2 bg-white/25 rounded w-3/4 mb-1.5" />
-                      <div className="h-2 bg-white/12 rounded w-1/2" />
+                      <div className="h-2 bg-white/10 rounded w-1/2" />
                     </div>
                   </div>
                   <div className="p-5">
@@ -753,7 +698,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ FAQ ═══════ */}
+        {/* FAQ */}
         <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-12">
@@ -780,7 +725,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Dark CTA ═══════ */}
+        {/* Dark CTA */}
         <section className="relative overflow-hidden bg-gray-900 py-20 md:py-32">
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
@@ -800,7 +745,7 @@ export default function Index() {
                 </p>
                 <Button
                   size="lg"
-                  className="h-13 px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
+                  className="px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
                   style={{ height: "52px" }}
                   onClick={() => navigate("/onboarding")}
                 >
@@ -831,7 +776,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* ═══════ Final CTA ═══════ */}
+        {/* Final CTA */}
         <section className="bg-gray-900 py-14 md:py-20 border-t border-white/5">
           <div className="container px-4 text-center">
             <h2 className="text-2xl md:text-4xl font-bold text-white mb-4" style={{ letterSpacing: "-0.02em" }}>
@@ -842,7 +787,7 @@ export default function Index() {
             </p>
             <Button
               size="lg"
-              className="h-13 px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
+              className="px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
               style={{ height: "52px" }}
               onClick={() => navigate("/onboarding")}
             >
