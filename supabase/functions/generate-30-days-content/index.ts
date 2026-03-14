@@ -846,9 +846,9 @@ serve(async (req) => {
     const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
     console.log(`[generate-30-days] Found ${keywordList.length} unused keywords for question generation`);
 
-    // Generate questions for this batch (1 question per day = 1 answer + 1 article = 2 items per day)
-    const totalQuestions = days * questionsPerDay;
-    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per day for ${days} days, each produces 1 answer + 1 article)...`);
+    // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
+    const totalQuestions = publishDates.length * questionsPerDay;
+    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per publish day for ${publishDates.length} publish days)...`);
     const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
