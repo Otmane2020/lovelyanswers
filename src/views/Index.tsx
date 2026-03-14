@@ -23,7 +23,12 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
 import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
@@ -184,8 +189,7 @@ const bottomFeatures = [
 const faqs = [
   {
     question: "How does AI search optimization work?",
-    answer:
-      "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+    answer: "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
   },
   {
     question: "Can I really cancel anytime?",
@@ -201,8 +205,7 @@ const faqs = [
   },
   {
     question: "Is the content actually good?",
-    answer:
-      "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
+    answer: "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
   },
 ];
 
@@ -234,63 +237,44 @@ export default function Index() {
         />
         <link rel="canonical" href="https://autopilotgeo.com/" />
         <meta property="og:title" content="AutoPilot Geo – Get Recommended by ChatGPT & Google" />
-        <meta
-          property="og:description"
-          content="Automatically publish expert content that makes AI search engines recommend you — not your competitors. Works for any industry."
-        />
+        <meta property="og:description" content="Automatically publish expert content that makes AI search engines recommend you — not your competitors. Works for any industry." />
         <meta property="og:url" content="https://autopilotgeo.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://autopilotgeo.com/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "AutoPilot Geo",
-            url: "https://autopilotgeo.com",
-            logo: "https://autopilotgeo.com/favicon.png",
-            description: "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
-          })}
-        />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            name: "AutoPilot Geo",
-            applicationCategory: "BusinessApplication",
-            operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
-            aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "527", bestRating: "5" },
-          })}
-        />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: "AutoPilot Geo",
-            url: "https://autopilotgeo.com",
-            potentialAction: {
-              "@type": "SearchAction",
-              target: "https://autopilotgeo.com/blog?q={search_term_string}",
-              "query-input": "required name=search_term_string",
-            },
-          })}
-        />
-        <script
-          type="application/ld+json"
-          children={JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((f) => ({
-              "@type": "Question",
-              name: f.question,
-              acceptedAnswer: { "@type": "Answer", text: f.answer },
-            })),
-          })}
-        />
+        <script type="application/ld+json" children={JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "AutoPilot Geo",
+          url: "https://autopilotgeo.com",
+          logo: "https://autopilotgeo.com/favicon.png",
+          description: "AI search optimization platform. Get recommended by ChatGPT, Gemini, and Google.",
+        })} />
+        <script type="application/ld+json" children={JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "AutoPilot Geo",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
+          aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "527", bestRating: "5" },
+        })} />
+        <script type="application/ld+json" children={JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "AutoPilot Geo",
+          url: "https://autopilotgeo.com",
+          potentialAction: { "@type": "SearchAction", target: "https://autopilotgeo.com/blog?q={search_term_string}", "query-input": "required name=search_term_string" },
+        })} />
+        <script type="application/ld+json" children={JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map(f => ({
+            "@type": "Question",
+            name: f.question,
+            acceptedAnswer: { "@type": "Answer", text: f.answer },
+          })),
+        })} />
       </Helmet>
 
       <div className="min-h-screen" style={{ background: "#f8f7f4" }}>
@@ -313,7 +297,10 @@ export default function Index() {
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
                 <Link href="/auth">Log in</Link>
               </Button>
-              <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
+              <Button
+                className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5"
+                asChild
+              >
                 <Link href="/onboarding">Start Free Audit →</Link>
               </Button>
             </div>
@@ -343,6 +330,7 @@ export default function Index() {
 
           <div className="container relative px-4">
             <div className="mx-auto max-w-3xl text-center">
+
               {/* Live badge */}
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -350,7 +338,10 @@ export default function Index() {
                 transition={{ duration: 0.4 }}
                 className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm text-gray-600 mb-7 shadow-sm"
               >
-                <span className="w-2 h-2 rounded-full bg-green-500" style={{ animation: "pulse-dot 2s infinite" }} />
+                <span
+                  className="w-2 h-2 rounded-full bg-green-500"
+                  style={{ animation: "pulse-dot 2s infinite" }}
+                />
                 500+ businesses growing with AI search
               </motion.div>
 
@@ -362,9 +353,10 @@ export default function Index() {
                 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
                 style={{ letterSpacing: "-0.03em" }}
               >
-                Get your business
-                <br />
-                recommended by <span className="text-blue-600">ChatGPT</span> <span className="text-gray-900">&</span>{" "}
+                Get your business<br />
+                recommended by{" "}
+                <span className="text-blue-600">ChatGPT</span>{" "}
+                <span className="text-gray-900">&</span>{" "}
                 <span className="text-blue-600">Google</span>
               </motion.h1>
 
@@ -376,8 +368,8 @@ export default function Index() {
                 className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
               >
                 Automatically publish expert content that makes AI search engines recommend{" "}
-                <em className="not-italic font-semibold text-gray-700">you</em> — not your competitors. Works for any
-                industry.
+                <em className="not-italic font-semibold text-gray-700">you</em> — not your competitors.
+                Works for any industry.
               </motion.p>
 
               {/* CTAs */}
@@ -416,8 +408,8 @@ export default function Index() {
                 transition={{ delay: 0.45 }}
                 className="text-sm text-gray-400 mb-12"
               >
-                No credit card · Results in <span className="text-gray-600 font-medium">30 seconds</span> · Cancel
-                anytime
+                No credit card · Results in{" "}
+                <span className="text-gray-600 font-medium">30 seconds</span> · Cancel anytime
               </motion.p>
 
               {/* Social proof pills */}
@@ -438,9 +430,7 @@ export default function Index() {
                     >
                       {p.initial}
                     </div>
-                    <span>
-                      {p.name} · {p.role} ·
-                    </span>
+                    <span>{p.name} · {p.role} ·</span>
                     <span className="font-semibold text-gray-900">{p.result}</span>
                   </div>
                 ))}
@@ -491,7 +481,10 @@ export default function Index() {
                 className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-12"
               >
                 {heroStats.map((stat, i) => (
-                  <div key={i} className="bg-white border border-gray-100 rounded-2xl px-4 py-4 text-center shadow-sm">
+                  <div
+                    key={i}
+                    className="bg-white border border-gray-100 rounded-2xl px-4 py-4 text-center shadow-sm"
+                  >
                     <div className="text-2xl font-extrabold text-gray-900 leading-none">
                       {stat.value}
                       <span className="text-blue-500 text-lg">{stat.suffix}</span>
@@ -502,20 +495,30 @@ export default function Index() {
               </motion.div>
 
               {/* Platform pills */}
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-                <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Optimizes your presence on</p>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
+                <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">
+                  Optimizes your presence on
+                </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {aiPlatforms.map((p) => (
                     <div
                       key={p.name}
                       className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-full px-4 py-2 text-sm text-gray-600 font-medium shadow-sm"
                     >
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: p.color }}
+                      />
                       {p.name}
                     </div>
                   ))}
                 </div>
               </motion.div>
+
             </div>
           </div>
 
@@ -550,7 +553,9 @@ export default function Index() {
                     alt={platform.name}
                     className="h-6 md:h-8 w-auto object-contain"
                   />
-                  <span className="hidden md:inline text-sm font-medium text-gray-500">{platform.name}</span>
+                  <span className="hidden md:inline text-sm font-medium text-gray-500">
+                    {platform.name}
+                  </span>
                 </div>
               ))}
             </div>
@@ -561,11 +566,9 @@ export default function Index() {
         <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                AI search is the new <span className="text-blue-600 font-extrabold">growth channel</span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
+                AI search is the new{" "}
+                <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-xl mx-auto">
                 Businesses that show up in AI answers get more clicks, more trust, more customers.
@@ -586,10 +589,7 @@ export default function Index() {
                   transition={{ delay: i * 0.1 }}
                   className="text-center bg-gray-50 rounded-2xl p-6 border border-gray-100"
                 >
-                  <div
-                    className="text-4xl md:text-5xl font-extrabold text-gray-900"
-                    style={{ letterSpacing: "-0.03em" }}
-                  >
+                  <div className="text-4xl md:text-5xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
                     {stat.value}
                   </div>
                   <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
@@ -603,11 +603,9 @@ export default function Index() {
         <section id="features" className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                Understand how AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
+                Understand how AI talks about{" "}
+                <span className="text-blue-600 font-extrabold">your brand</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                 Monitor and optimize your brand's presence across every major AI platform.
@@ -647,11 +645,9 @@ export default function Index() {
         <section className="py-16 md:py-24 bg-white">
           <div className="container px-4">
             <div className="text-center mb-10">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                What people say about <span className="text-blue-600 font-extrabold">AutoPilot Geo</span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
+                What people say about{" "}
+                <span className="text-blue-600 font-extrabold">AutoPilot Geo</span>
               </h2>
               <p className="text-gray-500 max-w-xl mx-auto">
                 Join 500+ businesses already growing with AI search optimization.
@@ -706,11 +702,9 @@ export default function Index() {
         <section className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                Turn AI search into a <span className="text-blue-600 font-extrabold">growth channel</span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
+                Turn AI search into a{" "}
+                <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                 Track, optimize, and grow your presence in AI-powered search results.
@@ -733,7 +727,9 @@ export default function Index() {
                     </div>
                   </div>
                   <div className="p-5">
-                    <span className="text-[10px] font-bold tracking-widest text-blue-500 uppercase">{feature.tag}</span>
+                    <span className="text-[10px] font-bold tracking-widest text-blue-500 uppercase">
+                      {feature.tag}
+                    </span>
                     <h3 className="font-semibold text-gray-900 mt-1 mb-2">{feature.title}</h3>
                     <p className="text-sm text-gray-500">{feature.description}</p>
                   </div>
@@ -773,7 +769,9 @@ export default function Index() {
                     <AccordionTrigger className="text-left font-medium text-gray-900 py-4 hover:no-underline text-sm md:text-base">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-gray-500 text-sm pb-4">{faq.answer}</AccordionContent>
+                    <AccordionContent className="text-gray-500 text-sm pb-4">
+                      {faq.answer}
+                    </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
@@ -790,10 +788,7 @@ export default function Index() {
           <div className="container relative px-4">
             <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <h2
-                  className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
+                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6" style={{ letterSpacing: "-0.02em" }}>
                   Buyers ask AI which brand to choose.
                 </h2>
                 <p className="text-gray-400 text-lg mb-8">
@@ -822,8 +817,7 @@ export default function Index() {
                   <div className="flex justify-start">
                     <div className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm max-w-[90%]">
                       Based on recent data, I'd recommend{" "}
-                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized
-                      content and have strong results for small businesses.
+                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized content and have strong results for small businesses.
                     </div>
                   </div>
                 </div>
