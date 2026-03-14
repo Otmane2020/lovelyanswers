@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, Loader2, Globe, Calendar, Save, Eye } from "lucide-react";
+import { ContentQualitySection } from "./ContentQualitySection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,8 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {/* Content Quality */}
+      <ContentQualitySection projectId={projectId} />
       {/* Auto-Publish Toggle */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
         <Switch
