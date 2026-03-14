@@ -857,7 +857,7 @@ export default function Index() {
           >
             Get free AI score <ArrowRight className="h-4 w-4" />
           </Button>
-        </div>
+        </div> 
       </div>
     </>
   );
