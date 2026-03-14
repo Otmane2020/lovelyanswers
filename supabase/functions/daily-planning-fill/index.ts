@@ -12,10 +12,10 @@ const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best
 function detectIntent(text: string): IntentType {
   const q = text.toLowerCase();
   if (/prix|tarif|cost|price|budget/.test(q)) return "price";
-  if (/combien de temps|duration|how long|délai/.test(q)) return "duration";
-  if (/crit[eè]re|condition|requirement|choisir/.test(q)) return "criteria";
-  if (/vs|versus|compar|différence/.test(q)) return "comparison";
-  if (/comment|how to|utiliser|éviter/.test(q)) return "howto";
+  if (/combien de temps|duration|how long|d\u00e9lai/.test(q)) return "duration";
+  if (/crit[e\u00e8]re|condition|requirement|choisir/.test(q)) return "criteria";
+  if (/vs|versus|compar|diff\u00e9rence/.test(q)) return "comparison";
+  if (/comment|how to|utiliser|\u00e9viter/.test(q)) return "howto";
   if (/meilleur|best/.test(q)) return "best";
   if (/pourquoi|why/.test(q)) return "why";
   return "what";
@@ -40,9 +40,9 @@ function computeScore(answer: string, brand: string): number {
   let score = 65;
   const currentYear = new Date().getFullYear();
   if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) score += 10;
-  if (/\d+\s*(€|\$|%|euros?|mois|jours?)/i.test(answer)) score += 8;
-  if (/crit[eè]re|choisir|éviter|erreur|condition/i.test(answer)) score += 8;
-  if (/[:\-•]|\d\.\s/.test(answer)) score += 5;
+  if (/\d+\s*(\u20ac|\$|%|euros?|mois|jours?)/i.test(answer)) score += 8;
+  if (/crit[e\u00e8]re|choisir|\u00e9viter|erreur|condition/i.test(answer)) score += 8;
+  if (/[:\-\u2022]|\d\.\s/.test(answer)) score += 5;
   if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 4;
   return Math.min(98, Math.max(50, score));
 }
@@ -62,23 +62,23 @@ async function generateQuestion(
   keywords: string[] = []
 ): Promise<{ question: string; intent: IntentType }> {
   const currentYear = new Date().getFullYear();
-  
+
   const keywordsInstruction = keywords.length > 0
     ? language === "fr"
-      ? `\nMots-clés SEO du projet à UTILISER comme base pour la question:\n${keywords.join(", ")}\n\nTransforme l'un de ces mots-clés en question naturelle et décisionnelle.`
-      : `\nProject SEO keywords to USE as the basis for the question:\n${keywords.join(", ")}\n\nTransform one of these keywords into a natural, decision-oriented question.`
+      ? "\nMots-cles SEO du projet a UTILISER comme base pour la question:\n" + keywords.join(", ") + "\n\nTransforme l'un de ces mots-cles en question naturelle et decisionnelle."
+      : "\nProject SEO keywords to USE as the basis for the question:\n" + keywords.join(", ") + "\n\nTransform one of these keywords into a natural, decision-oriented question."
     : "";
 
   const systemPrompt = language === "fr"
-    ? `Tu génères UNE question DÉCISIONNELLE unique. La question DOIT finir par "?". INTERDIT de générer des mots-clés simples.`
-    : `Generate ONE unique DECISION-ORIENTED question. The question MUST end with "?". FORBIDDEN to generate simple keywords.`;
+    ? "Tu generes UNE question DECISIONNELLE unique. La question DOIT finir par \"?\". INTERDIT de generer des mots-cles simples."
+    : "Generate ONE unique DECISION-ORIENTED question. The question MUST end with \"?\". FORBIDDEN to generate simple keywords.";
 
-  const userPrompt = `Business: ${brandName}\nDescription: ${description}\nDay number: ${dayNumber}${keywordsInstruction}\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {"question": "...", "intent": "criteria|price|howto|comparison|why|best"}`;
+  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + keywordsInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.7,
@@ -93,7 +93,7 @@ async function generateQuestion(
     const content = json?.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Invalid JSON");
-    
+
     const parsed = JSON.parse(match[0]);
     return {
       question: ensureQuestionMark(parsed.question),
@@ -102,9 +102,9 @@ async function generateQuestion(
   } catch (e) {
     console.error("Failed to generate question:", e);
     return {
-      question: language === "fr" 
-        ? `Comment choisir ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`
-        : `How to choose ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`,
+      question: language === "fr"
+        ? "Comment choisir " + brandName.toLowerCase() + " adapte a ses besoins en " + currentYear + " ?"
+        : "How to choose " + brandName.toLowerCase() + " suited to your needs in " + currentYear + "?",
       intent: "criteria",
     };
   }
@@ -119,15 +119,15 @@ async function generateAnswer(
   apiKey: string
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
   const systemPrompt = language === "fr"
-    ? `Tu es un expert AEO. Rédige une réponse citation-first. Première phrase = réponse DIRECTE. Mention ${brandName} UNE fois. 80-120 mots.`
-    : `You are an AEO expert. Write a citation-first answer. First sentence = DIRECT answer. Mention ${brandName} ONCE. 80-120 words.`;
+    ? "Tu es un expert AEO. Redige une reponse citation-first. Premiere phrase = reponse DIRECTE. Mention " + brandName + " UNE fois. 80-120 mots."
+    : "You are an AEO expert. Write a citation-first answer. First sentence = DIRECT answer. Mention " + brandName + " ONCE. 80-120 words.";
 
-  const userPrompt = `Question: ${question}\nBrand: ${brandName}\nDescription: ${description}\nIntent: ${intent}\n\nReturn JSON: {"answer": "...", "bullets": [], "faq": []}`;
+  const userPrompt = "Question: " + question + "\nBrand: " + brandName + "\nDescription: " + description + "\nIntent: " + intent + "\n\nReturn JSON: {\"answer\": \"...\", \"bullets\": [], \"faq\": []}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.3,
@@ -146,7 +146,7 @@ async function generateAnswer(
   } catch (e) {
     console.error("Failed to generate answer:", e);
     return {
-      answer: `${brandName} propose des solutions adaptées. Consultez les ressources disponibles.`,
+      answer: brandName + " propose des solutions adaptees. Consultez les ressources disponibles.",
       bullets: [],
       faq: [],
     };
@@ -161,15 +161,15 @@ async function generateArticle(
   apiKey: string
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const systemPrompt = language === "fr"
-    ? `Tu rédiges un article de blog SEO/AEO complet. Titre accrocheur. 800-1200 mots. Mentionner ${brandName} 2-3 fois.`
-    : `Write a complete SEO/AEO blog article. Catchy title. 800-1200 words. Mention ${brandName} 2-3 times.`;
+    ? "Tu rediges un article de blog SEO/AEO complet. Titre accrocheur. 800-1200 mots. Mentionner " + brandName + " 2-3 fois."
+    : "Write a complete SEO/AEO blog article. Catchy title. 800-1200 words. Mention " + brandName + " 2-3 times.";
 
-  const userPrompt = `Question: ${question}\nAnswer: ${answer}\nBrand: ${brandName}\n\nReturn JSON: {"title": "...", "content": "...", "metaDescription": "..."}`;
+  const userPrompt = "Question: " + question + "\nAnswer: " + answer + "\nBrand: " + brandName + "\n\nReturn JSON: {\"title\": \"...\", \"content\": \"...\", \"metaDescription\": \"...\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.5,
@@ -197,7 +197,6 @@ async function generateArticle(
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      // Fix common JSON issues
       jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " ");
       jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
       parsed = JSON.parse(jsonStr);
@@ -227,12 +226,13 @@ async function generateArticle(
     return {
       title: question,
       content: answer,
-      htmlContent: `<p>${answer}</p>`,
+      htmlContent: "<p>" + answer + "</p>",
       metaDescription: answer.substring(0, 155),
       wordCount: answer.split(/\s+/).length,
     };
   }
 }
+
 /**
  * CRON JOB: Daily Planning Fill
  * Runs daily at 6 AM UTC
@@ -254,7 +254,6 @@ serve(async (req) => {
     const apiKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
-    // Optional params to avoid timeouts
     let body: any = {};
     try {
       body = await req.json();
@@ -264,11 +263,11 @@ serve(async (req) => {
 
     const {
       projectId,
-      days = 31, // today + 30 days
-      maxDaysToFill = 3, // safety to keep runtime short
+      days = 31,
+      maxDaysToFill = 3,
     } = body ?? {};
 
-    // Only publish on Mon (1), Wed (3), Fri (5) — 3 quality posts per week
+    // Only publish on Mon (1), Wed (3), Fri (5)
     const PUBLISH_DAYS = new Set([1, 3, 5]);
 
     console.log("[daily-planning-fill] Starting daily planning fill...", {
@@ -280,7 +279,6 @@ serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Select projects (optionally a single project)
     const projectsQuery = supabase
       .from("projects")
       .select("id, name, language, brand_name, business_description")
@@ -292,7 +290,7 @@ serve(async (req) => {
 
     if (projectsError) throw projectsError;
 
-    console.log(`[daily-planning-fill] Found ${projects?.length || 0} active projects`);
+    console.log("[daily-planning-fill] Found " + (projects?.length || 0) + " active projects");
 
     const results: {
       projectId: string;
@@ -307,7 +305,6 @@ serve(async (req) => {
       const description = project.business_description || "";
       const language = project.language || "fr";
 
-      // Fetch project keywords to inject into question generation
       const { data: projectKeywords } = await supabase
         .from("keywords")
         .select("keyword")
@@ -316,26 +313,26 @@ serve(async (req) => {
         .limit(30);
 
       const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
-      console.log(`[daily-planning-fill] Found ${keywordList.length} unused keywords for project ${project.name}`);
+      console.log("[daily-planning-fill] Found " + keywordList.length + " unused keywords for project " + project.name);
 
       let daysTouched = 0;
       let daysCompleted = 0;
       let stoppedEarly = false;
 
-      // Ensure rows exist in planning for the whole window (so you always have “31 lignes”)
+      // Ensure rows exist in planning for the whole window (31 days)
       for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
-        const dateStr = targetDate.toISOString().split(“T”)[0];
+        const dateStr = targetDate.toISOString().split("T")[0];
 
         // Only generate content on Mon/Wed/Fri (3 quality posts per week)
-        const dayOfWeek = targetDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const dayOfWeek = targetDate.getDay();
         if (!PUBLISH_DAYS.has(dayOfWeek)) continue;
 
         await supabase
-          .from(“planning”)
+          .from("planning")
           .upsert(
             { project_id: project.id, day: dateStr },
-            { onConflict: “project_id,day”, ignoreDuplicates: true }
+            { onConflict: "project_id,day", ignoreDuplicates: true }
           );
 
         const { data: planningRow } = await supabase
@@ -358,7 +355,7 @@ serve(async (req) => {
 
         daysTouched++;
 
-        console.log(`[daily-planning-fill] Filling day ${dateStr} for ${project.name}...`);
+        console.log("[daily-planning-fill] Filling day " + dateStr + " for " + project.name + "...");
 
         // 1) Ensure we have an answer
         let answerId = planningRow.answer_id as string | null;
@@ -456,7 +453,7 @@ serve(async (req) => {
 
             daysCompleted++;
           } catch (err) {
-            console.error(`[daily-planning-fill] Error generating article for ${dateStr}:`, err);
+            console.error("[daily-planning-fill] Error generating article for " + dateStr + ":", err);
           }
         }
 
