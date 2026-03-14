@@ -846,15 +846,6 @@ serve(async (req) => {
     const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
     console.log(`[generate-30-days] Found ${keywordList.length} unused keywords for question generation`);
 
-    // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
-    const totalQuestions = publishDates.length * questionsPerDay;
-    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per publish day for ${publishDates.length} publish days)...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
-    console.log(`[generate-30-days] Generated ${questions.length} questions`);
-
-    const answersCreated: any[] = [];
-    const articlesCreated: any[] = [];
-
     // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
     const PUBLISH_DAYS = new Set([1, 3, 5]);
     
@@ -864,6 +855,15 @@ serve(async (req) => {
       const d = new Date(startDate.getTime() + offset * 86400000);
       if (PUBLISH_DAYS.has(d.getDay())) publishDates.push(d);
     }
+
+    // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
+    const totalQuestions = publishDates.length * questionsPerDay;
+    console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per publish day for ${publishDates.length} publish days)...`);
+    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
+    console.log(`[generate-30-days] Generated ${questions.length} questions`);
+
+    const answersCreated: any[] = [];
+    const articlesCreated: any[] = [];
 
     // Process each question - 1 question per publish day
     for (let i = 0; i < questions.length; i++) {
