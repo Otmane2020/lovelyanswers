@@ -1,8 +1,7 @@
-"use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Helmet } from "react-helmet-async";
+import { Link, useNavigate } from "react-router-dom";
+
+
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,18 +211,19 @@ const faqs = [
 export default function Index() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
-  const router = useRouter();
+  
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) router.push("/dashboard");
+    if (user) navigate("/dashboard");
   }, [user, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
 
-  const handleGetStarted = () => router.push("/signup");
+  const handleGetStarted = () => navigate("/signup");
 
   return (
     <>
@@ -383,7 +383,7 @@ export default function Index() {
                   size="lg"
                   className="h-13 px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
                   style={{ height: "52px" }}
-                  onClick={() => router.push("/onboarding")}
+                  onClick={() => navigate("/onboarding")}
                 >
                   Get your free AI score
                   <ArrowRight className="h-4 w-4" />
@@ -798,7 +798,7 @@ export default function Index() {
                   size="lg"
                   className="h-13 px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
                   style={{ height: "52px" }}
-                  onClick={() => router.push("/onboarding")}
+                  onClick={() => navigate("/onboarding")}
                 >
                   Start for free <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -839,7 +839,7 @@ export default function Index() {
               size="lg"
               className="h-13 px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
               style={{ height: "52px" }}
-              onClick={() => router.push("/onboarding")}
+              onClick={() => navigate("/onboarding")}
             >
               Get started — it's free <ArrowRight className="h-4 w-4" />
             </Button>
@@ -853,11 +853,11 @@ export default function Index() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-white border-t border-gray-100 shadow-2xl">
           <Button
             className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
-            onClick={() => router.push("/onboarding")}
+            onClick={() => navigate("/onboarding")}
           >
             Get free AI score <ArrowRight className="h-4 w-4" />
           </Button>
-        </div> 
+        </div>
       </div>
     </>
   );
