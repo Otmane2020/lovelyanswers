@@ -81,15 +81,15 @@ export function ContentQualitySection({ projectId }: ContentQualitySectionProps)
   if (isLoading) return null;
   if (stats.totalArticles === 0) return null;
 
-  const scoreColor = stats.avgScore >= 80 ? "text-green-600" : stats.avgScore >= 60 ? "text-amber-500" : "text-red-500";
+  const scoreColor = stats.avgScore >= 80 ? "text-primary" : stats.avgScore >= 60 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-3 py-2 rounded-lg border bg-background">
       <div className="flex items-center gap-2">
         {stats.avgScore >= 70 ? (
-          <CheckCircle className="h-4 w-4 text-green-500" />
+          <CheckCircle className="h-4 w-4 text-primary" />
         ) : (
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTriangle className="h-4 w-4 text-destructive" />
         )}
         <span className="text-sm font-medium">Quality</span>
       </div>
