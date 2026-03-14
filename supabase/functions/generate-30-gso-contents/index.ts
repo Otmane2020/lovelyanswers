@@ -199,15 +199,21 @@ Output ONLY valid JSON array:
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     }));
 
+    // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
+    const PUBLISH_DAYS = new Set([1, 3, 5]);
+
     for (let i = 0, dayOffset = 0; i < Math.min(topics.length, toGenerate); i++) {
       const t = topics[i];
-      // Find next day without existing content
+      // Find next Mon/Wed/Fri without existing content
       let scheduledDate: Date;
       do {
         scheduledDate = new Date(today);
         scheduledDate.setDate(today.getDate() + dayOffset);
         dayOffset++;
-      } while (existingDates.has(`${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`));
+      } while (
+        !PUBLISH_DAYS.has(scheduledDate.getDay()) ||
+        existingDates.has(`${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`)
+      );
       const scheduledDateStr = scheduledDate.toISOString();
 
       console.log(`[generate-30-gso] Generating ${i + 1}/30: ${t.topic.substring(0, 50)}... (${t.type})`);

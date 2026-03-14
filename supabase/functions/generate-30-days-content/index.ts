@@ -855,12 +855,22 @@ serve(async (req) => {
     const answersCreated: any[] = [];
     const articlesCreated: any[] = [];
 
-    // Process each question - 1 question per day (each question generates 1 answer + 1 article = 2 items)
+    // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
+    const PUBLISH_DAYS = new Set([1, 3, 5]);
+    
+    // Build list of valid publish dates from startDate
+    const publishDates: Date[] = [];
+    for (let offset = 0; publishDates.length < days && offset < days * 3; offset++) {
+      const d = new Date(startDate.getTime() + offset * 86400000);
+      if (PUBLISH_DAYS.has(d.getDay())) publishDates.push(d);
+    }
+
+    // Process each question - 1 question per publish day
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      // Calculate which day this question belongs to (1 question per day)
       const dayIndex = Math.floor(i / questionsPerDay);
-      const scheduledDate = new Date(startDate.getTime() + dayIndex * 86400000);
+      if (dayIndex >= publishDates.length) break;
+      const scheduledDate = publishDates[dayIndex];
       const scheduledDateStr = scheduledDate.toISOString();
       const dayStr = scheduledDateStr.split('T')[0];
 
