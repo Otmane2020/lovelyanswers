@@ -1,0 +1,2 @@
+/* Re-export all styles from the Vite-era CSS file */
+@import "../src/index.css";

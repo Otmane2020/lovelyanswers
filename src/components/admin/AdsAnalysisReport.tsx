@@ -1,3 +1,4 @@
+"use client";
 import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -582,13 +583,13 @@ function ReportChat({ reportContext }: { reportContext: string }) {
       if (!session) throw new Error("Not authenticated");
 
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ads-chat`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? import.meta.env?.VITE_SUPABASE_URL}/functions/v1/ads-chat`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ reportContext, messages: newMessages }),
         }

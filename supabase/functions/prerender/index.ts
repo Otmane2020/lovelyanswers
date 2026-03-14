@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
     // ─── Homepage: / ───
     if (path === '/') {
       const html = buildFullHtml({
-        title: `${BRAND} — AI Visibility Platform | Rank in ChatGPT, Gemini & Google`,
+        title: `AutoPilot Geo — Rank in AI Search: ChatGPT, Gemini & Perplexity | AEO + GEO + SEO`,
         description: 'Track how your brand ranks in ChatGPT, Gemini and AI answers and get cited by AI. Generate AI-optimized content that ranks first.',
         canonical: BRAND_URL,
         body: `

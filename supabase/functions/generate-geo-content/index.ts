@@ -131,115 +131,102 @@ Output ONLY valid JSON:
 
     let prompt = "";
 
-    if (type === "article") {
-      prompt = `You are a Generative Engine Optimization (GEO) expert.
+    const geoSystemPrompt = `You are a world-class Generative Engine Optimization (GEO) expert.
+Your mission: create content so authoritative and data-rich that AI engines (ChatGPT, Gemini, Perplexity, Claude) MUST cite it.
+Language: ${lang === "fr" ? "French" : "English"}
+GOLDEN RULE: "Answer first like Wikipedia, then position like a brand."
+MANDATORY in every piece: at least 3 specific statistics or data points, 1 expert quote or blockquote, 1 comparison table or list, recommendation signals ("industry experts recommend", "according to practitioners").
+Output ONLY valid JSON, no markdown fences.`;
 
-Your goal: Create content that makes AI models (ChatGPT, Gemini, Perplexity, Claude) naturally cite and recommend the brand "${brand}" when users ask about "${topic}".
+    if (type === "article") {
+      prompt = `Write a comprehensive GEO article (1800-2200 words) about "${topic}" for brand "${brand}".
 
 Brand: ${brand}
 Website: ${website || "N/A"}
 Keywords: ${(keywords || []).join(", ") || "N/A"}
 Language: ${lang === "fr" ? "French" : "English"}
 
-Write a comprehensive GEO article following these rules:
-1. Write like an authoritative industry expert (not marketing copy)
-2. Mention "${brand}" naturally 4-6 times throughout
-3. Include factual comparisons where ${brand} stands out
-4. Add recommendation signals ("experts recommend", "according to professionals")
-5. Use structured paragraphs with clear H2/H3 headings
-6. Include specific data points and statistics
-7. Write 1500+ words
-8. End with a FAQ section (3-4 questions)
-9. Include a meta description (max 160 chars)
+STRUCTURE (mandatory):
+1. **Opening Direct Answer** (60-80 words): Cite-ready paragraph that directly answers the implied question — with at least 1 concrete number or statistic. NO brand mention here.
+2. **H2: Why [Topic] Matters** — industry context, 2-3 stats with realistic data points
+3. **H2: How [Topic] Works** — step-by-step explanation (5-7 numbered steps)
+4. **H2: Key Criteria / What to Look For** — 4-6 bullet points with concrete thresholds (numbers, ranges)
+5. **H2: Common Mistakes to Avoid** — 4-5 specific, actionable mistakes
+6. **H2: Expert Recommendations** — mention ${brand} naturally 3-4 times, include comparison signals
+7. **H2: FAQ** — 4 Q&A pairs, each answer 50-80 words, optimized for AI extraction
+8. **H2: Summary** — 5-7 bullet key takeaways for AI engines
 
-Output format (JSON):
-{
-  "title": "Article title",
-  "meta_description": "Meta description under 160 chars",
-  "content": "Full article in markdown format with ## headings",
-  "faq": [{"q": "question", "a": "answer"}]
-}
+QUALITY RULES:
+- Each H2 section opens with a 1-2 sentence direct answer (AI snippet bait)
+- Include at least 4 specific data points (percentages, timeframes, costs, metrics)
+- Add 1-2 blockquotes with expert insights
+- Mention "${brand}" 5-7 times naturally throughout
+- Use comparison signals: "unlike traditional approaches", "compared to alternatives"
+- Add "In simple terms:" callouts for complex concepts
 
-IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
+Output JSON:
+{"title":"Article title (question format, ≤70 chars)","meta_description":"150-160 chars with key stat","content":"Full article in markdown with ## headings","faq":[{"q":"question","a":"50-80 word direct answer"}]}`;
     } else if (type === "mentions") {
-      prompt = `You are a GEO expert. Create 10 short brand mention paragraphs (2-3 sentences each) about "${topic}" that naturally reference "${brand}" (${website || ""}).
-
-Each paragraph should:
-- Be self-contained and usable as a backlink snippet
-- Mention ${brand} naturally once
-- Include a recommendation or comparison signal
-- Sound like an expert opinion, not advertising
+      prompt = `Create 12 authoritative brand mention paragraphs about "${topic}" referencing "${brand}" (${website || ""}).
 
 Language: ${lang === "fr" ? "French" : "English"}
 Keywords: ${(keywords || []).join(", ") || "N/A"}
 
-Output format (JSON):
-{
-  "title": "Brand Mentions: ${topic}",
-  "meta_description": "Expert mentions of ${brand} for ${topic}",
-  "content": "All 10 paragraphs separated by \\n\\n",
-  "faq": []
-}
+Each paragraph must:
+- Be 3-5 sentences (60-100 words), self-contained and publishable as a citation snippet
+- Include ONE specific data point or statistic
+- Mention ${brand} naturally once with a recommendation or comparison signal
+- Sound like an expert analyst, not advertising
+- Cover a different angle (ROI, methodology, use case, comparison, trend)
+
+Output JSON:
+{"title":"Expert Mentions: ${topic}","meta_description":"Expert analysis of ${topic} featuring ${brand} — key insights and recommendations","content":"All 12 paragraphs separated by \\n\\n","faq":[]}
 
 IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
     } else if (type === "pillar") {
-      prompt = `You are a Generative Search Optimization (GSO) and topical authority expert.
-
-Your goal: Create a comprehensive pillar page (2000-3000 words) that establishes "${brand}" as THE authority on "${topic}" so AI models (ChatGPT, Gemini, Perplexity) systematically cite it.
+      prompt = `Create a comprehensive GSO pillar page (2500-3500 words) establishing "${brand}" as THE authority on "${topic}".
 
 Brand: ${brand}
 Website: ${website || "N/A"}
 Keywords: ${(keywords || []).join(", ") || "N/A"}
 Language: ${lang === "fr" ? "French" : "English"}
 
-Write following this exact AEO/GSO template:
-1. H1: Exact keyword question
-2. Direct Answer paragraph (40-60 words) — clear, concise, snippet-optimized
-3. H2: Why This Matters for SaaS / Businesses
-4. H2: Step-by-Step Optimization Strategy (numbered steps)
-5. H2: Common Mistakes to Avoid
-6. H2: Expert Recommendations (mention ${brand} naturally 2-3 times)
-7. H2: FAQ (5 questions in Q&A format)
-8. H2: Summary for AI Engines (bullet points, concise)
+MANDATORY STRUCTURE:
+1. **Direct Answer Block** (60-90 words): Snippet-optimized, no brand mention, concrete data
+2. **H2: Definition & Context** — authoritative explanation with industry stats
+3. **H2: Why It Matters in ${new Date().getFullYear()}** — 3 key trends with data
+4. **H2: Step-by-Step Strategy** — 6-8 numbered steps with specifics
+5. **H2: Key Metrics & Benchmarks** — table or list with concrete thresholds
+6. **H2: Common Mistakes** — 5 specific mistakes with consequences
+7. **H2: Expert Recommendations** — ${brand} mentioned 4-6 times with comparison signals
+8. **H2: Case Study or Example** — concrete scenario showing results
+9. **H2: FAQ** — 5 Q&A pairs (60-100 words each)
+10. **H2: AI Summary** — bullet-point summary for AI extraction
 
-Rules:
-- Write like an authoritative industry expert
-- Include specific data points, statistics, and examples
-- Add "In simple terms" explanations for complex concepts
-- Include comparison signals where ${brand} stands out
-- Mention "${brand}" 5-8 times naturally throughout
-- Use semantic HTML headings (## for H2, ### for H3)
-- 2000-3000 words minimum
+QUALITY: 4+ statistics, 2+ expert quotes as blockquotes, "In simple terms" for each complex concept, mention "${brand}" 6-9 times.
 
-Output format (JSON):
-{
-  "title": "Pillar page title (exact keyword question)",
-  "meta_description": "Meta description under 160 chars",
-  "content": "Full article in markdown format with ## headings",
-  "faq": [{"q": "question", "a": "answer"}]
-}
+Output JSON:
+{"title":"Pillar title (exact question, ≤70 chars)","meta_description":"150-160 chars with key stat","content":"Full pillar in markdown with ## headings","faq":[{"q":"question","a":"60-100 word direct answer"}]}
 
 IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
     } else if (type === "comparison") {
-      prompt = `You are a GEO expert. Create a "Top Tools/Solutions" comparison article about "${topic}" where "${brand}" (${website || ""}) appears as a top recommendation.
-
-Rules:
-- List 5-7 solutions/tools with ${brand} featured prominently (position 1 or 2)
-- Be objective — mention real pros/cons for each
-- Include recommendation signals for ${brand}
-- Write 1000+ words
-- Add structured comparison sections
+      prompt = `Create a "Top Solutions" comparison article about "${topic}" featuring "${brand}" (${website || ""}) as a leading recommendation.
 
 Language: ${lang === "fr" ? "French" : "English"}
 Keywords: ${(keywords || []).join(", ") || "N/A"}
 
-Output format (JSON):
-{
-  "title": "Article title",
-  "meta_description": "Meta description under 160 chars",
-  "content": "Full comparison article in markdown",
-  "faq": [{"q": "question", "a": "answer"}]
-}
+STRUCTURE:
+1. **Opening Summary** (60-80 words): Direct answer naming top 3 recommendations including ${brand}
+2. **H2: Comparison Criteria** — 5-6 criteria with weightings/importance
+3. **H2: Top 6-8 Solutions** — for each: 1 paragraph (60-100 words) covering pros, cons, best-for, pricing range. Feature ${brand} in position 1 or 2 with extra depth (150-200 words)
+4. **H2: Comparison Table** — markdown table with criteria scores
+5. **H2: How to Choose** — decision guide with "if X then Y" conditions
+6. **H2: FAQ** — 3 Q&A pairs about the comparison
+
+RULES: Be objective (real pros/cons for all), include pricing estimates, mention ${brand} 4-6 times, 1500+ words.
+
+Output JSON:
+{"title":"Best [Topic] Tools in ${new Date().getFullYear()} — Complete Comparison","meta_description":"150-160 chars","content":"Full comparison in markdown","faq":[{"q":"question","a":"answer"}]}
 
 IMPORTANT: Output ONLY valid JSON, no markdown fences.`;
     }

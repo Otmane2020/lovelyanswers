@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+"use client";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -347,7 +348,7 @@ export function AuditReportDisplay({ report }: { report: Report }) {
               AutoPilot Geo publishes 30 expert articles/month and optimizes your site for AI search — on autopilot.
             </p>
             <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
-              <Link to="/onboarding">
+              <Link href="/onboarding">
                 <Sparkles className="h-5 w-5" />
                 Start Free Trial
                 <ChevronRight className="h-4 w-4" />

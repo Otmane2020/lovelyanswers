@@ -1,5 +1,7 @@
+"use client";
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -44,15 +46,15 @@ const settingsNav: NavItem[] = [
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
+  const pathname = usePathname();
 
   const NavLink = ({ item }: { item: NavItem }) => {
-    const isActive = location.pathname === item.href;
+    const isActive = pathname === item.href;
     const Icon = item.icon;
 
     const linkContent = (
       <Link
-        to={item.href}
+        href={item.href}
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
           "hover:bg-accent hover:text-accent-foreground",
@@ -102,7 +104,7 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className={cn("flex h-16 items-center border-b border-border px-4", collapsed && "justify-center px-2")}>
-        <Link to="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-bg shadow-glow-sm">
             <Zap className="h-5 w-5 text-primary-foreground" />
           </div>

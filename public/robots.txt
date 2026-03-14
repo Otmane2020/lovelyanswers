@@ -63,6 +63,7 @@ Allow: /terms
 Allow: /privacy
 Allow: /auth
 Allow: /onboarding
+Allow: /tools/ai-visibility-checker
 
 # Disallow private dashboard routes
 Disallow: /dashboard
@@ -86,5 +87,5 @@ Disallow: /checkout
 Disallow: /autoseo
 Disallow: /account
 
-# Sitemap location (dynamic edge function)
-Sitemap: https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/sitemap
+# Sitemap
+Sitemap: https://autopilotgeo.com/sitemap.xml

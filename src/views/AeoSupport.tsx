@@ -1,0 +1,570 @@
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { MessageCircle, Send, Plus, Clock, CheckCircle, AlertCircle, ArrowLeft, ImagePlus, X, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { enUS } from "date-fns/locale";
+
+interface SupportTicket {
+  id: string;
+  subject: string;
+  message: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SupportMessage {
+  id: string;
+  ticket_id: string;
+  sender_type: string;
+  message: string;
+  created_at: string;
+  attachment_url?: string | null;
+}
+
+const AeoSupport = () => {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicketSubject, setNewTicketSubject] = useState("");
+  const [newTicketMessage, setNewTicketMessage] = useState("");
+  const [replyMessage, setReplyMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const replyFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadTickets();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedTicket) {
+      loadMessages(selectedTicket.id);
+    }
+  }, [selectedTicket]);
+
+  const loadTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTickets(data || []);
+    } catch (error) {
+      console.error("Error loading tickets:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadMessages = async (ticketId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("support_messages")
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      
+      // Get the ticket to include the initial message
+      const ticket = tickets.find(t => t.id === ticketId);
+      const messagesData = data || [];
+      
+      // Always include the initial ticket message as the first message in the history
+      // But avoid duplicates - check if the first message matches the ticket message
+      if (ticket?.message) {
+        const initialMessage: SupportMessage = {
+          id: 'initial-' + ticketId,
+          ticket_id: ticketId,
+          sender_type: 'user',
+          message: ticket.message,
+          created_at: ticket.created_at,
+        };
+        
+        // Check if we already have this message (to avoid duplicates)
+        const firstMessage = messagesData[0];
+        const isDuplicate = firstMessage && 
+          firstMessage.message === ticket.message && 
+          firstMessage.sender_type === 'user';
+        
+        if (isDuplicate) {
+          // Messages already include the initial message
+          setMessages(messagesData);
+        } else {
+          // Prepend the initial ticket message
+          setMessages([initialMessage, ...messagesData]);
+        }
+      } else {
+        setMessages(messagesData);
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isReply: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type (only images)
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file (PNG, JPG, GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setFilePreview(URL.createObjectURL(file));
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+      setFilePreview(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (replyFileInputRef.current) replyFileInputRef.current.value = '';
+  };
+
+  const uploadFile = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('support-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('support-attachments')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload the image. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCreateTicket = async () => {
+    if (!user || !newTicketSubject.trim() || !newTicketMessage.trim()) return;
+
+    setIsSending(true);
+    try {
+      // Upload file if selected
+      let attachmentUrl: string | null = null;
+      if (selectedFile) {
+        attachmentUrl = await uploadFile(selectedFile);
+      }
+
+      const { data: ticketData, error: ticketError } = await supabase
+        .from("support_tickets")
+        .insert({
+          user_id: user.id,
+          user_email: user.email || "",
+          subject: newTicketSubject,
+          message: newTicketMessage,
+        })
+        .select()
+        .single();
+
+      if (ticketError) throw ticketError;
+
+      // Add the first message with attachment
+      await supabase.from("support_messages").insert({
+        ticket_id: ticketData.id,
+        sender_type: "user",
+        message: newTicketMessage,
+        attachment_url: attachmentUrl,
+      });
+
+      // Send confirmation email to user
+      try {
+        await supabase.functions.invoke("send-email", {
+          body: {
+            type: "ticket_created",
+            to: user.email,
+            name: user.user_metadata?.full_name || user.email?.split("@")[0],
+            ticketSubject: newTicketSubject,
+            message: newTicketMessage,
+          },
+        });
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+      }
+
+      toast({
+        title: "Ticket created",
+        description: "Your support request has been sent.",
+      });
+
+      setNewTicketSubject("");
+      setNewTicketMessage("");
+      clearFile();
+      setIsCreatingTicket(false);
+      loadTickets();
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      toast({
+        title: "Error",
+        description: "Unable to create ticket.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedTicket || (!replyMessage.trim() && !selectedFile)) return;
+
+    setIsSending(true);
+    try {
+      // Upload file if selected
+      let attachmentUrl: string | null = null;
+      if (selectedFile) {
+        attachmentUrl = await uploadFile(selectedFile);
+      }
+
+      const { error } = await supabase.from("support_messages").insert({
+        ticket_id: selectedTicket.id,
+        sender_type: "user",
+        message: replyMessage || "(Image attached)",
+        attachment_url: attachmentUrl,
+      });
+
+      if (error) throw error;
+
+      setReplyMessage("");
+      clearFile();
+      loadMessages(selectedTicket.id);
+    } catch (error) {
+      console.error("Error sending reply:", error);
+      toast({
+        title: "Error",
+        description: "Unable to send message.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "open":
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"><AlertCircle className="h-3 w-3 mr-1" />Open</Badge>;
+      case "in_progress":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
+      case "resolved":
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Support</h1>
+            <p className="text-muted-foreground">Contact our support team</p>
+          </div>
+        </div>
+        <Button onClick={() => setIsCreatingTicket(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Ticket
+        </Button>
+      </div>
+
+      {isCreatingTicket && (
+        <Card>
+          <CardHeader>
+            <CardTitle>New Support Ticket</CardTitle>
+            <CardDescription>Describe your issue or question</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Input
+                placeholder="Subject of your request"
+                value={newTicketSubject}
+                onChange={(e) => setNewTicketSubject(e.target.value)}
+              />
+            </div>
+            <div>
+              <Textarea
+                placeholder="Describe your issue in detail..."
+                value={newTicketMessage}
+                onChange={(e) => setNewTicketMessage(e.target.value)}
+                rows={5}
+              />
+            </div>
+            
+            {/* File upload section */}
+            <div className="space-y-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e)}
+                className="hidden"
+              />
+              {filePreview ? (
+                <div className="relative inline-block">
+                  <img 
+                    src={filePreview} 
+                    alt="Preview" 
+                    className="max-h-32 rounded-lg border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={clearFile}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  Add Screenshot
+                </Button>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={handleCreateTicket} disabled={isSending || isUploading}>
+                {(isSending || isUploading) ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Send
+              </Button>
+              <Button variant="outline" onClick={() => { setIsCreatingTicket(false); clearFile(); }}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Tickets list */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              My Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[500px]">
+              {isLoading ? (
+                <p className="text-muted-foreground text-center py-4">Loading...</p>
+              ) : tickets.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No tickets</p>
+              ) : (
+                <div className="space-y-2">
+                  {tickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedTicket?.id === ticket.id
+                          ? "bg-primary/10 border-primary"
+                          : "hover:bg-muted/50"
+                      }`}
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-sm line-clamp-1">{ticket.subject}</p>
+                        {getStatusBadge(ticket.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(ticket.created_at), "MMM d, yyyy", { locale: enUS })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Conversation */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>
+              {selectedTicket ? selectedTicket.subject : "Select a ticket"}
+            </CardTitle>
+            {selectedTicket && (
+              <div className="flex items-center gap-2">
+                {getStatusBadge(selectedTicket.status)}
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {selectedTicket ? (
+              <div className="space-y-4">
+                <ScrollArea className="h-[350px] pr-4">
+                  <div className="space-y-4">
+                    {messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.sender_type === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[80%] p-3 rounded-lg ${
+                            msg.sender_type === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          {msg.attachment_url && (
+                            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <img 
+                                src={msg.attachment_url} 
+                                alt="Attachment" 
+                                className="max-w-full max-h-48 rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                              />
+                            </a>
+                          )}
+                          <p className="text-sm">{msg.message}</p>
+                          <p className={`text-xs mt-1 ${msg.sender_type === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                            {format(new Date(msg.created_at), "MMM d, yyyy HH:mm", { locale: enUS })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <Separator />
+                
+                {/* Reply section with file upload */}
+                <div className="space-y-2">
+                  {filePreview && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={filePreview} 
+                        alt="Preview" 
+                        className="max-h-24 rounded-lg border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5"
+                        onClick={clearFile}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      ref={replyFileInputRef}
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, true)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </Button>
+                    <Textarea
+                      placeholder="Your message..."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      rows={2}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleSendReply} 
+                      disabled={isSending || isUploading || (!replyMessage.trim() && !selectedFile)}
+                    >
+                      {(isSending || isUploading) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-20">
+                Select a ticket to view the conversation
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default AeoSupport;

@@ -491,7 +491,7 @@ export function CreatePmaxCampaignDialog() {
                     <div className="flex gap-2 items-start">
                       <Input value={businessLogoUrl} onChange={e => setBusinessLogoUrl(e.target.value)} className="text-xs flex-1" placeholder="https://..." />
                       {businessLogoUrl && (
-                        <img src={businessLogoUrl} alt="Logo" className="h-10 w-10 rounded border object-contain bg-white" onError={e => (e.currentTarget.style.display = "none")} />
+                        <img src={businessLogoUrl as unknown as string} alt="Logo" className="h-10 w-10 rounded border object-contain bg-white" onError={e => (e.currentTarget.style.display = "none")} />
                       )}
                     </div>
                   </Field>
@@ -718,7 +718,7 @@ function MediaUrlList({ urls, setUrls, placeholder }: { urls: string[]; setUrls:
                   🎬 Video {i + 1}
                 </div>
               ) : (
-                <img src={url} alt={`Asset ${i + 1}`} className="h-16 w-16 rounded border object-cover bg-white" onError={e => { (e.currentTarget as HTMLImageElement).src = ""; (e.currentTarget as HTMLImageElement).alt = "❌"; }} />
+                <img src={url as unknown as string} alt={`Asset ${i + 1}`} className="h-16 w-16 rounded border object-cover bg-white" onError={e => { (e.currentTarget as HTMLImageElement).src = ""; (e.currentTarget as HTMLImageElement).alt = "❌"; }} />
               )}
               <button
                 onClick={() => setUrls(prev => prev.filter((_, j) => j !== i))}

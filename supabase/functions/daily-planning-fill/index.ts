@@ -264,9 +264,12 @@ serve(async (req) => {
 
     const {
       projectId,
-      days = 31, // today + 30 days (matches your expectation “jusqu'au 11 février”)
+      days = 31, // today + 30 days
       maxDaysToFill = 3, // safety to keep runtime short
     } = body ?? {};
+
+    // Only publish on Mon (1), Wed (3), Fri (5) — 3 quality posts per week
+    const PUBLISH_DAYS = new Set([1, 3, 5]);
 
     console.log("[daily-planning-fill] Starting daily planning fill...", {
       projectId,
@@ -322,13 +325,17 @@ serve(async (req) => {
       // Ensure rows exist in planning for the whole window (so you always have “31 lignes”)
       for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
-        const dateStr = targetDate.toISOString().split("T")[0];
+        const dateStr = targetDate.toISOString().split(“T”)[0];
+
+        // Only generate content on Mon/Wed/Fri (3 quality posts per week)
+        const dayOfWeek = targetDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        if (!PUBLISH_DAYS.has(dayOfWeek)) continue;
 
         await supabase
-          .from("planning")
+          .from(“planning”)
           .upsert(
             { project_id: project.id, day: dateStr },
-            { onConflict: "project_id,day", ignoreDuplicates: true }
+            { onConflict: “project_id,day”, ignoreDuplicates: true }
           );
 
         const { data: planningRow } = await supabase

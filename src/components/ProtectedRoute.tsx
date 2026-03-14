@@ -1,4 +1,6 @@
-import { Navigate, useLocation } from "react-router-dom";
+"use client";
+import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Loader2 } from "lucide-react";
@@ -9,11 +11,26 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireSubscription = true }: ProtectedRouteProps) {
+  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
-  const location = useLocation();
+  const pathname = usePathname();
 
-  // Show loading while checking auth
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth");
+    }
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    if (!authLoading && !subLoading && user) {
+      const isOnboardingPage = pathname === "/onboarding";
+      if (requireSubscription && !isOnboardingPage && !isSubscribed && !isTrial) {
+        router.push("/checkout");
+      }
+    }
+  }, [authLoading, subLoading, user, isSubscribed, isTrial, pathname, requireSubscription, router]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -25,12 +42,8 @@ export function ProtectedRoute({ children, requireSubscription = true }: Protect
     );
   }
 
-  // Not logged in - redirect to auth
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
+  if (!user) return null;
 
-  // If subscription check required, wait for it
   if (requireSubscription && subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -40,14 +53,6 @@ export function ProtectedRoute({ children, requireSubscription = true }: Protect
         </div>
       </div>
     );
-  }
-
-  // Check subscription - allow access if subscribed or on trial
-  // Skip check for onboarding page (handled separately)
-  const isOnboardingPage = location.pathname === "/onboarding";
-  
-  if (requireSubscription && !isOnboardingPage && !isSubscribed && !isTrial) {
-    return <Navigate to="/checkout" replace />;
   }
 
   return <>{children}</>;

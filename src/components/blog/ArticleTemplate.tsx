@@ -1,5 +1,6 @@
+"use client";
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,11 +143,11 @@ export default function ArticleTemplate({
         {/* ─── Topbar ─── */}
         <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 flex h-14 items-center justify-between">
-            <Link to="/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <AnimatedLogo size="sm" />
             </Link>
             <div className="flex items-center gap-2">
-              <Link to="/blog">
+              <Link href="/blog">
                 <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
                   <ArrowLeft className="h-4 w-4" /> Blog
                 </Button>

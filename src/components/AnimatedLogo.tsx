@@ -23,7 +23,7 @@ export function AnimatedLogo({ size = "md", variant = "full", theme = "auto", cl
   if (variant === "icon") {
     return (
       <img
-        src={autopilotGeoIcon}
+        src={autopilotGeoIcon as unknown as string}
         alt="AutoPilot Geo"
         className={`${iconSizeClasses[size]} ${className}`}
       />

@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+"use client";
+import { useRouter } from "next/navigation";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { Lock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ interface SubscriptionGateProps {
 
 export function SubscriptionGate({ title, description, children }: SubscriptionGateProps) {
   const { isSubscribed } = useSubscriptionContext();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (isSubscribed) return <>{children}</>;
 
@@ -30,7 +31,7 @@ export function SubscriptionGate({ title, description, children }: SubscriptionG
           </div>
           <h3 className="text-xl font-bold mb-2">{title}</h3>
           <p className="text-muted-foreground text-sm mb-6">{description}</p>
-          <Button onClick={() => navigate("/checkout")} size="lg" className="gap-2 w-full">
+          <Button onClick={() => router.push("/checkout")} size="lg" className="gap-2 w-full">
             <Lock className="h-4 w-4" />
             Upgrade to Unlock
           </Button>

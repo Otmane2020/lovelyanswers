@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -173,7 +174,7 @@ const CMS_CONFIG: Record<string, {
 }> = {
   wordpress: {
     name: "WordPress",
-    icon: wordpressLogo,
+    icon: wordpressLogo as unknown as string,
     isImage: true,
     color: "from-slate-600 to-slate-800",
     description: "Publish articles directly to your WordPress blog.",
@@ -187,7 +188,7 @@ const CMS_CONFIG: Record<string, {
   },
   shopify: {
     name: "Shopify",
-    icon: shopifyLogo,
+    icon: shopifyLogo as unknown as string,
     isImage: true,
     color: "from-green-500 to-green-600",
     description: "Publish blog articles to your Shopify store.",
@@ -200,7 +201,7 @@ const CMS_CONFIG: Record<string, {
   },
   wix: {
     name: "Wix",
-    icon: wixLogo,
+    icon: wixLogo as unknown as string,
     isImage: true,
     color: "from-yellow-500 to-yellow-600",
     description: "Publish articles to your Wix blog.",
@@ -263,7 +264,7 @@ const CMS_CONFIG: Record<string, {
   },
   bigcommerce: {
     name: "BigCommerce",
-    icon: bigcommerceLogo,
+    icon: bigcommerceLogo as unknown as string,
     isImage: true,
     color: "from-gray-700 to-black",
     description: "Publish blog content to your BigCommerce store.",
@@ -286,7 +287,7 @@ const CMS_CONFIG: Record<string, {
   },
   framer: {
     name: "Framer",
-    icon: framerLogo,
+    icon: framerLogo as unknown as string,
     isImage: true,
     color: "from-sky-400 to-blue-500",
     description: "Connect your Framer site via webhook.",
@@ -298,7 +299,7 @@ const CMS_CONFIG: Record<string, {
   },
   bolt: {
     name: "Bolt.new",
-    icon: boltLogo,
+    icon: boltLogo as unknown as string,
     isImage: true,
     color: "from-yellow-400 to-amber-500",
     description: "Connect your Bolt.new AI-powered web project.",
@@ -311,7 +312,7 @@ const CMS_CONFIG: Record<string, {
   },
   lovable: {
     name: "Lovable.dev",
-    icon: lovableLogo,
+    icon: lovableLogo as unknown as string,
     isImage: true,
     color: "from-rose-500 to-pink-600",
     description: "Publish articles to your Lovable.dev project",

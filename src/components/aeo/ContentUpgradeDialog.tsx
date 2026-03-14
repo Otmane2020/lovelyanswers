@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+"use client";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown, Lock, Sparkles } from "lucide-react";
@@ -9,7 +10,7 @@ interface ContentUpgradeDialogProps {
 }
 
 export function ContentUpgradeDialog({ open, onOpenChange }: ContentUpgradeDialogProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,7 +44,7 @@ export function ContentUpgradeDialog({ open, onOpenChange }: ContentUpgradeDialo
             </div>
           </div>
           <Button
-            onClick={() => { onOpenChange(false); navigate("/checkout"); }}
+            onClick={() => { onOpenChange(false); router.push("/checkout"); }}
             size="lg"
             className="w-full gap-2"
           >

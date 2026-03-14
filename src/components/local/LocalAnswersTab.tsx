@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -241,7 +242,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
     <div className="space-y-6">
       {/* ChatGPT Logo + Badge - Same as Answers.tsx */}
       <div className="flex items-center gap-3">
-        <img src={chatGptLogo} alt="ChatGPT" className="h-16 w-auto" />
+        <img src={chatGptLogo as unknown as string} alt="ChatGPT" className="h-16 w-auto" />
         <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 font-bold text-sm px-3 py-1">
           Local Rank First!
         </Badge>
@@ -252,7 +253,7 @@ export function LocalAnswersTab({ business }: LocalAnswersTabProps) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <img src={chatGptIcon} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
+              <img src={chatGptIcon as unknown as string} alt="ChatGPT" className="h-10 w-10 rounded-lg" />
               <h1 className="text-3xl font-bold tracking-tight">Local Q&A</h1>
             </div>
             <p className="text-muted-foreground">

@@ -1,5 +1,6 @@
+"use client";
 import { useEffect, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/integrations/supabase/client";
 
 // Generate a unique visitor ID (persisted in localStorage)
@@ -81,7 +82,7 @@ const getOS = (): string => {
 };
 
 export const useVisitorTracking = () => {
-  const location = useLocation();
+  const pathname = usePathname();
   const sessionStartTime = useRef<number>(Date.now());
   const currentPageStartTime = useRef<number>(Date.now());
   const isSessionTracked = useRef<boolean>(false);
@@ -218,9 +219,9 @@ export const useVisitorTracking = () => {
   // Track page views on route change
   useEffect(() => {
     if (isSessionTracked.current) {
-      trackPageView(location.pathname);
+      trackPageView(pathname);
     }
-  }, [location.pathname, trackPageView]);
+  }, [pathname, trackPageView]);
 
   return { trackConversion };
 };

@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +80,7 @@ export function AdminGoogleSearchConsole() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      setDomains(domainsData || []);
+      setDomains((domainsData || []) as any);
       
       // For now, use mock data for GSC stats until tables are created
       setGscData([]);

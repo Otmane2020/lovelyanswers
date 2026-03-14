@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+"use client";
+import Link from "next/link";
 import { Shield, Star, CreditCard, ExternalLink } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 
@@ -8,7 +9,7 @@ export function PublicFooter() {
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-2 lg:col-span-2">
-            <Link to="/" className="flex items-center mb-4 hover:opacity-80 transition-opacity">
+            <Link href="/" className="flex items-center mb-4 hover:opacity-80 transition-opacity">
               <AnimatedLogo size="sm" theme="dark" />
             </Link>
             <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
@@ -22,19 +23,19 @@ export function PublicFooter() {
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/blog" className="text-white/40 hover:text-white transition-colors">Blog</Link></li>
-              <li><Link to="/localAEO" className="text-white/40 hover:text-white transition-colors">Local AEO</Link></li>
-              <li><Link to="/pricing" className="text-white/40 hover:text-white transition-colors">Pricing</Link></li>
-              <li><Link to="/auth" className="text-white/40 hover:text-white transition-colors">Login</Link></li>
-              <li><Link to="/onboarding" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
+              <li><Link href="/blog" className="text-white/40 hover:text-white transition-colors">Blog</Link></li>
+              <li><Link href="/localAEO" className="text-white/40 hover:text-white transition-colors">Local AEO</Link></li>
+              <li><Link href="/pricing" className="text-white/40 hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link href="/auth" className="text-white/40 hover:text-white transition-colors">Login</Link></li>
+              <li><Link href="/onboarding" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/about" className="text-white/40 hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/terms" className="text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link to="/privacy" className="text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/about" className="text-white/40 hover:text-white transition-colors">About Us</Link></li>
+              <li><Link href="/terms" className="text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><a href="mailto:support@autopilotgeo.com" className="text-white/40 hover:text-white transition-colors">Contact</a></li>
               <li><a href="https://autopilotgeo.com" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">autopilotgeo.com <ExternalLink className="h-3 w-3" /></a></li>
             </ul>
@@ -49,9 +50,9 @@ export function PublicFooter() {
             <div className="mt-6 pt-4 border-t border-white/10">
               <p className="text-xs text-white/30 mb-2">Resources</p>
               <div className="flex flex-wrap gap-2">
-                <Link to="/blog" className="text-xs text-white/30 hover:text-white transition-colors">AEO Articles</Link>
+                <Link href="/blog" className="text-xs text-white/30 hover:text-white transition-colors">AEO Articles</Link>
                 <span className="text-white/20">•</span>
-                <Link to="/localAEO" className="text-xs text-white/30 hover:text-white transition-colors">Local SEO</Link>
+                <Link href="/localAEO" className="text-xs text-white/30 hover:text-white transition-colors">Local SEO</Link>
               </div>
             </div>
           </div>

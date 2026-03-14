@@ -1,0 +1,142 @@
+/**
+ * Cloudflare Worker — cloudflare-worker-v2
+ * autopilotgeo.com
+ *
+ * Architecture:
+ *   Bot/Crawler  → Supabase prerender edge function (full SSR HTML)
+ *   Human        → lovelyanswers.lovable.app (the live Lovable SPA)
+ */
+
+const ORIGIN = 'https://lovelyanswers.lovable.app';
+const PRERENDER_URL = 'https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/prerender';
+
+const PRERENDER_PATHS = [
+  '/',
+  '/pricing',
+  '/about',
+  '/blog',
+  '/privacy',
+  '/terms',
+  '/auth',
+  '/signup',
+  '/tools',
+  '/tools/ai-visibility-checker',
+  '/alternatives',
+];
+
+const BOT_AGENTS = [
+  'googlebot',
+  'bingbot',
+  'slurp',
+  'duckduckbot',
+  'baiduspider',
+  'yandexbot',
+  'facebot',
+  'ia_archiver',
+  'twitterbot',
+  'linkedinbot',
+  'whatsapp',
+  'telegrambot',
+  'applebot',
+  'semrushbot',
+  'ahrefsbot',
+  'mj12bot',
+  'dotbot',
+  'rogerbot',
+  'exabot',
+  'petalbot',
+  'claudebot',
+  'gptbot',
+  'chatgpt-user',
+  'perplexitybot',
+  'anthropic-ai',
+  'cohere-ai',
+  'omgili',
+  'ffi/',
+  'python-requests',
+  'go-http-client',
+  'java/',
+  'curl/',
+  'wget/',
+  'scrapy',
+  'node-fetch',
+  'axios/',
+  'okhttp',
+  'httpx',
+];
+
+function isBot(userAgent) {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  return BOT_AGENTS.some((bot) => ua.includes(bot));
+}
+
+function shouldPrerender(pathname) {
+  // Exact match
+  if (PRERENDER_PATHS.includes(pathname)) return true;
+  // Blog posts and public answer pages
+  if (pathname.startsWith('/blog/')) return true;
+  if (pathname.startsWith('/answers/')) return true;
+  return false;
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const userAgent = request.headers.get('User-Agent') || '';
+    const pathname = url.pathname;
+
+    // Bot + prerenderable path → serve SSR from Supabase
+    if (isBot(userAgent) && shouldPrerender(pathname)) {
+      try {
+        const prerenderReq = new Request(
+          `${PRERENDER_URL}?url=${encodeURIComponent(request.url)}`,
+          {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+        const prerenderRes = await fetch(prerenderReq);
+        if (prerenderRes.ok) {
+          const html = await prerenderRes.text();
+          return new Response(html, {
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'public, max-age=86400',
+              'X-Prerendered': 'true',
+            },
+          });
+        }
+      } catch (e) {
+        // Fall through to origin on prerender error
+        console.error('Prerender error:', e);
+      }
+    }
+
+    // All other traffic → proxy to Lovable origin
+    const originUrl = new URL(request.url);
+    originUrl.hostname = 'lovelyanswers.lovable.app';
+    originUrl.protocol = 'https:';
+    originUrl.port = '';
+
+    const originRequest = new Request(originUrl.toString(), {
+      method: request.method,
+      headers: request.headers,
+      body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+      redirect: 'follow',
+    });
+
+    const response = await fetch(originRequest);
+
+    // Pass through with correct host header
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set('Cache-Control', 'public, max-age=86400');
+    newHeaders.delete('X-Frame-Options');
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
+  },
+};
