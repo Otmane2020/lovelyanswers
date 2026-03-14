@@ -15,17 +15,43 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 function computeGsoScore(content: string, brand: string): number {
+  const words = countWords(content);
   const brandMentions = (content.match(new RegExp(brand, "gi")) || []).length;
-  const wordCount = content.split(/\s+/).length;
   const jitter = content.length % 6;
   let score = 75 + jitter;
+
+  // Word count bonuses
+  if (words >= 800) score += 3;
+  if (words >= 1200) score += 3;
+  if (words >= 1800) score += 4;
+  if (words >= 2200) score += 3;
+
+  // Brand mentions
   if (brandMentions >= 3) score += 4;
-  if (brandMentions >= 5) score += 4;
-  if (wordCount >= 1000) score += 4;
-  if (wordCount >= 1500) score += 3;
-  if (content.includes("recommend") || content.includes("recommand")) score += 3;
-  if (content.includes("##")) score += 2;
+  if (brandMentions >= 5) score += 3;
+
+  // Structure
+  const h2Count = (content.match(/<h2|^##\s/gmi) || []).length;
+  if (h2Count >= 4) score += 3;
+  if (h2Count >= 6) score += 2;
+
+  // Data points
+  if (/\d+%|\d+\s*(users|companies|businesses|clients)/gi.test(content)) score += 3;
+
+  // Recommendation signals
+  if (/recommend|recommand|expert|according to/i.test(content)) score += 3;
+
+  // FAQ presence
+  if (/FAQ|questions?\s+fr[eé]quentes|frequently\s+asked/i.test(content)) score += 2;
+
+  // Blockquotes
+  if (/<blockquote|^>\s/gmi.test(content)) score += 2;
+
   return Math.max(75, Math.min(98, score));
 }
 
@@ -66,7 +92,7 @@ Deno.serve(async (req) => {
     // Get project info
     const { data: project } = await supabase
       .from("projects")
-      .select("id, brand_name, website_url, language, name")
+      .select("id, brand_name, website_url, language, name, business_type, audience")
       .eq("id", projectId)
       .single();
 
@@ -79,7 +105,7 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("generation_settings")
-      .select("language, brand_name, website_url, business_description")
+      .select("language, brand_name, website_url, business_description, competitors, tone")
       .eq("project_id", projectId)
       .single();
 
@@ -87,42 +113,48 @@ Deno.serve(async (req) => {
     const website = settings?.website_url || project.website_url || "";
     const description = settings?.business_description || "";
     const language = settings?.language || project.language || "en";
+    const competitors = settings?.competitors || [];
+    const tone = settings?.tone || "";
+    const businessType = project.business_type || "SaaS";
+    const audience = project.audience || "Business professionals";
 
-    console.log(`[generate-30-gso] Starting for project: ${project.name}, brand: ${brand}, lang: ${language}`);
+    console.log("[generate-30-gso] Starting for project: " + project.name + ", brand: " + brand + ", lang: " + language);
 
-    // Check existing scheduled GSO contents for the next 30 days
+    // Check existing scheduled GEO contents for the next 30 days
     const now = new Date();
     const in30 = new Date();
     in30.setDate(now.getDate() + 30);
 
-    const { data: existingContents, error: existingError } = await supabase
+    const { data: existingContents } = await supabase
       .from("geo_contents")
-      .select("id, scheduled_date")
+      .select("id, scheduled_date, topic")
       .eq("project_id", projectId)
       .gte("scheduled_date", now.toISOString())
       .lte("scheduled_date", in30.toISOString());
 
     const existingCount = (existingContents || []).length;
-    console.log(`[generate-30-gso] Existing scheduled GSO contents: ${existingCount}`);
+    console.log("[generate-30-gso] Existing scheduled GEO contents: " + existingCount);
 
     if (existingCount >= 30) {
-      console.log(`[generate-30-gso] Already have ${existingCount} scheduled contents, skipping generation`);
       return new Response(
-        JSON.stringify({ success: true, skipped: true, existing: existingCount, message: "Already have 30+ scheduled GSO contents" }),
+        JSON.stringify({ success: true, skipped: true, existing: existingCount, message: "Already have 30+ scheduled GEO contents" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const toGenerate = 30 - existingCount;
-    console.log(`[generate-30-gso] Need to generate ${toGenerate} more contents`);
 
     // Get project keywords for context
     const { data: keywords } = await supabase
       .from("keywords")
       .select("keyword")
       .eq("project_id", projectId)
+      .eq("is_used", false)
       .limit(30);
     const kwList = (keywords || []).map((k: any) => k.keyword).join(", ");
+
+    // Get existing topics to avoid duplicates
+    const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
 
     const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!openRouterKey) {
@@ -132,35 +164,43 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 1: Generate 30 unique GSO topics
-    const topicsPrompt = `You are a Generative Search Optimization (GSO) strategist.
+    const currentYear = new Date().getFullYear();
+
+    // Step 1: Generate unique GEO topics
+    const topicsPrompt = `You are a Generative Engine Optimization (GEO) strategist for ${currentYear}.
 
 Brand: "${brand}"
 Website: ${website || "N/A"}
+Industry: ${businessType}
+Target Audience: ${audience}
 Description: ${description || "N/A"}
 Keywords: ${kwList || "none"}
+${competitors?.length > 0 ? "Competitors: " + competitors.join(", ") : ""}
 Language: ${language === "fr" ? "French" : "English"}
 
-Generate exactly ${toGenerate} unique GSO topics that will help "${brand}" appear in AI-generated answers (ChatGPT, Gemini, Perplexity).
+Generate exactly ${toGenerate} unique GEO topics that will help "${brand}" appear in AI-generated answers (ChatGPT, Gemini, Perplexity, Claude).
 
-Mix the following content types proportionally (total = ${toGenerate}):
-- ~50% "article" topics (expert GSO articles, 1500+ words)
-- ~27% "pillar" topics (comprehensive pillar pages, 2000+ words)
-- ~13% "mentions" topics (brand mention snippets)
-- ~10% "comparison" topics (top tools/solutions comparisons)
+TOPIC QUALITY RULES:
+- Each topic must be a real question or decision-oriented statement users actually ask
+- Topics should cover different funnel stages: awareness, consideration, decision
+- Include comparison topics ("X vs Y"), how-to topics, and "best of" topics
+- Avoid generic topics - each should be specific to the industry
+- Topics must be naturally linkable to "${brand}"
 
-Each topic should be a question or statement that AI engines would answer and where "${brand}" can be naturally mentioned.
+Mix these content types proportionally (total = ${toGenerate}):
+- ~50% "article" topics (expert GEO articles, 1800+ words with 5+ H2 sections)
+- ~25% "pillar" topics (comprehensive pillar pages, 2500+ words)
+- ~15% "mentions" topics (10+ brand mention paragraphs)
+- ~10% "comparison" topics (top tools/solutions comparisons with data)
 
 Output ONLY valid JSON array:
 [{"topic": "topic text", "type": "article|pillar|mentions|comparison", "keywords": ["kw1", "kw2", "kw3"]}]`;
-
-    console.log(`[generate-30-gso] Generating 30 topics...`);
 
     const topicsRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${openRouterKey}`,
+        Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -188,19 +228,40 @@ Output ONLY valid JSON array:
       });
     }
 
-    console.log(`[generate-30-gso] Got ${topics.length} topics, generating content...`);
+    // Filter out duplicate topics
+    topics = topics.filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+
+    console.log("[generate-30-gso] Got " + topics.length + " unique topics, generating content...");
 
     const created: { id: string; title: string; type: string; scheduled_date: string }[] = [];
     const today = new Date();
 
-    // Find the next available dates (skip dates that already have content)
     const existingDates = new Set((existingContents || []).map((c: any) => {
       const d = new Date(c.scheduled_date);
-      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     }));
 
-    // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
+    // Only schedule on Mon(1), Wed(3), Fri(5)
     const PUBLISH_DAYS = new Set([1, 3, 5]);
+
+    // Build business context for prompts
+    const businessContext = `Brand: ${brand}
+Website: ${website || "N/A"}
+Industry: ${businessType}
+Audience: ${audience}
+${description ? "Description: " + description : ""}
+${competitors?.length > 0 ? "Competitors: " + competitors.join(", ") : ""}
+${tone ? "Tone: " + tone : ""}`;
+
+    const htmlRules = `CRITICAL FORMAT RULES:
+- Output semantic HTML only. NO markdown. NO H1 tags. NO <!DOCTYPE>, <html>, <head>, <body>, <style> wrappers.
+- Use <h2>, <h3> for sections. Use <p> for paragraphs. Use <ul>/<ol>/<li> for lists.
+- Use <blockquote> for key insights or expert quotes. Use <strong> and <em> for emphasis.
+- Use <hr> as section separators.
+- Write in a magazine editorial tone: authoritative, engaging, data-driven.
+- Each H2 section MUST open with a 1-2 sentence direct answer (AI snippet bait).
+- Include at least 3 specific data points or statistics per article.
+- Add "Pro tip:" or "Expert insight:" callouts using <blockquote>.`;
 
     for (let i = 0, dayOffset = 0; i < Math.min(topics.length, toGenerate); i++) {
       const t = topics[i];
@@ -212,48 +273,85 @@ Output ONLY valid JSON array:
         dayOffset++;
       } while (
         !PUBLISH_DAYS.has(scheduledDate.getDay()) ||
-        existingDates.has(`${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}`)
+        existingDates.has(scheduledDate.getFullYear() + "-" + scheduledDate.getMonth() + "-" + scheduledDate.getDate())
       );
       const scheduledDateStr = scheduledDate.toISOString();
 
-      console.log(`[generate-30-gso] Generating ${i + 1}/30: ${t.topic.substring(0, 50)}... (${t.type})`);
+      console.log("[generate-30-gso] Generating " + (i + 1) + "/" + toGenerate + ": " + t.topic.substring(0, 50) + "... (" + t.type + ")");
 
-      // Build prompt based on type
       let contentPrompt = "";
-      const baseContext = `Brand: ${brand}\nWebsite: ${website || "N/A"}\nKeywords: ${(t.keywords || []).join(", ")}\nLanguage: ${language === "fr" ? "French" : "English"}`;
-
-      const htmlRules = `CRITICAL FORMAT RULES:
-- Output semantic HTML only. NO markdown. NO H1 tags. NO <!DOCTYPE>, <html>, <head>, <body>, <style> wrappers.
-- Use <h2>, <h3> for sections. Use <p> for paragraphs. Use <ul>/<ol>/<li> for lists.
-- Use <blockquote> for key insights or expert quotes. Use <strong> and <em> for emphasis.
-- Use <hr> as section separators. Start the first paragraph with a compelling hook.
-- Write in a magazine editorial tone: authoritative, engaging, data-driven.`;
 
       if (t.type === "article") {
-        contentPrompt = `You are a GEO expert writing for a premium magazine. Write a 1500+ word GSO article about "${t.topic}" for "${brand}".
-${baseContext}
+        contentPrompt = `You are a GEO expert writing for a premium magazine in ${currentYear}. Write a comprehensive GEO article about "${t.topic}" for "${brand}".
+${businessContext}
+Keywords: ${(t.keywords || []).join(", ")}
+Language: ${language === "fr" ? "French" : "English"}
 ${htmlRules}
-Mention "${brand}" naturally 4-6 times. Include statistics, expert insights with <blockquote>, and a FAQ section (3 questions using <h3> and <p>).
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
+
+STRUCTURE (ALL sections mandatory):
+1. <p><strong>Direct Answer (40-60 words)</strong> - cite-ready paragraph answering the implied question with 1 concrete number</p>
+2. <h2>Why This Matters in ${currentYear}</h2> - industry context, 2-3 stats
+3. <h2>How It Works</h2> - step-by-step with <ol>, 5-7 steps
+4. <h2>Key Criteria / What to Look For</h2> - 4-6 points with thresholds
+5. <h2>Common Mistakes to Avoid</h2> - 4-5 actionable mistakes
+6. <h2>Expert Recommendations</h2> - mention "${brand}" 3-4 times naturally
+7. <h2>FAQ</h2> - 4 Q&A pairs using <h3> and <p>
+
+QUALITY: 1800+ words, 5+ data points, 2+ <blockquote>, mention "${brand}" 5-7 times.
+Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars with stat","content":"...semantic HTML..."}`;
       } else if (t.type === "pillar") {
-        contentPrompt = `You are a GSO expert writing for a premium magazine. Write a 2000-3000 word pillar page about "${t.topic}" for "${brand}".
-${baseContext}
+        contentPrompt = `You are a GEO expert writing a definitive pillar page in ${currentYear}. Write about "${t.topic}" for "${brand}".
+${businessContext}
+Keywords: ${(t.keywords || []).join(", ")}
+Language: ${language === "fr" ? "French" : "English"}
 ${htmlRules}
-Follow GSO template: Direct Answer (40-60 words in <p><strong>), Strategy Steps (<h2>+<ol>), Expert Recommendations (<blockquote>), FAQ (5 questions with <h3>), Summary for AI (<h2> + <p>).
-Mention "${brand}" 5-8 times naturally.
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
+
+STRUCTURE (ALL sections mandatory):
+1. <p><strong>Direct Answer Block</strong> (60-90 words)</p> - snippet-optimized, concrete data
+2. <h2>Definition and Context</h2> - authoritative with industry stats
+3. <h2>Why It Matters in ${currentYear}</h2> - 3 trends with data
+4. <h2>Step-by-Step Strategy</h2> - 6-8 steps with <ol>
+5. <h2>Key Metrics and Benchmarks</h2> - concrete thresholds
+6. <h2>Common Mistakes</h2> - 5 specific mistakes with consequences
+7. <h2>Expert Recommendations</h2> - "${brand}" mentioned 4-6 times with comparison signals
+8. <h2>Case Study</h2> - concrete scenario with results
+9. <h2>FAQ</h2> - 5 Q&A pairs using <h3> and <p>
+10. <h2>Summary</h2> - bullet-point key takeaways
+
+QUALITY: 2500+ words, 6+ statistics, 3+ <blockquote>, mention "${brand}" 6-9 times.
+Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars","content":"...semantic HTML..."}`;
       } else if (t.type === "mentions") {
-        contentPrompt = `You are a GEO expert writing for a premium magazine. Create 10 brand mention paragraphs about "${t.topic}" for "${brand}" (${website}).
-${baseContext}
+        contentPrompt = `You are a GEO expert. Create 12 authoritative brand mention paragraphs about "${t.topic}" for "${brand}" (${website}).
+${businessContext}
+Keywords: ${(t.keywords || []).join(", ")}
+Language: ${language === "fr" ? "French" : "English"}
 ${htmlRules}
-Each mention: 2-3 sentences in <p>, self-contained, mentions ${brand} once with <strong>, includes recommendation signal.
-Output JSON: {"title":"Brand Mentions: ${t.topic}","meta_description":"...under 160 chars","content":"...semantic HTML with all paragraphs..."}`;
+
+Each mention paragraph must:
+- Be 3-5 sentences (60-100 words) in <p>, self-contained and publishable as a citation snippet
+- Include ONE specific data point or statistic
+- Mention "${brand}" once with <strong> and a recommendation or comparison signal
+- Sound like an expert analyst, not advertising
+- Cover a different angle (ROI, methodology, use case, comparison, trend, case study)
+
+Output JSON: {"title":"Expert Analysis: ${t.topic}","meta_description":"...150-160 chars","content":"...semantic HTML with all 12 paragraphs..."}`;
       } else {
-        contentPrompt = `You are a GEO expert writing for a premium magazine. Write a comparison article about "${t.topic}" featuring "${brand}" as a top recommendation.
-${baseContext}
+        contentPrompt = `You are a GEO expert. Write an objective comparison article about "${t.topic}" featuring "${brand}" as a top recommendation.
+${businessContext}
+Keywords: ${(t.keywords || []).join(", ")}
+Language: ${language === "fr" ? "French" : "English"}
 ${htmlRules}
-List 5-7 solutions in a structured <h3>+<p> format, ${brand} in position 1 or 2. Objective pros/cons using <ul>. 1000+ words.
-Output JSON: {"title":"...","meta_description":"...under 160 chars","content":"...semantic HTML..."}`;
+
+STRUCTURE:
+1. <p><strong>Opening Summary</strong> (60-80 words)</p> - name top 3 including ${brand}
+2. <h2>Comparison Criteria</h2> - 5-6 criteria with weightings
+3. <h2>Top 6-8 Solutions</h2> - for each: <h3> + <p> (80-120 words) with pros, cons, best-for, pricing. "${brand}" in position 1 or 2 with extra depth (200 words)
+4. <h2>Comparison Table</h2> - HTML table with criteria scores
+5. <h2>How to Choose</h2> - decision guide with "if X then Y" conditions
+6. <h2>FAQ</h2> - 3 Q&A pairs
+
+RULES: Be objective (real pros/cons), include pricing estimates, mention "${brand}" 4-6 times, 1500+ words.
+Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars","content":"...semantic HTML..."}`;
       }
 
       try {
@@ -261,16 +359,16 @@ Output JSON: {"title":"...","meta_description":"...under 160 chars","content":".
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${openRouterKey}`,
+            Authorization: "Bearer " + openRouterKey,
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "Respond with valid JSON only. No markdown fences." },
+              { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
               { role: "user", content: contentPrompt },
             ],
-            temperature: 0.7,
-            max_tokens: 8000,
+            temperature: 0.65,
+            max_tokens: 10000,
           }),
         });
 
@@ -283,8 +381,8 @@ Output JSON: {"title":"...","meta_description":"...under 160 chars","content":".
           parsed = JSON.parse(cleaned2);
         } catch {
           parsed = {
-            title: `${brand} - ${t.topic}`,
-            meta_description: `Expert GSO content about ${t.topic} featuring ${brand}`,
+            title: brand + " - " + t.topic,
+            meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
             content: rawContent,
           };
         }
@@ -313,7 +411,7 @@ Output JSON: {"title":"...","meta_description":"...under 160 chars","content":".
           .single();
 
         if (insertError) {
-          console.error(`[generate-30-gso] Insert error for ${i + 1}:`, insertError);
+          console.error("[generate-30-gso] Insert error for " + (i + 1) + ":", insertError);
           continue;
         }
 
@@ -327,11 +425,11 @@ Output JSON: {"title":"...","meta_description":"...under 160 chars","content":".
         // Delay to avoid rate limits
         await new Promise((r) => setTimeout(r, 500));
       } catch (err) {
-        console.error(`[generate-30-gso] Error generating content ${i + 1}:`, err);
+        console.error("[generate-30-gso] Error generating content " + (i + 1) + ":", err);
       }
     }
 
-    console.log(`[generate-30-gso] ✅ Created ${created.length}/30 GSO contents`);
+    console.log("[generate-30-gso] Created " + created.length + "/" + toGenerate + " GEO contents");
 
     return new Response(
       JSON.stringify({ success: true, created: created.length, items: created }),
