@@ -204,7 +204,7 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
 
   useEffect(() => {
