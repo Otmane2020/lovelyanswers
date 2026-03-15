@@ -208,8 +208,8 @@ export default function Index() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/dashboard");
-  }, [user, navigate]);
+    if (user) router.push("/dashboard");
+  }, [user, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
