@@ -791,7 +791,7 @@ export default function Index() {
               size="lg"
               className="px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
               style={{ height: "52px" }}
-              onClick={() => navigate("/onboarding")}
+              onClick={() => router.push("/onboarding")}
             >
               Get started — it's free <ArrowRight className="h-4 w-4" />
             </Button>
