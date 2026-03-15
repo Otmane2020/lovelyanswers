@@ -805,7 +805,7 @@ export default function Index() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-white border-t border-gray-100 shadow-2xl">
           <Button
             className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
-            onClick={() => navigate("/onboarding")}
+            onClick={() => router.push("/onboarding")}
           >
             Get free AI score <ArrowRight className="h-4 w-4" />
           </Button>
