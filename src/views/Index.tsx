@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -203,12 +204,12 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/dashboard");
-  }, [user, navigate]);
+    if (user) router.push("/dashboard");
+  }, [user, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
@@ -267,29 +268,29 @@ export default function Index() {
         {/* NAV */}
         <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
             </Link>
             <div className="hidden md:flex items-center gap-1">
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/pricing">Pricing</Link>
+                <Link href="/pricing">Pricing</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/blog">Blog</Link>
+                <Link href="/blog">Blog</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/auth">Log in</Link>
+                <Link href="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link to="/onboarding">Start Free Audit →</Link>
+                <Link href="/onboarding">Start Free Audit →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
               <Button variant="ghost" size="sm" className="text-gray-600" asChild>
-                <Link to="/auth">Log in</Link>
+                <Link href="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
-                <Link to="/onboarding">Start Free</Link>
+                <Link href="/onboarding">Start Free</Link>
               </Button>
             </div>
           </div>
@@ -351,7 +352,7 @@ export default function Index() {
                   size="lg"
                   className="px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
                   style={{ height: "52px" }}
-                  onClick={() => navigate("/onboarding")}
+                  onClick={() => router.push("/onboarding")}
                 >
                   Get your free AI score
                   <ArrowRight className="h-4 w-4" />
@@ -748,7 +749,7 @@ export default function Index() {
                   size="lg"
                   className="px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
                   style={{ height: "52px" }}
-                  onClick={() => navigate("/onboarding")}
+                  onClick={() => router.push("/onboarding")}
                 >
                   Start for free <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -790,7 +791,7 @@ export default function Index() {
               size="lg"
               className="px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
               style={{ height: "52px" }}
-              onClick={() => navigate("/onboarding")}
+              onClick={() => router.push("/onboarding")}
             >
               Get started — it's free <ArrowRight className="h-4 w-4" />
             </Button>
@@ -804,7 +805,7 @@ export default function Index() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-white border-t border-gray-100 shadow-2xl">
           <Button
             className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
-            onClick={() => navigate("/onboarding")}
+            onClick={() => router.push("/onboarding")}
           >
             Get free AI score <ArrowRight className="h-4 w-4" />
           </Button>
