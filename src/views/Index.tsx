@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
