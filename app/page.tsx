@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+"use client";
 import IndexPage from "@/views/Index";
 
 export default function Page() {
