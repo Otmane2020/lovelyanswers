@@ -268,29 +268,29 @@ export default function Index() {
         {/* NAV */}
         <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
             </Link>
             <div className="hidden md:flex items-center gap-1">
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/pricing">Pricing</Link>
+                <Link href="/pricing">Pricing</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/blog">Blog</Link>
+                <Link href="/blog">Blog</Link>
               </Button>
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
-                <Link to="/auth">Log in</Link>
+                <Link href="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link to="/onboarding">Start Free Audit →</Link>
+                <Link href="/onboarding">Start Free Audit →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
               <Button variant="ghost" size="sm" className="text-gray-600" asChild>
-                <Link to="/auth">Log in</Link>
+                <Link href="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
-                <Link to="/onboarding">Start Free</Link>
+                <Link href="/onboarding">Start Free</Link>
               </Button>
             </div>
           </div>
