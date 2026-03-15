@@ -352,7 +352,7 @@ export default function Index() {
                   size="lg"
                   className="px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
                   style={{ height: "52px" }}
-                  onClick={() => navigate("/onboarding")}
+                  onClick={() => router.push("/onboarding")}
                 >
                   Get your free AI score
                   <ArrowRight className="h-4 w-4" />
