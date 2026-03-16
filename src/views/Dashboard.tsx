@@ -598,7 +598,7 @@ export default function Dashboard() {
                     }`}
                     title={isConnected ? `${cms.name} (connecté)` : `Configurer ${cms.name}`}
                   >
-                    {cms.logo ? (
+                    {("logo" in cms) && cms.logo ? (
                       <img src={typeof cms.logo === "string" ? cms.logo : cms.logo.src} alt={cms.name} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
                     ) : cms.icon ? (
                       <cms.icon className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
