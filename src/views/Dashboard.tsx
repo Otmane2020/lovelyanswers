@@ -453,7 +453,7 @@ export default function Dashboard() {
             ].map((platform) => (
               <Card key={platform.name} className="p-5 border border-border/50 bg-card">
                 <div className="flex items-center gap-2 mb-3">
-                  <img src={platform.logo as unknown as string} alt={platform.name} className="w-4 h-4 object-contain" />
+                  <img src={typeof platform.logo === "string" ? platform.logo : platform.logo.src} alt={platform.name} className="w-4 h-4 object-contain" />
                   <span className="text-xs font-medium text-muted-foreground">{platform.name}</span>
                 </div>
                 <p className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{platform.score}%</p>
