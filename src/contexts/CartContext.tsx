@@ -49,14 +49,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         // Try to load from database first
         const sessionId = getSessionId();
-        const { data, error } = await supabase
+        const cartsQuery = supabase
           .from("carts")
           .select("*")
           .eq("status", "active")
-          .or(`user_id.eq.${user?.id},session_id.eq.${sessionId}`)
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        const { data, error } = await (user?.id
+          ? cartsQuery.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`).maybeSingle()
+          : cartsQuery.eq("session_id", sessionId).maybeSingle());
 
         if (data && !error) {
           setCartId(data.id);

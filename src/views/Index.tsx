@@ -496,7 +496,7 @@ export default function Index() {
                   className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
                 >
                   <img
-                    src={platform.logo as unknown as string}
+                    src={typeof platform.logo === "string" ? platform.logo : platform.logo.src}
                     alt={platform.name}
                     className="h-6 md:h-8 w-auto object-contain"
                   />
