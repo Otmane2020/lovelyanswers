@@ -573,7 +573,7 @@ export default function Dashboard() {
             
             {/* CMS Icons Grid */}
             <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-              {[
+              {([
                 { name: "WordPress", id: "wordpress", logo: wordpressLogo },
                 { name: "Shopify", id: "shopify", logo: shopifyLogo },
                 { name: "Wix", id: "wix", logo: wixLogo },
@@ -582,8 +582,9 @@ export default function Dashboard() {
                 { name: "Webflow", id: "webflow", icon: Globe },
                 { name: "Custom API", id: "custom", icon: Code },
                 { name: "Webhook", id: "webhook", icon: Webhook },
-              ].map((cms) => {
+              ] as Array<{ name: string; id: string; logo?: string | { src: string }; icon?: any }>).map((cms) => {
                 const isConnected = integrations?.some(i => i.platform === cms.id && i.is_connected);
+                const logoSrc = typeof cms.logo === "string" ? cms.logo : cms.logo?.src;
                 return (
                   <div 
                     key={cms.name}
@@ -598,8 +599,8 @@ export default function Dashboard() {
                     }`}
                     title={isConnected ? `${cms.name} (connecté)` : `Configurer ${cms.name}`}
                   >
-                    {("logo" in cms) && cms.logo ? (
-                      <img src={typeof cms.logo === "string" ? cms.logo : cms.logo.src} alt={cms.name} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+                    {logoSrc ? (
+                      <img src={logoSrc} alt={cms.name} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
                     ) : cms.icon ? (
                       <cms.icon className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     ) : null}
