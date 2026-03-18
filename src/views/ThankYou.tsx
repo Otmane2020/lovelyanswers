@@ -60,6 +60,21 @@ export default function ThankYou() {
             (window as any).tap("trial", data.customer_id);
             console.log("[ThankYou] Tapfiliate trial fired:", data.customer_id);
           }
+          // Meta Pixel — Subscribe + Purchase conversion
+          if (typeof window !== "undefined" && (window as any).fbq) {
+            (window as any).fbq("track", "Subscribe", {
+              value: value,
+              currency: "USD",
+              predicted_ltv: value * 12,
+            });
+            (window as any).fbq("track", "Purchase", {
+              value: value,
+              currency: "USD",
+              content_name: "AutoPilotGeo Subscription",
+              content_type: "product",
+            });
+            console.log("[ThankYou] Meta Pixel Subscribe + Purchase fired:", { value, sessionId });
+          }
           console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
         }
       } catch (err) {
