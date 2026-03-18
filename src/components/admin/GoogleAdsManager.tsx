@@ -296,7 +296,7 @@ export function GoogleAdsManager({ activeTab = "campaigns" }: GoogleAdsManagerPr
       if (!session) throw new Error("Not authenticated");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? import.meta.env?.VITE_SUPABASE_URL}/functions/v1/google-ads-oauth-token`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/google-ads-oauth-token`,
         {
           method: "POST",
           headers: {
