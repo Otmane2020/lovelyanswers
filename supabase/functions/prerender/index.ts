@@ -256,43 +256,62 @@ Deno.serve(async (req) => {
     // ─── Homepage: / ───
     if (path === '/') {
       const html = buildFullHtml({
-        title: `AutoPilot Geo — Rank in AI Search: ChatGPT, Gemini & Perplexity | AEO + GEO + SEO`,
-        description: 'Track how your brand ranks in ChatGPT, Gemini and AI answers and get cited by AI. Generate AI-optimized content that ranks first.',
+        title: `AutoPilot Geo – Get Your Business Recommended by ChatGPT & Google`,
+        description: 'Get your business recommended by ChatGPT, Gemini, Perplexity & Google. AI-powered AEO, GEO & SEO automation. Start free. Works for any industry.',
         canonical: BRAND_URL,
         body: `
-          <h1>AutoPilot Geo — AI Visibility Platform</h1>
-          <p>Track how your brand ranks in ChatGPT, Gemini and AI answers. Get cited by AI search engines with automatically generated, expert-level content.</p>
+          <h1>Get your business recommended by ChatGPT & Google</h1>
+          <p>Automatically publish expert content that makes AI search engines recommend you — not your competitors. Works for any industry.</p>
           
-          <h2>What is Answer Engine Optimization (AEO)?</h2>
-          <p>AEO is the practice of optimizing your content to appear as the top answer in AI-powered search engines like ChatGPT, Google Gemini, Perplexity, and Copilot. Unlike traditional SEO, AEO focuses on being the source that AI models cite when answering user questions.</p>
+          <h2>Why 500+ businesses trust AutoPilot Geo</h2>
+          <ul>
+            <li><strong>4.5x more AI visibility</strong></li>
+            <li><strong>9.7x more brand mentions</strong></li>
+            <li><strong>60% average traffic increase</strong></li>
+            <li><strong>$29/mo all-in pricing</strong></li>
+          </ul>
+
+          <h2>Before vs After AutoPilot Geo</h2>
+          <p><strong>Before:</strong> AI never mentions your brand. Competitors get cited instead. Content takes weeks to write. Stuck on page 3 of Google.</p>
+          <p><strong>After:</strong> ChatGPT recommends your brand. 30 expert articles/month, auto-published to your CMS. +60% avg traffic in 3 months.</p>
           
           <h2>Features</h2>
           <ul>
-            <li><strong>AI Visibility Tracking</strong> — Monitor how your brand appears across ChatGPT, Gemini, Perplexity, and other AI platforms</li>
-            <li><strong>AEO Answers</strong> — Generate AI-optimized answers designed to be cited by AI search engines</li>
-            <li><strong>Auto SEO Articles</strong> — 30 expert-level, 1,500+ word articles auto-generated and published monthly</li>
-            <li><strong>GEO Engine</strong> — Generative Engine Optimization content for maximum AI visibility</li>
-            <li><strong>Local AEO</strong> — Optimize local businesses for AI search results</li>
-            <li><strong>CMS Auto-Publishing</strong> — Publish directly to WordPress, Shopify, Wix, and more</li>
+            <li><strong>AI Visibility Score</strong> — See exactly how AI platforms talk about your brand and where you rank against competitors</li>
+            <li><strong>Brand Mention Tracking</strong> — Monitor every time AI recommends your business or your competitors in real-time</li>
+            <li><strong>Content Optimization</strong> — Get actionable insights to optimize your content for AI citation and recommendation</li>
+            <li><strong>Keyword Research</strong> — AI-powered keyword discovery based on your competitors and market</li>
+            <li><strong>Content Generation</strong> — Expert-level articles optimized for both Google and AI engines</li>
+            <li><strong>Auto-Publishing</strong> — Direct integration with WordPress, Shopify, Wix, and more</li>
           </ul>
           
           <h2>Proven in 50+ Industries</h2>
-          <p>Healthcare, legal, e-commerce, SaaS, local services, and more. Our AI-assisted content follows Google's E-E-A-T guidelines for quality and authority.</p>
+          <p>Healthcare, legal, e-commerce, SaaS, local services, and more. Our AI-assisted content follows Google's E-E-A-T guidelines.</p>
+
+          <h2>Frequently Asked Questions</h2>
+          <h3>How does AI search optimization work?</h3>
+          <p>We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.</p>
+          <h3>Can I really cancel anytime?</h3>
+          <p>Yes, 1-click cancellation. No questions asked, no hidden fees.</p>
+          <h3>Do I need technical skills?</h3>
+          <p>No, we handle everything. Just enter your website URL and we do the rest.</p>
+          <h3>Will this work for my industry?</h3>
+          <p>Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.</p>
+          <h3>Is the content actually good?</h3>
+          <p>Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.</p>
           
-          <h2>Pricing</h2>
-          <p>Starting at $29/month. 30 SEO articles, 30 AEO answers, GEO content, and auto-publishing included. <a href="${BRAND_URL}/pricing">View pricing</a></p>
-          
-          <p><a href="${BRAND_URL}/auth">Get Started Free</a> | <a href="${BRAND_URL}/blog">Read our Blog</a> | <a href="${BRAND_URL}/pricing">View Pricing</a></p>
+          <p><a href="${BRAND_URL}/onboarding">Start Free Audit</a> | <a href="${BRAND_URL}/blog">Read our Blog</a> | <a href="${BRAND_URL}/pricing">View Pricing</a></p>
         `,
         structuredData: {
           "@context": "https://schema.org",
-          "@type": "WebApplication",
+          "@type": "SoftwareApplication",
           "name": BRAND,
           "url": BRAND_URL,
-          "description": "Generate AI-optimized answers for ChatGPT, Gemini, Copilot and Google. Improve AEO & SEO visibility and get cited by AI search engines.",
+          "description": "Get your business recommended by ChatGPT, Gemini, Perplexity & Google. AI-powered AEO, GEO & SEO automation.",
           "applicationCategory": "BusinessApplication",
           "operatingSystem": "Web",
-          "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD" }
+          "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD" },
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "527", "bestRating": "5" }
         }
       })
 
