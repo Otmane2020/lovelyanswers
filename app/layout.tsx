@@ -128,7 +128,8 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-SBKYQQZ3F7');
 gtag('config', 'AW-1880571409');
-gtag('config', 'AW-17956394555');`}
+gtag('config', 'AW-17956394555');
+gtag('config', 'AW-18029597099');`}
         </Script>
 
         {/* Tapfiliate */}
