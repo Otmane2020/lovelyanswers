@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -204,12 +203,11 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
-  const router = useRouter();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) router.push("/dashboard");
-  }, [user, router]);
+    if (user) window.location.href = "/dashboard";
+  }, [user]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
@@ -352,10 +350,12 @@ export default function Index() {
                   size="lg"
                   className="px-8 bg-gray-900 text-white hover:bg-gray-800 text-base font-semibold gap-2 rounded-xl shadow-lg"
                   style={{ height: "52px" }}
-                  onClick={() => router.push("/onboarding")}
+                  asChild
                 >
-                  Get your free AI score
-                  <ArrowRight className="h-4 w-4" />
+                  <Link href="/onboarding">
+                    Get your free AI score
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
                 <Button
                   size="lg"
@@ -749,9 +749,11 @@ export default function Index() {
                   size="lg"
                   className="px-8 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl"
                   style={{ height: "52px" }}
-                  onClick={() => router.push("/onboarding")}
+                  asChild
                 >
-                  Start for free <ArrowRight className="h-4 w-4" />
+                  <Link href="/onboarding">
+                    Start for free <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
@@ -791,9 +793,11 @@ export default function Index() {
               size="lg"
               className="px-10 bg-white text-gray-900 hover:bg-gray-100 text-base font-semibold gap-2 rounded-xl shadow-lg"
               style={{ height: "52px" }}
-              onClick={() => router.push("/onboarding")}
+              asChild
             >
-              Get started — it's free <ArrowRight className="h-4 w-4" />
+              <Link href="/onboarding">
+                Get started — it's free <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
             <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
           </div>
@@ -805,9 +809,11 @@ export default function Index() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3 bg-white border-t border-gray-100 shadow-2xl">
           <Button
             className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
-            onClick={() => router.push("/onboarding")}
+            asChild
           >
-            Get free AI score <ArrowRight className="h-4 w-4" />
+            <Link href="/onboarding">
+              Get free AI score <ArrowRight className="h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </div>
