@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { ShoppingBag, Star, MessageSquare, Search, Tag, Compass, Sparkles } from "lucide-react";
-import { GoogleLogo } from "@/components/icons/ChatGPTLogo";
+import { ShoppingBag, Star, MessageSquare, Sparkles } from "lucide-react";
 
 export function ShoppingVisibilitySection() {
   return (
