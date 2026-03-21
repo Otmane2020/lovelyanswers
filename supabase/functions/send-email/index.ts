@@ -10,7 +10,7 @@ const corsHeaders = {
 const FROM_EMAIL = "AutoPilot Geo <support@autopilotgeo.com>";
 
 interface EmailRequest {
-  type: "welcome" | "ticket_created" | "ticket_reply" | "custom";
+  type: "welcome" | "ticket_created" | "ticket_reply" | "custom" | "test";
   to: string;
   name?: string;
   subject?: string;
