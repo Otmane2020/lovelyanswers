@@ -78,21 +78,21 @@ export default function Pricing() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/8 rounded-full blur-[150px]" />
           <div className="container relative">
             <div className="mx-auto max-w-3xl text-center">
-              <Badge className="mb-6 bg-white/10 text-white/70 border-white/20">For smart entrepreneurs</Badge>
+              <Badge className="mb-6 bg-white/10 text-white/70 border-white/20">Join 500+ businesses already ranking</Badge>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
-                Invest in <span className="font-extrabold">Long-Term Growth</span>
+                Get Recommended by <span className="font-extrabold">ChatGPT & Google</span>
               </h1>
-              <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">All-in-one AI SEO solution to dominate search rankings and get cited by AI assistants.</p>
+              <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">Stop being invisible to AI. Start appearing in ChatGPT, Gemini & Google answers within 30 days.</p>
             </div>
 
             <div className="mt-16 max-w-xl mx-auto">
               <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 relative overflow-hidden">
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-white/10 text-white/70 border-white/20">Only 34 spots left in February</Badge>
+                  <Badge className="bg-white/10 text-white/70 border-white/20">Only 34 spots left this month</Badge>
                 </div>
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold mb-2 text-white">All-In-One</h2>
-                  <p className="text-sm text-white/40 mb-4">We limit monthly admissions to maintain backlink quality and network balance.</p>
+                  <h2 className="text-2xl font-bold mb-2 text-white">AI Visibility Engine</h2>
+                  <p className="text-sm text-white/40 mb-4">Everything you need to get cited by AI search engines — on autopilot.</p>
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-2xl text-white/30 line-through">$58</span>
                     <span className="text-6xl font-bold text-white">$29</span>
@@ -101,7 +101,7 @@ export default function Pricing() {
                   <p className="text-sm text-white/50 font-medium mt-2">Or $23/month billed annually</p>
                 </div>
                 <Button className="w-full gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 mb-8" size="lg" asChild>
-                  <Link href="/auth">Start 3-Day Free Trial <ArrowRight className="h-5 w-5" /></Link>
+                  <Link href="/signup">Start Ranking in ChatGPT <ArrowRight className="h-5 w-5" /></Link>
                 </Button>
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm text-white/40 uppercase tracking-wider">What's included:</h3>

@@ -96,7 +96,7 @@ export default function AeoSubscription() {
               size="lg"
               onClick={startCheckout}
             >
-              Start 3-Day Free Trial
+              Start Ranking in ChatGPT
             </Button>
           )}
         </Card>

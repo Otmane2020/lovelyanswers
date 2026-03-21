@@ -67,13 +67,13 @@ export function AuditPaywall({ urlInput, setUrlInput, error }: AuditPaywallProps
         >
           <Badge className="mb-4 bg-amber-100 text-amber-700 border-amber-200">
             <BarChart3 className="mr-1 h-3 w-3" />
-            Premium Audit
+            Premium AI Visibility Audit
           </Badge>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Get a <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">10x Deeper</span> AEO/GEO Audit
+            See Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Your Competitors Rank</span> in ChatGPT — And You Don't
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Competitor analysis, AI citation scoring, content gap mapping, and a full strategic roadmap.
+            Get a named competitor comparison, AI citation scoring, and a step-by-step roadmap to start appearing in AI answers.
           </p>
         </motion.div>
 

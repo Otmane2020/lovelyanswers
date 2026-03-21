@@ -16,13 +16,13 @@ export function SoftPaywallBanner({ answersCount, onUpgrade }: SoftPaywallBanner
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">You have {answersCount} AEO answers!</h3>
-            <p className="text-sm text-muted-foreground">Upgrade to a paid plan to unlock all features</p>
-          </div>
-        </div>
-        <Button onClick={onUpgrade} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
-          Upgrade <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+             <h3 className="font-semibold text-foreground">Your competitors are being recommended by ChatGPT — you're not.</h3>
+             <p className="text-sm text-muted-foreground">Unlock {answersCount} AI-optimized answers and start appearing in AI search results today.</p>
+           </div>
+         </div>
+         <Button onClick={onUpgrade} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+           Start Ranking <ArrowRight className="w-4 h-4 ml-2" />
+         </Button>
       </div>
     </Card>
   );

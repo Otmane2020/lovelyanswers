@@ -269,6 +269,33 @@ export default function AeoSeoAudit() {
               </GlassCard>
             </div>
 
+            {/* Emotional Gap Banner */}
+            {auditData.scores.overall < 70 && (
+              <GlassCard className="p-6 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-500/10 dark:to-orange-500/10">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-red-800 dark:text-red-400">
+                      Your AI visibility score is {auditData.scores.overall}/100 — your competitors average 65+
+                    </h3>
+                    <p className="text-sm text-red-700/70 dark:text-red-300/70 mt-1">
+                      While you're reading this, businesses in your industry are publishing 30 AI-optimized articles/month and getting recommended by ChatGPT. Every day without action is traffic you're losing to them.
+                    </p>
+                    <Button 
+                      size="sm" 
+                      className="mt-3 bg-red-600 hover:bg-red-700 text-white gap-2"
+                      onClick={() => window.location.href = "/checkout"}
+                    >
+                      <Zap className="h-4 w-4" />
+                      Close the Gap — Start Free Trial
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
             {/* Issues List */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Résultats de l'audit</h2>
