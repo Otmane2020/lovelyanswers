@@ -90,7 +90,7 @@ export default {
     if (isBot(userAgent) && shouldPrerender(pathname)) {
       try {
         const prerenderReq = new Request(
-          `${PRERENDER_URL}?url=${encodeURIComponent(request.url)}`,
+          `${PRERENDER_URL}?path=${encodeURIComponent(pathname)}`,
           {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -102,13 +102,12 @@ export default {
           return new Response(html, {
             headers: {
               'Content-Type': 'text/html; charset=utf-8',
-              'Cache-Control': 'public, max-age=86400',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
               'X-Prerendered': 'true',
             },
           });
         }
       } catch (e) {
-        // Fall through to origin on prerender error
         console.error('Prerender error:', e);
       }
     }

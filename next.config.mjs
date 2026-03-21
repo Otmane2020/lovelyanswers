@@ -12,7 +12,7 @@ const nextConfig = {
       { protocol: "https", hostname: "autopilotgeo.com" },
     ],
   },
-  distDir: "dist",
+  distDir: ".next",
   reactStrictMode: true,
   trailingSlash: false,
 };

@@ -92,7 +92,14 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-    const path = url.searchParams.get('path') || '/'
+    // Support both ?path=/xxx and legacy ?url=https://...
+    let path = url.searchParams.get('path') || '/'
+    const rawUrl = url.searchParams.get('url')
+    if (path === '/' && rawUrl) {
+      try {
+        path = new URL(rawUrl).pathname || '/'
+      } catch { /* keep default */ }
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
