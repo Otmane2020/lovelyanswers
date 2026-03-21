@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    outDir: "dist-vite",
+    outDir: "dist",
     sourcemap: true,
   },
 }));
