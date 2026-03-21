@@ -29,8 +29,8 @@ export default function AeoSubscription() {
       <div className="space-y-8 max-w-2xl mx-auto">
         <PageHeader
           icon={Crown}
-          title="All-in-One Plan"
-          description="Everything you need to dominate AI search results"
+          title="AI Visibility Engine"
+          description="Get your business recommended by ChatGPT, Gemini & Google"
           gradientFrom="from-amber-500/10"
           gradientVia="via-orange-500/10"
           gradientTo="to-yellow-500/10"
