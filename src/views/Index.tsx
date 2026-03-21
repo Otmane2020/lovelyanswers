@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -203,11 +204,12 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
+  const router = useRouter();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) window.location.href = "/dashboard";
-  }, [user]);
+    if (user) router.replace("/dashboard");
+  }, [user, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
