@@ -49,6 +49,12 @@ export default function AeoPlanning() {
   const { isSubscribed } = useSubscriptionContext();
   const { data: integrations } = useIntegrations();
   const hasIntegration = integrations && integrations.some(i => i.is_connected);
+
+  // Fix 3: Allow 1 free publish for non-subscribers
+  const freePublishKey = project ? `free_publish_used_${project.id}` : null;
+  const freePublishUsed = freePublishKey ? localStorage.getItem(freePublishKey) === "true" : false;
+  const canPublishFree = !isSubscribed && !freePublishUsed;
+  const canPublish = isSubscribed || canPublishFree;
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -507,9 +513,18 @@ export default function AeoPlanning() {
                   <div className="flex flex-col gap-2">
                     {item.status !== "published" && (
                       hasIntegration ? (
-                        <Button size="sm" onClick={() => isSubscribed ? handlePublishNow(item) : toast.error("Upgrade your plan to publish content")} disabled={publishingId === item.id || !isSubscribed} className="bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)] text-white">
+                        <Button size="sm" onClick={() => {
+                          if (canPublish) {
+                            if (canPublishFree && freePublishKey) {
+                              localStorage.setItem(freePublishKey, "true");
+                            }
+                            handlePublishNow(item);
+                          } else {
+                            toast.error("You've used your free publish. Upgrade to publish the remaining 29 articles.", { action: { label: "Upgrade", onClick: () => window.location.href = "/checkout" } });
+                          }
+                        }} disabled={publishingId === item.id || !canPublish} className={cn("text-white", canPublishFree && !isSubscribed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)]")}>
                           {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
-                          Publish
+                          {canPublishFree && !isSubscribed ? "Publish Free ✨" : "Publish"}
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => window.location.href = "/integrations"} className="text-xs">

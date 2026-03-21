@@ -339,18 +339,57 @@ export function AuditReportDisplay({ report }: { report: Report }) {
         </motion.div>
       )}
 
+      {/* Competitor Gap CTA — emotional gap */}
+      {report.macro_analysis?.competitorLandscape?.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.43 }}>
+          <Card className="border-red-200 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-500/10 dark:to-orange-500/10">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-red-800 dark:text-red-400 mb-1">You're falling behind your competitors</h3>
+                  <div className="space-y-1 mb-3">
+                    {report.macro_analysis.competitorLandscape
+                      .filter((c: any) => c.name !== report.company_info?.name)
+                      .slice(0, 3)
+                      .map((comp: any, i: number) => (
+                        <p key={i} className="text-sm text-red-700/80 dark:text-red-300/80">
+                          <span className="font-semibold">{comp.name}</span> scores {comp.presence}/100 in AI visibility
+                          {report.scores?.global ? ` — you're at ${report.scores.global}/100` : ""}
+                        </p>
+                      ))}
+                  </div>
+                  <p className="text-sm text-red-700/60 dark:text-red-300/60 mb-4">
+                    While you're reading this, your competitors are publishing 30 AI-optimized articles per month and getting recommended by ChatGPT.
+                  </p>
+                  <Button size="lg" className="gap-2 bg-red-600 hover:bg-red-700 text-white" asChild>
+                    <Link href="/signup">
+                      <Sparkles className="h-5 w-5" />
+                      Close the Gap — Start Free Trial
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* CTA */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
         <Card className="bg-gradient-to-r from-primary/5 to-violet-500/5 border-primary/20">
           <CardContent className="p-8 text-center">
-            <h3 className="text-xl font-bold mb-2">Ready to fix these issues?</h3>
+            <h3 className="text-xl font-bold mb-2">Stop being invisible to AI search</h3>
             <p className="text-muted-foreground mb-6">
-              AutoPilot Geo publishes 30 expert articles/month and optimizes your site for AI search — on autopilot.
+              Get cited by ChatGPT, Gemini & Google with 30 expert articles/month — fully automated.
             </p>
             <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-violet-500 text-white" asChild>
-              <Link href="/onboarding">
+              <Link href="/signup">
                 <Sparkles className="h-5 w-5" />
-                Start Free Trial
+                Start Ranking in ChatGPT
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </Button>
