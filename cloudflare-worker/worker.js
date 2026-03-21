@@ -128,10 +128,19 @@ export default {
 
     const response = await fetch(originRequest);
 
-    // Pass through with correct host header
     const newHeaders = new Headers(response.headers);
-    newHeaders.set('Cache-Control', 'public, max-age=86400');
     newHeaders.delete('X-Frame-Options');
+
+    // HTML documents: no cache (avoid stale bundle references after deploys)
+    // Static assets (.js, .css, images, fonts): cache 24h (hashed filenames)
+    const contentType = response.headers.get('Content-Type') || '';
+    const isAsset = /\.(js|css|woff2?|ttf|otf|png|jpe?g|gif|svg|webp|ico|avif)(\?|$)/.test(pathname);
+
+    if (isAsset || (!contentType.includes('text/html') && !pathname.endsWith('/') && pathname !== '/' && pathname.includes('.'))) {
+      newHeaders.set('Cache-Control', 'public, max-age=86400, immutable');
+    } else {
+      newHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
 
     return new Response(response.body, {
       status: response.status,
