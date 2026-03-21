@@ -56,15 +56,15 @@ export default function Answers() {
   const [showPublishedOnly, setShowPublishedOnly] = useState(false);
   const [viewingAnswer, setViewingAnswer] = useState<typeof answers[0] | null>(null);
   const [activeTab, setActiveTab] = useState("answers");
-  
+
   // Articles state
   const [articles, setArticles] = useState<Article[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
-  
+
   // Progress bar state
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isGeneratingWithProgress, setIsGeneratingWithProgress] = useState(false);
-  
+
   // New Answer Modal State
   const [showNewAnswerModal, setShowNewAnswerModal] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
@@ -74,7 +74,7 @@ export default function Answers() {
   const [unusedKeywordsCount, setUnusedKeywordsCount] = useState(0);
   const [showCmsPopup, setShowCmsPopup] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
-  const [generatedArticle, setGeneratedArticle] = useState<{ id: string; title: string; html: string; answerId: string } | null>(null);
+  const [generatedArticle, setGeneratedArticle] = useState<{id: string;title: string;html: string;answerId: string;} | null>(null);
   const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
   const [loadingArticleContent, setLoadingArticleContent] = useState(false);
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
@@ -87,12 +87,12 @@ export default function Answers() {
       if (!project) return;
       setLoadingArticles(true);
       try {
-        const { data, error } = await supabase
-          .from("articles")
-          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id, content, html_content, scheduled_date")
-          .eq("project_id", project.id)
-          .order("created_at", { ascending: false });
-        
+        const { data, error } = await supabase.
+        from("articles").
+        select("id, title, status, word_count, aeo_score, created_at, linked_answer_id, content, html_content, scheduled_date").
+        eq("project_id", project.id).
+        order("created_at", { ascending: false });
+
         if (error) throw error;
         setArticles(data || []);
       } catch (error) {
@@ -121,20 +121,20 @@ export default function Answers() {
   useEffect(() => {
     const fetchKeywordsCount = async () => {
       if (!user) return;
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-      
+      const { data: projects } = await supabase.
+      from("projects").
+      select("id").
+      eq("user_id", user.id).
+      eq("is_active", true).
+      limit(1);
+
       if (projects && projects.length > 0) {
-        const { count } = await supabase
-          .from("keywords")
-          .select("id", { count: 'exact', head: true })
-          .eq("project_id", projects[0].id)
-          .eq("is_used", false);
-        
+        const { count } = await supabase.
+        from("keywords").
+        select("id", { count: 'exact', head: true }).
+        eq("project_id", projects[0].id).
+        eq("is_used", false);
+
         setUnusedKeywordsCount(count || 0);
       }
     };
@@ -158,7 +158,7 @@ export default function Answers() {
   };
 
   const handleViewAnswer = (answer: typeof answers[0]) => {
-    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
+    if (!isSubscribed) {setShowUpgradeDialog(true);return;}
     setViewingAnswer(answer);
   };
 
@@ -171,23 +171,23 @@ export default function Answers() {
       toast.error("No active project");
       return;
     }
-    
+
     setGeneratingArticleId(answerId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       const { data, error } = await supabase.functions.invoke("generate-aeo-article", {
-        body: { 
-          answerId, 
-          language: project.language || "fr" 
+        body: {
+          answerId,
+          language: project.language || "fr"
         },
-        headers: { 
-          Authorization: `Bearer ${session?.access_token}` 
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
         }
       });
-      
+
       if (error) throw error;
-      
+
       if (data?.article && data?.html) {
         setGeneratedArticle({
           id: data.article.id,
@@ -196,7 +196,7 @@ export default function Answers() {
           answerId
         });
       }
-      
+
       toast.success("Article generated!");
       refetch();
     } catch (error) {
@@ -209,12 +209,12 @@ export default function Answers() {
 
   const handlePublishGeneratedArticle = async () => {
     if (!generatedArticle || !project) return;
-    
+
     setPublishingId(generatedArticle.answerId);
     try {
-      await publishAnswer.mutateAsync({ 
-        answerId: generatedArticle.answerId, 
-        projectId: project.id 
+      await publishAnswer.mutateAsync({
+        answerId: generatedArticle.answerId,
+        projectId: project.id
       });
       setGeneratedArticle(null);
     } finally {
@@ -235,23 +235,23 @@ export default function Answers() {
 
   const handleGenerateNewAnswer = async () => {
     if (!newQuestion.trim() || !user) return;
-    
+
     setIsGenerating(true);
     try {
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-      
+      const { data: projects } = await supabase.
+      from("projects").
+      select("*").
+      eq("user_id", user.id).
+      eq("is_active", true).
+      limit(1);
+
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
         return;
       }
 
       const proj = projects[0];
-      
+
       const { data, error } = await supabase.functions.invoke("generate-aeo-answers", {
         body: {
           projectId: proj.id,
@@ -266,7 +266,7 @@ export default function Answers() {
       });
 
       if (error) throw error;
-      
+
       toast.success("Answer generated successfully!");
       setShowNewAnswerModal(false);
       setNewQuestion("");
@@ -281,21 +281,21 @@ export default function Answers() {
 
   const regenerateAllAnswers = async () => {
     if (!user) return;
-    
+
     setRegeneratingAll(true);
     setIsGeneratingWithProgress(true);
     setGenerationProgress(0);
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-      
+
+      const { data: projects } = await supabase.
+      from("projects").
+      select("*").
+      eq("user_id", user.id).
+      eq("is_active", true).
+      limit(1);
+
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
         setRegeneratingAll(false);
@@ -304,26 +304,26 @@ export default function Answers() {
       }
 
       const proj = projects[0];
-      
+
       const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 10, 90));
+        setGenerationProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
-      
-      const { data: unusedKeywords } = await supabase
-        .from("keywords")
-        .select("id, keyword")
-        .eq("project_id", proj.id)
-        .eq("is_used", false)
-        .limit(10);
-      
+
+      const { data: unusedKeywords } = await supabase.
+      from("keywords").
+      select("id, keyword").
+      eq("project_id", proj.id).
+      eq("is_used", false).
+      limit(10);
+
       const hasUnusedKeywords = unusedKeywords && unusedKeywords.length > 0;
-      
-      toast.info(hasUnusedKeywords 
-        ? `Generating ${unusedKeywords.length} new answers from keywords...`
-        : "Generating new answers from project context...");
-      
+
+      toast.info(hasUnusedKeywords ?
+      `Generating ${unusedKeywords.length} new answers from keywords...` :
+      "Generating new answers from project context...");
+
       const { data, error } = await supabase.functions.invoke('auto-generate-aeo', {
-        body: { 
+        body: {
           projectId: proj.id,
           useKeywords: true,
           language: proj.language || 'fr'
@@ -332,10 +332,10 @@ export default function Answers() {
           Authorization: `Bearer ${session?.access_token}`
         }
       });
-      
+
       clearInterval(progressInterval);
       setGenerationProgress(100);
-      
+
       if (error) {
         console.error('Error generating answers:', error);
         toast.error("Error during generation");
@@ -343,7 +343,7 @@ export default function Answers() {
         const count = data?.count || data?.answers?.length || 0;
         toast.success(`${count} new answers generated!`);
       }
-      
+
       refetch();
     } catch (error) {
       console.error('Error regenerating all answers:', error);
@@ -359,21 +359,21 @@ export default function Answers() {
 
   const generate30Answers = async () => {
     if (!user) return;
-    
+
     setGenerating30(true);
     setIsGeneratingWithProgress(true);
     setGenerationProgress(0);
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      
+
+      const { data: projects } = await supabase.
+      from("projects").
+      select("*").
+      eq("user_id", user.id).
+      eq("is_active", true).
+      order("created_at", { ascending: false });
+
       if (!projects || projects.length === 0) {
         toast.error("No active project found");
         setGenerating30(false);
@@ -383,11 +383,11 @@ export default function Answers() {
 
       let projectWithKeywords = null;
       for (const p of projects) {
-        const { count } = await supabase
-          .from("keywords")
-          .select("*", { count: "exact", head: true })
-          .eq("project_id", p.id);
-        
+        const { count } = await supabase.
+        from("keywords").
+        select("*", { count: "exact", head: true }).
+        eq("project_id", p.id);
+
         if (count && count > 0) {
           projectWithKeywords = p;
           break;
@@ -395,15 +395,15 @@ export default function Answers() {
       }
 
       const activeProject = projectWithKeywords || projects[0];
-      
+
       toast.info("Generating 30 Q/A + 30 Articles over 30 days...");
-      
+
       const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 3, 90));
+        setGenerationProgress((prev) => Math.min(prev + 3, 90));
       }, 1000);
-      
+
       const { data, error } = await supabase.functions.invoke('generate-30-days-content', {
-        body: { 
+        body: {
           projectId: activeProject.id,
           days: 30,
           language: activeProject.language || 'fr'
@@ -412,10 +412,10 @@ export default function Answers() {
           Authorization: `Bearer ${session?.access_token}`
         }
       });
-      
+
       clearInterval(progressInterval);
       setGenerationProgress(100);
-      
+
       if (error) {
         console.error('Error generating content:', error);
         toast.error("Error during generation");
@@ -423,14 +423,14 @@ export default function Answers() {
         toast.success(`${data?.answers_created || 0} answers + ${data?.articles_created || 0} articles scheduled!`);
         setShowCmsPopup(true);
       }
-      
+
       refetch();
       if (project) {
-        const { data: newArticles } = await supabase
-          .from("articles")
-          .select("id, title, status, word_count, aeo_score, created_at, linked_answer_id")
-          .eq("project_id", project.id)
-          .order("created_at", { ascending: false });
+        const { data: newArticles } = await supabase.
+        from("articles").
+        select("id, title, status, word_count, aeo_score, created_at, linked_answer_id").
+        eq("project_id", project.id).
+        order("created_at", { ascending: false });
         setArticles(newArticles || []);
       }
     } catch (error) {
@@ -447,9 +447,9 @@ export default function Answers() {
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
-      case 'published': return 'bg-emerald-500/20 text-emerald-500';
-      case 'draft': return 'bg-amber-500/20 text-amber-500';
-      default: return 'bg-muted text-muted-foreground';
+      case 'published':return 'bg-emerald-500/20 text-emerald-500';
+      case 'draft':return 'bg-amber-500/20 text-amber-500';
+      default:return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -466,13 +466,13 @@ export default function Answers() {
           gradientTo="to-amber-500/10"
           iconFrom="from-orange-500"
           iconTo="to-red-500"
-          customIcon={<img src={chatGptIcon as unknown as string} alt="ChatGPT" className="h-10 w-10 rounded-lg" />}
-        />
+          customIcon={<img src={chatGptIcon as unknown as string} alt="ChatGPT" className="h-10 w-10 rounded-lg" />} />
+        
 
 
         {/* Progress Bar */}
-        {isGeneratingWithProgress && (
-          <div className="rounded-lg bg-background/80 backdrop-blur-sm border px-4 py-3">
+        {isGeneratingWithProgress &&
+        <div className="rounded-lg bg-background/80 backdrop-blur-sm border px-4 py-3">
             <div className="flex items-center gap-4">
               <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
               <div className="flex-1">
@@ -481,7 +481,7 @@ export default function Answers() {
               <span className="text-sm font-medium">{generationProgress}%</span>
             </div>
           </div>
-        )}
+        }
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -502,8 +502,8 @@ export default function Answers() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
-            {activeTab === "answers" && (
-              <>
+            {activeTab === "answers" &&
+            <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2">
@@ -513,25 +513,25 @@ export default function Answers() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {platforms.map((platform) => (
-                      <DropdownMenuCheckboxItem key={platform} checked={selectedPlatforms.includes(platform)} onCheckedChange={(checked) => {
-                        if (checked) setSelectedPlatforms([...selectedPlatforms, platform]);
-                        else setSelectedPlatforms(selectedPlatforms.filter((p) => p !== platform));
-                      }}>{platform}</DropdownMenuCheckboxItem>
-                    ))}
-                    {selectedPlatforms.length > 0 && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setSelectedPlatforms([])}>Clear all</DropdownMenuItem></>)}
+                    {platforms.map((platform) =>
+                  <DropdownMenuCheckboxItem key={platform} checked={selectedPlatforms.includes(platform)} onCheckedChange={(checked) => {
+                    if (checked) setSelectedPlatforms([...selectedPlatforms, platform]);else
+                    setSelectedPlatforms(selectedPlatforms.filter((p) => p !== platform));
+                  }}>{platform}</DropdownMenuCheckboxItem>
+                  )}
+                    {selectedPlatforms.length > 0 && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setSelectedPlatforms([])}>Clear all</DropdownMenuItem></>}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button variant="outline" onClick={() => setShowHighCitation(!showHighCitation)} className={showHighCitation ? "bg-primary text-primary-foreground" : ""}>High Citation</Button>
                 <Button variant="outline" onClick={() => setShowPublishedOnly(!showPublishedOnly)} className={showPublishedOnly ? "bg-primary text-primary-foreground" : ""}>Published Only</Button>
               </>
-            )}
+            }
           </div>
 
           {/* Answers Tab Content */}
           <TabsContent value="answers" className="space-y-4 mt-4">
-            {filteredAnswers.map((answer, index) => (
-              <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
+            {filteredAnswers.map((answer, index) =>
+            <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
                   <ScoreRing score={answer.score ?? 0} size="sm" />
                   <div className="flex-1 min-w-0 space-y-3">
@@ -542,65 +542,65 @@ export default function Answers() {
                         <span className="text-xs text-muted-foreground">{answer.is_public ? "Public" : "Draft"}</span>
                       </div>
                     </div>
-                    {!isSubscribed && index === 0 ? (
-                      <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p>
-                    ) : isSubscribed ? (
-                      <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p>
-                    ) : null}
+                    {!isSubscribed && index === 0 ?
+                  <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p> :
+                  isSubscribed ?
+                  <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p> :
+                  null}
                     <div className="flex flex-wrap gap-2">
                       {answer.platforms?.map((p) => <Badge key={p} variant="outline" className="text-xs">{p}</Badge>)}
                       {answer.high_citation && <Badge className="bg-amber-500/20 text-amber-500 border-0 text-xs">High Citation</Badge>}
                       {answer.is_public && <Badge className="bg-emerald-500/20 text-emerald-500 border-0 text-xs">Public</Badge>}
-                      {!answer.is_public && answer.scheduled_date && (
-                        <Badge variant="secondary" className="text-xs gap-1">
+                      {!answer.is_public && answer.scheduled_date &&
+                    <Badge variant="secondary" className="text-xs gap-1">
                           <Clock className="h-3 w-3" />
                           Planned: {new Date(answer.scheduled_date).toLocaleDateString()}
                         </Badge>
-                      )}
+                    }
                       {answer.has_article && <Badge variant="secondary" className="text-xs">Has Article</Badge>}
                     </div>
                     <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" onClick={() => handleViewAnswer(answer)} className="gap-1"><Eye className="h-3 w-3" />View</Button>
-                      {answer.has_article && (
-                        <Button variant="ghost" size="sm" onClick={() => router.push(`/articles/${answer.article_id}`)} className="gap-1"><Newspaper className="h-3 w-3" />Article</Button>
-                      )}
+                      {answer.has_article
+
+                    }
                       <Button variant="ghost" size="sm" onClick={() => handleEditAnswer(answer.id)} className="gap-1"><Pencil className="h-3 w-3" />Edit</Button>
                       <Button variant="ghost" size="sm" onClick={() => {
-                        const content = `Question: ${answer.question}\n\nAnswer: ${answer.answer}`;
-                        navigator.clipboard.writeText(content);
-                        toast.success("Answer copied to clipboard!");
-                      }} className="gap-1">
+                      const content = `Question: ${answer.question}\n\nAnswer: ${answer.answer}`;
+                      navigator.clipboard.writeText(content);
+                      toast.success("Answer copied to clipboard!");
+                    }} className="gap-1">
                         <Copy className="h-3 w-3" />Copy Answer
                       </Button>
-                      {answer.has_article && (
-                        <Button variant="ghost" size="sm" onClick={async () => {
-                          const { data: article } = await supabase
-                            .from("articles")
-                            .select("title, content, html_content")
-                            .eq("id", answer.article_id)
-                            .single();
-                          if (article) {
-                            navigator.clipboard.writeText(article.html_content || article.content || "");
-                            toast.success("Article HTML copied to clipboard!");
-                          }
-                        }} className="gap-1">
+                      {answer.has_article &&
+                    <Button variant="ghost" size="sm" onClick={async () => {
+                      const { data: article } = await supabase.
+                      from("articles").
+                      select("title, content, html_content").
+                      eq("id", answer.article_id).
+                      single();
+                      if (article) {
+                        navigator.clipboard.writeText(article.html_content || article.content || "");
+                        toast.success("Article HTML copied to clipboard!");
+                      }
+                    }} className="gap-1">
                           <Copy className="h-3 w-3" />Copy Article
                         </Button>
-                      )}
-                      {answer.is_public && (
-                        <>
+                    }
+                      {answer.is_public &&
+                    <>
                           <Button variant="ghost" size="sm" onClick={() => handleViewPublic(answer)} className="gap-1"><ExternalLink className="h-3 w-3" />View Public</Button>
                           <Button variant="ghost" size="sm" onClick={() => handleCopyLink(answer)} className="gap-1"><Copy className="h-3 w-3" />Copy Link</Button>
                         </>
-                      )}
+                    }
                     </div>
                   </div>
                 </div>
               </GlassCard>
-            ))}
+            )}
 
-            {filteredAnswers.length === 0 && (
-              <GlassCard className="p-12">
+            {filteredAnswers.length === 0 &&
+            <GlassCard className="p-12">
                 <div className="text-center space-y-4">
                   <Globe className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
                   <h3 className="text-lg font-medium">No answers found</h3>
@@ -610,29 +610,29 @@ export default function Answers() {
                   </Button>
                 </div>
               </GlassCard>
-            )}
+            }
           </TabsContent>
 
           {/* Articles Tab Content */}
           <TabsContent value="articles" className="space-y-4 mt-4">
-            {loadingArticles ? (
-              <div className="flex items-center justify-center py-12">
+            {loadingArticles ?
+            <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredArticles.length === 0 ? (
-              <GlassCard className="p-12">
+              </div> :
+            filteredArticles.length === 0 ?
+            <GlassCard className="p-12">
                 <div className="text-center space-y-4">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
                   <h3 className="text-lg font-medium">No articles found</h3>
                   <p className="text-muted-foreground">Generate articles from your AEO answers</p>
                 </div>
-              </GlassCard>
-            ) : (
-              filteredArticles.map((article, index) => (
-                 <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => {
-                    if (!isSubscribed) { setShowUpgradeDialog(true); return; }
-                    setViewingArticle(article);
-                  }}>
+              </GlassCard> :
+
+            filteredArticles.map((article, index) =>
+            <GlassCard key={article.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => {
+              if (!isSubscribed) {setShowUpgradeDialog(true);return;}
+              setViewingArticle(article);
+            }}>
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <ScoreRing score={article.aeo_score || 0} size="sm" />
@@ -659,18 +659,18 @@ export default function Answers() {
                           <Pencil className="h-3 w-3" />Edit
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => {
-                          const content = article.html_content || article.content || "";
-                          navigator.clipboard.writeText(content);
-                          toast.success("Article copied to clipboard!");
-                        }} className="gap-1">
+                      const content = article.html_content || article.content || "";
+                      navigator.clipboard.writeText(content);
+                      toast.success("Article copied to clipboard!");
+                    }} className="gap-1">
                           <Copy className="h-3 w-3" />Copy Article
                         </Button>
                       </div>
                     </div>
                   </div>
                 </GlassCard>
-              ))
-            )}
+            )
+            }
           </TabsContent>
         </Tabs>
       </div>
@@ -693,14 +693,14 @@ export default function Answers() {
               <h4 className="text-sm font-medium mb-2">Answer</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{viewingAnswer?.answer}</p>
             </div>
-            {viewingAnswer?.platforms && viewingAnswer.platforms.length > 0 && (
-              <div>
+            {viewingAnswer?.platforms && viewingAnswer.platforms.length > 0 &&
+            <div>
                 <h4 className="text-sm font-medium mb-2">Target Platforms</h4>
                 <div className="flex flex-wrap gap-2">
                   {viewingAnswer.platforms.map((p) => <Badge key={p} variant="outline">{p}</Badge>)}
                 </div>
               </div>
-            )}
+            }
           </div>
         </DialogContent>
       </Dialog>
@@ -721,19 +721,19 @@ export default function Answers() {
                 placeholder="Enter a question..."
                 value={newQuestion}
                 onChange={(e) => setNewQuestion(e.target.value)}
-                rows={3}
-              />
+                rows={3} />
+              
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewAnswerModal(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleGenerateNewAnswer}
               disabled={!newQuestion.trim() || isGenerating}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-            >
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
+              
               {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Generate Answer
             </Button>
@@ -754,28 +754,28 @@ export default function Answers() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto border rounded-lg bg-background">
-            {generatedArticle?.html && (
-              <iframe
-                srcDoc={generatedArticle.html}
-                className="w-full h-[400px] border-0"
-                title="Article Preview"
-              />
-            )}
+            {generatedArticle?.html &&
+            <iframe
+              srcDoc={generatedArticle.html}
+              className="w-full h-[400px] border-0"
+              title="Article Preview" />
+
+            }
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setGeneratedArticle(null)}>
               Close
             </Button>
-            <Button 
+            <Button
               onClick={handlePublishGeneratedArticle}
               disabled={publishingId === generatedArticle?.answerId}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 gap-2"
-            >
-              {publishingId === generatedArticle?.answerId ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 gap-2">
+              
+              {publishingId === generatedArticle?.answerId ?
+              <Loader2 className="h-4 w-4 animate-spin" /> :
+
+              <Send className="h-4 w-4" />
+              }
               Publish to CMS
             </Button>
           </DialogFooter>
@@ -802,39 +802,39 @@ export default function Answers() {
                 </div>
                 <span>•</span>
                 <span>{viewingArticle?.word_count || 0} words</span>
-                {viewingArticle?.scheduled_date && (
-                  <>
+                {viewingArticle?.scheduled_date &&
+                <>
                     <span>•</span>
                     <Badge variant="secondary">
                       Scheduled: {new Date(viewingArticle.scheduled_date).toLocaleDateString()}
                     </Badge>
                   </>
-                )}
+                }
               </div>
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto border rounded-lg bg-background p-4">
-            {viewingArticle?.html_content ? (
-              <div 
-                className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }}
-              />
-            ) : viewingArticle?.content ? (
-              <div className="whitespace-pre-wrap text-sm">{viewingArticle.content}</div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">No content available</p>
-            )}
+            {viewingArticle?.html_content ?
+            <div
+              className="prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }} /> :
+
+            viewingArticle?.content ?
+            <div className="whitespace-pre-wrap text-sm">{viewingArticle.content}</div> :
+
+            <p className="text-muted-foreground text-center py-8">No content available</p>
+            }
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2"
               onClick={() => {
                 const content = viewingArticle?.html_content || viewingArticle?.content || "";
                 navigator.clipboard.writeText(content);
                 toast.success("Article copied to clipboard!");
-              }}
-            >
+              }}>
+              
               <Copy className="h-4 w-4" />
               Copy Article
             </Button>
@@ -844,6 +844,6 @@ export default function Answers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
-  );
+    </DashboardLayout>);
+
 }
