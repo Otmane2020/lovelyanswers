@@ -1,22 +1,27 @@
+import { useNavigate, useLocation, useSearchParams as useRRSearchParams, useParams as useRRParams } from "react-router-dom";
+
 export function useRouter() {
+  const navigate = useNavigate();
   return {
-    push: (url: string) => { window.location.href = url; },
-    replace: (url: string) => { window.location.replace(url); },
-    back: () => { window.history.back(); },
-    forward: () => { window.history.forward(); },
-    refresh: () => { window.location.reload(); },
+    push: (url: string) => navigate(url),
+    replace: (url: string) => navigate(url, { replace: true }),
+    back: () => navigate(-1),
+    forward: () => navigate(1),
+    refresh: () => window.location.reload(),
     prefetch: () => {},
   };
 }
 
 export function usePathname() {
-  return window.location.pathname;
+  const location = useLocation();
+  return location.pathname;
 }
 
 export function useSearchParams() {
-  return new URLSearchParams(window.location.search);
+  const [searchParams] = useRRSearchParams();
+  return searchParams;
 }
 
 export function useParams() {
-  return {};
+  return useRRParams();
 }
