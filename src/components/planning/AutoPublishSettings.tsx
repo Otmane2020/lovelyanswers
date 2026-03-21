@@ -153,17 +153,17 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
       </div>
 
       {/* Human Review Queue Toggle */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
-        <Switch
-          checked={humanReviewEnabled}
-          onCheckedChange={handleChange(setHumanReviewEnabled)}
-          className="data-[state=checked]:bg-amber-500" />
-        
-        <Eye className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium cursor-pointer">
-          Human Review
-        </Label>
-      </div>
+      
+
+
+
+
+
+
+
+
+
+      
 
       {/* Frequency — default 3x/week (Mon/Wed/Fri) recommended by Google HCU */}
       <div className="flex items-center gap-2">
