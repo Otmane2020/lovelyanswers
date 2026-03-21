@@ -1,58 +1,30 @@
 
 
-## Rebranding : LovelyAnswers → AutoPilot Geo
+## Problème
 
-### Scope
+Le build Vite se termine avec succès mais le système ne trouve pas le dossier `dist/`. Cela est probablement dû au fait que le build Vite échoue silencieusement à cause d'un conflit avec la configuration Next.js (le `tsconfig.json` principal est configuré pour Next.js avec `"jsx": "preserve"` et le plugin `next`, ce qui peut empêcher Vite de compiler correctement).
 
-1078 occurrences dans 51 fichiers. Voici le mapping :
+## Plan de correction
 
-| Ancien | Nouveau |
-|--------|---------|
-| `LovelyAnswers` | `AutoPilot Geo` |
-| `Lovely Answers` | `AutoPilot Geo` |
-| `lovelyanswers.com` | `autopilotgeo.com` |
-| `lovelyanswers.io` | `autopilotgeo.com` |
-| `lovelyanswers.lovable.app` | `autopilotgeo.com` |
-| `app.lovelyanswers.com` | `app.autopilotgeo.com` |
-| `support@lovelyanswers.com` | `support@autopilotgeo.com` |
-| `support@lovelyanswers.io` | `support@autopilotgeo.com` |
-| `LovelyAnswers Ltd` | `AutoPilot Geo Ltd` |
+### Étape 1 : Vérifier que `tsconfig.app.json` existe et est utilisé par Vite
+Le fichier `tsconfig.app.json` (dédié à Vite) doit avoir `"jsx": "react-jsx"` pour que Vite puisse compiler le JSX. Il faut s'assurer que `vite.config.ts` le référence si nécessaire.
 
-### Fichiers impactés (51 fichiers)
+### Étape 2 : Nettoyer les anciens artefacts de build
+Supprimer le dossier `dist-vite/` qui contient des artefacts obsolètes d'une configuration précédente et qui pourrait créer de la confusion.
 
-**Frontend pages & components (~30 fichiers)** :
-- `index.html` — titre, meta tags, OG, structured data, noscript
-- `public/robots.txt` — sitemap URL
-- `public/site.webmanifest` — app name
-- `src/components/layout/PublicFooter.tsx` — brand, company info, links
-- `src/components/blog/ArticleTemplate.tsx` — brand name, URL
-- `src/pages/Index.tsx`, `About.tsx`, `Pricing.tsx`, `Terms.tsx`, `Privacy.tsx`, `Auth.tsx`, `Blog.tsx`, `AiSeo.tsx`, `AeoAccount.tsx`, `Onboarding.tsx`, etc.
-- `src/components/landing/AIDemoSection.tsx`
-- `src/components/admin/ads/*` — brand references in ads config
-- `src/components/aeo/*`, `src/components/audit/*`
+### Étape 3 : S'assurer que le script `build` produit bien dans `dist/`
+- Confirmer que `vite.config.ts` a `outDir: "dist"` (déjà le cas)
+- Confirmer que `package.json` a `"build": "vite build"` (déjà le cas)
+- Vérifier qu'il n'y a pas de fichier `.gitignore` qui exclut `dist/` du système de fichiers
 
-**Edge functions (~20 fichiers)** :
-- `supabase/functions/prerender/index.ts` — brand dans HTML généré
-- `supabase/functions/sitemap/index.ts` — URLs domaine
-- `supabase/functions/db-email-trigger/index.ts` — FROM_EMAIL, liens
-- `supabase/functions/create-checkout/index.ts` — origin fallback
-- `supabase/functions/create-cart-checkout/index.ts` — origin fallback
-- `supabase/functions/receive-article/index.ts` — public URL
-- `supabase/functions/analyze-aeo/index.ts` — HTTP-Referer
-- `supabase/functions/send-email/index.ts`, `send-audit-email/index.ts`
-- Toutes les fonctions avec des références `lovelyanswers`
+### Détails techniques
 
-**Config** :
-- `supabase/config.toml` — si référence au nom
+Le `tsconfig.json` principal a `"jsx": "preserve"` (pour Next.js) mais Vite a besoin de `"react-jsx"`. Il faut vérifier `tsconfig.app.json` :
 
-### Approche
+```text
+tsconfig.json       → Next.js (jsx: preserve)
+tsconfig.app.json   → Vite (jsx: react-jsx) ← vérifié par vite.config.ts
+```
 
-Remplacement systématique fichier par fichier avec `line_replace`. Pas de changement de logique — uniquement du renommage de chaînes.
-
-### Note importante
-
-Après le rebranding dans le code, il faudra aussi :
-1. Configurer le domaine custom `autopilotgeo.com` dans Lovable (Settings → Domains)
-2. Mettre à jour les DNS pour pointer vers `185.158.133.1`
-3. Mettre à jour le Cloudflare Worker avec le nouveau domaine
+Si `tsconfig.app.json` est correct et que `.gitignore` n'exclut pas `dist/`, le build devrait fonctionner. Le dossier `dist-vite/` sera supprimé car il n'est plus utilisé.
 
