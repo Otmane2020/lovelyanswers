@@ -99,7 +99,7 @@ export default function RootLayout({
         <Providers>{children}</Providers>
 
         {/* Google Tag Manager */}
-        <Script id="gtm" strategy="beforeInteractive">
+        <Script id="gtm" strategy="afterInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -130,7 +130,7 @@ tap('create', '63120-bfe9c3', { integration: "stripe" });
 tap('detect');`}
         </Script>
 
-        {/* Meta Pixel — AutoPilotGeo */}
+        {/* Meta Pixel */}
         <Script id="meta-pixel" strategy="afterInteractive">
           {`!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -143,13 +143,15 @@ s.parentNode.insertBefore(t,s)}(window,document,'script',
 fbq('init','1449812883223006');
 fbq('track','PageView');`}
         </Script>
-        <noscript>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img height="1" width="1" style={{display:"none"}}
-            src="https://www.facebook.com/tr?id=1449812883223006&ev=PageView&noscript=1"
-            alt=""
-          />
-        </noscript>
+
+        {/* Microsoft Clarity */}
+        <Script id="clarity" strategy="afterInteractive">
+          {`(function(c,l,a,r,i,t,y){
+c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "vvbwrwv8z5");`}
+        </Script>
       </body>
     </html>
   );

@@ -25,6 +25,9 @@ export function AnimatedLogo({ size = "md", variant = "full", theme = "auto", cl
       <img
         src={autopilotGeoIcon as unknown as string}
         alt="AutoPilot Geo"
+        width={size === "sm" ? 40 : size === "md" ? 48 : 56}
+        height={size === "sm" ? 40 : size === "md" ? 48 : 56}
+        loading="eager"
         className={`${iconSizeClasses[size]} ${className}`}
       />
     );
