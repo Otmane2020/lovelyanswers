@@ -1,45 +1,35 @@
 
-Diagnostic probable après lecture du code :
 
-- Le problème “crawl/page noire” semble surtout venir du chemin production/crawler, pas de la home React elle-même.
-- La home publique `/` est bien rendue directement par `src/views/Index.tsx` et n’attend pas l’auth pour afficher le hero.
-- En revanche, le bridge SEO a 2 défauts concrets :
-  1. `cloudflare-worker/worker.js` envoie `?url=...` au prerender, alors que `supabase/functions/prerender/index.ts` attend `?path=...`.
-  2. Le worker cache encore le HTML prerender bot en `max-age=86400`, donc les crawlers peuvent recevoir du HTML périmé.
-- Il y a aussi une régression de config : `next.config.mjs` contient encore `distDir: "dist"`, alors qu’il faut laisser la sortie standard `.next`.
+## Analyse
 
-Plan de correction :
+Les emails sont deja envoyes depuis `support@autopilotgeo.com` via Resend (API key configuree). Le domaine est deja correct dans les 3 edge functions qui envoient des emails:
+- `send-email/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
+- `db-email-trigger/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
+- `abandoned-cart-emails/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
 
-1. Réparer le passage Worker → prerender
-   - Mettre à jour `cloudflare-worker/worker.js` pour transmettre `path` correctement au prerender, avec le pathname réel et éventuellement la query string utile.
-   - Ajouter une compatibilité défensive dans `supabase/functions/prerender/index.ts` pour accepter aussi `url` et en extraire le path, afin d’éviter les cassures si un ancien worker circule encore.
+Le domaine d'envoi est donc deja `autopilotgeo.com`. Aucun changement de domaine necessaire.
 
-2. Corriger le cache crawler
-   - Remplacer le `Cache-Control: public, max-age=86400` de la branche bot/prerender par un cache HTML non bloquant (`no-cache, no-store, must-revalidate` ou TTL très court).
-   - Garder le cache long uniquement pour les assets versionnés.
+## Plan — Ajouter un bouton "Envoyer un email test"
 
-3. Corriger la config de build
-   - Supprimer `distDir: "dist"` de `next.config.mjs` pour revenir au comportement standard.
-   - Cela évite les incohérences entre build/deploy et réduit le risque de page noire liée à des bundles mal servis.
+### 1. Ajouter un type "test" dans l'edge function `send-email`
+Ajouter un cas `test` dans le switch qui envoie un email de test simple et professionnel avec le branding AutoPilot Geo.
 
-4. Durcir le rendu public
-   - Vérifier que la landing `/` reste strictement publique et visible même sans session.
-   - Ne pas ajouter de blocage auth sur la home.
-   - Si besoin, forcer le thème clair dès le shell serveur plutôt que compter uniquement sur `document.documentElement.classList.remove("dark")` après hydration.
+**Fichier:** `supabase/functions/send-email/index.ts`
+- Ajouter `"test"` au type union de `EmailRequest`
+- Ajouter un case `test` qui genere un email simple: "Ceci est un email test depuis AutoPilot Geo. Si vous recevez cet email, votre configuration fonctionne correctement."
 
-5. Vérifications après implémentation
-   - Tester `https://autopilotgeo.com/` en visiteur non connecté.
-   - Tester avec un user-agent bot/crawler pour confirmer que le prerender renvoie bien la bonne page.
-   - Vérifier que `/`, `/pricing`, `/blog` et `/answers/...` servent du HTML cohérent côté crawler.
-   - Refaire une purge Cloudflare après le déploiement du worker.
+### 2. Ajouter un bouton "Envoyer email test" dans le panneau admin/settings
+Ajouter un bouton dans la page settings ou super-admin qui permet d'envoyer un email test a l'adresse de l'utilisateur connecte.
 
-Fichiers à modifier :
-- `cloudflare-worker/worker.js`
-- `supabase/functions/prerender/index.ts`
-- `next.config.mjs`
+**Fichier:** `src/views/AeoSettings.tsx` (ou `src/views/SuperAdmin.tsx`)
+- Bouton "Envoyer un email test"
+- Appelle `supabase.functions.invoke("send-email", { body: { type: "test", to: userEmail } })`
+- Affiche toast succes/erreur
 
-Détail technique important :
-- D’après le code actuel, la home n’est pas le principal suspect.
-- Le vrai point fragile est la chaîne :
-  `crawler -> Cloudflare Worker -> prerender`
-- Tant que `url`/`path` ne correspondent pas et que le HTML bot reste cache 24h, les crawlers peuvent voir une version cassée, obsolète ou incohérente du site, même si la preview locale semble correcte.
+### 3. Deployer l'edge function mise a jour
+
+### Detail technique
+- L'email test sera envoye depuis `support@autopilotgeo.com` via Resend
+- Le domaine `autopilotgeo.com` doit etre verifie dans Resend pour que les emails arrivent (si ce n'est pas deja fait, ils tomberont en spam ou seront rejetes)
+- Le `RESEND_API_KEY` est deja configure dans les secrets
+
