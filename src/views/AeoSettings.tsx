@@ -144,6 +144,16 @@ export default function AeoSettings() {
           <div className="mt-6 max-w-2xl">
             <TabsContent value="user" className="mt-0">
               <UserSettings />
+              {isAdmin && (
+                <div className="mt-6 p-4 border rounded-lg bg-muted/30">
+                  <h3 className="text-sm font-medium mb-2">Email Test</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Envoyer un email test à {user?.email} depuis support@autopilotgeo.com</p>
+                  <Button onClick={handleSendTestEmail} disabled={sendingTest} size="sm" variant="outline">
+                    <Mail className="mr-2 h-4 w-4" />
+                    {sendingTest ? "Envoi..." : "Envoyer email test"}
+                  </Button>
+                </div>
+              )}
             </TabsContent>
             <TabsContent value="business" className="mt-0">
               <BusinessSettings />
