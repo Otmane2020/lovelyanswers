@@ -1,30 +1,50 @@
 
 
-## Problème
+## Problème identifié
 
-Le build Vite se termine avec succès mais le système ne trouve pas le dossier `dist/`. Cela est probablement dû au fait que le build Vite échoue silencieusement à cause d'un conflit avec la configuration Next.js (le `tsconfig.json` principal est configuré pour Next.js avec `"jsx": "preserve"` et le plugin `next`, ce qui peut empêcher Vite de compiler correctement).
+L'application est conçue pour Next.js (routing par fichiers dans `app/`), mais la preview Lovable utilise **Vite** qui n'a **aucun routeur client**. `src/App.tsx` rend uniquement `IndexPage` — il n'y a pas de `react-router-dom` installé, donc quand on clique sur "Log in" (`/auth`) ou "Start Free Audit" (`/onboarding`), la navigation échoue car Vite ne sait pas gérer ces routes.
 
 ## Plan de correction
 
-### Étape 1 : Vérifier que `tsconfig.app.json` existe et est utilisé par Vite
-Le fichier `tsconfig.app.json` (dédié à Vite) doit avoir `"jsx": "react-jsx"` pour que Vite puisse compiler le JSX. Il faut s'assurer que `vite.config.ts` le référence si nécessaire.
+### Étape 1 : Installer react-router-dom
+Ajouter `react-router-dom` comme dépendance.
 
-### Étape 2 : Nettoyer les anciens artefacts de build
-Supprimer le dossier `dist-vite/` qui contient des artefacts obsolètes d'une configuration précédente et qui pourrait créer de la confusion.
+### Étape 2 : Créer un routeur client dans `src/App.tsx`
+Remplacer le rendu direct de `IndexPage` par un `BrowserRouter` avec des `Route` pour chaque page :
 
-### Étape 3 : S'assurer que le script `build` produit bien dans `dist/`
-- Confirmer que `vite.config.ts` a `outDir: "dist"` (déjà le cas)
-- Confirmer que `package.json` a `"build": "vite build"` (déjà le cas)
-- Vérifier qu'il n'y a pas de fichier `.gitignore` qui exclut `dist/` du système de fichiers
+```text
+/           → Index
+/auth       → Auth
+/signup     → Signup
+/onboarding → Signup (Onboarding)
+/dashboard  → Dashboard
+/pricing    → Pricing
+/blog       → Blog
+/settings   → AeoSettings
+/answers    → Answers
+/articles   → AeoArticles
+/keywords   → AeoKeywords
+/planning   → AeoPlanning
+/analytics  → AeoAnalytics
+/checkout   → Checkout
+/cart       → Cart
+/subscription → AeoSubscription
+/billing    → AeoBilling
+/support    → AeoSupport
+/integrations → AeoIntegrations
+... (toutes les routes de l'app/ directory)
+```
+
+### Étape 3 : Mettre à jour le shim `next/link`
+Remplacer les `<a>` par des composants `Link` de `react-router-dom` pour la navigation SPA sans rechargement de page.
+
+### Étape 4 : Mettre à jour le shim `next/navigation`
+Remplacer `window.location.href` par `react-router-dom`'s `useNavigate` pour que `router.push()` fonctionne comme une navigation SPA.
 
 ### Détails techniques
 
-Le `tsconfig.json` principal a `"jsx": "preserve"` (pour Next.js) mais Vite a besoin de `"react-jsx"`. Il faut vérifier `tsconfig.app.json` :
-
-```text
-tsconfig.json       → Next.js (jsx: preserve)
-tsconfig.app.json   → Vite (jsx: react-jsx) ← vérifié par vite.config.ts
-```
-
-Si `tsconfig.app.json` est correct et que `.gitignore` n'exclut pas `dist/`, le build devrait fonctionner. Le dossier `dist-vite/` sera supprimé car il n'est plus utilisé.
+- Les boutons utilisent `<Link href="/auth">` via le shim `next/link` qui crée des `<a>` tags simples. Avec Vite SPA, cliquer sur `<a href="/auth">` provoque un rechargement complet vers une route que Vite ne connaît pas → page blanche.
+- La solution : un vrai routeur React côté client qui intercepte la navigation et rend le bon composant sans rechargement.
+- Le shim `next/navigation` (`useRouter`) doit utiliser `useNavigate()` de react-router-dom au lieu de `window.location.href`.
+- Le shim `next/link` doit utiliser `<Link>` de react-router-dom au lieu de `<a>`.
 
