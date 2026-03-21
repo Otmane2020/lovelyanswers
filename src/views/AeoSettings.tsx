@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { Settings } from "lucide-react";
+import { Settings, Mail } from "lucide-react";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSettings } from "./settings/UserSettings";
@@ -16,12 +16,37 @@ import { AnalyticsSettings } from "./settings/AnalyticsSettings";
 import { BulkArticleGenerator } from "./settings/BulkArticleGenerator";
 import { BacklinksSettings } from "./settings/BacklinksSettings";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const ADMIN_EMAILS = ["otmane.benyahya@sweetdeco.com", "oben.rockman@gmail.com"];
 
 export default function AeoSettings() {
   const { user } = useAuth();
   const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleSendTestEmail = async () => {
+    if (!user?.email) return;
+    setSendingTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { type: "test", to: user.email, name: user.user_metadata?.full_name || "" },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Email test envoyé à ${user.email}`);
+      } else {
+        throw new Error(data?.error || "Erreur inconnue");
+      }
+    } catch (err: any) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   return (
     <DashboardLayout>
