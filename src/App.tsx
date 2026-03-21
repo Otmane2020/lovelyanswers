@@ -47,6 +47,7 @@ import AeoPublicAnswer from "@/views/AeoPublicAnswer";
 import LocalAeoArticle from "@/views/LocalAeoArticle";
 import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
+import AeoWizard from "@/views/AeoWizard";
 
 export default function App() {
   return (
