@@ -58,6 +58,7 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/wizard" element={<AeoWizard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />
