@@ -1,50 +1,41 @@
 
+Diagnostic rapide:
+- Le problème n’est plus l’absence de routeur client: `react-router-dom` est déjà installé et `src/App.tsx` route bien `/auth` et `/onboarding`.
+- Les vrais blocages viennent de deux erreurs concrètes dans le code actuel :
+  1. `src/views/Auth.tsx` lit `localStorage` pendant le rendu initial (`const savedEmail = localStorage.getItem(...)`). En environnement Next, cela casse le rendu de `/auth` côté serveur et peut donner l’impression que le bouton “Log in” ne fonctionne pas.
+  2. `app/onboarding/page.tsx` importe `@/views/Signup` au lieu de `@/views/Onboarding`. Donc “Start Free Audit” envoie vers la mauvaise page dans le runtime Next.
+- Il y a aussi un trou de parité preview: `Auth.tsx` et `Signup.tsx` redirigent vers `/wizard`, mais cette route n’existe pas dans `src/App.tsx`. Même si la connexion marche, la preview Vite peut tomber sur une 404 ensuite.
 
-## Problème identifié
+Plan de correction:
+1. Rendre `Auth.tsx` compatible navigateur + SSR
+   - Déplacer la lecture de `localStorage` dans un `useEffect` ou un init protégé par `typeof window !== "undefined"`.
+   - Remplacer `new URLSearchParams()` par le vrai `useSearchParams()` déjà fourni par la couche de navigation.
+   - Vérifier que toute logique dépendant de `window`/`localStorage` reste uniquement côté client.
 
-L'application est conçue pour Next.js (routing par fichiers dans `app/`), mais la preview Lovable utilise **Vite** qui n'a **aucun routeur client**. `src/App.tsx` rend uniquement `IndexPage` — il n'y a pas de `react-router-dom` installé, donc quand on clique sur "Log in" (`/auth`) ou "Start Free Audit" (`/onboarding`), la navigation échoue car Vite ne sait pas gérer ces routes.
+2. Corriger la page `/onboarding` côté Next
+   - Modifier `app/onboarding/page.tsx` pour rendre `@/views/Onboarding` au lieu de `@/views/Signup`.
+   - Ainsi le bouton “Start Free Audit” ouvrira bien le flow d’audit.
 
-## Plan de correction
+3. Réparer la parité des routes dans la preview
+   - Ajouter `/wizard` dans `src/App.tsx` avec `@/views/AeoWizard`.
+   - Repasser rapidement les routes d’auth/onboarding pour s’assurer que `app/` et `src/App.tsx` pointent vers les mêmes écrans.
 
-### Étape 1 : Installer react-router-dom
-Ajouter `react-router-dom` comme dépendance.
+4. Vérification ciblée
+   - Depuis la home :
+     - “Log in” doit ouvrir `/auth` sans page blanche ni erreur.
+     - “Start Free Audit” doit ouvrir le vrai onboarding.
+   - Tester aussi l’accès direct à `/auth`, `/onboarding` et `/wizard`.
+   - Vérifier desktop + mobile, car les deux versions du header ont ces boutons.
 
-### Étape 2 : Créer un routeur client dans `src/App.tsx`
-Remplacer le rendu direct de `IndexPage` par un `BrowserRouter` avec des `Route` pour chaque page :
+Fichiers à corriger:
+- `src/views/Auth.tsx`
+- `app/onboarding/page.tsx`
+- `src/App.tsx`
 
-```text
-/           → Index
-/auth       → Auth
-/signup     → Signup
-/onboarding → Signup (Onboarding)
-/dashboard  → Dashboard
-/pricing    → Pricing
-/blog       → Blog
-/settings   → AeoSettings
-/answers    → Answers
-/articles   → AeoArticles
-/keywords   → AeoKeywords
-/planning   → AeoPlanning
-/analytics  → AeoAnalytics
-/checkout   → Checkout
-/cart       → Cart
-/subscription → AeoSubscription
-/billing    → AeoBilling
-/support    → AeoSupport
-/integrations → AeoIntegrations
-... (toutes les routes de l'app/ directory)
-```
-
-### Étape 3 : Mettre à jour le shim `next/link`
-Remplacer les `<a>` par des composants `Link` de `react-router-dom` pour la navigation SPA sans rechargement de page.
-
-### Étape 4 : Mettre à jour le shim `next/navigation`
-Remplacer `window.location.href` par `react-router-dom`'s `useNavigate` pour que `router.push()` fonctionne comme une navigation SPA.
-
-### Détails techniques
-
-- Les boutons utilisent `<Link href="/auth">` via le shim `next/link` qui crée des `<a>` tags simples. Avec Vite SPA, cliquer sur `<a href="/auth">` provoque un rechargement complet vers une route que Vite ne connaît pas → page blanche.
-- La solution : un vrai routeur React côté client qui intercepte la navigation et rend le bon composant sans rechargement.
-- Le shim `next/navigation` (`useRouter`) doit utiliser `useNavigate()` de react-router-dom au lieu de `window.location.href`.
-- Le shim `next/link` doit utiliser `<Link>` de react-router-dom au lieu de `<a>`.
-
+Détail technique:
+- Le précédent correctif “router Vite” est déjà en place, donc je ne repartirais pas sur `next/link` / `next/navigation`.
+- Ici, le bug est surtout un mélange de :
+  - rendu SSR non sécurisé (`localStorage` dans le render),
+  - mapping de page erroné (`/onboarding` → Signup),
+  - route manquante côté preview (`/wizard`).
+- En corrigeant ces 3 points, les boutons de la home devraient redevenir fonctionnels dans la preview et dans le runtime principal.
