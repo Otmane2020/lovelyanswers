@@ -145,6 +145,33 @@ const handler = async (req: Request): Promise<Response> => {
         `;
         break;
 
+      case "test":
+        subject = "✅ Email test — AutoPilot Geo";
+        html = `
+          <!DOCTYPE html>
+          <html>
+          <head><meta charset="utf-8"></head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #7c3aed;">Email test réussi! ✅</h1>
+            </div>
+            <p>Bonjour ${data.name || ""},</p>
+            <p>Ceci est un email de test envoyé depuis <strong>AutoPilot Geo</strong>.</p>
+            <p>Si vous recevez cet email, votre configuration fonctionne correctement.</p>
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 20px 0;">
+              <p style="margin: 0;">📧 Expéditeur: <strong>support@autopilotgeo.com</strong></p>
+              <p style="margin: 5px 0 0;">🕐 Envoyé le: <strong>${new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}</strong></p>
+            </div>
+            <p>Cordialement,<br><strong>L'équipe AutoPilot Geo</strong></p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="font-size: 12px; color: #888; text-align: center;">
+              <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
+            </p>
+          </body>
+          </html>
+        `;
+        break;
+
       case "custom":
         subject = data.subject || "Message de AutoPilot Geo";
         html = data.html || `<p>${data.message}</p>`;
