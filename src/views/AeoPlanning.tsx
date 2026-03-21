@@ -49,6 +49,12 @@ export default function AeoPlanning() {
   const { isSubscribed } = useSubscriptionContext();
   const { data: integrations } = useIntegrations();
   const hasIntegration = integrations && integrations.some(i => i.is_connected);
+
+  // Fix 3: Allow 1 free publish for non-subscribers
+  const freePublishKey = project ? `free_publish_used_${project.id}` : null;
+  const freePublishUsed = freePublishKey ? localStorage.getItem(freePublishKey) === "true" : false;
+  const canPublishFree = !isSubscribed && !freePublishUsed;
+  const canPublish = isSubscribed || canPublishFree;
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
