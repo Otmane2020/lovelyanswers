@@ -1,7 +1,28 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light" />
+    <style>
+      html {
+        background: hsl(40 20% 97%);
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        background: hsl(40 20% 97%);
+        color: hsl(222 39% 11%);
+      }
+
+      #root {
+        min-height: 100vh;
+        background: hsl(40 20% 97%);
+      }
+    </style>
+    <script>
+      document.documentElement.classList.remove("dark");
+    </script>
     
     <!-- Microsoft Clarity — Heatmaps & Session Recordings -->
     <!-- Replace vvbwrwv8z5 with your actual Clarity project ID from clarity.microsoft.com -->
