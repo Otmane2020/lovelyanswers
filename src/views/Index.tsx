@@ -205,11 +205,11 @@ const faqs = [
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user) router.replace("/dashboard");
-  }, [user, router]);
+    if (!authLoading && user) router.replace("/dashboard");
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
