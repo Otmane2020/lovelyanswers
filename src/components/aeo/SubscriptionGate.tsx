@@ -33,7 +33,7 @@ export function SubscriptionGate({ title, description, children }: SubscriptionG
           <p className="text-muted-foreground text-sm mb-6">{description}</p>
           <Button onClick={() => router.push("/checkout")} size="lg" className="gap-2 w-full">
             <Lock className="h-4 w-4" />
-            Upgrade to Unlock
+            Start Ranking in ChatGPT
           </Button>
         </div>
       </div>
