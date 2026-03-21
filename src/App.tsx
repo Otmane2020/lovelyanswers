@@ -47,6 +47,7 @@ import AeoPublicAnswer from "@/views/AeoPublicAnswer";
 import LocalAeoArticle from "@/views/LocalAeoArticle";
 import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
+import AeoWizard from "@/views/AeoWizard";
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/wizard" element={<AeoWizard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />

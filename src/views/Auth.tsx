@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -24,14 +24,13 @@ export default function Auth() {
   const { toast } = useToast();
   
   // Check URL params for signup mode and checkout success
-  const searchParams = new URLSearchParams();
+  const searchParams = useSearchParams();
   const modeFromUrl = searchParams.get('mode');
   const checkoutSuccess = searchParams.get('checkout') === 'success';
   const [isLogin, setIsLogin] = useState(modeFromUrl !== 'signup');
   
-  // Pre-fill email from onboarding if available
-  const savedEmail = localStorage.getItem('onboarding_email') || "";
-  const [email, setEmail] = useState(savedEmail);
+  // Pre-fill email from onboarding if available (client-side only)
+  const [email, setEmail] = useState("");
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +39,12 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+
+  // Load saved email from localStorage on client only
+  useEffect(() => {
+    const saved = localStorage.getItem('onboarding_email');
+    if (saved) setEmail(saved);
+  }, []);
 
   // Force light theme on auth page
   useEffect(() => {
