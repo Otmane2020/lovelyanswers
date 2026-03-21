@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/PageHeader";
-import { Settings } from "lucide-react";
+import { Settings, Mail } from "lucide-react";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSettings } from "./settings/UserSettings";
@@ -16,12 +16,37 @@ import { AnalyticsSettings } from "./settings/AnalyticsSettings";
 import { BulkArticleGenerator } from "./settings/BulkArticleGenerator";
 import { BacklinksSettings } from "./settings/BacklinksSettings";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const ADMIN_EMAILS = ["otmane.benyahya@sweetdeco.com", "oben.rockman@gmail.com"];
 
 export default function AeoSettings() {
   const { user } = useAuth();
   const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleSendTestEmail = async () => {
+    if (!user?.email) return;
+    setSendingTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { type: "test", to: user.email, name: user.user_metadata?.full_name || "" },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Email test envoyé à ${user.email}`);
+      } else {
+        throw new Error(data?.error || "Erreur inconnue");
+      }
+    } catch (err: any) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -119,6 +144,16 @@ export default function AeoSettings() {
           <div className="mt-6 max-w-2xl">
             <TabsContent value="user" className="mt-0">
               <UserSettings />
+              {isAdmin && (
+                <div className="mt-6 p-4 border rounded-lg bg-muted/30">
+                  <h3 className="text-sm font-medium mb-2">Email Test</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Envoyer un email test à {user?.email} depuis support@autopilotgeo.com</p>
+                  <Button onClick={handleSendTestEmail} disabled={sendingTest} size="sm" variant="outline">
+                    <Mail className="mr-2 h-4 w-4" />
+                    {sendingTest ? "Envoi..." : "Envoyer email test"}
+                  </Button>
+                </div>
+              )}
             </TabsContent>
             <TabsContent value="business" className="mt-0">
               <BusinessSettings />
