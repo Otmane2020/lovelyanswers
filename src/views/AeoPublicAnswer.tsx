@@ -181,201 +181,33 @@ export default function AeoPublicAnswer() {
     );
   }
 
+  // Build editorial HTML from Q&A answer data
   const bullets = answer.supporting_content?.bullets || [];
   const faq = answer.supporting_content?.faq || [];
-  const brand = "AutoPilot Geo";
-  const brandUrl = "https://autopilotgeo.com";
-  const slogan = "AI-Optimized Answers for Maximum Visibility";
 
-  // JSON-LD structured data for AEO - Enhanced for AI citation
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "name": `${answer.question} - FAQ`,
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": answer.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": answer.answer,
-          "dateCreated": answer.created_at,
-          "author": {
-            "@type": "Organization",
-            "name": brand,
-            "url": brandUrl
-          }
-        }
-      },
-      ...faq.map(f => ({
-        "@type": "Question",
-        "name": f.q,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": f.a
-        }
-      }))
-    ],
-    "publisher": {
-      "@type": "Organization",
-      "name": brand,
-      "url": brandUrl,
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${brandUrl}/favicon.ico`
-      }
-    },
-    "datePublished": answer.created_at,
-    "dateModified": answer.created_at
-  };
+  const bulletsHtml = bullets.length > 0
+    ? `<h2>Key Points</h2><ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>`
+    : '';
+
+  const faqHtml = faq.length > 0
+    ? `<h2>Frequently Asked Questions</h2>${faq.map(f => `<details><summary>${f.q}</summary><p>${f.a}</p></details>`).join('')}`
+    : '';
+
+  const answerEditorialHtml = `
+    <div class="aeo-answer-box" style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-left:4px solid hsl(var(--primary));padding:1.5rem;margin:1.5rem 0;border-radius:0 8px 8px 0;">
+      <p style="font-size:1.1rem;margin:0;">${answer.answer}</p>
+    </div>
+    ${bulletsHtml}
+    ${faqHtml}
+  `;
 
   return (
-    <>
-      <Helmet>
-        <title>{answer.question} | AEO Answer</title>
-        <meta name="description" content={answer.answer.slice(0, 160)} />
-        <meta property="og:title" content={answer.question} />
-        <meta property="og:description" content={answer.answer.slice(0, 160)} />
-        <meta property="og:type" content="article" />
-        <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={window.location.href} />
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      </Helmet>
-
-      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background">
-        {/* Header */}
-        <header className="border-b bg-background/80 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href={brandUrl} className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0099cc] to-[#5b10d6] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
-              <span className="font-semibold">{brand}</span>
-            </a>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={shareAnswer}>
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={copyToClipboard}>
-                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content - AEO Optimized Structure */}
-        <main className="max-w-4xl mx-auto px-4 py-12">
-          {/* Question (H1) - Critical for AI parsing */}
-          <h1 className="text-3xl md:text-4xl font-bold mb-8 leading-tight">
-            {answer.question}
-          </h1>
-
-          {/* Answer Card - THE AEO ANSWER (primary content for AI) */}
-          <Card className="p-8 mb-8 border-l-4 border-l-primary">
-            <p className="text-lg md:text-xl leading-relaxed aeo-answer whitespace-pre-wrap">
-              {answer.answer}
-            </p>
-          </Card>
-
-          {/* Key Points / Bullets - Secondary AEO content */}
-          {bullets.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Key Points</h2>
-              <ul className="space-y-3">
-                {bullets.map((bullet, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                    <span className="text-muted-foreground">{bullet}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* FAQ Section - Additional AEO signals */}
-          {faq.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
-              <div className="space-y-3">
-                {faq.map((item, i) => (
-                  <div 
-                    key={i} 
-                    className="border rounded-lg overflow-hidden"
-                  >
-                    <button
-                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-muted/50 transition-colors"
-                      onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                    >
-                      <span className="font-medium">{item.q}</span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedFaq === i ? 'rotate-180' : ''}`} />
-                    </button>
-                    {expandedFaq === i && (
-                      <div className="px-4 py-3 bg-muted/30 border-t">
-                        <p className="text-muted-foreground">{item.a}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-4 mb-12">
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              Score AEO: {answer.score}%
-            </Badge>
-            {answer.platforms?.[0] && (
-              <Badge variant="outline">
-                {answer.platforms[0]}
-              </Badge>
-            )}
-          </div>
-
-          {/* Source Attribution - Important for E-E-A-T */}
-          <div className="border-t pt-8">
-            <p className="text-sm text-muted-foreground">
-              Source:{" "}
-              <a 
-                href={brandUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="font-semibold text-primary hover:underline"
-              >
-                {brand}
-              </a>
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 italic">
-              {slogan}
-            </p>
-            <p className="text-muted-foreground text-sm mt-2">
-              Published on {new Date(answer.created_at).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
-          </div>
-        </main>
-
-        {/* Footer CTA */}
-        <footer className="border-t bg-background/80 py-8">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <p className="text-muted-foreground mb-4">
-              {slogan}
-            </p>
-            <a href={`${brandUrl}/auth?mode=signup`}>
-              <Button className="bg-gradient-to-r from-pink-500 via-violet-500 to-blue-500 hover:opacity-90">
-                Create your AEO answers
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
-            </a>
-          </div>
-        </footer>
-      </div>
-    </>
+    <ArticleTemplate
+      title={answer.question}
+      htmlContent={answerEditorialHtml}
+      metaDescription={answer.answer.slice(0, 160)}
+      publishedAt={answer.created_at}
+      slug={slug || ""}
+    />
   );
 }
