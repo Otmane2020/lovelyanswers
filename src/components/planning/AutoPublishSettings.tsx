@@ -25,25 +25,25 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
   const [hasChanges, setHasChanges] = useState(false);
 
   const timezones = [
-    { value: "Europe/Paris", label: "Paris" },
-    { value: "Europe/London", label: "London" },
-    { value: "America/New_York", label: "New York" },
-    { value: "America/Los_Angeles", label: "Los Angeles" },
-    { value: "America/Chicago", label: "Chicago" },
-    { value: "Asia/Tokyo", label: "Tokyo" },
-    { value: "Asia/Dubai", label: "Dubai" },
-    { value: "Australia/Sydney", label: "Sydney" },
-    { value: "UTC", label: "UTC" },
-  ];
+  { value: "Europe/Paris", label: "Paris" },
+  { value: "Europe/London", label: "London" },
+  { value: "America/New_York", label: "New York" },
+  { value: "America/Los_Angeles", label: "Los Angeles" },
+  { value: "America/Chicago", label: "Chicago" },
+  { value: "Asia/Tokyo", label: "Tokyo" },
+  { value: "Asia/Dubai", label: "Dubai" },
+  { value: "Australia/Sydney", label: "Sydney" },
+  { value: "UTC", label: "UTC" }];
+
 
   // Recommended: 3x/week (Mon/Wed/Fri) — best balance of quality vs volume
   const frequencies = [
-    { value: "3x_week", label: "3x/week ✓" },
-    { value: "2x_week", label: "2x/week" },
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
-  ];
+  { value: "3x_week", label: "3x/week ✓" },
+  { value: "2x_week", label: "2x/week" },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" }];
+
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -51,11 +51,11 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
 
       setIsLoading(true);
       try {
-        const { data } = await supabase
-          .from("project_settings")
-          .select("auto_publish_enabled, publish_hour, timezone, publish_frequency")
-          .eq("project_id", projectId)
-          .single();
+        const { data } = await supabase.
+        from("project_settings").
+        select("auto_publish_enabled, publish_hour, timezone, publish_frequency").
+        eq("project_id", projectId).
+        single();
 
         if (data) {
           setAutoPublishEnabled((data as any).auto_publish_enabled !== false);
@@ -96,17 +96,17 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
       if (publishPeriod === "PM" && hour24 !== 12) hour24 += 12;
       if (publishPeriod === "AM" && hour24 === 12) hour24 = 0;
 
-      const { error } = await supabase
-        .from("project_settings")
-        .upsert({
-          project_id: projectId,
-          auto_publish_enabled: autoPublishEnabled,
-          human_review_enabled: humanReviewEnabled,
-          publish_hour: hour24.toString().padStart(2, "0"),
-          timezone: timezone,
-          publish_frequency: frequency,
-          updated_at: new Date().toISOString()
-        }, { onConflict: "project_id" });
+      const { error } = await supabase.
+      from("project_settings").
+      upsert({
+        project_id: projectId,
+        auto_publish_enabled: autoPublishEnabled,
+        human_review_enabled: humanReviewEnabled,
+        publish_hour: hour24.toString().padStart(2, "0"),
+        timezone: timezone,
+        publish_frequency: frequency,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "project_id" });
 
       if (error) throw error;
 
@@ -132,21 +132,21 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm">Loading...</span>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Content Quality */}
-      <ContentQualitySection projectId={projectId} />
+      
       {/* Auto-Publish Toggle */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background">
         <Switch
           checked={autoPublishEnabled}
           onCheckedChange={handleChange(setAutoPublishEnabled)}
-          className="data-[state=checked]:bg-primary"
-        />
+          className="data-[state=checked]:bg-primary" />
+        
         <Label className="text-sm font-medium cursor-pointer">
           Auto-Publish
         </Label>
@@ -157,8 +157,8 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
         <Switch
           checked={humanReviewEnabled}
           onCheckedChange={handleChange(setHumanReviewEnabled)}
-          className="data-[state=checked]:bg-amber-500"
-        />
+          className="data-[state=checked]:bg-amber-500" />
+        
         <Eye className="h-4 w-4 text-muted-foreground" />
         <Label className="text-sm font-medium cursor-pointer">
           Human Review
@@ -173,11 +173,11 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {frequencies.map((freq) => (
-              <SelectItem key={freq.value} value={freq.value}>
+            {frequencies.map((freq) =>
+            <SelectItem key={freq.value} value={freq.value}>
                 {freq.label}
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -190,11 +190,11 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {hours.map((hour) => (
-              <SelectItem key={hour} value={hour}>
+            {hours.map((hour) =>
+            <SelectItem key={hour} value={hour}>
                 {hour}:00
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
         <Select value={publishPeriod} onValueChange={handleChange(setPublishPeriod)}>
@@ -216,33 +216,33 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {timezones.map((tz) => (
-              <SelectItem key={tz.value} value={tz.value}>
+            {timezones.map((tz) =>
+            <SelectItem key={tz.value} value={tz.value}>
                 {tz.label}
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
       </div>
 
       {/* Save Button */}
-      {hasChanges && (
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="h-9"
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
+      {hasChanges &&
+      <Button
+        size="sm"
+        onClick={handleSave}
+        disabled={isSaving}
+        className="h-9">
+        
+          {isSaving ?
+        <Loader2 className="h-4 w-4 animate-spin" /> :
+
+        <>
               <Save className="h-4 w-4 mr-1" />
               Save
             </>
-          )}
+        }
         </Button>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
