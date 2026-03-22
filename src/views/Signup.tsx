@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { trackSignUp } from "@/lib/gtag-conversions";
+import { trackMetaLead } from "@/lib/meta-pixel";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Apple } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Apple, Phone } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -58,7 +60,7 @@ export default function Signup() {
     e.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName, phone);
     if (error) {
       setIsLoading(false);
       let message = error.message;
@@ -67,6 +69,7 @@ export default function Signup() {
       return;
     }
     trackSignUp(email);
+    trackMetaLead(email);
     toast({ title: "Account created!", description: "Please check your email to verify your account." });
     setIsLoading(false);
   };
@@ -128,6 +131,15 @@ export default function Signup() {
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <Input id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10 h-12 border-gray-200" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-gray-600">
+                  Phone <span className="text-gray-400 font-normal text-xs">(optional — get a welcome AI call)</span>
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Input id="phone" type="tel" placeholder="+1 234 567 8900" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10 h-12 border-gray-200" />
                 </div>
               </div>
               <div className="space-y-2">
