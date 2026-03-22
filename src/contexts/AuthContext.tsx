@@ -89,6 +89,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("id", data.user.id);
     }
 
+    // Trigger AI welcome call + WhatsApp (fire & forget)
+    if (!error && data.user) {
+      const country = await fetch("https://ipapi.co/country/")
+        .then(r => r.text())
+        .catch(() => "");
+      fetch("https://apg-welcome-automation.oben-rockman.workers.dev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName || "",
+          email,
+          phone: phone || "",
+          country,
+        }),
+      }).catch(() => {});
+    }
+
     return { error: error as Error | null };
   };
 
