@@ -30,29 +30,17 @@ serve(async (req: Request): Promise<Response> => {
     const payload: WebhookPayload = await req.json();
     console.log("[db-email-trigger] Received:", payload.type, payload.table);
 
-    // Handle new profile creation (welcome email + AI automation)
+    // Handle new profile creation (welcome email)
     if (payload.table === "profiles" && payload.type === "INSERT") {
       const profile = payload.record;
       if (profile.email) {
         console.log("[db-email-trigger] Sending welcome email to:", profile.email);
-
+        
         await sendEmail({
           to: profile.email,
           subject: "Bienvenue sur AutoPilot Geo! 🎉",
           html: generateWelcomeEmail(profile.full_name || profile.email.split("@")[0]),
         });
-
-        // Trigger AI welcome call + WhatsApp (fire & forget)
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        fetch(`${supabaseUrl}/functions/v1/welcome-automation`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({ record: profile }),
-        }).catch((err) => console.error("[db-email-trigger] welcome-automation error:", err));
       }
     }
 

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackPurchase } from "@/lib/gtag-conversions";
-import { trackMetaPurchase } from "@/lib/meta-pixel";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,20 @@ export default function ThankYou() {
             console.log("[ThankYou] Tapfiliate trial fired:", data.customer_id);
           }
           // Meta Pixel — Subscribe + Purchase conversion
-          trackMetaPurchase(value, sessionId || undefined);
+          if (typeof window !== "undefined" && (window as any).fbq) {
+            (window as any).fbq("track", "Subscribe", {
+              value: value,
+              currency: "USD",
+              predicted_ltv: value * 12,
+            });
+            (window as any).fbq("track", "Purchase", {
+              value: value,
+              currency: "USD",
+              content_name: "AutoPilotGeo Subscription",
+              content_type: "product",
+            });
+            console.log("[ThankYou] Meta Pixel Subscribe + Purchase fired:", { value, sessionId });
+          }
           console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
         }
       } catch (err) {

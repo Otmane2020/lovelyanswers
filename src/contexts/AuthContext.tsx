@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName?: string, phone?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -66,46 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName?: string, phone?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
-
-    const { data, error } = await supabase.auth.signUp({
+    
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
-          phone: phone || null,
         },
       },
     });
-
-    // Save phone to profiles table immediately if provided
-    if (!error && data.user && phone) {
-      await supabase
-        .from("profiles")
-        .update({ phone })
-        .eq("id", data.user.id);
-    }
-
-    // Trigger AI welcome call + WhatsApp (fire & forget)
-    if (!error && data.user) {
-      const country = await fetch("https://ipapi.co/country/")
-        .then(r => r.text())
-        .catch(() => "");
-      fetch("https://apg-welcome-automation.oben-rockman.workers.dev", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fullName || "",
-          email,
-          phone: phone || "",
-          country,
-        }),
-      }).catch(() => {});
-    }
-
     return { error: error as Error | null };
   };
 
