@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { trackPricingView } from "@/lib/gtag-conversions";
+import { trackMetaPricingView } from "@/lib/meta-pixel";
 import Link from "next/link";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  useEffect(() => { document.documentElement.classList.remove("dark"); trackPricingView(); }, []);
+  useEffect(() => { document.documentElement.classList.remove("dark"); trackPricingView(); trackMetaPricingView(); }, []);
 
   return (
     <>
