@@ -4,11 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, X } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
-import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
@@ -16,267 +12,261 @@ import { InactivityPopup } from "@/components/InactivityPopup";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
-import geminiLogo from "@/assets/gemini-logo.png";
-import claudeLogo from "@/assets/claude-logo.png";
-import perplexityLogo from "@/assets/perplexity-logo.png";
-import chatgptIcon from "@/assets/chatgpt-icon.png";
-
-/* ─── Design tokens ──────────────────────────────────────── */
-const T = {
-  bg: "#f9f8f5",
+/* ─────────────────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────────────────── */
+const C = {
+  bg: "#f7f6fe",
   white: "#ffffff",
-  ink: "#0c0b14",
-  mid: "#5a5970",
+  ink: "#0c0b18",
+  paper: "#0d0c1f",
+  mid: "#5a5872",
   muted: "#9997ab",
-  blue: "#2563eb",
+  blue: "#3b82f6",
+  blueDark: "#1d4ed8",
   blueLight: "#eff4ff",
-  blueBorder: "rgba(37,99,235,0.15)",
-  border: "rgba(12,11,20,0.08)",
-  borderMid: "rgba(12,11,20,0.12)",
-  orange: "#ea580c",
+  blueBorder: "rgba(59,130,246,0.18)",
+  orange: "#f97316",
   green: "#16a34a",
   greenBg: "#f0fdf4",
   redBg: "#fff5f5",
   red: "#dc2626",
+  border: "rgba(13,12,31,0.08)",
+  borderMid: "rgba(13,12,31,0.14)",
+  card: "rgba(13,12,31,0.03)",
 };
 
-/* ─── Fonts (injected once) ───────────────────────────────── */
-const FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap";
+/* ─────────────────────────────────────────────────────────
+   SVG ICONS — refined, no emoji
+───────────────────────────────────────────────────────── */
+const Icon = {
+  geo: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="7" stroke={C.blue} strokeWidth="1.4" />
+      <path
+        d="M9 2v14M2 9h14M4.5 4.5C6 7 6 11 4.5 13.5M13.5 4.5C12 7 12 11 13.5 13.5"
+        stroke={C.blue}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  ),
+  aeo: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M3 14l3.5-9h1L11 14" stroke={C.blue} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 10.5h4.5" stroke={C.blue} strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="14" cy="9" r="2.5" stroke={C.blue} strokeWidth="1.4" />
+    </svg>
+  ),
+  seo: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="3" width="14" height="12" rx="2" stroke={C.blue} strokeWidth="1.4" />
+      <path d="M6 7h6M6 10h4" stroke={C.blue} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M2 6h14" stroke={C.blue} strokeWidth="1.4" />
+    </svg>
+  ),
+  local: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 2a5 5 0 015 5c0 3.5-5 9-5 9S4 10.5 4 7a5 5 0 015-5z" stroke={C.blue} strokeWidth="1.4" />
+      <circle cx="9" cy="7" r="1.8" stroke={C.blue} strokeWidth="1.4" />
+    </svg>
+  ),
+  shop: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path
+        d="M3 3h1.5l1.2 6h7.5l1.3-4H6"
+        stroke={C.blue}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="7.5" cy="14" r="1.2" fill={C.blue} />
+      <circle cx="12" cy="14" r="1.2" fill={C.blue} />
+    </svg>
+  ),
+  analytics: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="10" width="3" height="5" rx="1" fill={C.blue} opacity=".3" />
+      <rect x="7.5" y="6" width="3" height="9" rx="1" fill={C.blue} opacity=".6" />
+      <rect x="13" y="3" width="3" height="12" rx="1" fill={C.blue} />
+    </svg>
+  ),
+};
 
-/* ─── Data ────────────────────────────────────────────────── */
-const aiPlatforms = [
-  { name: "ChatGPT", logo: chatgptIcon, color: "#10a37f" },
-  { name: "Gemini", logo: geminiLogo, color: "#4285f4" },
-  { name: "Perplexity", logo: perplexityLogo, color: "#6366f1" },
-  { name: "Claude", logo: claudeLogo, color: "#cc785c" },
+/* ─────────────────────────────────────────────────────────
+   DATA
+───────────────────────────────────────────────────────── */
+const TICKER_ITEMS = [
+  "ChatGPT Visibility",
+  "Google AEO",
+  "Gemini Ranking",
+  "Perplexity Mentions",
+  "Auto-Publishing",
+  "GEO Engine",
+  "500+ Businesses",
+  "$29/month All-In",
 ];
 
-const socialProofPills = [
-  { initial: "M", name: "Mike", role: "Roofing", result: "+180% impressions" },
-  { initial: "A", name: "Amanda", role: "E-shop", result: "Page 1 in 8 weeks" },
-  { initial: "R", name: "Ryan", role: "Agency", result: "–$1,200/mo in tools" },
+const SOCIAL_PILLS = [
+  { init: "M", name: "Mike", role: "Roofing", result: "+180% impressions" },
+  { init: "A", name: "Amanda", role: "E-shop", result: "Page 1 in 8 weeks" },
+  { init: "R", name: "Ryan", role: "Agency", result: "–$1,200/mo in tools" },
 ];
 
-const beforeItems = [
+const BEFORE = [
   "AI never mentions your brand",
   "Competitors get cited instead",
   "Content takes weeks to write",
   "Stuck on page 3 of Google",
 ];
 
-const afterItems = [
+const AFTER = [
   "ChatGPT recommends your brand",
   "30 expert articles/month, auto",
   "Auto-published to your CMS",
   "+60% avg traffic in 3 months",
 ];
 
-const heroStats = [
-  { value: "4.5×", label: "More AI visibility" },
-  { value: "9.7×", label: "More brand mentions" },
-  { value: "+60%", label: "Traffic increase avg" },
-  { value: "$29/mo", label: "All-in pricing" },
+const HERO_STATS = [
+  { val: "4.5×", label: "More AI visibility" },
+  { val: "9.7×", label: "More brand mentions" },
+  { val: "+60%", label: "Traffic increase avg" },
+  { val: "$29/mo", label: "All-in pricing" },
 ];
 
-/* Icons as refined SVG paths — no amateur lucide squares */
-const FeatureIcons = {
-  eye: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path
-        d="M10 4C5.5 4 2 10 2 10s3.5 6 8 6 8-6 8-6-3.5-6-8-6z"
-        stroke={T.blue}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="10" cy="10" r="2.5" stroke={T.blue} strokeWidth="1.5" />
-    </svg>
-  ),
-  chart: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="3" y="11" width="3" height="6" rx="1" fill={T.blue} opacity=".3" />
-      <rect x="8.5" y="7" width="3" height="10" rx="1" fill={T.blue} opacity=".6" />
-      <rect x="14" y="3" width="3" height="14" rx="1" fill={T.blue} />
-    </svg>
-  ),
-  target: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="7.5" stroke={T.blue} strokeWidth="1.5" />
-      <circle cx="10" cy="10" r="4.5" stroke={T.blue} strokeWidth="1.5" opacity=".5" />
-      <circle cx="10" cy="10" r="2" fill={T.blue} />
-    </svg>
-  ),
-  search: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="9" cy="9" r="5.5" stroke={T.blue} strokeWidth="1.5" />
-      <path d="M13.5 13.5L17 17" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  file: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path
-        d="M6 2h6l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"
-        stroke={T.blue}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path d="M12 2v4h4M7 10h6M7 13h4" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  globe: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="7.5" stroke={T.blue} strokeWidth="1.5" />
-      <path
-        d="M10 2.5C10 2.5 7 6 7 10s3 7.5 3 7.5M10 2.5c0 0 3 3.5 3 7.5s-3 7.5-3 7.5M2.5 10h15"
-        stroke={T.blue}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  trend: (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M2 14l5-5 4 3 5-6" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 6h3v3" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-};
+const AI_PLATFORMS = [
+  { name: "ChatGPT", color: "#10a37f" },
+  { name: "Gemini", color: "#4285f4" },
+  { name: "Perplexity", color: "#6366f1" },
+  { name: "Claude", color: "#cc785c" },
+];
 
-const featureCards = [
+const STEPS = [
   {
-    icon: FeatureIcons.eye,
-    title: "AI Visibility Score",
-    description: "See exactly how AI platforms talk about your brand and where you rank vs. competitors.",
+    num: "01",
+    title: "Connect your business",
+    desc: "Enter your URL. AutoPilotGeo analyses your sector, competitors, and the questions AI asks about your market.",
+    tag: "Setup <5 min",
   },
   {
-    icon: FeatureIcons.chart,
-    title: "Brand Mention Tracking",
-    description: "Monitor every time AI recommends your business or your competitors — in real-time.",
+    num: "02",
+    title: "The engine generates content",
+    desc: "SEO articles, AEO answers, GEO content — everything created and optimised automatically so AI cites you first.",
+    tag: "100% automatic",
   },
   {
-    icon: FeatureIcons.target,
-    title: "Content Optimization",
-    description: "Actionable insights to optimise your content for AI citation and recommendation.",
+    num: "03",
+    title: "Publish in one click",
+    desc: "Direct CMS connection. Content publishes on autopilot. Watch your AI visibility score climb.",
+    tag: "Auto-publish",
   },
 ];
 
-const showcaseFeatures = [
+const FEATURES = [
   {
-    tag: "MONITOR",
-    title: "Track your visibility across all AI platforms",
-    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
+    icon: Icon.geo,
+    name: "GEO Engine",
+    desc: "Real-time optimisation of your presence in generative AI engine answers. Track ChatGPT, Gemini, Perplexity.",
+    badge: "Hot",
+    hot: true,
   },
   {
-    tag: "OPTIMISE",
-    title: "AI-powered content that gets you cited",
-    description: "Generate expert articles designed to be recommended by AI search engines.",
+    icon: Icon.aeo,
+    name: "AEO Answers",
+    desc: "Generate expert answers to the questions your customers ask AI. Format optimised to be cited directly.",
+    badge: "AEO",
   },
   {
-    tag: "GROW",
-    title: "Automated publishing & SEO",
-    description: "1 article per day, auto-published to your CMS with full SEO optimisation.",
-  },
-];
-
-const bottomFeatures = [
-  {
-    icon: FeatureIcons.search,
-    title: "Keyword Research",
-    description: "AI-powered keyword discovery based on your competitors and market.",
+    icon: Icon.seo,
+    name: "Auto SEO",
+    desc: "30 articles/month generated & published automatically. E-E-A-T compliant. Optimised for Google and AI simultaneously.",
+    badge: "SEO",
   },
   {
-    icon: FeatureIcons.file,
-    title: "Content Generation",
-    description: "Expert-level articles optimised for both Google and AI engines.",
+    icon: Icon.local,
+    name: "Local AEO",
+    desc: "Dominate local AI answers. Perfect for shops, practices, restaurants — any geo-located activity.",
+    badge: "New",
+    isNew: true,
   },
   {
-    icon: FeatureIcons.globe,
-    title: "Auto-Publishing",
-    description: "Direct integration with WordPress, Shopify, Wix, and more.",
+    icon: Icon.shop,
+    name: "AEO Shopping",
+    desc: 'Your products recommended by ChatGPT & Gemini when someone asks "what\'s the best product for…"',
+    badge: "New",
+    isNew: true,
   },
   {
-    icon: FeatureIcons.trend,
-    title: "Performance Analytics",
-    description: "Track your growth across Google Search Console and AI platforms.",
-  },
-];
-
-const testimonials = [
-  {
-    platform: "Trustpilot",
-    reviews: [
-      {
-        name: "Mike R.",
-        role: "Roofing Company Owner",
-        text: "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
-        rating: 5,
-      },
-      {
-        name: "Amanda K.",
-        role: "Online Store Owner",
-        text: "Went from page 3 to page 1 for 12+ keywords in 8 weeks. AI content actually works.",
-        rating: 5,
-      },
-      {
-        name: "Ryan G.",
-        role: "Agency Owner",
-        text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
-        rating: 5,
-      },
-    ],
-  },
-  {
-    platform: "G2",
-    reviews: [
-      {
-        name: "David M.",
-        role: "SaaS Founder",
-        text: "It's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
-        rating: 5,
-      },
-      {
-        name: "Jessica W.",
-        role: "Blogger",
-        text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results!",
-        rating: 5,
-      },
-      {
-        name: "Tom L.",
-        role: "Local Business Owner",
-        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $29/mo.",
-        rating: 5,
-      },
-    ],
+    icon: Icon.analytics,
+    name: "Analytics & Planning",
+    desc: "Real-time dashboard. 30-day auto-generated plan. AI mention history. Competitor tracking.",
+    badge: "Live",
   },
 ];
 
-const faqs = [
+const TESTIMONIALS = [
   {
-    question: "How does AI search optimization work?",
-    answer:
-      "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+    quote:
+      "In 3 weeks, ChatGPT was recommending our firm on 4 of the 5 key legal questions in our sector. Completely insane.",
+    initials: "ML",
+    name: "Marc L.",
+    role: "Partner, law firm",
+    platform: "ChatGPT",
   },
   {
-    question: "Can I really cancel anytime?",
-    answer: "Yes, 1-click cancellation. No questions asked, no hidden fees.",
+    quote:
+      "Our organic traffic increased 73% in 2 months. And now Gemini cites our health blog in its answers. Incredible ROI.",
+    initials: "SA",
+    name: "Sophie A.",
+    role: "CEO, health e-commerce",
+    platform: "Gemini",
   },
   {
-    question: "Do I need technical skills?",
-    answer: "No, we handle everything. Just enter your website URL and we do the rest.",
-  },
-  {
-    question: "Will this work for my industry?",
-    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
-  },
-  {
-    question: "Is the content actually good?",
-    answer:
-      "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
+    quote:
+      "I was using 4 different tools for SEO. AutoPilotGeo replaces all of them at $29/mo and does even better. Setup in 8 minutes.",
+    initials: "TK",
+    name: "Thomas K.",
+    role: "SaaS B2B Founder",
+    platform: "Perplexity",
   },
 ];
 
-/* ─── Footer data ─────────────────────────────────────────── */
-const footerLinks = {
+const PLAN_INCLUDES = [
+  "30 SEO articles generated & published / month",
+  "30 AEO answers optimised for AI / month",
+  "GEO Engine — ChatGPT, Gemini, Perplexity tracking",
+  "Auto-Publishing WordPress, Shopify, Wix…",
+  "Real-time Analytics Dashboard",
+  "30-day auto-generated plan",
+  "Local AEO + AEO Shopping included",
+  "Priority support",
+];
+
+const PROOF_STATS = [
+  { big: "105", desc: "AI answers generated\nscore avg 87/100" },
+  { big: "107", desc: "Articles ready to publish\nE-E-A-T optimised" },
+  { big: "+15K", desc: "Monthly impressions\nprojected +1 month" },
+  { big: "<1wk", desc: "CMS integration\nWordPress · Shopify · Wix" },
+];
+
+const FAQS = [
+  {
+    q: "How does AI search optimization work?",
+    a: "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+  },
+  { q: "Can I really cancel anytime?", a: "Yes, 1-click cancellation. No questions asked, no hidden fees." },
+  { q: "Do I need technical skills?", a: "No, we handle everything. Just enter your website URL and we do the rest." },
+  {
+    q: "Will this work for my industry?",
+    a: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
+  },
+  {
+    q: "Is the content actually good?",
+    a: "Every article: 1,500+ words, expert-level, with sources. Google cares about quality, not who wrote it.",
+  },
+];
+
+const FOOTER_LINKS: Record<string, { label: string; href: string }[]> = {
   Product: [
     { label: "GEO Engine", href: "/geo-engine" },
     { label: "AEO Answers", href: "/aeo-answers" },
@@ -308,42 +298,17 @@ const footerLinks = {
   ],
 };
 
-/* ─── Shared style helpers ───────────────────────────────── */
-const heading = (size = "2.8rem"): React.CSSProperties => ({
-  fontFamily: "'Instrument Serif', serif",
-  fontWeight: 400,
-  fontSize: `clamp(1.9rem, 4vw, ${size})`,
-  letterSpacing: "-0.025em",
-  lineHeight: 1.12,
-  color: T.ink,
-});
-
-const body: React.CSSProperties = {
-  fontFamily: "'Outfit', sans-serif",
-  fontWeight: 400,
-  color: T.mid,
-  lineHeight: 1.7,
-};
-
-const label: React.CSSProperties = {
-  fontFamily: "'Outfit', sans-serif",
-  fontWeight: 600,
-  fontSize: "0.68rem",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: T.blue,
-};
-
-/* ─── Component ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   COMPONENT
+───────────────────────────────────────────────────────── */
 export default function Index() {
-  const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) router.replace("/dashboard");
   }, [user, authLoading, router]);
-
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
@@ -362,7 +327,10 @@ export default function Index() {
         <link rel="canonical" href="https://autopilotgeo.com/" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href={FONTS_URL} rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
         <meta property="og:title" content="AutoPilot Geo – Get Recommended by ChatGPT & Google" />
         <meta
           property="og:description"
@@ -389,926 +357,1208 @@ export default function Index() {
           children={JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            mainEntity: faqs.map((f) => ({
+            mainEntity: FAQS.map((f) => ({
               "@type": "Question",
-              name: f.question,
-              acceptedAnswer: { "@type": "Answer", text: f.answer },
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
           })}
         />
       </Helmet>
 
-      <div style={{ background: T.bg, fontFamily: "'Outfit', sans-serif", minHeight: "100vh" }}>
+      <div
+        style={{
+          background: C.bg,
+          color: C.paper,
+          fontFamily: "'Outfit', sans-serif",
+          fontWeight: 400,
+          minHeight: "100vh",
+        }}
+      >
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
-        {/* ── NAV ─────────────────────────────────────────────── */}
-        <nav
+        {/* Grid texture */}
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
           style={{
-            position: "fixed",
-            top: 0,
-            zIndex: 50,
-            width: "100%",
-            background: "rgba(255,255,255,0.92)",
-            backdropFilter: "blur(12px)",
-            borderBottom: `1px solid ${T.border}`,
+            backgroundImage: `linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px)`,
+            backgroundSize: "60px 60px",
+          }}
+        />
+
+        {/* Scanline */}
+        <div
+          className="fixed top-0 left-0 right-0 h-[2px] pointer-events-none z-[1]"
+          style={{
+            background: `linear-gradient(transparent,rgba(59,130,246,0.1),transparent)`,
+            animation: "scanline 8s linear infinite",
+          }}
+        />
+
+        {/* ── HEADER ─────────────────────────────────────── */}
+        <header
+          className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4"
+          style={{
+            background: "rgba(247,246,254,0.9)",
+            backdropFilter: "blur(14px)",
+            borderBottom: `1px solid ${C.border}`,
           }}
         >
-          <div className="container flex items-center justify-between px-4" style={{ height: 64 }}>
-            <Link href="/">
-              <AnimatedLogo size="md" />
-            </Link>
+          <Link href="/">
+            <AnimatedLogo size="sm" theme="light" />
+          </Link>
 
-            <div className="hidden md:flex items-center gap-1">
-              {[
-                ["Pricing", "/pricing"],
-                ["Blog", "/blog"],
-                ["About", "/about"],
-              ].map(([label, href]) => (
-                <Link
-                  key={href}
-                  href={href}
-                  style={{
-                    ...body,
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    padding: "6px 14px",
-                    borderRadius: 8,
-                    color: T.mid,
-                    textDecoration: "none",
-                    transition: "color .15s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = T.ink)}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = T.mid)}
-                >
-                  {label}
-                </Link>
-              ))}
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              ["Pricing", "/pricing"],
+              ["Blog", "/blog"],
+              ["About", "/about"],
+            ].map(([l, h]) => (
               <Link
-                href="/auth"
+                key={h}
+                href={h}
                 style={{
-                  ...body,
-                  fontSize: "0.875rem",
+                  fontFamily: "'Outfit',sans-serif",
                   fontWeight: 500,
+                  fontSize: "0.85rem",
                   padding: "6px 14px",
                   borderRadius: 8,
-                  color: T.mid,
-                  textDecoration: "none",
-                  marginLeft: 4,
-                }}
-              >
-                Log in
-              </Link>
-              <Link
-                href="/onboarding"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "10px 20px",
-                  background: T.ink,
-                  color: "#fff",
-                  borderRadius: 10,
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 600,
-                  fontSize: "0.875rem",
-                  textDecoration: "none",
-                  marginLeft: 8,
-                  transition: "background .15s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#1e1c36")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = T.ink)}
-              >
-                Start Free Audit <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            <div className="flex md:hidden items-center gap-2">
-              <Link
-                href="/auth"
-                style={{
-                  ...body,
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: T.mid,
-                  textDecoration: "none",
-                  padding: "6px 12px",
-                }}
-              >
-                Log in
-              </Link>
-              <Link
-                href="/onboarding"
-                style={{
-                  padding: "8px 16px",
-                  background: T.ink,
-                  color: "#fff",
-                  borderRadius: 8,
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 600,
-                  fontSize: "0.8rem",
+                  color: C.mid,
                   textDecoration: "none",
                 }}
               >
-                Start Free
+                {l}
               </Link>
-            </div>
+            ))}
+            <Link
+              href="/auth"
+              style={{
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 500,
+                fontSize: "0.85rem",
+                padding: "6px 14px",
+                color: C.mid,
+                textDecoration: "none",
+                marginLeft: 4,
+              }}
+            >
+              Log in
+            </Link>
           </div>
-        </nav>
 
-        {/* ── HERO ─────────────────────────────────────────────── */}
-        <section
-          style={{
-            paddingTop: "7rem",
-            paddingBottom: "5rem",
-            background: `linear-gradient(180deg, #fff 0%, ${T.bg} 100%)`,
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* Soft blue glow */}
           <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "radial-gradient(ellipse 70% 45% at 50% 0%, rgba(37,99,235,0.05) 0%, transparent 65%)",
-              pointerEvents: "none",
-            }}
-          />
+            className="hidden md:flex items-center gap-2"
+            style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: C.blue }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: C.blue, animation: "pulse-signal 2s infinite" }}
+            />
+            AI Visibility Engine — Live
+          </div>
 
-          <div className="container relative px-4">
-            <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
-              {/* Badge */}
+          <Link
+            href="/onboarding"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "10px 20px",
+              background: C.blue,
+              color: "#fff",
+              borderRadius: 8,
+              fontFamily: "'Outfit',sans-serif",
+              fontWeight: 600,
+              fontSize: "0.82rem",
+              textDecoration: "none",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Start Free Audit <ArrowRight size={14} />
+          </Link>
+        </header>
+
+        {/* ── TICKER ─────────────────────────────────────── */}
+        <div className="relative z-[2] mt-[64px] py-3 overflow-hidden" style={{ background: C.blue }}>
+          <div className="flex whitespace-nowrap" style={{ animation: "ticker 22s linear infinite" }}>
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+              <span
+                key={i}
+                style={{
+                  fontFamily: "'Outfit',sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.68rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#fff",
+                  padding: "0 28px",
+                }}
+              >
+                {item} <span style={{ opacity: 0.35, padding: "0 6px" }}>◆</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── HERO ───────────────────────────────────────── */}
+        <section className="relative z-[2] px-6 md:px-12 pt-20 pb-0">
+          <div className="max-w-7xl mx-auto">
+            {/* Top: eyebrow + title + sub + CTA */}
+            <div className="max-w-2xl mb-16">
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: T.white,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 99,
-                  padding: "7px 16px",
-                  fontSize: "0.8rem",
-                  color: T.mid,
-                  marginBottom: 28,
-                  fontFamily: "'Outfit', sans-serif",
-                }}
+                className="inline-flex items-center gap-3 mb-6"
+                style={{ fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", color: C.blue }}
               >
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: T.green,
-                    animation: "pulse-dot 2s infinite",
-                    flexShrink: 0,
-                  }}
-                />
-                500+ businesses growing with AI search
+                <span style={{ width: 28, height: 1, background: C.blue, display: "inline-block" }} />
+                Generative Engine Optimization
               </motion.div>
 
-              {/* H1 */}
               <motion.h1
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55, delay: 0.08 }}
-                style={{ ...heading("4.8rem"), marginBottom: 20 }}
+                style={{
+                  fontFamily: "'Instrument Serif',serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(2.6rem,5vw,4.4rem)",
+                  lineHeight: 1.06,
+                  letterSpacing: "-0.025em",
+                  color: C.paper,
+                  marginBottom: 20,
+                }}
               >
                 Get your business
                 <br />
-                recommended by <span style={{ color: T.blue, fontStyle: "italic" }}>ChatGPT</span>
+                recommended by <em style={{ fontStyle: "italic", color: C.blue }}>ChatGPT</em>
                 {" & "}
-                <span style={{ color: T.blue, fontStyle: "italic" }}>Google</span>
+                <em style={{ fontStyle: "italic", color: C.blue }}>Google</em>
               </motion.h1>
 
-              {/* Sub */}
               <motion.p
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.16 }}
-                style={{ ...body, fontSize: "1.1rem", maxWidth: 520, margin: "0 auto 36px", color: T.mid }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+                style={{ fontSize: "1.05rem", lineHeight: 1.75, color: C.mid, maxWidth: 500, marginBottom: 32 }}
               >
                 Automatically publish expert content that makes AI search engines recommend{" "}
-                <strong style={{ color: T.ink, fontWeight: 600 }}>you</strong> — not your competitors. Works for any
+                <strong style={{ color: C.paper, fontWeight: 600 }}>you</strong> — not your competitors. Works for any
                 industry.
               </motion.p>
 
-              {/* CTA buttons */}
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.22 }}
-                className="flex flex-col sm:flex-row gap-3 justify-center"
-                style={{ marginBottom: 14 }}
+                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4"
               >
                 <Link
                   href="/onboarding"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    justifyContent: "center",
                     gap: 8,
-                    padding: "14px 32px",
-                    background: T.ink,
+                    padding: "14px 30px",
+                    background: C.blue,
                     color: "#fff",
-                    borderRadius: 12,
-                    fontFamily: "'Outfit', sans-serif",
+                    borderRadius: 10,
+                    fontFamily: "'Outfit',sans-serif",
                     fontWeight: 600,
-                    fontSize: "1rem",
+                    fontSize: "0.95rem",
                     textDecoration: "none",
-                    boxShadow: "0 4px 20px rgba(12,11,20,0.18)",
-                    transition: "transform .15s, box-shadow .15s",
+                    boxShadow: "0 4px 20px rgba(59,130,246,0.28)",
+                    transition: "transform .15s,box-shadow .15s",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 8px 28px rgba(12,11,20,0.22)";
+                    e.currentTarget.style.boxShadow = "0 8px 28px rgba(59,130,246,0.36)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "";
-                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(12,11,20,0.18)";
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(59,130,246,0.28)";
                   }}
                 >
                   Get your free AI score <ArrowRight size={16} />
                 </Link>
-                <button
-                  onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+                <Link
+                  href="#how"
                   style={{
-                    padding: "14px 28px",
-                    background: T.white,
-                    color: T.ink,
-                    border: `1px solid ${T.borderMid}`,
-                    borderRadius: 12,
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 500,
-                    fontSize: "1rem",
-                    cursor: "pointer",
-                    transition: "background .15s",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: "0.82rem",
+                    color: C.mid,
+                    textDecoration: "none",
+                    letterSpacing: "0.04em",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = T.bg)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = T.white)}
                 >
-                  See how it works
-                </button>
+                  See how it works <span>→</span>
+                </Link>
               </motion.div>
 
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                style={{ ...body, fontSize: "0.8rem", color: T.muted, marginBottom: 44 }}
+                style={{ fontSize: "0.75rem", color: C.muted }}
               >
-                No credit card · Results in <strong style={{ color: T.mid, fontWeight: 600 }}>30 seconds</strong> ·
+                No credit card · Results in <strong style={{ color: C.mid, fontWeight: 600 }}>30 seconds</strong> ·
                 Cancel anytime
               </motion.p>
+            </div>
 
+            {/* Middle: before/after + stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-16 max-w-4xl">
+              {/* Before */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px" }}
+              >
+                <p
+                  style={{
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: C.red,
+                    marginBottom: 16,
+                  }}
+                >
+                  ✕ Without AutoPilot Geo
+                </p>
+                {BEFORE.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: C.redBg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <X size={11} color={C.red} />
+                    </div>
+                    <span style={{ fontSize: "0.85rem", color: C.mid, lineHeight: 1.5 }}>{item}</span>
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* After */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.42 }}
+                style={{
+                  background: C.white,
+                  border: `1px solid ${C.blueBorder}`,
+                  borderRadius: 16,
+                  padding: "22px 24px",
+                  boxShadow: "0 0 0 3px rgba(59,130,246,0.05)",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: C.green,
+                    marginBottom: 16,
+                  }}
+                >
+                  ✓ With AutoPilot Geo
+                </p>
+                {AFTER.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: C.greenBg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Check size={11} color={C.green} />
+                    </div>
+                    <span style={{ fontSize: "0.85rem", color: C.paper, fontWeight: 500, lineHeight: 1.5 }}>
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Bottom: social proof + stats + AI platforms */}
+            <div className="pb-20 border-b" style={{ borderColor: C.border }}>
               {/* Social proof pills */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.38 }}
-                style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 44 }}
+                transition={{ delay: 0.48 }}
+                style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}
               >
-                {socialProofPills.map((p, i) => (
+                {SOCIAL_PILLS.map((p, i) => (
                   <div
                     key={i}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 10,
-                      background: T.white,
-                      border: `1px solid ${T.border}`,
+                      gap: 9,
+                      background: C.white,
+                      border: `1px solid ${C.border}`,
                       borderRadius: 99,
-                      padding: "8px 16px",
-                      fontFamily: "'Outfit', sans-serif",
-                      fontSize: "0.82rem",
-                      color: T.mid,
-                      boxShadow: "0 1px 4px rgba(12,11,20,0.06)",
+                      padding: "7px 14px",
+                      fontSize: "0.8rem",
+                      color: C.mid,
+                      boxShadow: "0 1px 4px rgba(13,12,31,0.05)",
                     }}
                   >
                     <div
                       style={{
-                        width: 26,
-                        height: 26,
+                        width: 24,
+                        height: 24,
                         borderRadius: "50%",
-                        background: T.blueLight,
-                        color: T.blue,
+                        background: C.blueLight,
+                        color: C.blue,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontWeight: 700,
-                        fontSize: "0.75rem",
+                        fontSize: "0.7rem",
                         flexShrink: 0,
                       }}
                     >
-                      {p.initial}
+                      {p.init}
                     </div>
-                    <span>
-                      {p.name} · {p.role} · <strong style={{ color: T.ink, fontWeight: 600 }}>{p.result}</strong>
-                    </span>
+                    {p.name} · {p.role} · <strong style={{ color: C.paper, fontWeight: 600 }}>{p.result}</strong>
                   </div>
                 ))}
               </motion.div>
 
-              {/* Before / After */}
+              {/* Stats */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.44 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto"
-                style={{ marginBottom: 44 }}
+                transition={{ delay: 0.54 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
+                style={{ maxWidth: 640 }}
               >
-                {/* Without */}
-                <div
-                  style={{
-                    background: T.white,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 16,
-                    padding: "22px 24px",
-                    textAlign: "left",
-                  }}
-                >
-                  <p style={{ ...label, color: T.red, marginBottom: 16 }}>✕ Without AutoPilot Geo</p>
-                  {beforeItems.map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: "50%",
-                          background: T.redBg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginTop: 2,
-                        }}
-                      >
-                        <X size={11} color={T.red} />
-                      </div>
-                      <span style={{ ...body, fontSize: "0.85rem", color: T.mid }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* With */}
-                <div
-                  style={{
-                    background: T.white,
-                    border: `1px solid ${T.blueBorder}`,
-                    borderRadius: 16,
-                    padding: "22px 24px",
-                    textAlign: "left",
-                  }}
-                >
-                  <p style={{ ...label, color: T.green, marginBottom: 16 }}>✓ With AutoPilot Geo</p>
-                  {afterItems.map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: "50%",
-                          background: T.greenBg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          marginTop: 2,
-                        }}
-                      >
-                        <Check size={11} color={T.green} />
-                      </div>
-                      <span style={{ ...body, fontSize: "0.85rem", color: T.ink, fontWeight: 500 }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Stats row */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto"
-                style={{ marginBottom: 44 }}
-              >
-                {heroStats.map((s, i) => (
+                {HERO_STATS.map((s, i) => (
                   <div
                     key={i}
                     style={{
-                      background: T.white,
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 14,
-                      padding: "18px 12px",
+                      background: C.white,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 12,
+                      padding: "16px 12px",
                       textAlign: "center",
                     }}
                   >
                     <div
                       style={{
-                        fontFamily: "'Instrument Serif', serif",
-                        fontSize: "1.9rem",
-                        color: T.ink,
+                        fontFamily: "'Instrument Serif',serif",
+                        fontSize: "1.8rem",
+                        color: C.paper,
                         lineHeight: 1,
-                        marginBottom: 4,
                       }}
                     >
-                      {s.value}
+                      {s.val}
                     </div>
-                    <p style={{ ...body, fontSize: "0.72rem", color: T.muted, marginTop: 2 }}>{s.label}</p>
+                    <p style={{ fontSize: "0.7rem", color: C.muted, marginTop: 4 }}>{s.label}</p>
                   </div>
                 ))}
               </motion.div>
 
-              {/* AI platform pills */}
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.58 }}>
-                <p
+              {/* AI platforms */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.58 }}
+                style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}
+              >
+                <span
                   style={{
-                    ...body,
-                    fontSize: "0.7rem",
+                    fontSize: "0.68rem",
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    color: T.muted,
-                    marginBottom: 12,
+                    color: C.muted,
+                    marginRight: 4,
                   }}
                 >
-                  Optimizes your presence on
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-                  {aiPlatforms.map((p) => (
-                    <div
-                      key={p.name}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        background: T.white,
-                        border: `1px solid ${T.border}`,
-                        borderRadius: 99,
-                        padding: "8px 16px",
-                        fontFamily: "'Outfit', sans-serif",
-                        fontSize: "0.82rem",
-                        color: T.mid,
-                        fontWeight: 500,
-                      }}
-                    >
-                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
-                      {p.name}
-                    </div>
-                  ))}
-                </div>
+                  Optimises your presence on
+                </span>
+                {AI_PLATFORMS.map((p) => (
+                  <div
+                    key={p.name}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      background: C.white,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 99,
+                      padding: "6px 14px",
+                      fontSize: "0.8rem",
+                      color: C.mid,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
+                    {p.name}
+                  </div>
+                ))}
               </motion.div>
             </div>
           </div>
         </section>
 
-        <ShoppingVisibilitySection />
-        <TrafficGrowthSection />
+        {/* ── PROOF BAR ──────────────────────────────────── */}
+        <section
+          className="relative z-[2] flex flex-wrap"
+          style={{ background: C.white, borderBottom: `1px solid ${C.border}` }}
+        >
+          {PROOF_STATS.map((p, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="flex-1 min-w-[50%] md:min-w-0 px-9 py-10"
+              style={{ borderRight: i < PROOF_STATS.length - 1 ? `1px solid ${C.border}` : "none" }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Instrument Serif',serif",
+                  fontSize: "2.4rem",
+                  color: C.blue,
+                  lineHeight: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {p.big}
+              </div>
+              <div style={{ fontSize: "0.75rem", lineHeight: 1.7, color: C.mid, whiteSpace: "pre-line" }}>{p.desc}</div>
+            </motion.div>
+          ))}
+        </section>
 
-        {/* ── AI PLATFORM LOGOS ─────────────────────────────────── */}
-        <section style={{ padding: "48px 0", borderBottom: `1px solid ${T.border}`, background: T.white }}>
-          <div className="container px-4">
+        {/* ── HOW IT WORKS ───────────────────────────────── */}
+        <section
+          id="how"
+          className="relative z-[2] px-6 md:px-12 py-24 lg:py-32"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{ marginBottom: 56 }}
+          >
             <p
               style={{
-                ...body,
-                fontSize: "0.7rem",
-                letterSpacing: "0.12em",
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                fontSize: "0.65rem",
+                letterSpacing: "0.16em",
                 textTransform: "uppercase",
-                color: T.muted,
-                textAlign: "center",
-                marginBottom: 28,
+                color: C.blue,
+                marginBottom: 12,
               }}
             >
-              Optimise your presence across all major AI platforms
+              How it works
             </p>
-            <div
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(24px, 5vw, 56px)" }}
+            <h2
+              style={{
+                fontFamily: "'Instrument Serif',serif",
+                fontWeight: 400,
+                fontSize: "clamp(1.8rem,3.5vw,2.8rem)",
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                color: C.paper,
+              }}
             >
-              {aiPlatforms.map((p) => (
+              Three steps.
+              <br />
+              <em style={{ color: C.mid, fontStyle: "italic" }}>Zero manual effort.</em>
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: C.border }}>
+            {STEPS.map((s, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group p-9"
+                style={{ background: C.white, transition: "background .2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(59,130,246,0.02)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = C.white)}
+              >
                 <div
-                  key={p.name}
                   style={{
+                    fontFamily: "'Instrument Serif',serif",
+                    fontSize: "3.6rem",
+                    color: "rgba(59,130,246,0.12)",
+                    lineHeight: 1,
+                    marginBottom: 20,
+                    letterSpacing: "-0.04em",
+                  }}
+                >
+                  {s.num}
+                </div>
+                <h3
+                  style={{
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    color: C.paper,
+                    marginBottom: 10,
+                  }}
+                >
+                  {s.title}
+                </h3>
+                <p style={{ fontSize: "0.82rem", lineHeight: 1.8, color: C.mid, marginBottom: 16 }}>{s.desc}</p>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "3px 10px",
+                    background: "rgba(59,130,246,0.08)",
+                    color: C.blue,
+                    fontSize: "0.62rem",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {s.tag}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── FEATURES ───────────────────────────────────── */}
+        <section
+          className="relative z-[2] px-6 md:px-12 py-24 lg:py-32"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-14 gap-6">
+            <div>
+              <p
+                style={{
+                  fontFamily: "'Outfit',sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  color: C.blue,
+                  marginBottom: 10,
+                }}
+              >
+                Platform modules
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Instrument Serif',serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(1.6rem,3vw,2.4rem)",
+                  lineHeight: 1.15,
+                  letterSpacing: "-0.02em",
+                  color: C.paper,
+                  maxWidth: 440,
+                }}
+              >
+                Everything you need to dominate the <em style={{ color: C.blue }}>AI search era</em>
+              </h2>
+            </div>
+            <span style={{ fontSize: "0.72rem", color: C.muted, letterSpacing: "0.06em" }}>
+              06 modules · 1 platform
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px" style={{ background: C.border }}>
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="relative p-10 overflow-hidden group"
+                style={{ background: C.white, transition: "background .2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(59,130,246,0.02)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = C.white)}
+              >
+                {/* Left accent bar on hover */}
+                <div
+                  className="absolute top-0 left-0 w-[2px] h-0 group-hover:h-full"
+                  style={{ background: C.blue, transition: "height .4s cubic-bezier(.22,1,.36,1)" }}
+                />
+                {/* Icon */}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: C.blueLight,
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    opacity: 0.45,
-                    transition: "opacity .2s",
-                    cursor: "default",
+                    justifyContent: "center",
+                    marginBottom: 20,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.45")}
                 >
-                  <img
-                    src={typeof p.logo === "string" ? p.logo : p.logo.src}
-                    alt={p.name}
-                    style={{ height: 28, width: "auto", objectFit: "contain" }}
-                  />
-                  <span className="hidden md:inline" style={{ ...body, fontSize: "0.875rem", fontWeight: 500 }}>
-                    {p.name}
+                  {f.icon}
+                </div>
+                <h3
+                  style={{
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    color: C.paper,
+                    marginBottom: 10,
+                  }}
+                >
+                  {f.name}
+                </h3>
+                <p style={{ fontSize: "0.8rem", lineHeight: 1.8, color: C.mid, marginBottom: 16 }}>{f.desc}</p>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "3px 8px",
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    border: `1px solid ${f.hot ? C.orange : f.isNew ? C.blue : C.border}`,
+                    color: f.hot ? C.orange : f.isNew ? C.blue : C.muted,
+                  }}
+                >
+                  {f.badge}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── DASHBOARD PREVIEW ──────────────────────────── */}
+        <section
+          className="relative z-[2] px-6 md:px-12 py-24 lg:py-32 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div>
+            <p
+              style={{
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                fontSize: "0.65rem",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: C.blue,
+                marginBottom: 12,
+              }}
+            >
+              Your command center
+            </p>
+            <h2
+              style={{
+                fontFamily: "'Instrument Serif',serif",
+                fontWeight: 400,
+                fontSize: "clamp(1.6rem,2.8vw,2.2rem)",
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                color: C.paper,
+                marginBottom: 18,
+              }}
+            >
+              All your AI potential,
+              <br />
+              <em style={{ color: C.mid }}>at a glance.</em>
+            </h2>
+            <p style={{ fontSize: "0.88rem", lineHeight: 1.85, color: C.mid, marginBottom: 28 }}>
+              The AutoPilotGeo dashboard gives you a complete view of your visibility in the AI ecosystem. No
+              complexity. Just the metrics that matter.
+            </p>
+            <ul>
+              {[
+                "Real-time visibility score on ChatGPT, Gemini, Perplexity",
+                "Projected traffic growth curve over 6 months",
+                "Week-by-week content activity (answers + articles)",
+                "30-day auto-generated & auto-executed plan",
+                "SEO, AEO, API status & latency — all green",
+              ].map((item, i) => (
+                <li
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "9px 0",
+                    borderBottom: `1px solid ${C.border}`,
+                    fontSize: "0.8rem",
+                    color: C.mid,
+                    lineHeight: 1.6,
+                    listStyle: "none",
+                  }}
+                >
+                  <span style={{ color: C.blue, flexShrink: 0, marginTop: 2 }}>↳</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Widget */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              background: C.white,
+              border: `1px solid ${C.border}`,
+              borderRadius: 2,
+              padding: 28,
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "0 4px 24px rgba(13,12,31,0.07)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: -60,
+                right: -60,
+                width: 200,
+                height: 200,
+                background: "radial-gradient(circle,rgba(59,130,246,0.07),transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+              <span
+                style={{ fontSize: "0.65rem", letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted }}
+              >
+                AI Visibility Score
+              </span>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: C.blue,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: C.blue,
+                    animation: "blink 1.5s infinite",
+                  }}
+                />
+                Live
+              </span>
+            </div>
+            {/* Mini bars */}
+            <div style={{ height: 72, display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 22 }}>
+              {[30, 45, 35, 55, 60, 50, 70, 80].map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: `${h}%`,
+                    background: i === 7 ? "rgba(59,130,246,0.22)" : "rgba(59,130,246,0.1)",
+                    borderTop: i === 7 ? `2px solid ${C.blue}` : "2px solid rgba(59,130,246,0.3)",
+                  }}
+                />
+              ))}
+            </div>
+            {/* Platform bars */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+              {[
+                { name: "ChatGPT", pct: 95 },
+                { name: "Gemini", pct: 89 },
+                { name: "Perplexity", pct: 82 },
+              ].map((p, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: "0.72rem", width: 76, color: C.mid }}>{p.name}</span>
+                  <div style={{ flex: 1, height: 3, background: "rgba(13,12,31,0.07)", overflow: "hidden" }}>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      whileInView={{ scaleX: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1, delay: i * 0.15 }}
+                      style={{ height: "100%", width: `${p.pct}%`, background: C.blue, transformOrigin: "left" }}
+                    />
+                  </div>
+                  <span style={{ fontSize: "0.68rem", color: C.blue, width: 28, textAlign: "right", fontWeight: 500 }}>
+                    {p.pct}%
                   </span>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── STATS ─────────────────────────────────────────────── */}
-        <section style={{ padding: "80px 0", background: T.white }}>
-          <div className="container px-4">
-            <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <h2 style={heading("3rem")}>
-                AI search is the new <em style={{ color: T.blue }}>growth channel</em>
-              </h2>
-              <p style={{ ...body, fontSize: "1rem", maxWidth: 440, margin: "12px auto 0" }}>
-                Businesses that show up in AI answers get more clicks, more trust, more customers.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-4xl mx-auto">
+            <div
+              style={{
+                paddingTop: 16,
+                display: "flex",
+                justifyContent: "space-between",
+                borderTop: `1px solid ${C.border}`,
+              }}
+            >
               {[
-                { value: "4.5×", label: "More AI visibility" },
-                { value: "9.7×", label: "More brand mentions" },
-                { value: "60%", label: "Traffic increase avg" },
-                { value: "1.5bn", label: "AI searches monthly" },
-              ].map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  style={{
-                    textAlign: "center",
-                    background: T.bg,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 16,
-                    padding: "28px 16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: "'Instrument Serif', serif",
-                      fontSize: "clamp(2rem, 4vw, 3rem)",
-                      color: T.ink,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {s.value}
+                { val: "105", label: "Answers" },
+                { val: "107", label: "Articles" },
+                { val: "+15K", label: "Reach/mo" },
+              ].map((w, i) => (
+                <div key={i} style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: "1.4rem", color: C.paper }}>
+                    {w.val}
                   </div>
-                  <p style={{ ...body, fontSize: "0.8rem", marginTop: 8 }}>{s.label}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── FEATURES ──────────────────────────────────────────── */}
-        <section id="features" style={{ padding: "80px 0", background: T.bg }}>
-          <div className="container px-4">
-            <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <p style={label}>What you get</p>
-              <h2 style={{ ...heading("2.8rem"), marginTop: 10 }}>
-                Understand how AI talks about <em style={{ color: T.blue }}>your brand</em>
-              </h2>
-              <p style={{ ...body, fontSize: "1rem", maxWidth: 480, margin: "12px auto 0" }}>
-                Monitor and optimise your brand's presence across every major AI platform.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-              {featureCards.map((card, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  style={{
-                    background: T.white,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 18,
-                    padding: "28px 28px 24px",
-                    transition: "box-shadow .2s, transform .2s",
-                    cursor: "default",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 8px 32px rgba(12,11,20,0.1)";
-                    e.currentTarget.style.transform = "translateY(-3px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "";
-                    e.currentTarget.style.transform = "";
-                  }}
-                >
-                  {/* Refined icon container — no colored square */}
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: T.blueLight,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 20,
-                    }}
-                  >
-                    {card.icon}
-                  </div>
-                  <h3
-                    style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontWeight: 600,
-                      fontSize: "1rem",
-                      color: T.ink,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {card.title}
-                  </h3>
-                  <p style={{ ...body, fontSize: "0.875rem" }}>{card.description}</p>
-                  {/* Mini chart */}
-                  <div
-                    style={{
-                      marginTop: 20,
-                      borderRadius: 10,
-                      background: T.bg,
-                      border: `1px solid ${T.border}`,
-                      padding: "12px 14px",
-                      height: 72,
-                      display: "flex",
-                      alignItems: "flex-end",
-                      gap: 3,
-                    }}
-                  >
-                    {Array.from({ length: 8 }).map((_, j) => (
-                      <div
-                        key={j}
-                        style={{
-                          flex: 1,
-                          borderRadius: "3px 3px 0 0",
-                          background: T.blue,
-                          height: `${22 + (j + 1) * 9}%`,
-                          opacity: 0.18 + j * 0.1,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── TESTIMONIALS ──────────────────────────────────────── */}
-        <section style={{ padding: "80px 0", background: T.white }}>
-          <div className="container px-4">
-            <div style={{ textAlign: "center", marginBottom: 44 }}>
-              <p style={label}>Social proof</p>
-              <h2 style={{ ...heading("2.6rem"), marginTop: 10 }}>
-                What people say about <em style={{ color: T.blue }}>AutoPilot Geo</em>
-              </h2>
-              <p style={{ ...body, fontSize: "1rem", maxWidth: 400, margin: "12px auto 0" }}>
-                Join 500+ businesses already growing with AI search optimisation.
-              </p>
-            </div>
-
-            {/* Platform tabs */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 36 }}>
-              {["Trustpilot", "G2"].map((name, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTestimonialPlatform(i)}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: 99,
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 500,
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    border: "none",
-                    transition: "background .15s, color .15s",
-                    background: activeTestimonialPlatform === i ? T.ink : T.bg,
-                    color: activeTestimonialPlatform === i ? "#fff" : T.mid,
-                  }}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-              {testimonials[activeTestimonialPlatform].reviews.map((review, i) => (
-                <motion.div
-                  key={`${activeTestimonialPlatform}-${i}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, padding: "24px" }}
-                >
-                  {/* Stars */}
-                  <div style={{ display: "flex", gap: 3, marginBottom: 14 }}>
-                    {Array.from({ length: review.rating }).map((_, j) => (
-                      <svg key={j} width="14" height="14" viewBox="0 0 14 14" fill="#f59e0b">
-                        <path d="M7 1l1.5 4h4l-3.3 2.4 1.3 4L7 9l-3.5 2.4 1.3-4L1.5 5h4z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p style={{ ...body, fontSize: "0.875rem", color: T.mid, marginBottom: 20 }}>"{review.text}"</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        background: T.ink,
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: "'Outfit', sans-serif",
-                        fontWeight: 700,
-                        fontSize: "0.85rem",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {review.name[0]}
-                    </div>
-                    <div>
-                      <p
-                        style={{
-                          fontFamily: "'Outfit', sans-serif",
-                          fontWeight: 600,
-                          fontSize: "0.85rem",
-                          color: T.ink,
-                          margin: 0,
-                        }}
-                      >
-                        {review.name}
-                      </p>
-                      <p style={{ ...body, fontSize: "0.75rem", color: T.muted, margin: 0 }}>{review.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── SHOWCASE ──────────────────────────────────────────── */}
-        <section style={{ padding: "80px 0", background: T.bg }}>
-          <div className="container px-4">
-            <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <p style={label}>How it works</p>
-              <h2 style={{ ...heading("2.8rem"), marginTop: 10 }}>
-                Turn AI search into a <em style={{ color: T.blue }}>growth channel</em>
-              </h2>
-              <p style={{ ...body, fontSize: "1rem", maxWidth: 480, margin: "12px auto 0" }}>
-                Track, optimise, and grow your presence in AI-powered search results.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto" style={{ marginBottom: 40 }}>
-              {showcaseFeatures.map((f, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden" }}
-                >
-                  {/* Top panel */}
-                  <div style={{ height: 140, background: T.ink, padding: 20, display: "flex", alignItems: "flex-end" }}>
-                    <div
-                      style={{
-                        background: "rgba(255,255,255,0.08)",
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        width: "100%",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: 8,
-                          background: "rgba(255,255,255,0.2)",
-                          borderRadius: 4,
-                          width: "70%",
-                          marginBottom: 6,
-                        }}
-                      />
-                      <div style={{ height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 4, width: "45%" }} />
-                    </div>
-                  </div>
-                  <div style={{ padding: 22 }}>
-                    <p style={{ ...label, marginBottom: 8 }}>{f.tag}</p>
-                    <h3
-                      style={{
-                        fontFamily: "'Outfit', sans-serif",
-                        fontWeight: 600,
-                        fontSize: "0.975rem",
-                        color: T.ink,
-                        marginBottom: 8,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {f.title}
-                    </h3>
-                    <p style={{ ...body, fontSize: "0.83rem" }}>{f.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-              {bottomFeatures.map((f, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: T.white,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 14,
-                    padding: "22px 18px",
-                    textAlign: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: T.blueLight,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 14px",
-                    }}
-                  >
-                    {f.icon}
-                  </div>
-                  <h4
-                    style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontWeight: 600,
-                      fontSize: "0.85rem",
-                      color: T.ink,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {f.title}
-                  </h4>
-                  <p style={{ ...body, fontSize: "0.75rem" }}>{f.description}</p>
+                  <div style={{ fontSize: "0.6rem", color: C.muted, marginTop: 2 }}>{w.label}</div>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        {/* ── FAQ ───────────────────────────────────────────────── */}
-        <section style={{ padding: "80px 0", background: T.white }}>
-          <div className="container px-4">
-            <h2 style={{ ...heading("2.4rem"), textAlign: "center", marginBottom: 48 }}>
-              Frequently asked <em style={{ color: T.blue }}>questions</em>
+        {/* ── TESTIMONIALS ───────────────────────────────── */}
+        <section className="relative z-[2] px-6 md:px-12 py-24" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{ marginBottom: 40 }}
+          >
+            <p
+              style={{
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                fontSize: "0.65rem",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: C.blue,
+                marginBottom: 10,
+              }}
+            >
+              Social proof
+            </p>
+            <h2
+              style={{
+                fontFamily: "'Instrument Serif',serif",
+                fontWeight: 400,
+                fontSize: "clamp(1.6rem,3vw,2.4rem)",
+                letterSpacing: "-0.02em",
+                color: C.paper,
+              }}
+            >
+              What people say about <em style={{ color: C.blue }}>AutoPilot Geo</em>
             </h2>
-            <div style={{ maxWidth: 640, margin: "0 auto" }}>
-              <Accordion type="single" collapsible className="space-y-2">
-                {faqs.map((faq, i) => (
-                  <AccordionItem
-                    key={i}
-                    value={`faq-${i}`}
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: C.border }}>
+            {TESTIMONIALS.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                style={{ background: C.white, padding: 36 }}
+              >
+                {/* Stars */}
+                <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <svg key={j} width="13" height="13" viewBox="0 0 13 13" fill="#f59e0b">
+                      <path d="M6.5 1l1.4 3.8H12L8.7 7.3l1.3 3.8-3.5-2.4-3.5 2.4 1.3-3.8L1 4.8h4.1z" />
+                    </svg>
+                  ))}
+                </div>
+                <p
+                  style={{
+                    fontFamily: "'Instrument Serif',serif",
+                    fontStyle: "italic",
+                    fontWeight: 400,
+                    fontSize: "1rem",
+                    lineHeight: 1.7,
+                    color: C.paper,
+                    marginBottom: 24,
+                  }}
+                >
+                  "{t.quote}"
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
                     style={{
-                      background: T.bg,
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 12,
-                      padding: "0 20px",
-                      overflow: "hidden",
+                      width: 34,
+                      height: 34,
+                      borderRadius: "50%",
+                      background: C.blueLight,
+                      border: `1px solid ${C.blueBorder}`,
+                      color: C.blue,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "'Outfit',sans-serif",
+                      fontWeight: 700,
+                      fontSize: "0.78rem",
+                      flexShrink: 0,
                     }}
                   >
-                    <AccordionTrigger
+                    {t.initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
                       style={{
-                        fontFamily: "'Outfit', sans-serif",
-                        fontWeight: 500,
-                        fontSize: "0.95rem",
-                        color: T.ink,
-                        textAlign: "left",
-                        paddingTop: 18,
-                        paddingBottom: 18,
+                        fontFamily: "'Outfit',sans-serif",
+                        fontWeight: 600,
+                        fontSize: "0.82rem",
+                        color: C.paper,
+                        margin: 0,
                       }}
-                      className="hover:no-underline"
                     >
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent style={{ ...body, fontSize: "0.875rem", paddingBottom: 16 }}>
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
+                      {t.name}
+                    </p>
+                    <p style={{ fontSize: "0.72rem", color: C.muted, margin: 0 }}>{t.role}</p>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.6rem",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: C.blue,
+                      border: `1px solid ${C.blueBorder}`,
+                      background: C.blueLight,
+                      padding: "3px 9px",
+                    }}
+                  >
+                    {t.platform}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </section>
 
-        {/* ── DARK CTA ──────────────────────────────────────────── */}
-        <section style={{ background: T.ink, padding: "88px 0", position: "relative", overflow: "hidden" }}>
+        {/* ── PRICING ────────────────────────────────────── */}
+        <section
+          className="relative z-[2] px-6 md:px-12 py-24 lg:py-32 text-center"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2
+              style={{
+                fontFamily: "'Instrument Serif',serif",
+                fontWeight: 400,
+                fontSize: "clamp(1.8rem,4vw,3.2rem)",
+                letterSpacing: "-0.025em",
+                color: C.paper,
+                marginBottom: 10,
+              }}
+            >
+              One price. <em style={{ color: C.blue }}>All included.</em>
+            </h2>
+            <p style={{ fontSize: "0.875rem", color: C.muted, marginBottom: 52 }}>
+              No confusing tiers. No surprises. Just results.
+            </p>
+          </motion.div>
+
+          <div
+            style={{
+              maxWidth: 480,
+              margin: "0 auto",
+              position: "relative",
+              background: C.white,
+              border: `1.5px solid ${C.blueBorder}`,
+              padding: 52,
+              boxShadow: "0 8px 40px rgba(59,130,246,0.09)",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: -12,
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: C.blue,
+                color: "#fff",
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                fontSize: "0.6rem",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                padding: "5px 16px",
+              }}
+            >
+              Most Popular
+            </span>
+            <p
+              style={{
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                fontSize: "0.8rem",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: C.paper,
+                marginBottom: 20,
+              }}
+            >
+              AutoPilot Plan
+            </p>
+            <div style={{ marginBottom: 28 }}>
+              <span
+                style={{
+                  fontFamily: "'Instrument Serif',serif",
+                  fontSize: "5rem",
+                  color: C.blue,
+                  lineHeight: 1,
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                $29
+              </span>
+              <p style={{ fontSize: "0.75rem", color: C.muted, marginTop: 6 }}>
+                per month · no commitment · 1-click cancel
+              </p>
+            </div>
+            <ul style={{ textAlign: "left", marginBottom: 36, listStyle: "none", padding: 0 }}>
+              {PLAN_INCLUDES.map((item, i) => (
+                <li
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 0",
+                    borderBottom: `1px solid ${C.border}`,
+                    fontSize: "0.82rem",
+                    color: C.mid,
+                  }}
+                >
+                  <Check size={14} color={C.blue} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/onboarding"
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "18px",
+                textAlign: "center",
+                background: C.blue,
+                color: "#fff",
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                textDecoration: "none",
+                letterSpacing: "0.06em",
+                transition: "transform .15s,box-shadow .15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 12px 40px rgba(59,130,246,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "";
+                e.currentTarget.style.boxShadow = "";
+              }}
+            >
+              Start — Free Audit
+            </Link>
+            <p style={{ fontSize: "0.72rem", color: C.muted, marginTop: 14 }}>
+              Free AI visibility audit · No credit card required
+            </p>
+          </div>
+        </section>
+
+        {/* ── FAQ ────────────────────────────────────────── */}
+        <section className="relative z-[2] px-6 md:px-12 py-24" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <h2
+            className="text-center"
+            style={{
+              fontFamily: "'Instrument Serif',serif",
+              fontWeight: 400,
+              fontSize: "clamp(1.6rem,3vw,2.4rem)",
+              letterSpacing: "-0.02em",
+              color: C.paper,
+              marginBottom: 48,
+            }}
+          >
+            Frequently asked <em style={{ color: C.blue }}>questions</em>
+          </h2>
+          <div
+            style={{
+              maxWidth: 640,
+              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              background: C.border,
+            }}
+          >
+            {FAQS.map((faq, i) => (
+              <div key={i} style={{ background: C.white }}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "18px 24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 500,
+                    fontSize: "0.9rem",
+                    color: C.paper,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {faq.q}
+                  <span style={{ fontSize: "1.2rem", color: C.blue, marginLeft: 12, flexShrink: 0 }}>
+                    {openFaq === i ? "−" : "+"}
+                  </span>
+                </button>
+                {openFaq === i && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    style={{ padding: "0 24px 18px", fontSize: "0.82rem", lineHeight: 1.8, color: C.mid }}
+                  >
+                    {faq.a}
+                  </motion.div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ──────────────────────────────────── */}
+        <section className="relative z-[2] py-40 px-6 text-center overflow-hidden" style={{ background: C.bg }}>
           <div
             style={{
               position: "absolute",
@@ -1317,285 +1567,158 @@ export default function Index() {
               transform: "translate(-50%,-50%)",
               width: 600,
               height: 600,
-              background: "radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%)",
+              background: "radial-gradient(circle,rgba(59,130,246,0.07),transparent 70%)",
               pointerEvents: "none",
             }}
           />
-          <div className="container relative px-4">
-            <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-14 items-center">
-              <div>
-                <h2
-                  style={{
-                    fontFamily: "'Instrument Serif', serif",
-                    fontWeight: 400,
-                    fontSize: "clamp(2rem, 4vw, 3rem)",
-                    color: "#fff",
-                    lineHeight: 1.12,
-                    letterSpacing: "-0.025em",
-                    marginBottom: 20,
-                  }}
-                >
-                  Buyers ask AI which brand to choose.
-                </h2>
-                <p
-                  style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    color: "rgba(255,255,255,0.5)",
-                    fontSize: "1rem",
-                    lineHeight: 1.7,
-                    marginBottom: 32,
-                  }}
-                >
-                  Make sure it's yours. Get discovered in ChatGPT, Gemini, Perplexity and Google today.
-                </p>
-                <Link
-                  href="/onboarding"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "14px 28px",
-                    background: "#fff",
-                    color: T.ink,
-                    borderRadius: 12,
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 600,
-                    fontSize: "1rem",
-                    textDecoration: "none",
-                    transition: "background .15s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f0eff8")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
-                >
-                  Start for free <ArrowRight size={16} />
-                </Link>
-              </div>
-
-              {/* Chat mockup */}
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 18,
-                  padding: 24,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path
-                      d="M2 12l4-4 3 2.5L13 5"
-                      stroke="rgba(255,255,255,0.4)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span
-                    style={{ fontFamily: "'Outfit', sans-serif", color: "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}
-                  >
-                    AI Assistant
-                  </span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <div
-                      style={{
-                        padding: "10px 16px",
-                        background: "rgba(255,255,255,0.1)",
-                        color: "#fff",
-                        borderRadius: "14px 14px 4px 14px",
-                        fontFamily: "'Outfit', sans-serif",
-                        fontSize: "0.875rem",
-                        maxWidth: "80%",
-                      }}
-                    >
-                      What's the best SEO tool for small businesses?
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                    <div
-                      style={{
-                        padding: "10px 16px",
-                        background: "rgba(255,255,255,0.05)",
-                        color: "rgba(255,255,255,0.7)",
-                        borderRadius: "14px 14px 14px 4px",
-                        fontFamily: "'Outfit', sans-serif",
-                        fontSize: "0.875rem",
-                        maxWidth: "90%",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      Based on recent data, I'd recommend <strong style={{ color: "#fff" }}>your-brand.com</strong> —
-                      they specialise in AI-optimised content with strong results for small businesses.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              fontFamily: "'Instrument Serif',serif",
+              fontWeight: 400,
+              fontSize: "clamp(2.2rem,5vw,4.5rem)",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.06,
+              color: C.paper,
+              marginBottom: 18,
+              position: "relative",
+            }}
+          >
+            Your competitors
+            <br />
+            <em style={{ color: C.blue }}>are already there.</em>
+          </motion.h2>
+          <p
+            style={{
+              fontSize: "0.9rem",
+              color: C.mid,
+              maxWidth: 420,
+              margin: "0 auto 40px",
+              lineHeight: 1.8,
+              position: "relative",
+            }}
+          >
+            Every day without AutoPilotGeo is a day where ChatGPT recommends someone else to your potential customers.
+          </p>
+          <Link
+            href="/onboarding"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "16px 40px",
+              background: C.blue,
+              color: "#fff",
+              fontFamily: "'Outfit',sans-serif",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              textDecoration: "none",
+              letterSpacing: "0.04em",
+              position: "relative",
+              transition: "transform .15s,box-shadow .15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-3px)";
+              e.currentTarget.style.boxShadow = "0 20px 60px rgba(59,130,246,0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "";
+              e.currentTarget.style.boxShadow = "";
+            }}
+          >
+            Start Now <ArrowRight size={16} />
+          </Link>
         </section>
 
-        {/* ── FINAL CTA ─────────────────────────────────────────── */}
-        <section style={{ background: "#090818", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "72px 0" }}>
-          <div className="container px-4" style={{ textAlign: "center" }}>
-            <h2
-              style={{
-                fontFamily: "'Instrument Serif', serif",
-                fontWeight: 400,
-                fontSize: "clamp(1.8rem, 4vw, 3rem)",
-                color: "#fff",
-                letterSpacing: "-0.025em",
-                marginBottom: 14,
-              }}
-            >
-              Be visible, today.
-            </h2>
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                color: "rgba(255,255,255,0.4)",
-                fontSize: "1rem",
-                maxWidth: 360,
-                margin: "0 auto 32px",
-                lineHeight: 1.7,
-              }}
-            >
-              Start your free trial and get your brand recommended by AI search engines.
-            </p>
-            <Link
-              href="/onboarding"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "15px 32px",
-                background: "#fff",
-                color: T.ink,
-                borderRadius: 12,
-                fontFamily: "'Outfit', sans-serif",
-                fontWeight: 600,
-                fontSize: "1rem",
-                textDecoration: "none",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
-                transition: "background .15s, transform .15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f0eff8";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.transform = "";
-              }}
-            >
-              Get started — it's free <ArrowRight size={16} />
-            </Link>
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                color: "rgba(255,255,255,0.25)",
-                fontSize: "0.8rem",
-                marginTop: 14,
-              }}
-            >
-              No credit card required · Cancel anytime
-            </p>
-          </div>
-        </section>
-
-        {/* ── FOOTER ────────────────────────────────────────────── */}
-        <footer
-          style={{ background: "#060515", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "64px 0 32px" }}
-        >
-          <div className="container px-4">
-            {/* Top row */}
+        {/* ── FOOTER ─────────────────────────────────────── */}
+        <footer style={{ background: "#07061a", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          {/* Main grid */}
+          <div className="container px-6 md:px-12" style={{ paddingTop: 56, paddingBottom: 40 }}>
             <div
               className="grid grid-cols-2 md:grid-cols-5 gap-10"
-              style={{ paddingBottom: 48, borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ paddingBottom: 44, borderBottom: "1px solid rgba(255,255,255,0.07)" }}
             >
-              {/* Brand */}
+              {/* Brand column */}
               <div className="col-span-2 md:col-span-1">
                 <div
                   style={{
-                    fontFamily: "'Instrument Serif', serif",
-                    fontSize: "1.3rem",
+                    fontFamily: "'Instrument Serif',serif",
+                    fontSize: "1.25rem",
                     color: "#fff",
                     marginBottom: 12,
                   }}
                 >
-                  AutoPilot<span style={{ color: T.blue }}>Geo</span>
+                  AutoPilot<span style={{ color: C.blue }}>Geo</span>
                 </div>
                 <p
                   style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontSize: "0.82rem",
+                    fontFamily: "'Outfit',sans-serif",
+                    fontSize: "0.8rem",
                     color: "rgba(255,255,255,0.35)",
-                    lineHeight: 1.7,
-                    maxWidth: 200,
-                    marginBottom: 20,
+                    lineHeight: 1.75,
+                    maxWidth: 190,
+                    marginBottom: 22,
                   }}
                 >
                   Get your business recommended by ChatGPT, Gemini & Google.
                 </p>
-                <div style={{ display: "flex", gap: 10 }}>
-                  {/* Twitter/X */}
-                  <a
-                    href="https://twitter.com/autopilotgeo"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.07)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "background .15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="rgba(255,255,255,0.6)">
-                      <path d="M11.07 1.5h1.95L8.72 6.25 14 12.5H9.5L6.17 8.38 2.4 12.5H.44l4.6-5.07L0 1.5h4.6l3.03 3.85L11.07 1.5zm-.68 9.9h1.08L3.67 2.52H2.5l7.89 8.88z" />
-                    </svg>
-                  </a>
-                  {/* LinkedIn */}
-                  <a
-                    href="https://linkedin.com/company/autopilotgeo"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.07)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "background .15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="rgba(255,255,255,0.6)">
-                      <path d="M1.5 4.5H3.5V12.5H1.5V4.5ZM2.5 3.5C1.95 3.5 1.5 3.05 1.5 2.5C1.5 1.95 1.95 1.5 2.5 1.5C3.05 1.5 3.5 1.95 3.5 2.5C3.5 3.05 3.05 3.5 2.5 3.5ZM5 4.5H7V5.5H7.05C7.35 4.9 8.1 4.25 9.25 4.25C11.4 4.25 11.8 5.65 11.8 7.5V12.5H9.8V7.9C9.8 7.1 9.8 6.05 8.65 6.05C7.5 6.05 7.3 6.95 7.3 7.85V12.5H5.3V4.5H5Z" />
-                    </svg>
-                  </a>
+                {/* Social icons */}
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    {
+                      href: "https://twitter.com/autopilotgeo",
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="rgba(255,255,255,0.55)">
+                          <path d="M11.07 1.5h1.95L8.72 6.25 14 12.5H9.5L6.17 8.38 2.4 12.5H.44l4.6-5.07L0 1.5h4.6l3.03 3.85L11.07 1.5zm-.68 9.9h1.08L3.67 2.52H2.5l7.89 8.88z" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      href: "https://linkedin.com/company/autopilotgeo",
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="rgba(255,255,255,0.55)">
+                          <path d="M1.5 4.5H3.5V12.5H1.5V4.5ZM2.5 1.5a1 1 0 110 2 1 1 0 010-2zM5 4.5h2v1.1C7.35 4.9 8.1 4.25 9.25 4.25c2.15 0 2.55 1.4 2.55 3.25v5H9.8V7.9c0-.8 0-1.85-1.15-1.85S7.3 6.95 7.3 7.85V12.5H5.3V4.5H5z" />
+                        </svg>
+                      ),
+                    },
+                  ].map((s, i) => (
+                    <a
+                      key={i}
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 7,
+                        background: "rgba(255,255,255,0.07)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background .15s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.14)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+                    >
+                      {s.icon}
+                    </a>
+                  ))}
                 </div>
               </div>
 
               {/* Link columns */}
-              {Object.entries(footerLinks).map(([section, links]) => (
+              {Object.entries(FOOTER_LINKS).map(([section, links]) => (
                 <div key={section}>
                   <p
                     style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontWeight: 600,
-                      fontSize: "0.72rem",
-                      letterSpacing: "0.1em",
+                      fontFamily: "'Outfit',sans-serif",
+                      fontWeight: 700,
+                      fontSize: "0.65rem",
+                      letterSpacing: "0.12em",
                       textTransform: "uppercase",
-                      color: "rgba(255,255,255,0.3)",
+                      color: "rgba(255,255,255,0.28)",
                       marginBottom: 16,
                     }}
                   >
@@ -1608,7 +1731,7 @@ export default function Index() {
                       margin: 0,
                       display: "flex",
                       flexDirection: "column",
-                      gap: 10,
+                      gap: 9,
                     }}
                   >
                     {links.map((link) => (
@@ -1616,14 +1739,14 @@ export default function Index() {
                         <Link
                           href={link.href}
                           style={{
-                            fontFamily: "'Outfit', sans-serif",
-                            fontSize: "0.85rem",
-                            color: "rgba(255,255,255,0.45)",
+                            fontFamily: "'Outfit',sans-serif",
+                            fontSize: "0.82rem",
+                            color: "rgba(255,255,255,0.42)",
                             textDecoration: "none",
                             transition: "color .15s",
                           }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.42)")}
                         >
                           {link.label}
                         </Link>
@@ -1634,10 +1757,10 @@ export default function Index() {
               ))}
             </div>
 
-            {/* Bottom row */}
+            {/* Bottom bar */}
             <div
               style={{
-                paddingTop: 24,
+                paddingTop: 20,
                 display: "flex",
                 flexWrap: "wrap",
                 alignItems: "center",
@@ -1645,7 +1768,7 @@ export default function Index() {
                 gap: 12,
               }}
             >
-              <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: "0.78rem", color: "rgba(255,255,255,0.25)" }}>
+              <p style={{ fontFamily: "'Outfit',sans-serif", fontSize: "0.75rem", color: "rgba(255,255,255,0.22)" }}>
                 © 2025 AutoPilotGeo, Inc. All rights reserved.
               </p>
               <div style={{ display: "flex", gap: 20 }}>
@@ -1653,21 +1776,21 @@ export default function Index() {
                   ["Privacy", "/privacy"],
                   ["Terms", "/terms"],
                   ["Cookies", "/cookies"],
-                ].map(([name, href]) => (
+                ].map(([n, h]) => (
                   <Link
-                    key={href}
-                    href={href}
+                    key={h}
+                    href={h}
                     style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontSize: "0.78rem",
-                      color: "rgba(255,255,255,0.25)",
+                      fontFamily: "'Outfit',sans-serif",
+                      fontSize: "0.75rem",
+                      color: "rgba(255,255,255,0.22)",
                       textDecoration: "none",
                       transition: "color .15s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.22)")}
                   >
-                    {name}
+                    {n}
                   </Link>
                 ))}
               </div>
@@ -1679,9 +1802,9 @@ export default function Index() {
         <div
           className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-3"
           style={{
-            background: T.white,
-            borderTop: `1px solid ${T.border}`,
-            boxShadow: "0 -4px 20px rgba(12,11,20,0.08)",
+            background: C.white,
+            borderTop: `1px solid ${C.border}`,
+            boxShadow: "0 -4px 20px rgba(13,12,31,0.08)",
           }}
         >
           <Link
@@ -1691,23 +1814,27 @@ export default function Index() {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              width: "100%",
               padding: "13px",
-              background: T.ink,
+              background: C.blue,
               color: "#fff",
-              borderRadius: 10,
-              fontFamily: "'Outfit', sans-serif",
+              borderRadius: 9,
+              fontFamily: "'Outfit',sans-serif",
               fontWeight: 600,
-              fontSize: "0.9rem",
+              fontSize: "0.88rem",
               textDecoration: "none",
             }}
           >
-            Get free AI score <ArrowRight size={16} />
+            Get free AI score <ArrowRight size={15} />
           </Link>
         </div>
       </div>
 
-      <style>{`@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+      <style>{`
+        @keyframes scanline     { from{transform:translateY(-100%)} to{transform:translateY(100vh)} }
+        @keyframes ticker       { from{transform:translateX(0)}      to{transform:translateX(-50%)} }
+        @keyframes pulse-signal { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.35)} 50%{box-shadow:0 0 0 8px rgba(59,130,246,0)} }
+        @keyframes blink        { 0%,100%{opacity:1} 50%{opacity:0} }
+      `}</style>
     </>
   );
 }
