@@ -1438,6 +1438,72 @@ export type Database = {
           },
         ]
       }
+      mentions: {
+        Row: {
+          brand_mentioned: boolean | null
+          brand_position: number | null
+          competitors_mentioned: string[] | null
+          id: string
+          platform: string
+          project_id: string
+          queried_at: string | null
+          query_id: string | null
+          query_text: string
+          raw_response: string
+          sentiment: string | null
+          sentiment_score: number | null
+          snippet: string | null
+          sources: Json | null
+        }
+        Insert: {
+          brand_mentioned?: boolean | null
+          brand_position?: number | null
+          competitors_mentioned?: string[] | null
+          id?: string
+          platform: string
+          project_id: string
+          queried_at?: string | null
+          query_id?: string | null
+          query_text: string
+          raw_response: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+          snippet?: string | null
+          sources?: Json | null
+        }
+        Update: {
+          brand_mentioned?: boolean | null
+          brand_position?: number | null
+          competitors_mentioned?: string[] | null
+          id?: string
+          platform?: string
+          project_id?: string
+          queried_at?: string | null
+          query_id?: string | null
+          query_text?: string
+          raw_response?: string
+          sentiment?: string | null
+          sentiment_score?: number | null
+          snippet?: string | null
+          sources?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentions_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "tracked_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_sessions: {
         Row: {
           abandoned_email_sent: boolean | null
@@ -1920,6 +1986,7 @@ export type Database = {
           audience: string | null
           brand_color: string | null
           brand_name: string | null
+          brand_names: string[] | null
           brand_voice_url: string | null
           business_description: string | null
           business_type: string | null
@@ -1940,6 +2007,7 @@ export type Database = {
           audience?: string | null
           brand_color?: string | null
           brand_name?: string | null
+          brand_names?: string[] | null
           brand_voice_url?: string | null
           business_description?: string | null
           business_type?: string | null
@@ -1960,6 +2028,7 @@ export type Database = {
           audience?: string | null
           brand_color?: string | null
           brand_name?: string | null
+          brand_names?: string[] | null
           brand_voice_url?: string | null
           business_description?: string | null
           business_type?: string | null
@@ -2579,6 +2648,44 @@ export type Database = {
           },
         ]
       }
+      tracked_queries: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          platform: string
+          project_id: string
+          query: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform: string
+          project_id: string
+          query: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform?: string
+          project_id?: string
+          query?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracked_queries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_connections: {
         Row: {
           access_token: string | null
@@ -2620,6 +2727,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      visibility_scores: {
+        Row: {
+          avg_position: number | null
+          brand_mentions: number | null
+          citation_rate: number | null
+          date: string
+          id: string
+          negative_count: number | null
+          neutral_count: number | null
+          platform: string
+          positive_count: number | null
+          project_id: string
+          score: number
+          total_queries: number | null
+        }
+        Insert: {
+          avg_position?: number | null
+          brand_mentions?: number | null
+          citation_rate?: number | null
+          date?: string
+          id?: string
+          negative_count?: number | null
+          neutral_count?: number | null
+          platform: string
+          positive_count?: number | null
+          project_id: string
+          score: number
+          total_queries?: number | null
+        }
+        Update: {
+          avg_position?: number | null
+          brand_mentions?: number | null
+          citation_rate?: number | null
+          date?: string
+          id?: string
+          negative_count?: number | null
+          neutral_count?: number | null
+          platform?: string
+          positive_count?: number | null
+          project_id?: string
+          score?: number
+          total_queries?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visibility_scores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visitor_sessions: {
         Row: {
