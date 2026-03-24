@@ -81,13 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    // Save phone to profiles table immediately if provided
-    if (!error && data.user && phone) {
-      await supabase
-        .from("profiles")
-        .update({ phone })
-        .eq("id", data.user.id);
-    }
+    // Phone saved via user_metadata during signup
 
     // Trigger AI welcome call + WhatsApp (fire & forget)
     if (!error && data.user) {

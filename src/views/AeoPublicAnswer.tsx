@@ -70,23 +70,13 @@ export default function AeoPublicAnswer() {
         .single();
 
       if (!error && data) {
-        // Strict filter: ONLY show if it's an autopilotgeo.com project
-        const projectUrl = ((data as any).projects?.website_url || '').toLowerCase();
-        const projectDomain = ((data as any).projects?.domain || '').toLowerCase();
-        
-        const isAutoPilotProject = 
-          projectUrl.includes('autopilotgeo.com') || 
-          projectDomain === 'autopilotgeo.com';
-        
-        if (isAutoPilotProject) {
-          const supportingContent = data.supporting_content as SupportingContent | null;
-          setAnswer({
-            ...data,
-            supporting_content: supportingContent
-          });
-          setLoading(false);
-          return;
-        }
+        const supportingContent = data.supporting_content as SupportingContent | null;
+        setAnswer({
+          ...data,
+          supporting_content: supportingContent
+        });
+        setLoading(false);
+        return;
       }
 
       // Fallback: try published_articles table (blog articles)
