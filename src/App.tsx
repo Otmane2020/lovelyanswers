@@ -62,7 +62,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:slug" element={<Blog />} />
+        <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
         <Route path="/settings" element={<AeoSettings />} />
         <Route path="/answers" element={<Answers />} />
         <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
