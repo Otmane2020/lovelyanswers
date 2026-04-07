@@ -107,7 +107,7 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
-  const [isCheckingUser, setIsCheckingUser] = useState(true);
+  const [isCheckingUser, setIsCheckingUser] = useState(false);
   const [languageSearch, setLanguageSearch] = useState("");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -154,31 +154,27 @@ export default function Onboarding() {
     };
   }, []);
 
-  // Check for existing user/project
+  // Check for existing user/project (non-blocking — page shows immediately)
   useEffect(() => {
     const checkExistingProject = async () => {
       const urlFromParam = searchParams.get('url');
-      if (urlFromParam) {
-        setIsCheckingUser(false);
-        return;
-      }
+      if (urlFromParam) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsCheckingUser(false);
-        return;
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1);
+        const { data: projects } = await supabase
+          .from("projects")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
 
-      if (projects && projects.length > 0) {
-        router.replace("/dashboard");
-      } else {
-        setIsCheckingUser(false);
+        if (projects && projects.length > 0) {
+          router.replace("/dashboard");
+        }
+      } catch {
+        // silently ignore errors — user stays on onboarding
       }
     };
 
@@ -479,14 +475,6 @@ export default function Onboarding() {
   const filteredLanguages = languages.filter(lang => 
     lang.name.toLowerCase().includes(languageSearch.toLowerCase())
   );
-
-  if (isCheckingUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
