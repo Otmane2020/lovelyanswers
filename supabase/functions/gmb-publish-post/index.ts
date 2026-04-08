@@ -70,11 +70,17 @@ serve(async (req) => {
     }
 
     const accessToken = integration.config.access_token;
+    const selectedLocations: string[] = integration.config.selected_locations || [];
     const locationName = integration.config.location_name;
 
-    if (!locationName) {
+    // Determine which locations to post to
+    const locationsToPost = selectedLocations.length > 0 
+      ? selectedLocations 
+      : locationName ? [locationName] : [];
+
+    if (locationsToPost.length === 0) {
       return new Response(
-        JSON.stringify({ error: "No business location configured" }),
+        JSON.stringify({ error: "No business location configured or selected" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -86,7 +92,6 @@ serve(async (req) => {
       topicType: type || "STANDARD",
     };
 
-    // Add call to action if it's an offer
     if (type === "OFFER") {
       postBody.callToAction = {
         actionType: "LEARN_MORE",
@@ -94,7 +99,6 @@ serve(async (req) => {
       };
     }
 
-    // Add media if provided
     if (imageUrl) {
       postBody.media = [
         {
@@ -104,32 +108,43 @@ serve(async (req) => {
       ];
     }
 
-    // Create local post
-    const postResponse = await fetch(
-      `https://mybusiness.googleapis.com/v4/${locationName}/localPosts`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(postBody),
-      }
-    );
+    // Post to ALL selected locations
+    const results = [];
+    for (const loc of locationsToPost) {
+      try {
+        const postResponse = await fetch(
+          `https://mybusiness.googleapis.com/v4/${loc}/localPosts`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(postBody),
+          }
+        );
 
-    if (!postResponse.ok) {
-      const errorText = await postResponse.text();
-      console.error("GMB post error:", errorText);
-      throw new Error(`Failed to publish post: ${errorText}`);
+        if (!postResponse.ok) {
+          const errorText = await postResponse.text();
+          console.error(`GMB post error for ${loc}:`, errorText);
+          results.push({ location: loc, success: false, error: errorText });
+        } else {
+          const postData = await postResponse.json();
+          results.push({ location: loc, success: true, post: postData });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        results.push({ location: loc, success: false, error: msg });
+      }
     }
 
-    const postData = await postResponse.json();
+    const successCount = results.filter(r => r.success).length;
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        post: postData,
-        message: "Post published to Google Business Profile" 
+        success: successCount > 0, 
+        results,
+        message: `Published to ${successCount}/${results.length} location(s)` 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

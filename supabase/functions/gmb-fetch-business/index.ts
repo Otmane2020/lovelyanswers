@@ -47,7 +47,7 @@ serve(async (req) => {
 
     if (intError || !integration?.config?.access_token) {
       return new Response(
-        JSON.stringify({ error: "GMB not connected", business: null }),
+        JSON.stringify({ error: "GMB not connected", business: null, locations: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -69,41 +69,47 @@ serve(async (req) => {
     }
 
     const accountsData = await accountsResponse.json();
-    const account = accountsData.accounts?.[0];
+    const accounts = accountsData.accounts || [];
 
-    if (!account) {
+    if (accounts.length === 0) {
       return new Response(
-        JSON.stringify({ business: null, error: "No GMB account found" }),
+        JSON.stringify({ business: null, locations: [], error: "No GMB account found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch locations for this account
-    const locationsResponse = await fetch(
-      `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
+    // Fetch locations from ALL accounts
+    const allLocations: any[] = [];
+
+    for (const account of accounts) {
+      try {
+        const locationsResponse = await fetch(
+          `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+
+        if (locationsResponse.ok) {
+          const locationsData = await locationsResponse.json();
+          if (locationsData.locations) {
+            allLocations.push(...locationsData.locations);
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching locations for ${account.name}:`, err);
       }
-    );
-
-    if (!locationsResponse.ok) {
-      const errorText = await locationsResponse.text();
-      console.error("GMB locations error:", errorText);
-      throw new Error("Failed to fetch GMB locations");
     }
 
-    const locationsData = await locationsResponse.json();
-    const location = locationsData.locations?.[0];
-
-    if (!location) {
+    if (allLocations.length === 0) {
       return new Response(
-        JSON.stringify({ business: null, error: "No business location found" }),
+        JSON.stringify({ business: null, locations: [], error: "No business location found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Format business data
-    const business = {
+    // Format ALL locations
+    const locations = allLocations.map((location) => ({
       id: location.name,
       name: location.title || location.locationName,
       address: formatAddress(location.address),
@@ -111,16 +117,17 @@ serve(async (req) => {
       website: location.websiteUri || "",
       rating: location.metadata?.rating || 0,
       reviewCount: location.metadata?.reviewCount || 0,
-      insights: {
-        views: 0,
-        clicks: 0,
-        calls: 0,
-        directions: 0,
-      },
-    };
+    }));
+
+    // Return first location as "business" for backward compat, plus all locations
+    const selectedIds: string[] = integration.config.selected_locations || [];
 
     return new Response(
-      JSON.stringify({ business }),
+      JSON.stringify({ 
+        business: locations[0], 
+        locations,
+        selectedLocationIds: selectedIds,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
