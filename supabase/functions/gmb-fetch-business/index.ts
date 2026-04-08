@@ -65,7 +65,23 @@ serve(async (req) => {
     if (!accountsResponse.ok) {
       const errorText = await accountsResponse.text();
       console.error("GMB accounts error:", errorText);
-      throw new Error("Failed to fetch GMB accounts");
+      const status = accountsResponse.status;
+      if (status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Google API rate limit exceeded. Please try again in a minute.", business: null, locations: [], rateLimited: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (status === 401 || status === 403) {
+        return new Response(
+          JSON.stringify({ error: "GMB access token expired. Please reconnect.", business: null, locations: [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch GMB accounts", business: null, locations: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const accountsData = await accountsResponse.json();
