@@ -52,9 +52,50 @@ serve(async (req) => {
       );
     }
 
-    const accessToken = integration.config.access_token;
+    let accessToken = integration.config.access_token;
 
-    // Fetch accounts from Google Business Profile API
+    // Try to refresh token if we have a refresh_token
+    const refreshToken = integration.config.refresh_token;
+    if (refreshToken) {
+      const clientId = Deno.env.get("GMB_GOOGLE_CLIENT_ID") || Deno.env.get("GOOGLE_CLIENT_ID");
+      const clientSecret = Deno.env.get("GMB_GOOGLE_CLIENT_SECRET") || Deno.env.get("GOOGLE_CLIENT_SECRET");
+      if (clientId && clientSecret) {
+        const expiresAt = integration.config.token_expires_at;
+        const isExpired = !expiresAt || new Date(expiresAt) <= new Date();
+        if (isExpired) {
+          console.log("GMB token expired, refreshing...");
+          const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: clientId,
+              client_secret: clientSecret,
+              refresh_token: refreshToken,
+              grant_type: "refresh_token",
+            }),
+          });
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            accessToken = refreshData.access_token;
+            // Update stored token
+            await supabase
+              .from("integrations")
+              .update({
+                config: {
+                  ...integration.config,
+                  access_token: accessToken,
+                  token_expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+                },
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", integration.id);
+            console.log("GMB token refreshed successfully");
+          } else {
+            console.error("GMB token refresh failed:", await refreshRes.text());
+          }
+        }
+      }
+    }
     const accountsResponse = await fetch(
       "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
       {
