@@ -270,6 +270,10 @@ serve(async (req) => {
       case "lovable":
         publishResult = await publishToLovable(content, config, requestData.content?.sourceId);
         break;
+      case "google_business":
+        // Google Business is handled separately via gmb-publish-post, skip here
+        publishResult = { success: true, publishedUrl: null };
+        break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }
