@@ -446,8 +446,8 @@ Deno.serve(async (req) => {
       // Manual trigger from UI: publish ONLY today
       planningQuery = planningQuery.eq("scheduled_date", todayStr);
     } else {
-      // Normal cron: allow catch-up (today or earlier)
-      planningQuery = planningQuery.lte("scheduled_date", todayStr);
+      // Normal cron: publish ONLY today's content (no catch-up of old items)
+      planningQuery = planningQuery.eq("scheduled_date", todayStr);
     }
 
     const { data: planningRows, error: planningError } = await planningQuery;
@@ -485,7 +485,7 @@ Deno.serve(async (req) => {
         .from("local_answers")
         .select("*")
         .in("project_id", projectIds)
-        .lte("scheduled_date", todayStr)
+        .eq("scheduled_date", todayStr)
         .eq("is_public", false)
     ]);
 
