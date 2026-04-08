@@ -892,6 +892,83 @@ export default function AeoIntegrations() {
           )}
         </Card>
 
+        {/* Google My Business */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-red-500 flex items-center justify-center shadow-lg">
+                <Globe className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Google My Business</h3>
+                <p className="text-sm text-muted-foreground">
+                  Auto-publish Q&A to your business profile
+                </p>
+              </div>
+            </div>
+            {gmbConnected ? (
+              <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Connected
+              </Badge>
+            ) : (
+              <Button onClick={connectGMB} disabled={gmbLoading} className="gap-2">
+                {gmbLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                Connect
+              </Button>
+            )}
+          </div>
+
+          {gmbConnected && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="font-medium text-sm mb-3">Select stores for auto-posting</h4>
+              {gmbLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading locations...
+                </div>
+              ) : gmbLocations.length > 0 ? (
+                <div className="space-y-2">
+                  {gmbLocations.map((loc) => {
+                    const isSelected = gmbSelectedIds.includes(loc.id);
+                    return (
+                      <button
+                        key={loc.id}
+                        onClick={() => toggleGmbLocation(loc.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                          isSelected
+                            ? "border-green-500/50 bg-green-500/5"
+                            : "border-border hover:border-primary/30 hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? "border-green-500 bg-green-500" : "border-muted-foreground/30"
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{loc.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{loc.address}</p>
+                        </div>
+                        {loc.rating > 0 && (
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            ⭐ {loc.rating} ({loc.reviewCount})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {gmbSelectedIds.length} store{gmbSelectedIds.length !== 1 ? "s" : ""} selected — scheduled content will auto-post to these locations
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No locations found on your Google Business account.</p>
+              )}
+            </div>
+          )}
+        </Card>
+
         {/* CMS Integrations Grid */}
         <Card className="p-6">
           <h3 className="font-semibold mb-2">CMS & Website Builders</h3>
