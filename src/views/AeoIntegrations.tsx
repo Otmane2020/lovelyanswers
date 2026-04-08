@@ -17,6 +17,7 @@ import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
+import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { TestPublishButton } from "@/components/integrations/TestPublishButton";
