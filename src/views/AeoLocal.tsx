@@ -23,7 +23,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 export default function AeoLocal() {
   const { business, isLoading, isInitialLoading, selectBusiness, clearBusiness } = useLocalBusiness();
   const { project } = useActiveProject();
-  const { isConnected, connectGMB, isLoading: gmbLoading } = useGoogleBusiness();
+  const { isConnected, connectGMB, disconnectGMB, isLoading: gmbLoading } = useGoogleBusiness();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = typeof window !== "undefined" ? window.location.pathname : "/local";
@@ -154,10 +154,15 @@ export default function AeoLocal() {
                 </div>
               </div>
               {isConnected ? (
-                <Badge variant="outline" className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 gap-1.5 shrink-0">
-                  <Check className="h-3 w-3" />
-                  Connected
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="outline" className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 gap-1.5">
+                    <Check className="h-3 w-3" />
+                    Connected
+                  </Badge>
+                  <Button variant="outline" size="sm" onClick={disconnectGMB} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                    Disconnect
+                  </Button>
+                </div>
               ) : (
                 <Button
                   onClick={handleConnectGMB}

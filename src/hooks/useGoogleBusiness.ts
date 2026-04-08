@@ -91,6 +91,28 @@ export function useGoogleBusiness() {
     }
   };
 
+  const disconnectGMB = async () => {
+    if (!project?.id) return;
+    try {
+      const { error } = await supabase
+        .from("integrations")
+        .update({ is_connected: false, config: {} })
+        .eq("project_id", project.id)
+        .eq("platform", "google_business");
+
+      if (error) throw error;
+
+      setIsConnected(false);
+      setBusiness(null);
+      setLocations([]);
+      setSelectedLocationIds([]);
+      toast.success("Google My Business disconnected");
+    } catch (error) {
+      console.error("Error disconnecting GMB:", error);
+      toast.error("Failed to disconnect");
+    }
+  };
+
   const fetchBusiness = async () => {
     if (!project?.id) return;
     
@@ -198,6 +220,7 @@ export function useGoogleBusiness() {
     isConnected,
     isSaving,
     connectGMB,
+    disconnectGMB,
     fetchBusiness,
     fetchInsights,
     publishPost,
