@@ -31,8 +31,11 @@ interface PublishPostParams {
 export function useGoogleBusiness() {
   const { project } = useActiveProject();
   const [business, setBusiness] = useState<Business | null>(null);
+  const [locations, setLocations] = useState<Business[]>([]);
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (project?.id) {
@@ -68,7 +71,6 @@ export function useGoogleBusiness() {
         return;
       }
 
-      // Store return path
       sessionStorage.setItem("gmb_redirect_uri", window.location.pathname);
 
       const { data, error } = await supabase.functions.invoke("gmb-oauth-url", {
@@ -103,11 +105,57 @@ export function useGoogleBusiness() {
       if (data?.business) {
         setBusiness(data.business);
       }
+      if (data?.locations) {
+        setLocations(data.locations);
+      }
+      if (data?.selectedLocationIds) {
+        setSelectedLocationIds(data.selectedLocationIds);
+      }
     } catch (error) {
       console.error("Error fetching business:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const saveSelectedLocations = async (ids: string[]) => {
+    if (!project?.id) return;
+
+    setIsSaving(true);
+    try {
+      // Update the integration config with selected locations
+      const { data: integration } = await supabase
+        .from("integrations")
+        .select("id, config")
+        .eq("project_id", project.id)
+        .eq("platform", "google_business")
+        .single();
+
+      if (!integration) throw new Error("No GMB integration found");
+
+      const newConfig = { ...(integration.config as Record<string, unknown>), selected_locations: ids };
+      const { error } = await supabase
+        .from("integrations")
+        .update({ config: newConfig })
+        .eq("id", integration.id);
+
+      if (error) throw error;
+
+      setSelectedLocationIds(ids);
+      toast.success(`${ids.length} store${ids.length > 1 ? "s" : ""} selected for auto-posting`);
+    } catch (error) {
+      console.error("Error saving selected locations:", error);
+      toast.error("Failed to save store selection");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleLocation = (locationId: string) => {
+    const newIds = selectedLocationIds.includes(locationId)
+      ? selectedLocationIds.filter(id => id !== locationId)
+      : [...selectedLocationIds, locationId];
+    saveSelectedLocations(newIds);
   };
 
   const fetchInsights = async () => {
@@ -144,11 +192,16 @@ export function useGoogleBusiness() {
 
   return {
     business,
+    locations,
+    selectedLocationIds,
     isLoading,
     isConnected,
+    isSaving,
     connectGMB,
     fetchBusiness,
     fetchInsights,
     publishPost,
+    saveSelectedLocations,
+    toggleLocation,
   };
 }
