@@ -61,6 +61,14 @@ export default function AeoIntegrations() {
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   const { isSubscribed } = useSubscriptionContext();
+  const { 
+    isConnected: gmbConnected, 
+    locations: gmbLocations, 
+    selectedLocationIds: gmbSelectedIds, 
+    isLoading: gmbLoading, 
+    toggleLocation: toggleGmbLocation,
+    connectGMB,
+  } = useGoogleBusiness();
   const router = useRouter();
 
   const [showPaywall, setShowPaywall] = useState(false);
