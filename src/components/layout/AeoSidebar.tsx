@@ -66,8 +66,8 @@ export function AeoSidebar() {
         </NavLink>
       </div>
 
-      <SidebarContent className="px-3">
-        <SidebarGroup>
+      <SidebarContent className="px-3 bg-slate-800 text-slate-50">
+        <SidebarGroup className="bg-slate-800 text-slate-50">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {mainMenuItems.map((item) => (
@@ -89,8 +89,8 @@ export function AeoSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">Shopping</SidebarGroupLabel>
+        <SidebarGroup className="mt-4 bg-slate-400">
+          <SidebarGroupLabel className="text-lg font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2 bg-slate-700 text-slate-50">Shopping</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {shoppingMenuItems.map((item) => (
@@ -112,7 +112,7 @@ export function AeoSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-6">
+        <SidebarGroup className="mt-6 bg-zinc-800 text-slate-200">
           <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">Other</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
