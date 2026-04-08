@@ -138,19 +138,13 @@ serve(async (req) => {
       }
     }
 
-    if (!postResponse.ok) {
-      const errorText = await postResponse.text();
-      console.error("GMB post error:", errorText);
-      throw new Error(`Failed to publish post: ${errorText}`);
-    }
-
-    const postData = await postResponse.json();
+    const successCount = results.filter(r => r.success).length;
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        post: postData,
-        message: "Post published to Google Business Profile" 
+        success: successCount > 0, 
+        results,
+        message: `Published to ${successCount}/${results.length} location(s)` 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
