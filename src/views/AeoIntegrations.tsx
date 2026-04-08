@@ -947,8 +947,8 @@ export default function AeoIntegrations() {
                 Connected
               </Badge>
             ) : (
-              <Button onClick={connectGMB} disabled={gmbLoading} className="gap-2">
-                {gmbLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+              <Button onClick={connectGMB} disabled={gmbLoading || isExchangingGmb} className="gap-2">
+                {gmbLoading || isExchangingGmb ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
                 Connect
               </Button>
             )}
