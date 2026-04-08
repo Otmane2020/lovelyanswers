@@ -61,14 +61,15 @@ export default function AeoIntegrations() {
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   const { isSubscribed } = useSubscriptionContext();
-  const { 
-    isConnected: gmbConnected, 
-    locations: gmbLocations, 
-    selectedLocationIds: gmbSelectedIds, 
-    isLoading: gmbLoading, 
+  const {
+    isConnected: gmbConnected,
+    locations: gmbLocations,
+    selectedLocationIds: gmbSelectedIds,
+    isLoading: gmbLoading,
     toggleLocation: toggleGmbLocation,
     connectGMB,
   } = useGoogleBusiness();
+  const [isExchangingGmb, setIsExchangingGmb] = useState(false);
   const router = useRouter();
 
   const [showPaywall, setShowPaywall] = useState(false);
@@ -201,46 +202,80 @@ export default function AeoIntegrations() {
     savePublishSettings({ publish_frequency: freq });
   };
 
-  // Handle OAuth callback for Google Search Console
+  // Handle OAuth callback for Google Search Console / Google Business
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       const state = urlParams.get("state");
 
-      if (code && state) {
-        setConnectingGsc(true);
-        try {
-          // We must pass the same redirectUri used to start the OAuth flow.
-          // Store it before redirecting to Google, then read it back here.
-          const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
-            `${window.location.origin}/integrations`;
+      if (!code || !state) return;
 
-          const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-            body: { code, state, redirectUri },
+      let parsedState: { type?: string; projectId?: string } = {};
+      try {
+        parsedState = JSON.parse(atob(state));
+      } catch {
+        parsedState = {};
+      }
+
+      if (parsedState.type === "gmb") {
+        setIsExchangingGmb(true);
+        try {
+          const redirectUri = `${window.location.origin}/integrations`;
+          const { data, error } = await supabase.functions.invoke("gmb-oauth-token", {
+            body: {
+              code,
+              redirectUri,
+              projectId: project?.id || parsedState.projectId,
+            },
           });
 
           if (error) throw error;
           if (!data?.success) {
-            const msg = [data?.error, data?.details].filter(Boolean).join("\n");
-            throw new Error(msg || "Failed to connect");
+            throw new Error(data?.error || "Failed to connect");
           }
 
-          toast.success("Google Search Console connecté avec succès!");
-          refetchGsc();
-          sessionStorage.removeItem("gsc_oauth_redirect_uri");
+          toast.success("Google My Business connecté avec succès!");
           window.history.replaceState({}, document.title, window.location.pathname);
+          window.location.reload();
         } catch (error: any) {
-          console.error("OAuth callback error:", error);
+          console.error("GMB OAuth callback error:", error);
           toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
         } finally {
-          setConnectingGsc(false);
+          setIsExchangingGmb(false);
         }
+        return;
+      }
+
+      setConnectingGsc(true);
+      try {
+        const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
+          `${window.location.origin}/integrations`;
+
+        const { data, error } = await supabase.functions.invoke("google-oauth-token", {
+          body: { code, state, redirectUri },
+        });
+
+        if (error) throw error;
+        if (!data?.success) {
+          const msg = [data?.error, data?.details].filter(Boolean).join("\n");
+          throw new Error(msg || "Failed to connect");
+        }
+
+        toast.success("Google Search Console connecté avec succès!");
+        refetchGsc();
+        sessionStorage.removeItem("gsc_oauth_redirect_uri");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error: any) {
+        console.error("OAuth callback error:", error);
+        toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
+      } finally {
+        setConnectingGsc(false);
       }
     };
 
     handleOAuthCallback();
-  }, [refetchGsc]);
+  }, [project?.id, refetchGsc]);
 
   // Load available GSC sites when connected
   useEffect(() => {
@@ -912,8 +947,8 @@ export default function AeoIntegrations() {
                 Connected
               </Badge>
             ) : (
-              <Button onClick={connectGMB} disabled={gmbLoading} className="gap-2">
-                {gmbLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+              <Button onClick={connectGMB} disabled={gmbLoading || isExchangingGmb} className="gap-2">
+                {gmbLoading || isExchangingGmb ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
                 Connect
               </Button>
             )}
