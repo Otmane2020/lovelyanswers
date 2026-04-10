@@ -68,6 +68,8 @@ export default function AeoIntegrations() {
     isLoading: gmbLoading,
     toggleLocation: toggleGmbLocation,
     connectGMB,
+    error: gmbError,
+    disconnectGMB,
   } = useGoogleBusiness();
   const [isExchangingGmb, setIsExchangingGmb] = useState(false);
   const router = useRouter();
