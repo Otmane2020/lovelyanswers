@@ -91,7 +91,17 @@ serve(async (req) => {
               .eq("id", integration.id);
             console.log("GMB token refreshed successfully");
           } else {
-            console.error("GMB token refresh failed:", await refreshRes.text());
+            const refreshError = await refreshRes.text();
+            console.error("GMB token refresh failed:", refreshError);
+            // Mark integration as disconnected since refresh failed
+            await supabase
+              .from("integrations")
+              .update({ is_connected: false, updated_at: new Date().toISOString() })
+              .eq("id", integration.id);
+            return new Response(
+              JSON.stringify({ error: "GMB session expired. Please reconnect your Google Business account.", business: null, locations: [], tokenExpired: true }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
         }
       }
