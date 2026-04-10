@@ -213,6 +213,9 @@ export default function AeoIntegrations() {
 
       if (!code || !state) return;
 
+      // Immediately clear the URL to prevent double-exchange on re-render
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       let parsedState: { type?: string; projectId?: string } = {};
       try {
         parsedState = JSON.parse(atob(state));
@@ -238,7 +241,6 @@ export default function AeoIntegrations() {
           }
 
           toast.success("Google My Business connecté avec succès!");
-          window.history.replaceState({}, document.title, window.location.pathname);
           window.location.reload();
         } catch (error: any) {
           console.error("GMB OAuth callback error:", error);
