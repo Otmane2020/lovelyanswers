@@ -999,6 +999,17 @@ export default function AeoIntegrations() {
                     {gmbSelectedIds.length} store{gmbSelectedIds.length !== 1 ? "s" : ""} selected — scheduled content will auto-post to these locations
                   </p>
                 </div>
+              ) : gmbError ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-destructive flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {gmbError}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={async () => { await disconnectGMB(); connectGMB(); }} className="w-fit gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Reconnect
+                  </Button>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No locations found on your Google Business account.</p>
               )}
