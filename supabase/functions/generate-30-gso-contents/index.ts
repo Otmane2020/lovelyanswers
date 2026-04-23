@@ -203,7 +203,7 @@ Output ONLY valid JSON array:
         Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           { role: "system", content: "Respond with valid JSON only. No markdown fences." },
           { role: "user", content: topicsPrompt },
@@ -362,7 +362,7 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
             Authorization: "Bearer " + openRouterKey,
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.0-flash-exp:free",
             messages: [
               { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
               { role: "user", content: contentPrompt },

@@ -215,7 +215,7 @@ Rules:
         "X-Title": "AutoPilot Geo Audit",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           { role: "system", content: "You are an SEO & AEO expert auditor. Always respond with valid JSON arrays only. Never wrap in markdown code blocks." },
           { role: "user", content: auditPrompt },
