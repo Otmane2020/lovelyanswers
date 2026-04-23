@@ -232,7 +232,7 @@ Respond in JSON:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { role: "system", content: "You are an expert SEO content writer. Rewrite articles to be comprehensive, data-rich, and optimized for AI citation. Always respond with valid JSON only." },
         { role: "user", content: rewritePrompt },

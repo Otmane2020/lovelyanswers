@@ -1516,7 +1516,7 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { 
           role: "system", 
@@ -1650,7 +1650,7 @@ Return JSON:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { 
           role: "system", 
@@ -1726,7 +1726,7 @@ Return JSON (respond in ${context.language === "fr" ? "French" : "English"}):
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { 
           role: "system", 
@@ -1843,7 +1843,7 @@ Write the Reddit comment now:`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

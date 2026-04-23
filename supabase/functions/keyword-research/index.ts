@@ -170,7 +170,7 @@ Generate at least 5 clusters with 5-10 keywords each. Focus on:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           { role: "system", content: "You are a keyword research expert. Always respond with valid JSON only." },
           { role: "user", content: keywordPrompt }

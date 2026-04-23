@@ -284,7 +284,7 @@ Respond ONLY with this JSON (no explanation):
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.0-flash-exp:free",
             messages: [
               { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: analysisPrompt }
@@ -370,7 +370,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.0-flash-exp:free",
             messages: [
               { role: "system", content: "Tu es un expert en analyse de marché et en identification de concurrents. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: prompt }

@@ -122,7 +122,7 @@ Include at least 10 checks. Be specific and actionable.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           { role: "system", content: "You are an SEO expert. Always respond with valid JSON arrays only." },
           { role: "user", content: auditPrompt }
