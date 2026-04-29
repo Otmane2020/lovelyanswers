@@ -531,9 +531,15 @@ export default function Answers() {
           {/* Answers Tab Content */}
           <TabsContent value="answers" className="space-y-4 mt-4">
             {filteredAnswers.map((answer, index) =>
-            <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
+             <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
-                  <ScoreRing score={answer.score ?? 0} size="sm" />
+                  {(!isSubscribed && index !== 0) || !answer.answer ? (
+                    <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center text-muted-foreground shrink-0" title="Locked — content not generated yet">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                  ) : (
+                    <ScoreRing score={answer.score ?? 0} size="sm" />
+                  )}
                   <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="font-semibold text-sm sm:text-base leading-snug">{answer.question}</h3>
