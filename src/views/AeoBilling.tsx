@@ -171,9 +171,38 @@ export default function AeoBilling() {
               Manage Subscription
             </Button>
             {subscribed && (
-              <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                Cancel Subscription
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={cancelling}
+                  >
+                    {cancelling ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Cancel Subscription
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Your subscription will remain active until{" "}
+                      {subscriptionEnd
+                        ? format(new Date(subscriptionEnd), "MMM d, yyyy")
+                        : "the end of your current billing period"}
+                      . You'll keep full access until then and won't be charged again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep subscription</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelSubscription}>
+                      Confirm cancellation
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </Card>
