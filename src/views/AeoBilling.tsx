@@ -44,6 +44,23 @@ export default function AeoBilling() {
   const { subscribed, trial, subscriptionEnd, openCustomerPortal } = useSubscription();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    setCancelling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription");
+      if (error) throw error;
+      const endDate = data?.period_end
+        ? format(new Date(data.period_end), "MMM d, yyyy")
+        : "the end of your billing period";
+      toast.success(`Subscription cancelled. You keep access until ${endDate}.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel subscription");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Fetch real invoices from database
   useEffect(() => {
