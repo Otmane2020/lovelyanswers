@@ -24,6 +24,7 @@ const VIP_EMAILS = [
   "contact@webify-app.com",
   "canapedeluxe.com@gmail.com",
   "clipmotion.ai@gmail.com",
+  "floresclarissausa@gmail.com",
 ];
 
 serve(async (req) => {
