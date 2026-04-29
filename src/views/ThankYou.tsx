@@ -111,10 +111,25 @@ export default function ThankYou() {
                 </p>
               </div>
               <Button
-                onClick={() => router.push("/dashboard")}
+                onClick={async () => {
+                  // Check if user already has a project; if not, send to the wizard
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user) {
+                    const { data: projects } = await supabase
+                      .from("projects")
+                      .select("id")
+                      .eq("user_id", user.id)
+                      .limit(1);
+                    if (!projects || projects.length === 0) {
+                      router.push("/wizard");
+                      return;
+                    }
+                  }
+                  router.push("/dashboard");
+                }}
                 className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
               >
-                Go to Dashboard
+                Continue setup
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </>
