@@ -23,7 +23,7 @@ interface LockedArticle {
 
 export default function AeoDashboard() {
   const router = useRouter();
-  const { project } = useActiveProject();
+  const { project, projects, isLoading: projectsLoading } = useActiveProject();
   const { subscribed, startCheckout, isLoading } = useSubscription();
   useRedditPreload();
   
@@ -32,6 +32,15 @@ export default function AeoDashboard() {
   const [lockedCount, setLockedCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+
+  // Safety net: if subscribed user has no project yet, send them to the wizard
+  useEffect(() => {
+    if (projectsLoading) return;
+    if (!subscribed) return;
+    if (!projects || projects.length === 0) {
+      router.replace("/wizard");
+    }
+  }, [projectsLoading, subscribed, projects, router]);
 
   useEffect(() => {
     const fetchData = async () => {
