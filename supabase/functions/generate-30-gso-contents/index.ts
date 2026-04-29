@@ -203,26 +203,45 @@ Output ONLY valid JSON array:
         Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Respond with valid JSON only. No markdown fences." },
+          { role: "system", content: "Respond with valid JSON only. No markdown fences, no explanation, no preamble." },
           { role: "user", content: topicsPrompt },
         ],
         temperature: 0.8,
-        max_tokens: 4000,
+        max_tokens: 8000,
+        response_format: { type: "json_object" },
       }),
     });
 
     const topicsData = await topicsRes.json();
     const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
+    console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsRes.status);
+    if (topicsData.error) {
+      console.error("[generate-30-gso] OpenRouter error:", JSON.stringify(topicsData.error));
+    }
     let topics: { topic: string; type: string; keywords: string[] }[] = [];
 
     try {
-      const cleaned = topicsRaw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      topics = JSON.parse(cleaned);
-    } catch {
-      console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Failed to generate topics" }), {
+      let cleaned = topicsRaw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      // Handle case where model wraps array in object: {"topics": [...]} 
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        topics = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        // Find the first array property
+        const arrKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+        if (arrKey) topics = parsed[arrKey];
+      }
+      if (!Array.isArray(topics) || topics.length === 0) {
+        throw new Error("No topics array found in response");
+      }
+    } catch (e) {
+      console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 1000), "error:", String(e));
+      return new Response(JSON.stringify({ 
+        error: "Failed to generate topics. The AI returned an empty or invalid response. Please try again.",
+        details: topicsData.error?.message || "Empty response from AI"
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
