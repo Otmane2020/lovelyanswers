@@ -48,36 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Handle OAuth callback from URL hash (for Google OAuth)
-    const handleOAuthCallback = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        console.log("[AuthContext] OAuth hash detected, setting session...");
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (error) {
-          console.error("[AuthContext] setSession error:", error);
-          return;
-        }
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        // Immediate redirect — don't wait for event listener race
-        if (data.session?.user) {
-          await redirectAfterAuth(data.session.user);
-          return;
-        }
-      }
-    };
-
-    handleOAuthCallback();
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST.
+    // Supabase-js auto-detects OAuth tokens in URL hash (detectSessionInUrl=true by default)
+    // and fires SIGNED_IN automatically — we don't need to manually call setSession.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("[AuthContext] event:", event, "hasSession:", !!session);
@@ -85,7 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setIsLoading(false);
 
-        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+        if (event === "SIGNED_IN" && session?.user) {
+          // Clean OAuth hash from URL if present
+          if (window.location.hash.includes("access_token")) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          }
           setTimeout(() => {
             redirectAfterAuth(session.user);
           }, 0);
