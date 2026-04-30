@@ -388,6 +388,17 @@ export default function Auth() {
                           description: error.message,
                           variant: "destructive",
                         });
+                        return;
+                      }
+
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (session?.user) {
+                        const { data: projects } = await supabase
+                          .from("projects")
+                          .select("id")
+                          .eq("user_id", session.user.id)
+                          .limit(1);
+                        window.location.replace(projects && projects.length > 0 ? "/dashboard" : "/wizard");
                       }
                     }}
                   >
