@@ -373,11 +373,11 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
       }
 
       try {
-        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + openRouterKey,
+            Authorization: "Bearer " + lovableKey,
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
@@ -387,7 +387,6 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
             ],
             temperature: 0.65,
             max_tokens: 10000,
-            response_format: { type: "json_object" },
           }),
         });
 
