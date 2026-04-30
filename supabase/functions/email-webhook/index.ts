@@ -67,6 +67,43 @@ serve(async (req: Request): Promise<Response> => {
         console.log("[email-webhook] Saved inbox email:", inserted?.id);
       }
 
+      // Forward to admin notification address
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY) {
+          const ADMIN_NOTIFY = "oben.rockman@gmail.com";
+          const fwdSubject = `[AutoPilot Inbox] ${subject}`;
+          const fwdHtml = `
+            <div style="font-family:-apple-system,sans-serif;line-height:1.6;color:#333;max-width:600px;">
+              <div style="background:#f4f4f5;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px;">
+                <p style="margin:0"><strong>From:</strong> ${fromName ? `${fromName} &lt;${fromEmail}&gt;` : fromEmail}</p>
+                <p style="margin:4px 0 0"><strong>To:</strong> ${toEmail}</p>
+                <p style="margin:4px 0 0"><strong>Subject:</strong> ${subject}</p>
+              </div>
+              ${bodyHtml || `<pre style="white-space:pre-wrap;font-family:inherit;">${(bodyText || "").replace(/</g,"&lt;")}</pre>`}
+              <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
+              <p style="font-size:12px;color:#888;">📬 Reçu sur support@autopilotgeo.com — <a href="https://app.autopilotgeo.com/superadmin">Ouvrir la boîte de réception</a></p>
+            </div>`;
+          const fwdRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "AutoPilot Inbox <support@autopilotgeo.com>",
+              to: [ADMIN_NOTIFY],
+              subject: fwdSubject,
+              html: fwdHtml,
+              reply_to: fromEmail || undefined,
+            }),
+          });
+          if (!fwdRes.ok) {
+            console.error("[email-webhook] Forward failed:", await fwdRes.text());
+          } else {
+            console.log("[email-webhook] Forwarded to admin");
+          }
+        }
+      } catch (fwdErr) {
+        console.error("[email-webhook] Forward error:", fwdErr);
+
       // Also try to link to existing ticket if from a known user
       if (fromEmail) {
         const { data: profile } = await supabase
