@@ -29,6 +29,7 @@ import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
+const LOCKED_ANSWER_TEXT = "Content locked — subscribe to unlock.";
 
 interface Article {
   id: string;
@@ -80,6 +81,26 @@ export default function Answers() {
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+
+  const isAnswerLocked = (answer: typeof answers[0]) => !answer.answer || answer.answer === LOCKED_ANSWER_TEXT;
+
+  useEffect(() => {
+    const unlockLockedContent = async () => {
+      if (!isSubscribed || answers.length === 0 || !answers.some(isAnswerLocked)) return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await supabase.functions.invoke("unlock-articles", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        });
+        window.setTimeout(() => refetch(), 6000);
+      } catch (error) {
+        console.error("Error unlocking paid content:", error);
+      }
+    };
+
+    unlockLockedContent();
+  }, [isSubscribed, answers, refetch]);
 
   // Fetch articles
   useEffect(() => {
@@ -159,6 +180,7 @@ export default function Answers() {
 
   const handleViewAnswer = (answer: typeof answers[0]) => {
     if (!isSubscribed) {setShowUpgradeDialog(true);return;}
+    if (isAnswerLocked(answer)) {toast.info("Content is being prepared. Please refresh in a moment.");return;}
     setViewingAnswer(answer);
   };
 
