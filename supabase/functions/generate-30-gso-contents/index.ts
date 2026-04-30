@@ -156,9 +156,9 @@ Deno.serve(async (req) => {
     // Get existing topics to avoid duplicates
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
 
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openRouterKey) {
-      return new Response(JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }), {
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableKey) {
+      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
