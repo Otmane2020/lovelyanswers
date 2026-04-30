@@ -183,6 +183,83 @@ const SuperAdmin = () => {
     }
   };
 
+  const loadResendSent = async () => {
+    setIsLoadingResend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-mailbox", {
+        body: { action: "list_sent" },
+      });
+      if (error) throw error;
+      setResendSent(data?.data || []);
+    } catch (e: any) {
+      toast({ title: "Erreur Resend", description: e.message, variant: "destructive" });
+    } finally {
+      setIsLoadingResend(false);
+    }
+  };
+
+  const loadResendInbox = async () => {
+    try {
+      // Inbox = incoming user replies captured by email-webhook into support_messages
+      const { data, error } = await supabase
+        .from("support_messages")
+        .select("id, ticket_id, message, created_at, sender_type, support_tickets(user_email, subject)")
+        .eq("sender_type", "user")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setResendInbox(data || []);
+    } catch (e: any) {
+      console.error("Inbox load error:", e);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .not("email", "is", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setAllUsers((data || []) as any);
+    } catch (e: any) {
+      console.error("Users load error:", e);
+    }
+  };
+
+  const handleSendCompose = async () => {
+    if (!composeSubject.trim() || !composeBody.trim() || composeRecipients.length === 0) {
+      toast({ title: "Champs manquants", description: "Destinataires, sujet et message requis", variant: "destructive" });
+      return;
+    }
+    setIsComposing(true);
+    try {
+      const htmlBody = composeBody.replace(/\n/g, "<br>");
+      const results = await Promise.allSettled(
+        composeRecipients.map((to) =>
+          supabase.functions.invoke("send-email", {
+            body: { type: "custom", to, subject: composeSubject, html: htmlBody },
+          })
+        )
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok;
+      toast({ title: "Envoi terminé", description: `${ok} envoyés, ${fail} échecs` });
+      if (ok > 0) {
+        setComposeSubject("");
+        setComposeBody("");
+        setComposeRecipients([]);
+        loadResendSent();
+      }
+    } catch (e: any) {
+      toast({ title: "Erreur d'envoi", description: e.message, variant: "destructive" });
+    } finally {
+      setIsComposing(false);
+    }
+  };
+
+
   const loadMessages = async (ticketId: string) => {
     try {
       const { data, error } = await supabase
