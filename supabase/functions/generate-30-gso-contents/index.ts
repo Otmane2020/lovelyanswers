@@ -156,9 +156,9 @@ Deno.serve(async (req) => {
     // Get existing topics to avoid duplicates
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
 
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openRouterKey) {
-      return new Response(JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }), {
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableKey) {
+      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -196,11 +196,11 @@ Mix these content types proportionally (total = ${toGenerate}):
 Output ONLY valid JSON array:
 [{"topic": "topic text", "type": "article|pillar|mentions|comparison", "keywords": ["kw1", "kw2", "kw3"]}]`;
 
-    const topicsRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const topicsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + openRouterKey,
+        Authorization: "Bearer " + lovableKey,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -210,7 +210,6 @@ Output ONLY valid JSON array:
         ],
         temperature: 0.8,
         max_tokens: 8000,
-        response_format: { type: "json_object" },
       }),
     });
 
@@ -218,7 +217,7 @@ Output ONLY valid JSON array:
     const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
     console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsRes.status);
     if (topicsData.error) {
-      console.error("[generate-30-gso] OpenRouter error:", JSON.stringify(topicsData.error));
+      console.error("[generate-30-gso] Lovable AI error:", JSON.stringify(topicsData.error));
     }
     let topics: { topic: string; type: string; keywords: string[] }[] = [];
 
@@ -374,11 +373,11 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
       }
 
       try {
-        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + openRouterKey,
+            Authorization: "Bearer " + lovableKey,
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
@@ -388,7 +387,6 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
             ],
             temperature: 0.65,
             max_tokens: 10000,
-            response_format: { type: "json_object" },
           }),
         });
 
