@@ -19,6 +19,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const redirectAfterAuth = async (authUser: User) => {
+    if (typeof window === "undefined") return;
+
+    const path = window.location.pathname;
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const searchParams = new URLSearchParams(window.location.search);
+    const isRecovery = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
+
+    if (isRecovery || !["/auth", "/signup"].includes(path)) return;
+
+    try {
+      const { data: projects, error } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .limit(1);
+
+      if (error) throw error;
+
+      const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
+      console.log("[AuthContext] Post-auth redirect →", target);
+      window.location.replace(target);
+    } catch (e) {
+      console.error("[AuthContext] Post-auth redirect query error:", e);
+      window.location.replace("/wizard");
+    }
+  };
+
   useEffect(() => {
     // Handle OAuth callback from URL hash (for Google OAuth)
     const handleOAuthCallback = async () => {
@@ -40,26 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.history.replaceState({}, document.title, window.location.pathname);
 
         // Immediate redirect — don't wait for event listener race
-        const userId = data.session?.user?.id;
-        if (userId) {
-          const path = window.location.pathname;
-          if (["/auth", "/signup", "/"].includes(path)) {
-            try {
-              const { data: projects } = await supabase
-                .from("projects")
-                .select("id")
-                .eq("user_id", userId)
-                .limit(1);
-              const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
-              console.log("[AuthContext] OAuth callback redirect →", target);
-              window.location.replace(target);
-              return;
-            } catch (e) {
-              console.error("[AuthContext] redirect query error:", e);
-              window.location.replace("/wizard");
-              return;
-            }
-          }
+        if (data.session?.user) {
+          await redirectAfterAuth(data.session.user);
+          return;
         }
       }
     };
@@ -73,6 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+          setTimeout(() => {
+            redirectAfterAuth(session.user);
+          }, 0);
+        }
       }
     );
 
@@ -81,6 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      if (session?.user) {
+        redirectAfterAuth(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
