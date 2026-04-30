@@ -95,12 +95,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [checkSubscription]);
 
-  // Periodic refresh
+  // Periodic refresh — fast (15s) while unsubscribed to catch new payments quickly,
+  // then slow (60s) once subscribed.
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(checkSubscription, 60000);
+    const intervalMs = isSubscribed ? 60000 : 15000;
+    const interval = setInterval(checkSubscription, intervalMs);
     return () => clearInterval(interval);
-  }, [user, checkSubscription]);
+  }, [user, checkSubscription, isSubscribed]);
 
   return (
     <SubscriptionContext.Provider value={{ 
