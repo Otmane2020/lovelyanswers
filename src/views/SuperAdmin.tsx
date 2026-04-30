@@ -19,7 +19,7 @@ import {
   Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone,
   Brain, Key, Target, TrendingUp, Lightbulb, Tag
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -96,6 +96,9 @@ const SuperAdmin = () => {
   const [resendSent, setResendSent] = useState<any[]>([]);
   const [resendInbox, setResendInbox] = useState<any[]>([]);
   const [isLoadingResend, setIsLoadingResend] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
+  const [emailReply, setEmailReply] = useState("");
+  const [isSendingEmailReply, setIsSendingEmailReply] = useState(false);
   const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
@@ -906,7 +909,19 @@ const SuperAdmin = () => {
                         {resendInbox.length === 0 ? (
                           <p className="text-muted-foreground text-center py-10">Aucun message reçu</p>
                         ) : resendInbox.map((m: any) => (
-                          <div key={m.id} className={`p-4 rounded-lg border hover:bg-muted/30 ${!m.is_read ? "bg-primary/5 border-primary/30" : ""}`}>
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={async () => {
+                              setSelectedEmail(m);
+                              setEmailReply("");
+                              if (!m.is_read) {
+                                await supabase.from("inbox_emails").update({ is_read: true }).eq("id", m.id);
+                                setResendInbox((prev) => prev.map((x) => x.id === m.id ? { ...x, is_read: true } : x));
+                              }
+                            }}
+                            className={`w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition ${!m.is_read ? "bg-primary/5 border-primary/30 font-medium" : ""}`}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <p className="font-medium text-sm">{m.from_name ? `${m.from_name} <${m.from_email}>` : m.from_email}</p>
@@ -914,8 +929,8 @@ const SuperAdmin = () => {
                               </div>
                               <p className="text-xs text-muted-foreground">{format(new Date(m.received_at), "d MMM yyyy HH:mm", { locale: enUS })}</p>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap line-clamp-4">{m.body_text || m.body_html?.replace(/<[^>]+>/g, "") || ""}</p>
-                          </div>
+                            <p className="text-sm whitespace-pre-wrap line-clamp-2 text-muted-foreground">{m.body_text || m.body_html?.replace(/<[^>]+>/g, "") || ""}</p>
+                          </button>
                         ))}
                       </div>
                     </ScrollArea>
@@ -1380,6 +1395,84 @@ const SuperAdmin = () => {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Email read & reply dialog */}
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setEmailReply(""); } }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base">{selectedEmail?.subject || "(sans sujet)"}</DialogTitle>
+            <DialogDescription className="text-xs">
+              De: {selectedEmail?.from_name ? `${selectedEmail.from_name} <${selectedEmail.from_email}>` : selectedEmail?.from_email}
+              {" · "}
+              {selectedEmail?.received_at && format(new Date(selectedEmail.received_at), "d MMM yyyy HH:mm", { locale: enUS })}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 max-h-[40vh] border rounded-md p-4 bg-muted/20">
+            {selectedEmail?.body_html ? (
+              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} />
+            ) : (
+              <p className="text-sm whitespace-pre-wrap">{selectedEmail?.body_text || ""}</p>
+            )}
+          </ScrollArea>
+          <div className="space-y-2 pt-2">
+            <Label className="text-sm">Répondre à {selectedEmail?.from_email}</Label>
+            <Textarea
+              value={emailReply}
+              onChange={(e) => setEmailReply(e.target.value)}
+              placeholder="Tapez votre réponse..."
+              rows={6}
+            />
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!selectedEmail) return;
+                  await supabase.from("inbox_emails").delete().eq("id", selectedEmail.id);
+                  setResendInbox((prev) => prev.filter((x) => x.id !== selectedEmail.id));
+                  setSelectedEmail(null);
+                  toast({ title: "Supprimé" });
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />Supprimer
+              </Button>
+              <Button
+                disabled={!emailReply.trim() || isSendingEmailReply}
+                onClick={async () => {
+                  if (!selectedEmail || !emailReply.trim()) return;
+                  setIsSendingEmailReply(true);
+                  try {
+                    const subject = selectedEmail.subject?.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject || "Votre message"}`;
+                    const html = `<div style="font-family:-apple-system,sans-serif;line-height:1.6;color:#333;max-width:600px;">
+                      <div style="white-space:pre-wrap;">${emailReply.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>
+                      <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
+                      <div style="font-size:12px;color:#888;">
+                        <p>Le ${format(new Date(selectedEmail.received_at), "d MMM yyyy HH:mm", { locale: enUS })}, ${selectedEmail.from_email} a écrit :</p>
+                        <blockquote style="border-left:3px solid #ddd;padding-left:12px;color:#666;">
+                          ${(selectedEmail.body_text || selectedEmail.body_html?.replace(/<[^>]+>/g, "") || "").slice(0, 1000).replace(/</g, "&lt;").replace(/\n/g, "<br>")}
+                        </blockquote>
+                      </div>
+                    </div>`;
+                    const { error } = await supabase.functions.invoke("send-email", {
+                      body: { type: "custom", to: selectedEmail.from_email, subject, html, message: emailReply },
+                    });
+                    if (error) throw error;
+                    toast({ title: "Réponse envoyée ✅" });
+                    setEmailReply("");
+                    setSelectedEmail(null);
+                  } catch (e: any) {
+                    toast({ title: "Erreur d'envoi", description: e.message, variant: "destructive" });
+                  } finally {
+                    setIsSendingEmailReply(false);
+                  }
+                }}
+              >
+                <Send className="h-4 w-4 mr-2" />{isSendingEmailReply ? "Envoi..." : "Envoyer"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
