@@ -105,6 +105,8 @@ const SuperAdmin = () => {
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [isComposing, setIsComposing] = useState(false);
+  const [composeAttachments, setComposeAttachments] = useState<File[]>([]);
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
   const [allUsers, setAllUsers] = useState<{ id: string; email: string; full_name: string | null }[]>([]);
   const [userSearch, setUserSearch] = useState("");
   
