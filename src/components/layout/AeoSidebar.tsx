@@ -29,7 +29,7 @@ export function AeoSidebar() {
     { title: "History", url: "/history", icon: History },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Integrations", url: "/integrations", icon: Link2 },
-    { title: "Reddit", url: "/reddit", icon: MessageSquareText },
+    // { title: "Reddit", url: "/reddit", icon: MessageSquareText }, // hidden
   ];
 
   const shoppingMenuItems = [

@@ -7,23 +7,40 @@ import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, ArrowRight, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProjects } from "@/hooks/useProjects";
 import { Button } from "@/components/ui/button";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+const NO_PROJECT_ALLOWED = ["/wizard", "/onboarding", "/auth", "/checkout", "/pricing", "/billing", "/subscription", "/thank-you", "/support", "/account", "/settings"];
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isGenerating, generationProgress, generationMessage } = useGeneration();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: projects, isLoading: projectsLoading } = useProjects();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Force light theme on dashboard
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
+
+  // Redirect users without any project to the wizard (forces onboarding)
+  useEffect(() => {
+    if (!authLoading && user && !projectsLoading && projects && projects.length === 0) {
+      const isAllowed = NO_PROJECT_ALLOWED.some((p) => pathname?.startsWith(p));
+      if (!isAllowed) {
+        router.push("/wizard");
+      }
+    }
+  }, [authLoading, user, projectsLoading, projects, pathname, router]);
 
   const showUpgradeBanner = !subLoading && !isSubscribed;
 
