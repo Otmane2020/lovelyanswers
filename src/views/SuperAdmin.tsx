@@ -202,13 +202,12 @@ const SuperAdmin = () => {
 
   const loadResendInbox = async () => {
     try {
-      // Inbox = incoming user replies captured by email-webhook into support_messages
+      // Inbox = ALL incoming emails captured by email-webhook into inbox_emails
       const { data, error } = await supabase
-        .from("support_messages")
-        .select("id, ticket_id, message, created_at, sender_type, support_tickets(user_email, subject)")
-        .eq("sender_type", "user")
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .from("inbox_emails")
+        .select("id, from_email, from_name, to_email, subject, body_text, body_html, is_read, received_at")
+        .order("received_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       setResendInbox(data || []);
     } catch (e: any) {
