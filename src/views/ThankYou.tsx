@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trackPurchase } from "@/lib/gtag-conversions";
 import { trackMetaPurchase } from "@/lib/meta-pixel";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
