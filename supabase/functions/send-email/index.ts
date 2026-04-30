@@ -194,6 +194,9 @@ const handler = async (req: Request): Promise<Response> => {
         subject,
         html,
         reply_to: "support@autopilotgeo.com",
+        ...(Array.isArray(data.attachments) && data.attachments.length > 0
+          ? { attachments: data.attachments }
+          : {}),
       }),
     });
 

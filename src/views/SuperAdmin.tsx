@@ -28,6 +28,7 @@ import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 interface SupportTicket {
   id: string;
@@ -104,6 +105,8 @@ const SuperAdmin = () => {
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [isComposing, setIsComposing] = useState(false);
+  const [composeAttachments, setComposeAttachments] = useState<File[]>([]);
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
   const [allUsers, setAllUsers] = useState<{ id: string; email: string; full_name: string | null }[]>([]);
   const [userSearch, setUserSearch] = useState("");
   
@@ -240,11 +243,21 @@ const SuperAdmin = () => {
     }
     setIsComposing(true);
     try {
-      const htmlBody = composeBody.replace(/\n/g, "<br>");
+      const htmlBody = composeBody;
+      // Encode attachments to base64
+      const encodedAttachments = await Promise.all(
+        composeAttachments.map(async (f) => {
+          const buf = await f.arrayBuffer();
+          let binary = "";
+          const bytes = new Uint8Array(buf);
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          return { filename: f.name, content: btoa(binary), content_type: f.type || "application/octet-stream" };
+        })
+      );
       const results = await Promise.allSettled(
         composeRecipients.map((to) =>
           supabase.functions.invoke("send-email", {
-            body: { type: "custom", to, subject: composeSubject, html: htmlBody },
+            body: { type: "custom", to, subject: composeSubject, html: htmlBody, attachments: encodedAttachments },
           })
         )
       );
@@ -255,6 +268,7 @@ const SuperAdmin = () => {
         setComposeSubject("");
         setComposeBody("");
         setComposeRecipients([]);
+        setComposeAttachments([]);
         loadResendSent();
       }
     } catch (e: any) {
@@ -1043,7 +1057,14 @@ const SuperAdmin = () => {
                     </div>
                     <div>
                       <Label className="mb-2 block">Message</Label>
-                      <Textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={10} placeholder="Votre message... (le HTML basique est supporté)" />
+                      <RichTextEditor
+                        value={composeBody}
+                        onChange={setComposeBody}
+                        placeholder="Votre message..."
+                        minHeight={240}
+                        attachments={composeAttachments}
+                        onAttachmentsChange={setComposeAttachments}
+                      />
                     </div>
                     <Button onClick={handleSendCompose} disabled={isComposing || composeRecipients.length === 0}>
                       <Send className="h-4 w-4 mr-2" />
@@ -1398,7 +1419,7 @@ const SuperAdmin = () => {
       </Tabs>
 
       {/* Email read & reply dialog */}
-      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setEmailReply(""); } }}>
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setEmailReply(""); setReplyAttachments([]); } }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base">{selectedEmail?.subject || "(sans sujet)"}</DialogTitle>
@@ -1449,11 +1470,13 @@ const SuperAdmin = () => {
           </Tabs>
           <div className="space-y-2 pt-2">
             <Label className="text-sm">Répondre à {selectedEmail?.from_email}</Label>
-            <Textarea
+            <RichTextEditor
               value={emailReply}
-              onChange={(e) => setEmailReply(e.target.value)}
+              onChange={setEmailReply}
               placeholder="Tapez votre réponse..."
-              rows={6}
+              minHeight={180}
+              attachments={replyAttachments}
+              onAttachmentsChange={setReplyAttachments}
             />
             <div className="flex justify-between items-center">
               <Button
@@ -1470,14 +1493,14 @@ const SuperAdmin = () => {
                 <Trash2 className="h-4 w-4 mr-2" />Supprimer
               </Button>
               <Button
-                disabled={!emailReply.trim() || isSendingEmailReply}
+                disabled={!emailReply.replace(/<[^>]+>/g, "").trim() || isSendingEmailReply}
                 onClick={async () => {
-                  if (!selectedEmail || !emailReply.trim()) return;
+                  if (!selectedEmail || !emailReply.replace(/<[^>]+>/g, "").trim()) return;
                   setIsSendingEmailReply(true);
                   try {
                     const subject = selectedEmail.subject?.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject || "Votre message"}`;
                     const html = `<div style="font-family:-apple-system,sans-serif;line-height:1.6;color:#333;max-width:600px;">
-                      <div style="white-space:pre-wrap;">${emailReply.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>
+                      <div>${emailReply}</div>
                       <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
                       <div style="font-size:12px;color:#888;">
                         <p>Le ${format(new Date(selectedEmail.received_at), "d MMM yyyy HH:mm", { locale: enUS })}, ${selectedEmail.from_email} a écrit :</p>
@@ -1486,12 +1509,22 @@ const SuperAdmin = () => {
                         </blockquote>
                       </div>
                     </div>`;
+                    const encodedAttachments = await Promise.all(
+                      replyAttachments.map(async (f) => {
+                        const buf = await f.arrayBuffer();
+                        let binary = "";
+                        const bytes = new Uint8Array(buf);
+                        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                        return { filename: f.name, content: btoa(binary), content_type: f.type || "application/octet-stream" };
+                      })
+                    );
                     const { error } = await supabase.functions.invoke("send-email", {
-                      body: { type: "custom", to: selectedEmail.from_email, subject, html, message: emailReply },
+                      body: { type: "custom", to: selectedEmail.from_email, subject, html, message: emailReply, attachments: encodedAttachments },
                     });
                     if (error) throw error;
                     toast({ title: "Réponse envoyée ✅" });
                     setEmailReply("");
+                    setReplyAttachments([]);
                     setSelectedEmail(null);
                   } catch (e: any) {
                     toast({ title: "Erreur d'envoi", description: e.message, variant: "destructive" });
