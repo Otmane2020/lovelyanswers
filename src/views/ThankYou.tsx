@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trackPurchase } from "@/lib/gtag-conversions";
 import { trackMetaPurchase } from "@/lib/meta-pixel";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
@@ -12,6 +13,7 @@ import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 export default function ThankYou() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { checkSubscription } = useSubscriptionContext();
   const [verified, setVerified] = useState<boolean | null>(null);
   const sessionId = searchParams.get("session_id");
 
@@ -42,7 +44,16 @@ export default function ThankYou() {
 
         setVerified(true);
 
-        // Fire Google Ads conversion only once
+        // Force-refresh subscription state with retries to overcome Stripe API propagation lag
+        (async () => {
+          for (let i = 0; i < 5; i++) {
+            try {
+              await checkSubscription();
+            } catch {}
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        })();
+
         if (!tracked) {
           tracked = true;
           const value = data.amount ? data.amount / 100 : 29;
@@ -112,6 +123,8 @@ export default function ThankYou() {
               </div>
               <Button
                 onClick={async () => {
+                  // Final refresh right before navigation to ensure no stale lock state
+                  try { await checkSubscription(); } catch {}
                   // Check if user already has a project; if not, send to the wizard
                   const { data: { user } } = await supabase.auth.getUser();
                   if (user) {
