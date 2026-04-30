@@ -196,11 +196,11 @@ Mix these content types proportionally (total = ${toGenerate}):
 Output ONLY valid JSON array:
 [{"topic": "topic text", "type": "article|pillar|mentions|comparison", "keywords": ["kw1", "kw2", "kw3"]}]`;
 
-    const topicsRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const topicsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + openRouterKey,
+        Authorization: "Bearer " + lovableKey,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -210,7 +210,6 @@ Output ONLY valid JSON array:
         ],
         temperature: 0.8,
         max_tokens: 8000,
-        response_format: { type: "json_object" },
       }),
     });
 
