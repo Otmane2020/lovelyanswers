@@ -91,6 +91,17 @@ const SuperAdmin = () => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [replyMessage, setReplyMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Resend mailbox state
+  const [resendSent, setResendSent] = useState<any[]>([]);
+  const [resendInbox, setResendInbox] = useState<any[]>([]);
+  const [isLoadingResend, setIsLoadingResend] = useState(false);
+  const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+  const [allUsers, setAllUsers] = useState<{ id: string; email: string; full_name: string | null }[]>([]);
+  const [userSearch, setUserSearch] = useState("");
   
   // Users state
   const [subscribers, setSubscribers] = useState<SubscriptionInfo[]>([]);
@@ -155,6 +166,8 @@ const SuperAdmin = () => {
       loadSubscribers(),
       loadProspects(),
       loadAdminProspects(),
+      loadResendInbox(),
+      loadAllUsers(),
     ]);
   };
 
@@ -171,6 +184,83 @@ const SuperAdmin = () => {
       console.error("Error loading tickets:", error);
     }
   };
+
+  const loadResendSent = async () => {
+    setIsLoadingResend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-mailbox", {
+        body: { action: "list_sent" },
+      });
+      if (error) throw error;
+      setResendSent(data?.data || []);
+    } catch (e: any) {
+      toast({ title: "Erreur Resend", description: e.message, variant: "destructive" });
+    } finally {
+      setIsLoadingResend(false);
+    }
+  };
+
+  const loadResendInbox = async () => {
+    try {
+      // Inbox = incoming user replies captured by email-webhook into support_messages
+      const { data, error } = await supabase
+        .from("support_messages")
+        .select("id, ticket_id, message, created_at, sender_type, support_tickets(user_email, subject)")
+        .eq("sender_type", "user")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setResendInbox(data || []);
+    } catch (e: any) {
+      console.error("Inbox load error:", e);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .not("email", "is", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setAllUsers((data || []) as any);
+    } catch (e: any) {
+      console.error("Users load error:", e);
+    }
+  };
+
+  const handleSendCompose = async () => {
+    if (!composeSubject.trim() || !composeBody.trim() || composeRecipients.length === 0) {
+      toast({ title: "Champs manquants", description: "Destinataires, sujet et message requis", variant: "destructive" });
+      return;
+    }
+    setIsComposing(true);
+    try {
+      const htmlBody = composeBody.replace(/\n/g, "<br>");
+      const results = await Promise.allSettled(
+        composeRecipients.map((to) =>
+          supabase.functions.invoke("send-email", {
+            body: { type: "custom", to, subject: composeSubject, html: htmlBody },
+          })
+        )
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok;
+      toast({ title: "Envoi terminé", description: `${ok} envoyés, ${fail} échecs` });
+      if (ok > 0) {
+        setComposeSubject("");
+        setComposeBody("");
+        setComposeRecipients([]);
+        loadResendSent();
+      }
+    } catch (e: any) {
+      toast({ title: "Erreur d'envoi", description: e.message, variant: "destructive" });
+    } finally {
+      setIsComposing(false);
+    }
+  };
+
 
   const loadMessages = async (ticketId: string) => {
     try {
@@ -670,6 +760,19 @@ const SuperAdmin = () => {
 
           {/* Support Tab */}
           <TabsContent value="support">
+            <Tabs defaultValue="tickets" className="w-full" onValueChange={(v) => {
+              if (v === "sent") loadResendSent();
+              if (v === "inbox") loadResendInbox();
+              if (v === "compose") loadAllUsers();
+            }}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="tickets"><MessageCircle className="h-4 w-4 mr-2" />Tickets</TabsTrigger>
+                <TabsTrigger value="inbox"><Mail className="h-4 w-4 mr-2" />Boîte de réception</TabsTrigger>
+                <TabsTrigger value="sent"><Send className="h-4 w-4 mr-2" />Boîte d'envoi</TabsTrigger>
+                <TabsTrigger value="compose"><Plus className="h-4 w-4 mr-2" />Composer</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="tickets">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Tickets list */}
               <Card className="lg:col-span-1">
@@ -786,6 +889,155 @@ const SuperAdmin = () => {
                 </CardContent>
               </Card>
             </div>
+              </TabsContent>
+
+              {/* Inbox Resend */}
+              <TabsContent value="inbox">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Boîte de réception ({resendInbox.length})</CardTitle>
+                      <Button variant="outline" size="sm" onClick={loadResendInbox}><RefreshCw className="h-4 w-4 mr-2" />Actualiser</Button>
+                    </div>
+                    <CardDescription>Réponses entrantes capturées via le webhook email</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[600px]">
+                      <div className="space-y-3">
+                        {resendInbox.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-10">Aucun message reçu</p>
+                        ) : resendInbox.map((m: any) => (
+                          <div key={m.id} className="p-4 rounded-lg border hover:bg-muted/30">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-sm">{m.support_tickets?.user_email || "Utilisateur"}</p>
+                                <p className="text-xs text-muted-foreground">{m.support_tickets?.subject || "—"}</p>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{format(new Date(m.created_at), "d MMM yyyy HH:mm", { locale: enUS })}</p>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap line-clamp-4">{m.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Sent Resend */}
+              <TabsContent value="sent">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2"><Send className="h-5 w-5" />Boîte d'envoi Resend</CardTitle>
+                      <Button variant="outline" size="sm" onClick={loadResendSent} disabled={isLoadingResend}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingResend ? "animate-spin" : ""}`} />Actualiser
+                      </Button>
+                    </div>
+                    <CardDescription>Emails envoyés via Resend</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[600px]">
+                      {resendSent.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-10">
+                          {isLoadingResend ? "Chargement..." : "Cliquez sur Actualiser pour charger les emails envoyés"}
+                        </p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Destinataire</TableHead>
+                              <TableHead>Sujet</TableHead>
+                              <TableHead>Statut</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {resendSent.map((email: any) => (
+                              <TableRow key={email.id}>
+                                <TableCell className="text-xs">{email.created_at ? format(new Date(email.created_at), "d MMM HH:mm", { locale: enUS }) : "—"}</TableCell>
+                                <TableCell className="text-sm">{Array.isArray(email.to) ? email.to.join(", ") : email.to}</TableCell>
+                                <TableCell className="text-sm">{email.subject}</TableCell>
+                                <TableCell><Badge variant="outline">{email.last_event || "sent"}</Badge></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Compose */}
+              <TabsContent value="compose">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Composer un email</CardTitle>
+                    <CardDescription>Sélectionnez un ou plusieurs utilisateurs comme destinataires</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="mb-2 block">Destinataires ({composeRecipients.length} sélectionnés)</Label>
+                      <Input
+                        placeholder="Rechercher un utilisateur..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="mb-2"
+                      />
+                      <div className="flex gap-2 mb-2">
+                        <Button size="sm" variant="outline" onClick={() => {
+                          const filtered = allUsers.filter(u => {
+                            const q = userSearch.toLowerCase();
+                            return !q || (u.email?.toLowerCase().includes(q) || u.full_name?.toLowerCase().includes(q));
+                          });
+                          setComposeRecipients(filtered.map(u => u.email).filter(Boolean) as string[]);
+                        }}>Tout sélectionner (filtré)</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setComposeRecipients([])}>Tout désélectionner</Button>
+                      </div>
+                      <ScrollArea className="h-[250px] border rounded-lg p-2">
+                        <div className="space-y-1">
+                          {allUsers
+                            .filter(u => {
+                              const q = userSearch.toLowerCase();
+                              return !q || (u.email?.toLowerCase().includes(q) || u.full_name?.toLowerCase().includes(q));
+                            })
+                            .map((u) => {
+                              const checked = composeRecipients.includes(u.email);
+                              return (
+                                <label key={u.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setComposeRecipients([...composeRecipients, u.email]);
+                                      else setComposeRecipients(composeRecipients.filter(r => r !== u.email));
+                                    }}
+                                  />
+                                  <span className="font-medium">{u.full_name || "—"}</span>
+                                  <span className="text-muted-foreground">{u.email}</span>
+                                </label>
+                              );
+                            })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    <div>
+                      <Label className="mb-2 block">Sujet</Label>
+                      <Input value={composeSubject} onChange={(e) => setComposeSubject(e.target.value)} placeholder="Sujet de l'email" />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block">Message</Label>
+                      <Textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={10} placeholder="Votre message... (le HTML basique est supporté)" />
+                    </div>
+                    <Button onClick={handleSendCompose} disabled={isComposing || composeRecipients.length === 0}>
+                      <Send className="h-4 w-4 mr-2" />
+                      {isComposing ? "Envoi..." : `Envoyer à ${composeRecipients.length} destinataire(s)`}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Subscribers Tab */}
