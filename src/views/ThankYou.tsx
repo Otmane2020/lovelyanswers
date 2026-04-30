@@ -123,6 +123,8 @@ export default function ThankYou() {
               </div>
               <Button
                 onClick={async () => {
+                  // Final refresh right before navigation to ensure no stale lock state
+                  try { await checkSubscription(); } catch {}
                   // Check if user already has a project; if not, send to the wizard
                   const { data: { user } } = await supabase.auth.getUser();
                   if (user) {
