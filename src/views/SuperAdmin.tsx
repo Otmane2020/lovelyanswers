@@ -243,11 +243,21 @@ const SuperAdmin = () => {
     }
     setIsComposing(true);
     try {
-      const htmlBody = composeBody.replace(/\n/g, "<br>");
+      const htmlBody = composeBody;
+      // Encode attachments to base64
+      const encodedAttachments = await Promise.all(
+        composeAttachments.map(async (f) => {
+          const buf = await f.arrayBuffer();
+          let binary = "";
+          const bytes = new Uint8Array(buf);
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          return { filename: f.name, content: btoa(binary), content_type: f.type || "application/octet-stream" };
+        })
+      );
       const results = await Promise.allSettled(
         composeRecipients.map((to) =>
           supabase.functions.invoke("send-email", {
-            body: { type: "custom", to, subject: composeSubject, html: htmlBody },
+            body: { type: "custom", to, subject: composeSubject, html: htmlBody, attachments: encodedAttachments },
           })
         )
       );
@@ -258,6 +268,7 @@ const SuperAdmin = () => {
         setComposeSubject("");
         setComposeBody("");
         setComposeRecipients([]);
+        setComposeAttachments([]);
         loadResendSent();
       }
     } catch (e: any) {
