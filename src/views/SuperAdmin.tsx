@@ -1408,13 +1408,45 @@ const SuperAdmin = () => {
               {selectedEmail?.received_at && format(new Date(selectedEmail.received_at), "d MMM yyyy HH:mm", { locale: enUS })}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 max-h-[40vh] border rounded-md p-4 bg-muted/20">
-            {selectedEmail?.body_html ? (
-              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} />
-            ) : (
-              <p className="text-sm whitespace-pre-wrap">{selectedEmail?.body_text || ""}</p>
-            )}
-          </ScrollArea>
+          <Tabs value={emailViewMode} onValueChange={(v) => setEmailViewMode(v as any)} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="w-fit">
+              <TabsTrigger value="preview">Aperçu</TabsTrigger>
+              <TabsTrigger value="html" disabled={!selectedEmail?.body_html}>Code HTML</TabsTrigger>
+              <TabsTrigger value="text" disabled={!selectedEmail?.body_text}>Texte brut</TabsTrigger>
+            </TabsList>
+            <TabsContent value="preview" className="flex-1 mt-2">
+              <ScrollArea className="h-[40vh] border rounded-md p-4 bg-white">
+                {selectedEmail?.body_html ? (
+                  <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{selectedEmail?.body_text || "(vide)"}</p>
+                )}
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="html" className="flex-1 mt-2">
+              <div className="relative h-[40vh]">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedEmail?.body_html || "");
+                    toast({ title: "HTML copié" });
+                  }}
+                >
+                  Copier
+                </Button>
+                <ScrollArea className="h-full border rounded-md bg-muted/30">
+                  <pre className="text-xs p-4 whitespace-pre-wrap break-all font-mono">{selectedEmail?.body_html || ""}</pre>
+                </ScrollArea>
+              </div>
+            </TabsContent>
+            <TabsContent value="text" className="flex-1 mt-2">
+              <ScrollArea className="h-[40vh] border rounded-md p-4 bg-muted/20">
+                <pre className="text-sm whitespace-pre-wrap font-sans">{selectedEmail?.body_text || ""}</pre>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
           <div className="space-y-2 pt-2">
             <Label className="text-sm">Répondre à {selectedEmail?.from_email}</Label>
             <Textarea
