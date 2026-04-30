@@ -555,7 +555,7 @@ export default function Answers() {
             {filteredAnswers.map((answer, index) =>
              <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
-                  {(!isSubscribed && index !== 0) || !answer.answer ? (
+                  {(!isSubscribed && index !== 0) || isAnswerLocked(answer) ? (
                     <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center text-muted-foreground shrink-0" title="Locked — content not generated yet">
                       <Lock className="w-4 h-4" />
                     </div>
@@ -572,7 +572,7 @@ export default function Answers() {
                     </div>
                     {!isSubscribed && index === 0 ?
                   <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p> :
-                  isSubscribed ?
+                   isSubscribed && !isAnswerLocked(answer) ?
                   <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p> :
                   null}
                     <div className="flex flex-wrap gap-2">
@@ -593,13 +593,13 @@ export default function Answers() {
 
                     }
                       <Button variant="ghost" size="sm" onClick={() => handleEditAnswer(answer.id)} className="gap-1"><Pencil className="h-3 w-3" />Edit</Button>
-                      <Button variant="ghost" size="sm" onClick={() => {
+                      {!isAnswerLocked(answer) && <Button variant="ghost" size="sm" onClick={() => {
                       const content = `Question: ${answer.question}\n\nAnswer: ${answer.answer}`;
                       navigator.clipboard.writeText(content);
                       toast.success("Answer copied to clipboard!");
                     }} className="gap-1">
                         <Copy className="h-3 w-3" />Copy Answer
-                      </Button>
+                      </Button>}
                       {answer.has_article &&
                     <Button variant="ghost" size="sm" onClick={async () => {
                       const { data: article } = await supabase.
