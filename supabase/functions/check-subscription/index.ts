@@ -66,6 +66,7 @@ const VIP_EMAILS = [
   "canapedeluxe.com@gmail.com",
   "clipmotion.ai@gmail.com",
   "floresclarissausa@gmail.com",
+  "lea2002023@gmail.com",
 ];
 
 serve(async (req) => {
