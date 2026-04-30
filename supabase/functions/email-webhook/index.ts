@@ -103,7 +103,7 @@ serve(async (req: Request): Promise<Response> => {
         }
       } catch (fwdErr) {
         console.error("[email-webhook] Forward error:", fwdErr);
-
+      }
       // Also try to link to existing ticket if from a known user
       if (fromEmail) {
         const { data: profile } = await supabase
