@@ -1107,6 +1107,51 @@ export type Database = {
         }
         Relationships: []
       }
+      inbox_emails: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          created_at: string
+          from_email: string
+          from_name: string | null
+          id: string
+          is_read: boolean
+          raw_payload: Json | null
+          received_at: string
+          resend_email_id: string | null
+          subject: string | null
+          to_email: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          is_read?: boolean
+          raw_payload?: Json | null
+          received_at?: string
+          resend_email_id?: string | null
+          subject?: string | null
+          to_email?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          is_read?: boolean
+          raw_payload?: Json | null
+          received_at?: string
+          resend_email_id?: string | null
+          subject?: string | null
+          to_email?: string | null
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json | null
