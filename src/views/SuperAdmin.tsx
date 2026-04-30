@@ -91,6 +91,17 @@ const SuperAdmin = () => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [replyMessage, setReplyMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Resend mailbox state
+  const [resendSent, setResendSent] = useState<any[]>([]);
+  const [resendInbox, setResendInbox] = useState<any[]>([]);
+  const [isLoadingResend, setIsLoadingResend] = useState(false);
+  const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+  const [allUsers, setAllUsers] = useState<{ id: string; email: string; full_name: string | null }[]>([]);
+  const [userSearch, setUserSearch] = useState("");
   
   // Users state
   const [subscribers, setSubscribers] = useState<SubscriptionInfo[]>([]);
