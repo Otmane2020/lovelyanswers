@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,32 +18,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const redirectInFlight = useRef(false);
 
-  const redirectAfterAuth = async (authUser: User) => {
+  const getFallbackTarget = (authUser: User) => {
+    const createdAt = new Date(authUser.created_at).getTime();
+    const isLikelyNewUser = Number.isFinite(createdAt) && Date.now() - createdAt < 10 * 60 * 1000;
+    return isLikelyNewUser ? "/wizard" : "/dashboard";
+  };
+
+  const redirectAfterAuth = async (authUser: User, source = "auth") => {
     if (typeof window === "undefined") return;
 
-    const path = window.location.pathname;
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const searchParams = new URLSearchParams(window.location.search);
     const isRecovery = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
+    const intent = searchParams.get("intent") || sessionStorage.getItem("post_oauth_intent");
 
     if (isRecovery || !["/auth", "/signup"].includes(path)) return;
+    if (redirectInFlight.current) return;
+    redirectInFlight.current = true;
+
+    if (window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+    }
+    sessionStorage.removeItem("post_oauth_intent");
+
+    if (intent === "signup") {
+      console.log("[AuthContext] OAuth signup redirect → /wizard", { source });
+      window.location.replace("/wizard");
+      return;
+    }
 
     try {
-      const { data: projects, error } = await supabase
+      const projectLookup = supabase
         .from("projects")
         .select("id")
         .eq("user_id", authUser.id)
         .limit(1);
 
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("project lookup timeout")), 1500);
+      });
+
+      const { data: projects, error } = await Promise.race([projectLookup, timeout]);
+
       if (error) throw error;
 
       const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
-      console.log("[AuthContext] Post-auth redirect →", target);
+      console.log("[AuthContext] Post-auth redirect →", target, { source });
       window.location.replace(target);
     } catch (e) {
       console.error("[AuthContext] Post-auth redirect query error:", e);
-      window.location.replace("/wizard");
+      window.location.replace(getFallbackTarget(authUser));
     }
   };
 
@@ -58,17 +85,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setIsLoading(false);
 
-        if (event === "SIGNED_IN" && session?.user) {
-          // Clean OAuth hash from URL if present
-          if (window.location.hash.includes("access_token")) {
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-          }
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
           setTimeout(() => {
-            redirectAfterAuth(session.user);
+            redirectAfterAuth(session.user, event);
           }, 0);
         }
       }
     );
+
+    const forceOAuthHashRedirect = async () => {
+      if (typeof window === "undefined") return;
+      const path = window.location.pathname.replace(/\/+$/, "") || "/";
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+      const isRecovery = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
+      const hasOAuthTokens = hashParams.has("access_token") && hashParams.has("refresh_token");
+
+      if (isRecovery || !hasOAuthTokens || !["/auth", "/signup"].includes(path)) return;
+
+      console.log("[AuthContext] OAuth hash detected on auth page");
+      const { data: current } = await supabase.auth.getSession();
+      if (current.session?.user) {
+        await redirectAfterAuth(current.session.user, "hash-existing-session");
+        return;
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: hashParams.get("access_token")!,
+        refresh_token: hashParams.get("refresh_token")!,
+      });
+
+      if (error) {
+        console.error("[AuthContext] OAuth hash session error:", error);
+        return;
+      }
+
+      if (data.session?.user) {
+        await redirectAfterAuth(data.session.user, "hash-set-session");
+      }
+    };
+
+    forceOAuthHashRedirect();
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -76,11 +133,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setIsLoading(false);
       if (session?.user) {
-        redirectAfterAuth(session.user);
+        redirectAfterAuth(session.user, "getSession");
       }
     });
 
-    return () => subscription.unsubscribe();
+    const safetyTimer = window.setTimeout(async () => {
+      if (typeof window === "undefined" || redirectInFlight.current) return;
+      const path = window.location.pathname.replace(/\/+$/, "") || "/";
+      if (!["/auth", "/signup"].includes(path)) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log("[AuthContext] Safety redirect →", getFallbackTarget(session.user));
+        window.location.replace(getFallbackTarget(session.user));
+      }
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
