@@ -909,7 +909,19 @@ const SuperAdmin = () => {
                         {resendInbox.length === 0 ? (
                           <p className="text-muted-foreground text-center py-10">Aucun message reçu</p>
                         ) : resendInbox.map((m: any) => (
-                          <div key={m.id} className={`p-4 rounded-lg border hover:bg-muted/30 ${!m.is_read ? "bg-primary/5 border-primary/30" : ""}`}>
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={async () => {
+                              setSelectedEmail(m);
+                              setEmailReply("");
+                              if (!m.is_read) {
+                                await supabase.from("inbox_emails").update({ is_read: true }).eq("id", m.id);
+                                setResendInbox((prev) => prev.map((x) => x.id === m.id ? { ...x, is_read: true } : x));
+                              }
+                            }}
+                            className={`w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition ${!m.is_read ? "bg-primary/5 border-primary/30 font-medium" : ""}`}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <p className="font-medium text-sm">{m.from_name ? `${m.from_name} <${m.from_email}>` : m.from_email}</p>
@@ -917,8 +929,8 @@ const SuperAdmin = () => {
                               </div>
                               <p className="text-xs text-muted-foreground">{format(new Date(m.received_at), "d MMM yyyy HH:mm", { locale: enUS })}</p>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap line-clamp-4">{m.body_text || m.body_html?.replace(/<[^>]+>/g, "") || ""}</p>
-                          </div>
+                            <p className="text-sm whitespace-pre-wrap line-clamp-2 text-muted-foreground">{m.body_text || m.body_html?.replace(/<[^>]+>/g, "") || ""}</p>
+                          </button>
                         ))}
                       </div>
                     </ScrollArea>
