@@ -233,6 +233,46 @@ serve(async (req) => {
 
     logStep("Credits updated", { creditsTotal });
 
+    // Paid/trial users may already have placeholder locked content generated before checkout.
+    // Trigger the unlock/generation job here too, not only for VIP users.
+    const { data: userProjects } = await supabaseClient
+      .from("projects")
+      .select("id")
+      .eq("user_id", user.id)
+      .limit(1);
+
+    if (userProjects && userProjects.length > 0) {
+      const projectId = userProjects[0].id;
+      const { data: lockedArticles } = await supabaseClient
+        .from("articles")
+        .select("id")
+        .eq("project_id", projectId)
+        .eq("status", "locked")
+        .limit(1);
+
+      const { data: lockedAnswers } = await supabaseClient
+        .from("answers")
+        .select("id")
+        .eq("project_id", projectId)
+        .eq("answer", "Content locked — subscribe to unlock.")
+        .limit(1);
+
+      const hasLockedContent = (lockedArticles && lockedArticles.length > 0) || 
+                                (lockedAnswers && lockedAnswers.length > 0);
+
+      if (hasLockedContent) {
+        logStep("Paid user has locked content - triggering unlock", { projectId });
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
+          method: "POST",
+          headers: {
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+          },
+        }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
+      }
+    }
+
     return new Response(JSON.stringify({
       subscribed: true,
       trial: isTrialing,
