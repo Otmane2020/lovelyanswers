@@ -40,11 +40,12 @@ export default function Signup() {
     if (!user) return;
     const checkProject = async () => {
       const { data } = await supabase.from("projects").select("id").eq("user_id", user.id).limit(1);
-      if (data && data.length > 0) router.replace("/dashboard");
-      else router.replace("/wizard");
+      const target = data && data.length > 0 ? "/dashboard" : "/wizard";
+      console.log("[SIGNUP] Redirecting to", target);
+      window.location.replace(target);
     };
     checkProject();
-  }, [user, router]);
+  }, [user]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};

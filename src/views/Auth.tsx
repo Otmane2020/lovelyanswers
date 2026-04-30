@@ -166,11 +166,8 @@ export default function Auth() {
         localStorage.removeItem('onboarding_email');
         
         console.log("[AUTH] Existing user with project, redirecting to dashboard...");
-        if (checkoutSuccess) {
-          router.replace("/dashboard?subscription=success");
-        } else {
-          router.replace("/dashboard");
-        }
+        const target = checkoutSuccess ? "/dashboard?subscription=success" : "/dashboard";
+        window.location.replace(target);
         return;
       }
 
@@ -178,7 +175,7 @@ export default function Auth() {
       localStorage.removeItem('onboarding_data');
       localStorage.removeItem('onboarding_email');
       console.log("[AUTH] No projects, redirecting to wizard...");
-      router.replace("/wizard");
+      window.location.replace("/wizard");
     };
 
     checkUserAndRedirect();
