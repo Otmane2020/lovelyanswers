@@ -166,6 +166,8 @@ const SuperAdmin = () => {
       loadSubscribers(),
       loadProspects(),
       loadAdminProspects(),
+      loadResendInbox(),
+      loadAllUsers(),
     ]);
   };
 
