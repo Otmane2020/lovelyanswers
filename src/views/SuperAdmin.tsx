@@ -1419,7 +1419,7 @@ const SuperAdmin = () => {
       </Tabs>
 
       {/* Email read & reply dialog */}
-      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setEmailReply(""); } }}>
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setEmailReply(""); setReplyAttachments([]); } }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base">{selectedEmail?.subject || "(sans sujet)"}</DialogTitle>
