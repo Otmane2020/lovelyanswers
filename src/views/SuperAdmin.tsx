@@ -96,6 +96,9 @@ const SuperAdmin = () => {
   const [resendSent, setResendSent] = useState<any[]>([]);
   const [resendInbox, setResendInbox] = useState<any[]>([]);
   const [isLoadingResend, setIsLoadingResend] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
+  const [emailReply, setEmailReply] = useState("");
+  const [isSendingEmailReply, setIsSendingEmailReply] = useState(false);
   const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
