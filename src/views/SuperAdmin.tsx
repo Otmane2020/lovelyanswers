@@ -19,7 +19,7 @@ import {
   Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone,
   Brain, Key, Target, TrendingUp, Lightbulb, Tag
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
