@@ -13,6 +13,47 @@ const logStep = (step: string, details?: any) => {
 };
 
 // VIP emails with permanent unlimited access
+
+async function triggerUnlockIfNeeded(supabaseClient: any, userId: string, authHeader: string) {
+  const { data: userProjects } = await supabaseClient
+    .from("projects")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (!userProjects || userProjects.length === 0) return;
+
+  const projectId = userProjects[0].id;
+  const { data: lockedArticles } = await supabaseClient
+    .from("articles")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("status", "locked")
+    .limit(1);
+
+  const { data: lockedAnswers } = await supabaseClient
+    .from("answers")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("answer", "Content locked — subscribe to unlock.")
+    .limit(1);
+
+  const hasLockedContent = (lockedArticles && lockedArticles.length > 0) ||
+                            (lockedAnswers && lockedAnswers.length > 0);
+
+  if (!hasLockedContent) return;
+
+  logStep("User has locked content - triggering unlock", { projectId });
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
+    method: "POST",
+    headers: {
+      "Authorization": authHeader,
+      "Content-Type": "application/json",
+    },
+  }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
+}
+
 const VIP_EMAILS = [
   "oben.rockman@gmail.com",
   "oben.rocman@gmail.com",
@@ -93,45 +134,7 @@ serve(async (req) => {
           updated_at: new Date().toISOString()
         }, { onConflict: "user_id" });
 
-      // Check if VIP user has locked content and unlock it
-      const { data: userProjects } = await supabaseClient
-        .from("projects")
-        .select("id")
-        .eq("user_id", user.id);
-
-      if (userProjects && userProjects.length > 0) {
-        const projectId = userProjects[0].id;
-        const { data: lockedArticles } = await supabaseClient
-          .from("articles")
-          .select("id")
-          .eq("project_id", projectId)
-          .eq("status", "locked")
-          .limit(1);
-
-        const { data: lockedAnswers } = await supabaseClient
-          .from("answers")
-          .select("id")
-          .eq("project_id", projectId)
-          .eq("answer", "Content locked — subscribe to unlock.")
-          .limit(1);
-
-        const hasLockedContent = (lockedArticles && lockedArticles.length > 0) || 
-                                  (lockedAnswers && lockedAnswers.length > 0);
-
-        if (hasLockedContent) {
-          logStep("VIP user has locked content - triggering unlock", { projectId });
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-          const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-          // Fire and forget - don't await to avoid delaying the response
-          fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${req.headers.get("Authorization")?.replace("Bearer ", "") || serviceRoleKey}`,
-              "Content-Type": "application/json",
-            },
-          }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
-        }
-      }
+      await triggerUnlockIfNeeded(supabaseClient, user.id, req.headers.get("Authorization") || "");
 
       return new Response(JSON.stringify({
         subscribed: true,
@@ -232,6 +235,10 @@ serve(async (req) => {
       }, { onConflict: "user_id" });
 
     logStep("Credits updated", { creditsTotal });
+
+    // Paid/trial users may already have placeholder locked content generated before checkout.
+    // Trigger the unlock/generation job here too, not only for VIP users.
+    await triggerUnlockIfNeeded(supabaseClient, user.id, authHeader);
 
     return new Response(JSON.stringify({
       subscribed: true,

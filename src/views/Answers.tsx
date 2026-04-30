@@ -29,6 +29,7 @@ import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
 
 const platforms = ["ChatGPT", "Gemini", "Claude", "Perplexity", "Copilot"];
+const LOCKED_ANSWER_TEXT = "Content locked — subscribe to unlock.";
 
 interface Article {
   id: string;
@@ -80,6 +81,26 @@ export default function Answers() {
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+
+  const isAnswerLocked = (answer: typeof answers[0]) => !answer.answer || answer.answer === LOCKED_ANSWER_TEXT;
+
+  useEffect(() => {
+    const unlockLockedContent = async () => {
+      if (!isSubscribed || answers.length === 0 || !answers.some(isAnswerLocked)) return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await supabase.functions.invoke("unlock-articles", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        });
+        window.setTimeout(() => refetch(), 6000);
+      } catch (error) {
+        console.error("Error unlocking paid content:", error);
+      }
+    };
+
+    unlockLockedContent();
+  }, [isSubscribed, answers, refetch]);
 
   // Fetch articles
   useEffect(() => {
@@ -159,6 +180,7 @@ export default function Answers() {
 
   const handleViewAnswer = (answer: typeof answers[0]) => {
     if (!isSubscribed) {setShowUpgradeDialog(true);return;}
+    if (isAnswerLocked(answer)) {toast.info("Content is being prepared. Please refresh in a moment.");return;}
     setViewingAnswer(answer);
   };
 
@@ -533,7 +555,7 @@ export default function Answers() {
             {filteredAnswers.map((answer, index) =>
              <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
-                  {(!isSubscribed && index !== 0) || !answer.answer ? (
+                  {(!isSubscribed && index !== 0) || isAnswerLocked(answer) ? (
                     <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center text-muted-foreground shrink-0" title="Locked — content not generated yet">
                       <Lock className="w-4 h-4" />
                     </div>
@@ -550,7 +572,7 @@ export default function Answers() {
                     </div>
                     {!isSubscribed && index === 0 ?
                   <p className="text-sm text-muted-foreground line-clamp-1">{answer.answer}</p> :
-                  isSubscribed ?
+                   isSubscribed && !isAnswerLocked(answer) ?
                   <p className="text-sm text-muted-foreground line-clamp-3">{answer.answer}</p> :
                   null}
                     <div className="flex flex-wrap gap-2">
@@ -571,13 +593,13 @@ export default function Answers() {
 
                     }
                       <Button variant="ghost" size="sm" onClick={() => handleEditAnswer(answer.id)} className="gap-1"><Pencil className="h-3 w-3" />Edit</Button>
-                      <Button variant="ghost" size="sm" onClick={() => {
+                      {!isAnswerLocked(answer) && <Button variant="ghost" size="sm" onClick={() => {
                       const content = `Question: ${answer.question}\n\nAnswer: ${answer.answer}`;
                       navigator.clipboard.writeText(content);
                       toast.success("Answer copied to clipboard!");
                     }} className="gap-1">
                         <Copy className="h-3 w-3" />Copy Answer
-                      </Button>
+                      </Button>}
                       {answer.has_article &&
                     <Button variant="ghost" size="sm" onClick={async () => {
                       const { data: article } = await supabase.

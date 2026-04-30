@@ -36,18 +36,20 @@ No superlatives, no marketing. First sentence = direct answer. Mention brand onc
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: question }
       ],
       temperature: 0.3,
+      max_tokens: 1200,
     }),
   });
 
   if (!response.ok) throw new Error(`AI API error: ${response.status}`);
   const data = await response.json();
   const answer = data.choices?.[0]?.message?.content || "";
+  if (answer.trim().length < 40) throw new Error("AI returned empty answer");
   return { answer: answer.trim(), score: 78 + Math.floor(Math.random() * 15) };
 }
 
@@ -160,11 +162,12 @@ Generate ONLY the HTML content.`;
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.0-flash-exp:free",
+              model: "google/gemini-2.5-flash",
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
               ],
+              max_tokens: 6000,
             }),
           });
 
