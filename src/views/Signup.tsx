@@ -76,10 +76,12 @@ export default function Signup() {
   };
 
   const handleGoogleSignIn = async () => {
+    sessionStorage.setItem("post_oauth_intent", "signup");
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth`,
+      redirect_uri: `${window.location.origin}/auth?intent=signup`,
     });
     if (error) {
+      sessionStorage.removeItem("post_oauth_intent");
       toast({ title: "Error", description: "Google sign-in failed.", variant: "destructive" });
       return;
     }
@@ -92,10 +94,14 @@ export default function Signup() {
   };
 
   const handleAppleSignIn = async () => {
+    sessionStorage.setItem("post_oauth_intent", "signup");
     const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: `${window.location.origin}/auth`,
+      redirect_uri: `${window.location.origin}/auth?intent=signup`,
     });
-    if (error) toast({ title: "Error", description: "Apple sign-in failed.", variant: "destructive" });
+    if (error) {
+      sessionStorage.removeItem("post_oauth_intent");
+      toast({ title: "Error", description: "Apple sign-in failed.", variant: "destructive" });
+    }
   };
 
   if (authLoading) {
