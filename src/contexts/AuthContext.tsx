@@ -27,52 +27,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshToken = hashParams.get('refresh_token');
       
       if (accessToken && refreshToken) {
-        // Set the session from OAuth callback
-        await supabase.auth.setSession({
+        console.log("[AuthContext] OAuth hash detected, setting session...");
+        const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
+        if (error) {
+          console.error("[AuthContext] setSession error:", error);
+          return;
+        }
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Immediate redirect — don't wait for event listener race
+        const userId = data.session?.user?.id;
+        if (userId) {
+          const path = window.location.pathname;
+          if (["/auth", "/signup", "/"].includes(path)) {
+            try {
+              const { data: projects } = await supabase
+                .from("projects")
+                .select("id")
+                .eq("user_id", userId)
+                .limit(1);
+              const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
+              console.log("[AuthContext] OAuth callback redirect →", target);
+              window.location.replace(target);
+              return;
+            } catch (e) {
+              console.error("[AuthContext] redirect query error:", e);
+              window.location.replace("/wizard");
+              return;
+            }
+          }
+        }
       }
     };
 
     handleOAuthCallback();
 
-    // Set up auth state listener FIRST
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("[AuthContext] event:", event, "hasSession:", !!session);
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
-
-        // Centralized post-OAuth redirect (fire-and-forget, no await inside callback)
-        if (event === "SIGNED_IN" && session?.user) {
-          const provider = session.user.app_metadata?.provider;
-          const isOAuth = provider && provider !== "email";
-          if (!isOAuth) return;
-
-          const path = window.location.pathname;
-          // Only redirect from auth-related pages — don't disrupt other pages
-          if (!["/auth", "/signup", "/"].includes(path)) return;
-
-          setTimeout(async () => {
-            try {
-              const { data: projects } = await supabase
-                .from("projects")
-                .select("id")
-                .eq("user_id", session.user.id)
-                .limit(1);
-              const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
-              console.log("[AuthContext] OAuth redirect →", target);
-              window.location.replace(target);
-            } catch (e) {
-              console.error("[AuthContext] OAuth redirect error:", e);
-              window.location.replace("/wizard");
-            }
-          }, 0);
-        }
       }
     );
 
