@@ -88,8 +88,7 @@ export default function Signup() {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      const { data } = await supabase.from("projects").select("id").eq("user_id", session.user.id).limit(1);
-      window.location.replace(data && data.length > 0 ? "/dashboard" : "/wizard");
+      window.location.replace("/wizard");
     }
   };
 
