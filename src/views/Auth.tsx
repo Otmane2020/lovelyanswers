@@ -379,6 +379,7 @@ export default function Auth() {
                     className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
                     onClick={async () => {
                       // Redirect back to /auth so the useEffect can handle the redirect logic
+                      sessionStorage.removeItem("post_oauth_intent");
                       const { error } = await lovable.auth.signInWithOAuth('google', {
                         redirect_uri: `${window.location.origin}/auth`,
                       });
@@ -415,6 +416,7 @@ export default function Auth() {
                     variant="outline"
                     className="w-full h-12 gap-3 text-base font-medium border-primary/20 bg-primary/5 hover:bg-primary/10"
                     onClick={async () => {
+                      sessionStorage.removeItem("post_oauth_intent");
                       const { error } = await lovable.auth.signInWithOAuth('apple', {
                         redirect_uri: `${window.location.origin}/auth`,
                       });
