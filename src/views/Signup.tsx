@@ -79,7 +79,16 @@ export default function Signup() {
     const { error } = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/auth`,
     });
-    if (error) toast({ title: "Error", description: "Google sign-in failed.", variant: "destructive" });
+    if (error) {
+      toast({ title: "Error", description: "Google sign-in failed.", variant: "destructive" });
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data } = await supabase.from("projects").select("id").eq("user_id", session.user.id).limit(1);
+      window.location.replace(data && data.length > 0 ? "/dashboard" : "/wizard");
+    }
   };
 
   const handleAppleSignIn = async () => {
