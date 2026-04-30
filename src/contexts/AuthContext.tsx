@@ -57,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", authUser.id)
         .limit(1);
 
-      const timeout = new Promise<never>((_, reject) => {
-        window.setTimeout(() => reject(new Error("project lookup timeout")), 1500);
+      const timeout = new Promise<{ data: null; error: Error }>((resolve) => {
+        window.setTimeout(() => resolve({ data: null, error: new Error("project lookup timeout") }), 1500);
       });
 
       const { data: projects, error } = await Promise.race([projectLookup, timeout]);
