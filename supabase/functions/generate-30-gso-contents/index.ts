@@ -217,7 +217,7 @@ Output ONLY valid JSON array:
     const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
     console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsRes.status);
     if (topicsData.error) {
-      console.error("[generate-30-gso] OpenRouter error:", JSON.stringify(topicsData.error));
+      console.error("[generate-30-gso] Lovable AI error:", JSON.stringify(topicsData.error));
     }
     let topics: { topic: string; type: string; keywords: string[] }[] = [];
 
