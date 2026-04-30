@@ -760,6 +760,19 @@ const SuperAdmin = () => {
 
           {/* Support Tab */}
           <TabsContent value="support">
+            <Tabs defaultValue="tickets" className="w-full" onValueChange={(v) => {
+              if (v === "sent") loadResendSent();
+              if (v === "inbox") loadResendInbox();
+              if (v === "compose") loadAllUsers();
+            }}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="tickets"><MessageCircle className="h-4 w-4 mr-2" />Tickets</TabsTrigger>
+                <TabsTrigger value="inbox"><Mail className="h-4 w-4 mr-2" />Boîte de réception</TabsTrigger>
+                <TabsTrigger value="sent"><Send className="h-4 w-4 mr-2" />Boîte d'envoi</TabsTrigger>
+                <TabsTrigger value="compose"><Plus className="h-4 w-4 mr-2" />Composer</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="tickets">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Tickets list */}
               <Card className="lg:col-span-1">
