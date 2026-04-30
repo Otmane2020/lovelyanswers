@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, svix-id, svix-timestamp, svix-signature",
 };
 
 // Webhook to receive incoming emails from Resend
-// Configure at: https://resend.com/webhooks
-// Endpoint: https://your-project.supabase.co/functions/v1/email-webhook
+// Endpoint: https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/email-webhook
+// Configure at: https://resend.com/webhooks (event: email.received)
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -21,63 +21,82 @@ serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const payload = await req.json();
-    console.log("[email-webhook] Received:", JSON.stringify(payload));
-
-    // Resend webhook event types:
-    // - email.sent
-    // - email.delivered
-    // - email.bounced
-    // - email.complained
-    // - email.opened
-    // - email.clicked
+    console.log("[email-webhook] Received:", JSON.stringify(payload).slice(0, 500));
 
     const eventType = payload.type;
-    const emailData = payload.data;
+    const emailData = payload.data || payload;
 
-    // Handle incoming email (email replies)
-    // This requires Resend Inbound Email feature
-    if (eventType === "email.received" || payload.from) {
-      console.log("[email-webhook] Incoming email from:", payload.from || emailData?.from);
-      
-      // Extract ticket reference from subject or email
-      // Format: "Re: Ticket reçu: [Subject]" or similar
-      const subject = payload.subject || emailData?.subject || "";
-      const fromEmail = payload.from || emailData?.from || "";
-      const body = payload.text || payload.html || emailData?.text || "";
+    // Handle inbound email
+    if (eventType === "email.received" || eventType === "inbound.email" || payload.from) {
+      // Resend inbound payload formats vary; try multiple paths
+      const fromRaw = emailData.from || payload.from || "";
+      const fromEmail = typeof fromRaw === "string"
+        ? (fromRaw.match(/<(.+?)>/)?.[1] || fromRaw).trim().toLowerCase()
+        : (fromRaw.email || "").toLowerCase();
+      const fromName = typeof fromRaw === "string"
+        ? fromRaw.replace(/<.+?>/, "").trim().replace(/^"|"$/g, "")
+        : fromRaw.name || null;
 
-      // Find user by email
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, email, full_name")
-        .eq("email", fromEmail)
+      const toRaw = emailData.to || payload.to || "";
+      const toEmail = Array.isArray(toRaw) ? toRaw[0] : (typeof toRaw === "string" ? toRaw : toRaw?.email || "");
+
+      const subject = emailData.subject || payload.subject || "(no subject)";
+      const bodyText = emailData.text || payload.text || emailData.plain || "";
+      const bodyHtml = emailData.html || payload.html || "";
+      const resendId = emailData.email_id || emailData.id || payload.id || null;
+
+      // Save EVERY incoming email
+      const { data: inserted, error: insertErr } = await supabase
+        .from("inbox_emails")
+        .insert({
+          from_email: fromEmail,
+          from_name: fromName,
+          to_email: toEmail,
+          subject,
+          body_text: bodyText,
+          body_html: bodyHtml,
+          resend_email_id: resendId,
+          raw_payload: payload,
+        })
+        .select()
         .single();
 
-      if (profile) {
-        // Find most recent open ticket for this user
-        const { data: ticket } = await supabase
-          .from("support_tickets")
-          .select("id, subject")
-          .eq("user_id", profile.id)
-          .in("status", ["open", "in_progress"])
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .single();
+      if (insertErr) {
+        console.error("[email-webhook] Insert inbox_emails error:", insertErr);
+      } else {
+        console.log("[email-webhook] Saved inbox email:", inserted?.id);
+      }
 
-        if (ticket) {
-          // Add reply as new message
-          await supabase.from("support_messages").insert({
-            ticket_id: ticket.id,
-            sender_type: "user",
-            message: body,
-          });
+      // Also try to link to existing ticket if from a known user
+      if (fromEmail) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", fromEmail)
+          .maybeSingle();
 
-          // Update ticket timestamp
-          await supabase
+        if (profile) {
+          const { data: ticket } = await supabase
             .from("support_tickets")
-            .update({ updated_at: new Date().toISOString() })
-            .eq("id", ticket.id);
+            .select("id")
+            .eq("user_id", profile.id)
+            .in("status", ["open", "in_progress"])
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-          console.log("[email-webhook] Added reply to ticket:", ticket.id);
+          if (ticket) {
+            await supabase.from("support_messages").insert({
+              ticket_id: ticket.id,
+              sender_type: "user",
+              message: bodyText || bodyHtml,
+            });
+            await supabase
+              .from("support_tickets")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", ticket.id);
+            console.log("[email-webhook] Linked to ticket:", ticket.id);
+          }
         }
       }
 
@@ -87,9 +106,7 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Log other events
-    console.log(`[email-webhook] Event ${eventType} for email:`, emailData?.email_id);
-
+    console.log(`[email-webhook] Event ${eventType} ignored`);
     return new Response(JSON.stringify({ success: true, event: eventType }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
