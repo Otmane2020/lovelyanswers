@@ -42,9 +42,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("[AuthContext] event:", event, "hasSession:", !!session);
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Centralized post-OAuth redirect (fire-and-forget, no await inside callback)
+        if (event === "SIGNED_IN" && session?.user) {
+          const provider = session.user.app_metadata?.provider;
+          const isOAuth = provider && provider !== "email";
+          if (!isOAuth) return;
+
+          const path = window.location.pathname;
+          // Only redirect from auth-related pages — don't disrupt other pages
+          if (!["/auth", "/signup", "/"].includes(path)) return;
+
+          setTimeout(async () => {
+            try {
+              const { data: projects } = await supabase
+                .from("projects")
+                .select("id")
+                .eq("user_id", session.user.id)
+                .limit(1);
+              const target = projects && projects.length > 0 ? "/dashboard" : "/wizard";
+              console.log("[AuthContext] OAuth redirect →", target);
+              window.location.replace(target);
+            } catch (e) {
+              console.error("[AuthContext] OAuth redirect error:", e);
+              window.location.replace("/wizard");
+            }
+          }, 0);
+        }
       }
     );
 

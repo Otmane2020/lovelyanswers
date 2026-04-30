@@ -1,35 +1,61 @@
+## Problème
 
+Après un sign-up Google, les nouveaux utilisateurs sont créés correctement en base (vérifié : 3 nouveaux users Google créés aujourd'hui), mais **rien ne se passe à l'écran** — ils ne sont pas redirigés vers `/wizard` (aucun n'a de projet).
 
-## Analyse
+## Cause racine
 
-Les emails sont deja envoyes depuis `support@autopilotgeo.com` via Resend (API key configuree). Le domaine est deja correct dans les 3 edge functions qui envoient des emails:
-- `send-email/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
-- `db-email-trigger/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
-- `abandoned-cart-emails/index.ts` — FROM: `AutoPilot Geo <support@autopilotgeo.com>`
+Race condition entre 3 mécanismes auth concurrents :
 
-Le domaine d'envoi est donc deja `autopilotgeo.com`. Aucun changement de domaine necessaire.
+1. `AuthContext` fait `handleOAuthCallback()` qui appelle `supabase.auth.setSession(...)` async, puis efface le hash `#access_token=...` de l'URL.
+2. `AuthContext` setup `onAuthStateChange` listener qui set `user`.
+3. `Auth.tsx` setup SON PROPRE `onAuthStateChange` listener en plus.
+4. Le `useEffect` de redirection dans `Auth.tsx` dépend de `user` du context.
 
-## Plan — Ajouter un bouton "Envoyer un email test"
+Avec Next.js + Vite dual-mode, `router.replace("/wizard")` peut être appelé avant que la session ne soit propagée, ou l'effect ne re-run pas toujours après que `user` arrive. Résultat : l'utilisateur reste bloqué sur `/auth` avec un écran qui ne bouge pas.
 
-### 1. Ajouter un type "test" dans l'edge function `send-email`
-Ajouter un cas `test` dans le switch qui envoie un email de test simple et professionnel avec le branding AutoPilot Geo.
+De plus, sur `/signup`, le useEffect de redirect (Signup.tsx ligne 39-47) n'écoute QUE `user` mais pas l'event `SIGNED_IN` directement — si Google redirige vers `/auth` (le `redirect_uri` configuré), l'utilisateur arrive sur `/auth` pas sur `/signup`, donc le code de redirect de Signup ne tourne jamais. Mais Auth.tsx a la même race.
 
-**Fichier:** `supabase/functions/send-email/index.ts`
-- Ajouter `"test"` au type union de `EmailRequest`
-- Ajouter un case `test` qui genere un email simple: "Ceci est un email test depuis AutoPilot Geo. Si vous recevez cet email, votre configuration fonctionne correctement."
+## Plan de fix
 
-### 2. Ajouter un bouton "Envoyer email test" dans le panneau admin/settings
-Ajouter un bouton dans la page settings ou super-admin qui permet d'envoyer un email test a l'adresse de l'utilisateur connecte.
+### 1. Centraliser le redirect post-OAuth dans `AuthContext.tsx`
 
-**Fichier:** `src/views/AeoSettings.tsx` (ou `src/views/SuperAdmin.tsx`)
-- Bouton "Envoyer un email test"
-- Appelle `supabase.functions.invoke("send-email", { body: { type: "test", to: userEmail } })`
-- Affiche toast succes/erreur
+Détecter `event === "SIGNED_IN"` avec un provider OAuth, et déclencher directement la logique de redirect (check projects → `/wizard` ou `/dashboard`) sans dépendre de `useEffect` dans les composants pages.
 
-### 3. Deployer l'edge function mise a jour
+### 2. Utiliser `window.location.replace()` au lieu de `router.replace()` pour le redirect post-OAuth
 
-### Detail technique
-- L'email test sera envoye depuis `support@autopilotgeo.com` via Resend
-- Le domaine `autopilotgeo.com` doit etre verifie dans Resend pour que les emails arrivent (si ce n'est pas deja fait, ils tomberont en spam ou seront rejetes)
-- Le `RESEND_API_KEY` est deja configure dans les secrets
+Le routing Next.js `router.replace` est unreliable dans le contexte preview Vite + après hash-cleanup. Un `window.location.replace("/wizard")` garantit la navigation.
 
+### 3. Ajouter un fallback dans `Auth.tsx` et `Signup.tsx`
+
+Si un user est détecté sur ces pages, forcer un check projet et rediriger via `window.location` (plus robuste que `router.replace`).
+
+### 4. Logs de diagnostic temporaires
+
+Ajouter des `console.log` clairs aux étapes clés (`OAuth callback received`, `Session set`, `Projects checked`, `Redirecting to X`) pour confirmer la chaîne en production si le problème persiste.
+
+## Fichiers à modifier
+
+- `src/contexts/AuthContext.tsx` — centraliser logique post-OAuth
+- `src/views/Auth.tsx` — fallback redirect via `window.location`
+- `src/views/Signup.tsx` — même fallback
+
+## Détails techniques
+
+```text
+Google OAuth flow actuel:
+  /signup → click Google
+  → oauth.lovable.app → Google → /auth#access_token=...
+  → AuthContext.handleOAuthCallback() setSession (async)
+  → onAuthStateChange fires SIGNED_IN
+  → Auth.tsx useEffect on [user] runs
+  → check projects (RLS = auth.uid() = user_id)
+  → router.replace("/wizard")  ← unreliable
+
+Flow corrigé:
+  ... même début ...
+  → AuthContext detects SIGNED_IN + new OAuth user
+  → check projects directement dans AuthContext
+  → window.location.replace("/wizard") ← reliable
+```
+
+Aucun changement DB requis. Aucune migration.
