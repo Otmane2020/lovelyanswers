@@ -13,6 +13,7 @@ import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 export default function ThankYou() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { checkSubscription } = useSubscriptionContext();
   const [verified, setVerified] = useState<boolean | null>(null);
   const sessionId = searchParams.get("session_id");
 
