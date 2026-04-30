@@ -44,7 +44,16 @@ export default function ThankYou() {
 
         setVerified(true);
 
-        // Fire Google Ads conversion only once
+        // Force-refresh subscription state with retries to overcome Stripe API propagation lag
+        (async () => {
+          for (let i = 0; i < 5; i++) {
+            try {
+              await checkSubscription();
+            } catch {}
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        })();
+
         if (!tracked) {
           tracked = true;
           const value = data.amount ? data.amount / 100 : 29;
