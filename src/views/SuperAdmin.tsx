@@ -906,15 +906,15 @@ const SuperAdmin = () => {
                         {resendInbox.length === 0 ? (
                           <p className="text-muted-foreground text-center py-10">Aucun message reçu</p>
                         ) : resendInbox.map((m: any) => (
-                          <div key={m.id} className="p-4 rounded-lg border hover:bg-muted/30">
+                          <div key={m.id} className={`p-4 rounded-lg border hover:bg-muted/30 ${!m.is_read ? "bg-primary/5 border-primary/30" : ""}`}>
                             <div className="flex items-center justify-between mb-2">
                               <div>
-                                <p className="font-medium text-sm">{m.support_tickets?.user_email || "Utilisateur"}</p>
-                                <p className="text-xs text-muted-foreground">{m.support_tickets?.subject || "—"}</p>
+                                <p className="font-medium text-sm">{m.from_name ? `${m.from_name} <${m.from_email}>` : m.from_email}</p>
+                                <p className="text-xs text-muted-foreground">{m.subject || "(sans sujet)"}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground">{format(new Date(m.created_at), "d MMM yyyy HH:mm", { locale: enUS })}</p>
+                              <p className="text-xs text-muted-foreground">{format(new Date(m.received_at), "d MMM yyyy HH:mm", { locale: enUS })}</p>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap line-clamp-4">{m.message}</p>
+                            <p className="text-sm whitespace-pre-wrap line-clamp-4">{m.body_text || m.body_html?.replace(/<[^>]+>/g, "") || ""}</p>
                           </div>
                         ))}
                       </div>
