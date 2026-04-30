@@ -1470,11 +1470,13 @@ const SuperAdmin = () => {
           </Tabs>
           <div className="space-y-2 pt-2">
             <Label className="text-sm">Répondre à {selectedEmail?.from_email}</Label>
-            <Textarea
+            <RichTextEditor
               value={emailReply}
-              onChange={(e) => setEmailReply(e.target.value)}
+              onChange={setEmailReply}
               placeholder="Tapez votre réponse..."
-              rows={6}
+              minHeight={180}
+              attachments={replyAttachments}
+              onAttachmentsChange={setReplyAttachments}
             />
             <div className="flex justify-between items-center">
               <Button
@@ -1491,14 +1493,14 @@ const SuperAdmin = () => {
                 <Trash2 className="h-4 w-4 mr-2" />Supprimer
               </Button>
               <Button
-                disabled={!emailReply.trim() || isSendingEmailReply}
+                disabled={!emailReply.replace(/<[^>]+>/g, "").trim() || isSendingEmailReply}
                 onClick={async () => {
-                  if (!selectedEmail || !emailReply.trim()) return;
+                  if (!selectedEmail || !emailReply.replace(/<[^>]+>/g, "").trim()) return;
                   setIsSendingEmailReply(true);
                   try {
                     const subject = selectedEmail.subject?.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject || "Votre message"}`;
                     const html = `<div style="font-family:-apple-system,sans-serif;line-height:1.6;color:#333;max-width:600px;">
-                      <div style="white-space:pre-wrap;">${emailReply.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>
+                      <div>${emailReply}</div>
                       <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
                       <div style="font-size:12px;color:#888;">
                         <p>Le ${format(new Date(selectedEmail.received_at), "d MMM yyyy HH:mm", { locale: enUS })}, ${selectedEmail.from_email} a écrit :</p>
@@ -1507,12 +1509,22 @@ const SuperAdmin = () => {
                         </blockquote>
                       </div>
                     </div>`;
+                    const encodedAttachments = await Promise.all(
+                      replyAttachments.map(async (f) => {
+                        const buf = await f.arrayBuffer();
+                        let binary = "";
+                        const bytes = new Uint8Array(buf);
+                        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                        return { filename: f.name, content: btoa(binary), content_type: f.type || "application/octet-stream" };
+                      })
+                    );
                     const { error } = await supabase.functions.invoke("send-email", {
-                      body: { type: "custom", to: selectedEmail.from_email, subject, html, message: emailReply },
+                      body: { type: "custom", to: selectedEmail.from_email, subject, html, message: emailReply, attachments: encodedAttachments },
                     });
                     if (error) throw error;
                     toast({ title: "Réponse envoyée ✅" });
                     setEmailReply("");
+                    setReplyAttachments([]);
                     setSelectedEmail(null);
                   } catch (e: any) {
                     toast({ title: "Erreur d'envoi", description: e.message, variant: "destructive" });
