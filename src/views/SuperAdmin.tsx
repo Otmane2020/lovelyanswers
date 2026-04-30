@@ -28,6 +28,7 @@ import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 interface SupportTicket {
   id: string;
