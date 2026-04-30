@@ -1057,7 +1057,14 @@ const SuperAdmin = () => {
                     </div>
                     <div>
                       <Label className="mb-2 block">Message</Label>
-                      <Textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={10} placeholder="Votre message... (le HTML basique est supporté)" />
+                      <RichTextEditor
+                        value={composeBody}
+                        onChange={setComposeBody}
+                        placeholder="Votre message..."
+                        minHeight={240}
+                        attachments={composeAttachments}
+                        onAttachmentsChange={setComposeAttachments}
+                      />
                     </div>
                     <Button onClick={handleSendCompose} disabled={isComposing || composeRecipients.length === 0}>
                       <Send className="h-4 w-4 mr-2" />
