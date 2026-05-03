@@ -10,7 +10,7 @@ interface SubscriptionContextType {
   productId: string | null;
   subscriptionEnd: string | null;
   creditsTotal: number;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: () => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
   openCustomerPortal: () => Promise<string | null>;
 }
@@ -29,7 +29,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const checkSubscription = useCallback(async () => {
     // Don't check if auth is still loading
     if (authLoading) {
-      return;
+      return false;
     }
 
     if (!user) {
@@ -39,7 +39,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setSubscriptionEnd(null);
       setCreditsTotal(0);
       setIsLoading(false);
-      return;
+      return false;
     }
 
     try {
@@ -49,7 +49,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error("[SubscriptionContext] Error checking subscription:", error);
         setIsLoading(false);
-        return;
+        return false;
       }
 
       console.log("[SubscriptionContext] Subscription response:", data);
@@ -64,8 +64,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setCreditsTotal(data?.credits_total || 0);
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
+      return subscribed || trial;
     } catch (err) {
       console.error("[SubscriptionContext] Subscription check failed:", err);
+      return false;
     } finally {
       setIsLoading(false);
     }
