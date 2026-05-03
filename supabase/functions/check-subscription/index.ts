@@ -48,10 +48,46 @@ async function triggerUnlockIfNeeded(supabaseClient: any, userId: string, authHe
   fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
     method: "POST",
     headers: {
-      "Authorization": authHeader,
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({ userId, projectId }),
   }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
+}
+
+async function triggerGeoIfNeeded(supabaseClient: any, userId: string) {
+  const { data: userProjects } = await supabaseClient
+    .from("projects")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (!userProjects || userProjects.length === 0) return;
+  const projectId = userProjects[0].id;
+
+  const now = new Date();
+  const in30 = new Date();
+  in30.setDate(now.getDate() + 30);
+
+  const { count } = await supabaseClient
+    .from("geo_contents")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .gte("scheduled_date", now.toISOString())
+    .lte("scheduled_date", in30.toISOString());
+
+  if ((count || 0) >= 30) return;
+
+  logStep("User needs GEO planning - triggering generation", { projectId, count: count || 0 });
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  fetch(`${supabaseUrl}/functions/v1/generate-30-gso-contents`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ projectId }),
+  }).catch((e) => logStep("GEO trigger error (ignored)", { error: String(e) }));
 }
 
 const VIP_EMAILS = [
@@ -136,6 +172,7 @@ serve(async (req) => {
         }, { onConflict: "user_id" });
 
       await triggerUnlockIfNeeded(supabaseClient, user.id, req.headers.get("Authorization") || "");
+      await triggerGeoIfNeeded(supabaseClient, user.id);
 
       return new Response(JSON.stringify({
         subscribed: true,
@@ -240,6 +277,7 @@ serve(async (req) => {
     // Paid/trial users may already have placeholder locked content generated before checkout.
     // Trigger the unlock/generation job here too, not only for VIP users.
     await triggerUnlockIfNeeded(supabaseClient, user.id, authHeader);
+    await triggerGeoIfNeeded(supabaseClient, user.id);
 
     return new Response(JSON.stringify({
       subscribed: true,
