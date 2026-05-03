@@ -48,8 +48,11 @@ export default function ThankYou() {
         // Force-refresh subscription state and trigger backend unlock/GEO jobs before the user continues.
         for (let i = 0; i < 6; i++) {
           try {
-            await checkSubscription();
-            if (data?.paid) setPostPaymentReady(true);
+            const active = await checkSubscription();
+            if (active) {
+              setPostPaymentReady(true);
+              break;
+            }
           } catch {}
           await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
         }
