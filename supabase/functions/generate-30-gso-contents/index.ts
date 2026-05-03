@@ -73,15 +73,18 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const isServiceRoleCall = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const { projectId } = await req.json();
+    const { data: { user }, error: authError } = isServiceRoleCall
+      ? { data: { user: null }, error: null }
+      : await supabase.auth.getUser(token);
+    if (!isServiceRoleCall && (authError || !user)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { projectId } = await req.json();
     if (!projectId) {
       return new Response(JSON.stringify({ error: "Missing projectId" }), {
         status: 400,
@@ -90,11 +93,12 @@ Deno.serve(async (req) => {
     }
 
     // Get project info
-    const { data: project } = await supabase
+    let projectQuery = supabase
       .from("projects")
       .select("id, brand_name, website_url, language, name, business_type, audience")
-      .eq("id", projectId)
-      .single();
+      .eq("id", projectId);
+    if (!isServiceRoleCall && user?.id) projectQuery = projectQuery.eq("user_id", user.id);
+    const { data: project } = await projectQuery.single();
 
     if (!project) {
       return new Response(JSON.stringify({ error: "Project not found" }), {
