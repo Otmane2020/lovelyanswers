@@ -15,6 +15,7 @@ export default function ThankYou() {
   const router = useRouter();
   const { checkSubscription } = useSubscriptionContext();
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [postPaymentReady, setPostPaymentReady] = useState(false);
   const sessionId = searchParams.get("session_id");
 
   // Force light theme
@@ -44,15 +45,18 @@ export default function ThankYou() {
 
         setVerified(true);
 
-        // Force-refresh subscription state with retries to overcome Stripe API propagation lag
-        (async () => {
-          for (let i = 0; i < 5; i++) {
-            try {
-              await checkSubscription();
-            } catch {}
-            await new Promise((r) => setTimeout(r, 2000));
-          }
-        })();
+        // Force-refresh subscription state and trigger backend unlock/GEO jobs before the user continues.
+        for (let i = 0; i < 6; i++) {
+          try {
+            const active = await checkSubscription();
+            if (active) {
+              setPostPaymentReady(true);
+              break;
+            }
+          } catch {}
+          await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
+        }
+        setPostPaymentReady(true);
 
         if (!tracked) {
           tracked = true;
@@ -83,7 +87,7 @@ export default function ThankYou() {
     };
 
     verify();
-  }, [sessionId, router]);
+  }, [sessionId, router, checkSubscription]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -118,7 +122,7 @@ export default function ThankYou() {
                   Payment confirmed! 🎉
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Welcome to AutoPilot Geo. Your subscription is now active.
+                  {postPaymentReady ? "Your access is active and content generation has started." : "Welcome to AutoPilot Geo. Activating your access..."}
                 </p>
               </div>
               <Button
@@ -140,10 +144,11 @@ export default function ThankYou() {
                   }
                   router.push("/dashboard");
                 }}
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+                disabled={!postPaymentReady}
+                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl disabled:opacity-70"
               >
-                Continue setup
-                <ArrowRight className="h-5 w-5 ml-2" />
+                {postPaymentReady ? "Continue setup" : "Unlocking your workspace..."}
+                {postPaymentReady ? <ArrowRight className="h-5 w-5 ml-2" /> : <Loader2 className="h-5 w-5 ml-2 animate-spin" />}
               </Button>
             </>
           )}

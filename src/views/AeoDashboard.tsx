@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -32,6 +32,7 @@ export default function AeoDashboard() {
   const [lockedCount, setLockedCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const geoTriggeredRef = useRef<string | null>(null);
 
   // Safety net: if subscribed user has no project yet, send them to the wizard
   useEffect(() => {
@@ -70,6 +71,31 @@ export default function AeoDashboard() {
       } catch (error) { console.error('Error fetching data:', error); }
     };
     fetchData();
+  }, [project]);
+
+  // Start the GEO 30-day engine as soon as a project exists, even before checkout.
+  useEffect(() => {
+    const triggerGeoPlanning = async () => {
+      if (!project || geoTriggeredRef.current === project.id) return;
+      geoTriggeredRef.current = project.id;
+
+      const now = new Date();
+      const in30 = new Date();
+      in30.setDate(now.getDate() + 30);
+
+      const { count } = await supabase
+        .from("geo_contents")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id)
+        .gte("scheduled_date", now.toISOString())
+        .lte("scheduled_date", in30.toISOString());
+
+      if ((count || 0) < 30) {
+        await supabase.functions.invoke("generate-30-gso-contents", { body: { projectId: project.id } });
+      }
+    };
+
+    triggerGeoPlanning().catch((error) => console.error("GEO auto-start failed:", error));
   }, [project]);
 
   const stats = [

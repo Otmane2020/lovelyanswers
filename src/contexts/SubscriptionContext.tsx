@@ -7,9 +7,12 @@ interface SubscriptionContextType {
   isSubscribed: boolean;
   isTrial: boolean;
   isLoading: boolean;
+  productId: string | null;
   subscriptionEnd: string | null;
-  checkSubscription: () => Promise<void>;
+  creditsTotal: number;
+  checkSubscription: () => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
+  openCustomerPortal: () => Promise<string | null>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -19,19 +22,24 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isTrial, setIsTrial] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [creditsTotal, setCreditsTotal] = useState(0);
 
   const checkSubscription = useCallback(async () => {
     // Don't check if auth is still loading
     if (authLoading) {
-      return;
+      return false;
     }
 
     if (!user) {
       setIsSubscribed(false);
       setIsTrial(false);
+      setProductId(null);
+      setSubscriptionEnd(null);
+      setCreditsTotal(0);
       setIsLoading(false);
-      return;
+      return false;
     }
 
     try {
@@ -41,7 +49,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error("[SubscriptionContext] Error checking subscription:", error);
         setIsLoading(false);
-        return;
+        return false;
       }
 
       console.log("[SubscriptionContext] Subscription response:", data);
@@ -51,11 +59,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       setIsSubscribed(subscribed);
       setIsTrial(trial);
+      setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
+      setCreditsTotal(data?.credits_total || 0);
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
+      return subscribed || trial;
     } catch (err) {
       console.error("[SubscriptionContext] Subscription check failed:", err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +85,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       return data?.url || null;
     } catch (err) {
       console.error("Checkout failed:", err);
+      return null;
+    }
+  };
+
+  const openCustomerPortal = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+
+      if (error) {
+        console.error("Portal error:", error);
+        return null;
+      }
+
+      return data?.url || null;
+    } catch (err) {
+      console.error("Portal failed:", err);
       return null;
     }
   };
@@ -109,9 +137,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       isSubscribed, 
       isTrial, 
       isLoading, 
+      productId,
       subscriptionEnd, 
+      creditsTotal,
       checkSubscription,
-      startCheckout 
+      startCheckout,
+      openCustomerPortal 
     }}>
       {children}
     </SubscriptionContext.Provider>
