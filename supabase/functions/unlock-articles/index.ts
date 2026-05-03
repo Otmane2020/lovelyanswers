@@ -92,27 +92,11 @@ Brand: ${brand_name || ""}. Website: ${website_url || ""}.
 ${business_description ? `Description: ${business_description}` : ""}
 No superlatives, no marketing. First sentence = direct answer. Mention brand once with URL.`;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.0-flash-exp:free",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question }
-      ],
-      temperature: 0.3,
-      max_tokens: 1200,
-    }),
-  });
+  const answer = await completeWithFallback([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: question }
+  ], 1200, 0.3, apiKey).catch(() => fallbackAnswer(question, projectContext));
 
-  if (!response.ok) throw new Error(`AI API error: ${response.status}`);
-  const data = await response.json();
-  const answer = data.choices?.[0]?.message?.content || "";
-  if (answer.trim().length < 40) throw new Error("AI returned empty answer");
   return { answer: answer.trim(), score: 78 + Math.floor(Math.random() * 15) };
 }
 
@@ -134,17 +118,21 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Authentication failed");
+    const isServiceRoleCall = token === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    const body = await req.json().catch(() => ({}));
+    const { data: userData, error: userError } = isServiceRoleCall
+      ? { data: { user: null }, error: null }
+      : await supabaseAdmin.auth.getUser(token);
+    if (!isServiceRoleCall && (userError || !userData.user)) throw new Error("Authentication failed");
 
-    const userId = userData.user.id;
+    const userId = body.userId || userData.user?.id;
+    const explicitProjectId = body.projectId;
+    if (!userId && !explicitProjectId) throw new Error("Missing user or project context");
     logStep("User authenticated", { userId });
 
-    const { data: projects } = await supabaseAdmin
-      .from("projects")
-      .select("*")
-      .eq("user_id", userId)
-      .limit(1);
+    let projectQuery = supabaseAdmin.from("projects").select("*").limit(1);
+    projectQuery = explicitProjectId ? projectQuery.eq("id", explicitProjectId) : projectQuery.eq("user_id", userId);
+    const { data: projects } = await projectQuery;
 
     if (!projects || projects.length === 0) throw new Error("No project found");
 
