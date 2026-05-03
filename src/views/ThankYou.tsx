@@ -56,6 +56,7 @@ export default function ThankYou() {
           } catch {}
           await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
         }
+        setPostPaymentReady(true);
 
         if (!tracked) {
           tracked = true;
@@ -86,7 +87,7 @@ export default function ThankYou() {
     };
 
     verify();
-  }, [sessionId, router]);
+  }, [sessionId, router, checkSubscription]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
