@@ -206,30 +206,10 @@ Generate ONLY the HTML content.`;
 
           const userPrompt = `${project.language === "fr" ? "Rédige un article complet sur" : "Write a complete article about"}: ${article.title}\n\n${answerText ? `${project.language === "fr" ? "Réponse de référence" : "Reference answer"}: ${answerText}` : ""}`;
 
-          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${openrouterKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.0-flash-exp:free",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-              ],
-              max_tokens: 6000,
-            }),
-          });
-
-          if (!response.ok) {
-            logStep("AI API error", { status: response.status });
-            errors++;
-            continue;
-          }
-
-          const data = await response.json();
-          const content = data.choices?.[0]?.message?.content || "";
+          const content = await completeWithFallback([
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ], 6000, 0.4, openrouterKey).catch(() => fallbackArticle(article.title, project, answerText));
           
           if (content.length > 100) {
             const wordCount = content.split(/\s+/).length;
@@ -283,8 +263,8 @@ Generate ONLY the HTML content.`;
       }
     }
 
-    if (articlesUnlocked === 0 && answersUnlocked === 0) {
-      return new Response(JSON.stringify({ unlocked: 0, message: "No locked content" }), {
+    if (articlesUnlocked === 0 && answersUnlocked === 0 && generated === 0) {
+      return new Response(JSON.stringify({ unlocked: 0, articlesUnlocked, answersUnlocked, generated, errors, message: "No locked content" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -292,6 +272,7 @@ Generate ONLY the HTML content.`;
     logStep("Unlock complete", { articlesUnlocked, answersUnlocked, generated, errors });
 
     return new Response(JSON.stringify({ 
+      unlocked: articlesUnlocked + answersUnlocked,
       articlesUnlocked, answersUnlocked, generated, errors,
       message: `${articlesUnlocked} articles + ${answersUnlocked} answers unlocked`
     }), {
