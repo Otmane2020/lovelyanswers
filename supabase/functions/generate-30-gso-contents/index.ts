@@ -417,25 +417,13 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
       }
 
       try {
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + lovableKey,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
-              { role: "user", content: contentPrompt },
-            ],
-            temperature: 0.65,
-            max_tokens: 10000,
-          }),
-        });
-
-        const aiData = await aiRes.json();
-        const rawContent = aiData.choices?.[0]?.message?.content || "";
+        const { content: rawContent } = await callAIWithFallback(
+          [
+            { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
+            { role: "user", content: contentPrompt },
+          ],
+          { temperature: 0.65, max_tokens: 10000 }
+        );
 
         let parsed: { title: string; meta_description: string; content: string };
         try {
