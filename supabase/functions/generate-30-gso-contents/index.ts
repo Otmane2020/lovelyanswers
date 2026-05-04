@@ -283,7 +283,7 @@ Output ONLY valid JSON array:
       console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 1000), "error:", String(e));
       return new Response(JSON.stringify({ 
         error: "Failed to generate topics. The AI returned an empty or invalid response. Please try again.",
-        details: topicsData.error?.message || "Empty response from AI"
+        details: topicsErr || "Empty response from AI"
       }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
