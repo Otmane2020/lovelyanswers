@@ -45,7 +45,14 @@ export default function ThankYou() {
 
         setVerified(true);
 
-        // Force-refresh subscription state and trigger backend unlock/GEO jobs before the user continues.
+        // Trigger backend unlock immediately (verifies Stripe + unlocks articles/geo)
+        try {
+          await supabase.functions.invoke("verify-and-unlock-payment");
+        } catch (e) {
+          console.warn("[ThankYou] verify-and-unlock-payment failed:", e);
+        }
+
+        // Force-refresh subscription state with retries to overcome Stripe propagation lag.
         for (let i = 0; i < 6; i++) {
           try {
             const active = await checkSubscription();

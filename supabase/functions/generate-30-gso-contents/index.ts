@@ -19,6 +19,61 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// AI call with multi-provider fallback (Lovable AI -> OpenRouter free models)
+async function callAIWithFallback(messages: any[], opts: { temperature?: number; max_tokens?: number } = {}): Promise<{ content: string; status: number; error?: string }> {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  const temperature = opts.temperature ?? 0.7;
+  const max_tokens = opts.max_tokens ?? 8000;
+
+  // 1) Try Lovable AI
+  if (lovableKey) {
+    try {
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + lovableKey },
+        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, temperature, max_tokens }),
+      });
+      const data = await r.json().catch(() => ({}));
+      const content = data?.choices?.[0]?.message?.content || "";
+      if (r.ok && content) return { content, status: r.status };
+      console.log("[AI fallback] Lovable failed status:", r.status, "err:", JSON.stringify(data?.error || {}).slice(0, 200));
+    } catch (e) {
+      console.log("[AI fallback] Lovable threw:", String(e));
+    }
+  }
+
+  // 2) OpenRouter free models
+  if (openrouterKey) {
+    const freeModels = [
+      "deepseek/deepseek-chat-v3.1:free",
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "qwen/qwen-2.5-72b-instruct:free",
+      "google/gemini-2.0-flash-exp:free",
+    ];
+    for (const model of freeModels) {
+      try {
+        const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + openrouterKey },
+          body: JSON.stringify({ model, messages, temperature, max_tokens }),
+        });
+        const data = await r.json().catch(() => ({}));
+        const content = data?.choices?.[0]?.message?.content || "";
+        if (r.ok && content) {
+          console.log("[AI fallback] OpenRouter success with", model);
+          return { content, status: r.status };
+        }
+        console.log("[AI fallback] OpenRouter", model, "failed:", r.status);
+      } catch (e) {
+        console.log("[AI fallback] OpenRouter", model, "threw:", String(e));
+      }
+    }
+  }
+
+  return { content: "", status: 402, error: "All AI providers exhausted" };
+}
+
 function computeGsoScore(content: string, brand: string): number {
   const words = countWords(content);
   const brandMentions = (content.match(new RegExp(brand, "gi")) || []).length;
@@ -200,29 +255,14 @@ Mix these content types proportionally (total = ${toGenerate}):
 Output ONLY valid JSON array:
 [{"topic": "topic text", "type": "article|pillar|mentions|comparison", "keywords": ["kw1", "kw2", "kw3"]}]`;
 
-    const topicsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + lovableKey,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Respond with valid JSON only. No markdown fences, no explanation, no preamble." },
-          { role: "user", content: topicsPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 8000,
-      }),
-    });
-
-    const topicsData = await topicsRes.json();
-    const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
-    console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsRes.status);
-    if (topicsData.error) {
-      console.error("[generate-30-gso] Lovable AI error:", JSON.stringify(topicsData.error));
-    }
+    const { content: topicsRaw, status: topicsStatus, error: topicsErr } = await callAIWithFallback(
+      [
+        { role: "system", content: "Respond with valid JSON only. No markdown fences, no explanation, no preamble." },
+        { role: "user", content: topicsPrompt },
+      ],
+      { temperature: 0.8, max_tokens: 8000 }
+    );
+    console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsStatus);
     let topics: { topic: string; type: string; keywords: string[] }[] = [];
 
     try {
@@ -243,7 +283,7 @@ Output ONLY valid JSON array:
       console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 1000), "error:", String(e));
       return new Response(JSON.stringify({ 
         error: "Failed to generate topics. The AI returned an empty or invalid response. Please try again.",
-        details: topicsData.error?.message || "Empty response from AI"
+        details: topicsErr || "Empty response from AI"
       }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -377,25 +417,13 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
       }
 
       try {
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + lovableKey,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
-              { role: "user", content: contentPrompt },
-            ],
-            temperature: 0.65,
-            max_tokens: 10000,
-          }),
-        });
-
-        const aiData = await aiRes.json();
-        const rawContent = aiData.choices?.[0]?.message?.content || "";
+        const { content: rawContent } = await callAIWithFallback(
+          [
+            { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
+            { role: "user", content: contentPrompt },
+          ],
+          { temperature: 0.65, max_tokens: 10000 }
+        );
 
         let parsed: { title: string; meta_description: string; content: string };
         try {
