@@ -255,29 +255,14 @@ Mix these content types proportionally (total = ${toGenerate}):
 Output ONLY valid JSON array:
 [{"topic": "topic text", "type": "article|pillar|mentions|comparison", "keywords": ["kw1", "kw2", "kw3"]}]`;
 
-    const topicsRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + lovableKey,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Respond with valid JSON only. No markdown fences, no explanation, no preamble." },
-          { role: "user", content: topicsPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 8000,
-      }),
-    });
-
-    const topicsData = await topicsRes.json();
-    const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
-    console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsRes.status);
-    if (topicsData.error) {
-      console.error("[generate-30-gso] Lovable AI error:", JSON.stringify(topicsData.error));
-    }
+    const { content: topicsRaw, status: topicsStatus, error: topicsErr } = await callAIWithFallback(
+      [
+        { role: "system", content: "Respond with valid JSON only. No markdown fences, no explanation, no preamble." },
+        { role: "user", content: topicsPrompt },
+      ],
+      { temperature: 0.8, max_tokens: 8000 }
+    );
+    console.log("[generate-30-gso] Topics raw response length:", topicsRaw.length, "status:", topicsStatus);
     let topics: { topic: string; type: string; keywords: string[] }[] = [];
 
     try {
