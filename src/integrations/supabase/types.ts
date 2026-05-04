@@ -1932,6 +1932,7 @@ export type Database = {
           english_type: string | null
           gsc_analysis_period: number | null
           gsc_selected_domain: string | null
+          human_review_enabled: boolean | null
           id: string
           image_style: string | null
           include_citations: boolean | null
@@ -1964,6 +1965,7 @@ export type Database = {
           english_type?: string | null
           gsc_analysis_period?: number | null
           gsc_selected_domain?: string | null
+          human_review_enabled?: boolean | null
           id?: string
           image_style?: string | null
           include_citations?: boolean | null
@@ -1996,6 +1998,7 @@ export type Database = {
           english_type?: string | null
           gsc_analysis_period?: number | null
           gsc_selected_domain?: string | null
+          human_review_enabled?: boolean | null
           id?: string
           image_style?: string | null
           include_citations?: boolean | null
