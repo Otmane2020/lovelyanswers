@@ -97,6 +97,12 @@ function shouldPublishToday(frequency: string | null): boolean {
     case "monthly":
       // Publish only on the 1st of the month
       return dayOfMonth === 1;
+    case "2x_week":
+      // Publish on Tuesdays (2) and Thursdays (4)
+      return dayOfWeek === 2 || dayOfWeek === 4;
+    case "3x_week":
+      // Publish on Mondays (1), Wednesdays (3), Fridays (5) — Google HCU recommended
+      return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
     case "daily":
     default:
       // Daily publishing
