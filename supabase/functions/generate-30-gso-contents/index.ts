@@ -504,11 +504,22 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
           const cleaned2 = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
           parsed = JSON.parse(cleaned2);
         } catch {
-          parsed = {
-            title: brand + " - " + t.topic,
-            meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
-            content: rawContent,
-          };
+          parsed = rawContent.trim()
+            ? {
+                title: brand + " - " + t.topic,
+                meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
+                content: rawContent,
+              }
+            : buildFallbackContent({
+                topic: t.topic,
+                type: t.type,
+                keywords: t.keywords || [],
+                brand,
+                website,
+                businessType,
+                audience,
+                language,
+              });
         }
 
         const score = computeGsoScore(parsed.content || "", brand);
