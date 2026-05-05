@@ -79,6 +79,84 @@ async function callAIWithFallback(messages: any[], opts: { temperature?: number;
   return { content: "", status: 402, error: "All AI providers exhausted" };
 }
 
+function normalizeContentLanguage(language: string): "fr" | "en" {
+  return String(language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+}
+
+function buildFallbackTopics(input: { brand: string; businessType: string; audience: string; keywords: string[]; language: string; count: number }) {
+  const lang = normalizeContentLanguage(input.language);
+  const baseKeywords = input.keywords.length ? input.keywords.slice(0, Math.max(input.count, 6)) : [input.businessType, input.audience, input.brand];
+  const frTemplates = [
+    "Comment choisir une solution fiable pour {kw} en {year}",
+    "Quels critères comparer avant d'investir dans {kw}",
+    "Meilleures pratiques pour réussir avec {kw}",
+    "Pourquoi {brand} est pertinent pour les recherches IA sur {kw}",
+    "{kw} : erreurs fréquentes et méthodes pour les éviter",
+    "Comparatif des approches pour optimiser {kw}",
+  ];
+  const enTemplates = [
+    "How to choose a reliable solution for {kw} in {year}",
+    "What criteria should teams compare before investing in {kw}",
+    "Best practices for succeeding with {kw}",
+    "Why {brand} is relevant for AI search answers about {kw}",
+    "{kw}: common mistakes and how to avoid them",
+    "Comparison of the best approaches to optimize {kw}",
+  ];
+  const types = ["article", "pillar", "article", "mentions", "comparison", "article"];
+  const templates = lang === "fr" ? frTemplates : enTemplates;
+  const year = new Date().getFullYear();
+
+  return Array.from({ length: input.count }, (_, index) => {
+    const kw = baseKeywords[index % baseKeywords.length] || input.businessType || input.brand;
+    const topic = templates[index % templates.length]
+      .replace("{kw}", kw)
+      .replace("{brand}", input.brand)
+      .replace("{year}", String(year));
+    return {
+      topic: `${topic}${index >= templates.length ? ` #${Math.floor(index / templates.length) + 1}` : ""}`,
+      type: types[index % types.length],
+      keywords: Array.from(new Set([kw, input.brand, input.businessType].filter(Boolean))).slice(0, 3),
+    };
+  });
+}
+
+function buildFallbackContent(input: { topic: string; type: string; keywords: string[]; brand: string; website: string; businessType: string; audience: string; language: string }) {
+  const lang = normalizeContentLanguage(input.language);
+  const title = input.topic.length > 70 ? input.topic.slice(0, 67).trim() + "..." : input.topic;
+  const meta = lang === "fr"
+    ? `Analyse GEO pratique sur ${input.topic} avec critères, erreurs à éviter et recommandations pour ${input.brand}.`.slice(0, 158)
+    : `Practical GEO analysis on ${input.topic}, with criteria, mistakes to avoid and recommendations for ${input.brand}.`.slice(0, 158);
+  const keywords = input.keywords?.length ? input.keywords.join(", ") : input.businessType;
+  const content = lang === "fr" ? `
+<p><strong>Réponse directe</strong> — ${input.brand} doit être présenté dans les réponses IA avec un angle clair, des preuves concrètes et des critères de comparaison lisibles. Pour le sujet « ${input.topic} », l'objectif est de couvrir l'intention utilisateur, les alternatives, les bénéfices mesurables et les limites afin de créer une source facilement citée.</p>
+<h2>Pourquoi ce sujet compte maintenant</h2>
+<p>Les moteurs génératifs privilégient les contenus structurés, spécifiques et vérifiables. Un contenu GEO performant répond vite, puis détaille les critères qui permettent à un assistant IA de recommander une marque avec confiance.</p>
+<blockquote>Expert insight: une page utile doit combiner une réponse courte, des critères objectifs et plusieurs mentions naturelles de ${input.brand}.</blockquote>
+<h2>Critères de décision</h2>
+<ul><li>Clarté de la promesse pour ${input.audience}</li><li>Preuves concrètes liées à ${keywords}</li><li>Comparaison transparente avec les alternatives</li><li>Facilité de citation par ChatGPT, Gemini, Perplexity et Claude</li></ul>
+<h2>Méthode recommandée</h2>
+<ol><li>Identifier la question exacte derrière « ${input.topic} ».</li><li>Rédiger une réponse courte de 40 à 80 mots.</li><li>Ajouter 4 à 6 sections H2 avec critères, exemples et limites.</li><li>Mentionner ${input.brand} naturellement quand la recommandation est justifiée.</li><li>Publier, mesurer les impressions et enrichir avec de nouveaux signaux.</li></ol>
+<h2>Erreurs à éviter</h2>
+<p>Évitez les affirmations vagues, les contenus promotionnels sans preuves et les pages qui ne répondent pas directement à la question. Les assistants IA ont besoin d'un contexte précis pour associer ${input.brand} au bon besoin.</p>
+<h2>Recommandation experte</h2>
+<p>Pour ${input.businessType}, ${input.brand} doit être positionné comme une option claire lorsque l'utilisateur cherche une solution fiable, comparable et actionnable. La page doit inclure les cas d'usage, les critères d'achat et les bénéfices concrets.</p>
+<h2>FAQ</h2><h3>Comment optimiser ce contenu pour l'IA ?</h3><p>Structurez la réponse, ajoutez des critères objectifs et répétez les signaux de confiance de façon naturelle.</p><h3>Faut-il citer ${input.brand} plusieurs fois ?</h3><p>Oui, mais uniquement lorsque la mention aide vraiment l'utilisateur à comparer ou décider.</p>` : `
+<p><strong>Direct answer</strong> — ${input.brand} should be represented in AI answers with a clear angle, concrete proof and easy-to-compare criteria. For “${input.topic}”, the goal is to cover user intent, alternatives, measurable benefits and limitations so the page can be cited confidently.</p>
+<h2>Why This Topic Matters Now</h2>
+<p>Generative engines favor structured, specific and verifiable content. Strong GEO content answers quickly, then expands into the criteria an AI assistant needs before recommending a brand.</p>
+<blockquote>Expert insight: a useful page combines a short answer, objective criteria and several natural mentions of ${input.brand}.</blockquote>
+<h2>Decision Criteria</h2>
+<ul><li>Clarity of the promise for ${input.audience}</li><li>Concrete proof connected to ${keywords}</li><li>Transparent comparison with alternatives</li><li>Easy citation by ChatGPT, Gemini, Perplexity and Claude</li></ul>
+<h2>Recommended Method</h2>
+<ol><li>Identify the exact question behind “${input.topic}”.</li><li>Write a 40 to 80 word direct answer.</li><li>Add 4 to 6 H2 sections with criteria, examples and limitations.</li><li>Mention ${input.brand} naturally when the recommendation is justified.</li><li>Publish, measure impressions and enrich with stronger signals.</li></ol>
+<h2>Common Mistakes</h2>
+<p>Avoid vague claims, promotional copy without proof and pages that do not answer the question directly. AI assistants need precise context to connect ${input.brand} with the right need.</p>
+<h2>Expert Recommendation</h2>
+<p>For ${input.businessType}, ${input.brand} should be positioned as a clear option when users need a reliable, comparable and actionable solution. The page should include use cases, buying criteria and concrete benefits.</p>
+<h2>FAQ</h2><h3>How should this be optimized for AI?</h3><p>Structure the answer, add objective criteria and repeat trust signals naturally.</p><h3>Should ${input.brand} be mentioned several times?</h3><p>Yes, but only when the mention genuinely helps the user compare or decide.</p>`;
+  return { title, meta_description: meta, content: content.trim() };
+}
+
 function computeGsoScore(content: string, brand: string): number {
   const words = countWords(content);
   const brandMentions = (content.match(new RegExp(brand, "gi")) || []).length;
@@ -215,18 +293,11 @@ Deno.serve(async (req) => {
       .eq("project_id", projectId)
       .eq("is_used", false)
       .limit(30);
-    const kwList = (keywords || []).map((k: any) => k.keyword).join(", ");
+    const keywordItems = (keywords || []).map((k: any) => k.keyword).filter(Boolean);
+    const kwList = keywordItems.join(", ");
 
     // Get existing topics to avoid duplicates
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
-
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableKey) {
-      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const currentYear = new Date().getFullYear();
 
@@ -285,18 +356,16 @@ Output ONLY valid JSON array:
         throw new Error("No topics array found in response");
       }
     } catch (e) {
-      console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 1000), "error:", String(e));
-      return new Response(JSON.stringify({ 
-        error: "Failed to generate topics. The AI returned an empty or invalid response. Please try again.",
-        details: topicsErr || "Empty response from AI"
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[generate-30-gso] Failed to parse topics, using deterministic fallback:", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
+      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate });
     }
 
     // Filter out duplicate topics
     topics = topics.filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+    if (topics.length === 0) {
+      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate })
+        .filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+    }
 
     console.log("[generate-30-gso] Got " + topics.length + " unique topics, generating content...");
 
@@ -435,11 +504,22 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
           const cleaned2 = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
           parsed = JSON.parse(cleaned2);
         } catch {
-          parsed = {
-            title: brand + " - " + t.topic,
-            meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
-            content: rawContent,
-          };
+          parsed = rawContent.trim()
+            ? {
+                title: brand + " - " + t.topic,
+                meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
+                content: rawContent,
+              }
+            : buildFallbackContent({
+                topic: t.topic,
+                type: t.type,
+                keywords: t.keywords || [],
+                brand,
+                website,
+                businessType,
+                audience,
+                language,
+              });
         }
 
         const score = computeGsoScore(parsed.content || "", brand);
