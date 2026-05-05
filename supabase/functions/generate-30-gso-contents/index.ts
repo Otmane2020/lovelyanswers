@@ -46,10 +46,15 @@ async function callAIWithFallback(messages: any[], opts: { temperature?: number;
   // 2) OpenRouter free models
   if (openrouterKey) {
     const freeModels = [
-      "deepseek/deepseek-chat-v3.1:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
-      "qwen/qwen-2.5-72b-instruct:free",
-      "google/gemini-2.0-flash-exp:free",
+      // Currently available free models on OpenRouter (2026)
+      "meta-llama/llama-3.2-3b-instruct:free",
+      "meta-llama/llama-3.1-8b-instruct:free",
+      "google/gemma-2-9b-it:free",
+      "mistralai/mistral-7b-instruct:free",
+      "qwen/qwen-2-7b-instruct:free",
+      // Paid fallback (very cheap) — last resort to ensure success
+      "google/gemini-flash-1.5",
+      "openai/gpt-4o-mini",
     ];
     for (const model of freeModels) {
       try {
