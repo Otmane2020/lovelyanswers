@@ -293,18 +293,11 @@ Deno.serve(async (req) => {
       .eq("project_id", projectId)
       .eq("is_used", false)
       .limit(30);
-    const kwList = (keywords || []).map((k: any) => k.keyword).join(", ");
+    const keywordItems = (keywords || []).map((k: any) => k.keyword).filter(Boolean);
+    const kwList = keywordItems.join(", ");
 
     // Get existing topics to avoid duplicates
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
-
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableKey) {
-      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const currentYear = new Date().getFullYear();
 
@@ -363,18 +356,16 @@ Output ONLY valid JSON array:
         throw new Error("No topics array found in response");
       }
     } catch (e) {
-      console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 1000), "error:", String(e));
-      return new Response(JSON.stringify({ 
-        error: "Failed to generate topics. The AI returned an empty or invalid response. Please try again.",
-        details: topicsErr || "Empty response from AI"
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[generate-30-gso] Failed to parse topics, using deterministic fallback:", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
+      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate });
     }
 
     // Filter out duplicate topics
     topics = topics.filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+    if (topics.length === 0) {
+      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate })
+        .filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+    }
 
     console.log("[generate-30-gso] Got " + topics.length + " unique topics, generating content...");
 
