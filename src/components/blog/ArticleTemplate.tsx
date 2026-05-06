@@ -74,6 +74,18 @@ function normalizeContent(raw: string): string {
   if (!raw) return "";
   let html = raw.trim();
 
+  // 0. Strip ALL inline `style=""` and `class=""` attributes — generated
+  //    articles ship with hard-coded max-width/padding/colors that break
+  //    the editorial theme and mobile responsiveness.
+  html = html.replace(/\sstyle\s*=\s*"[^"]*"/gi, "");
+  html = html.replace(/\sstyle\s*=\s*'[^']*'/gi, "");
+  html = html.replace(/\sclass\s*=\s*"[^"]*"/gi, "");
+  html = html.replace(/\sclass\s*=\s*'[^']*'/gi, "");
+
+  // 0.b Unwrap outer <article> / <section> / fixed-width <div> wrappers
+  html = html.replace(/<\/?article[^>]*>/gi, "");
+  html = html.replace(/<\/?section[^>]*>/gi, "");
+
   // 1. Drop the H1 (title is shown in the hero)
   html = html.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "").trim();
 
