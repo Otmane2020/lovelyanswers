@@ -145,13 +145,14 @@ export default function ArticleTemplate({
   const brand = "AutoPilot Geo";
   const brandUrl = "https://autopilotgeo.com";
 
-  const readingTime = useMemo(() => estimateReadingTime(htmlContent), [htmlContent]);
-  const headings = useMemo(() => extractHeadings(htmlContent), [htmlContent]);
+  const normalizedHtml = useMemo(() => normalizeContent(htmlContent), [htmlContent]);
+  const readingTime = useMemo(() => estimateReadingTime(normalizedHtml), [normalizedHtml]);
+  const headings = useMemo(() => extractHeadings(normalizedHtml), [normalizedHtml]);
   const excerpt = useMemo(
-    () => metaDescription || extractExcerpt(htmlContent),
-    [metaDescription, htmlContent]
+    () => metaDescription || extractExcerpt(normalizedHtml),
+    [metaDescription, normalizedHtml]
   );
-  const processedHtml = useMemo(() => injectHeadingIds(htmlContent), [htmlContent]);
+  const processedHtml = useMemo(() => injectHeadingIds(normalizedHtml), [normalizedHtml]);
 
   const formattedDate = publishedAt
     ? new Date(publishedAt).toLocaleDateString("en-US", {
