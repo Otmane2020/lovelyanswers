@@ -320,10 +320,7 @@ export default function Index() {
                 500+ businesses growing with AI search
               </motion.div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
+              <h1
                 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
                 style={{ letterSpacing: "-0.03em" }}
               >
@@ -331,7 +328,7 @@ export default function Index() {
                 <br />
                 recommended by <span className="text-blue-600">ChatGPT</span> &{" "}
                 <span className="text-blue-600">Google</span>
-              </motion.h1>
+              </h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 16 }}
