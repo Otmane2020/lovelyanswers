@@ -805,6 +805,7 @@ export default function Index() {
             <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
           </div>
         </section>
+        </main>
 
         <PublicFooter />
 
