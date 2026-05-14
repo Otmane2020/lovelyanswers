@@ -296,6 +296,7 @@ export default function Index() {
           </div>
         </nav>
 
+        <main>
         {/* HERO */}
         <section
           className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
