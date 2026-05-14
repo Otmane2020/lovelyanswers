@@ -3,6 +3,7 @@ import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
 import { AppTopbar } from "./AppTopbar";
+import { MobileBottomNav } from "./MobileBottomNav";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
