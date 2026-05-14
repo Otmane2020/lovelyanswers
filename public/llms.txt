@@ -1,0 +1,22 @@
+# AutoPilot Geo
+
+> AI visibility platform that helps brands rank in ChatGPT, Perplexity and other AI search engines through Answer Engine Optimization (AEO), Generative Engine Optimization (GEO) and auto-published SEO content.
+
+AutoPilot Geo audits how a brand currently appears in AI answers, generates citation-ready content (answers, articles, local AEO pages, shopping Q&A), and auto-publishes it to the user's CMS so the brand keeps gaining mentions across ChatGPT, Perplexity, Google AI Overviews and Gemini.
+
+## Pages
+
+- [Home](/): Product overview and AI visibility platform pitch.
+- [Pricing](/pricing): Plans, trial and All-in-One subscription details.
+- [AI SEO](/ai-seo): How AutoPilot Geo automates SEO for AI search.
+- [AI Shopping Assistant](/ai-shopping-assistant): Optimize product visibility in AI shopping answers.
+- [Premium Audit](/audit-premium): Deep AEO/GEO audit report.
+- [AI Visibility Checker](/tools/ai-visibility-checker): Free tool to check how a brand ranks in AI answers.
+- [Blog](/blog): Articles on AEO, GEO and AI search optimization.
+- [About](/about): Company and mission.
+- [Local AEO](/localAEO): Local Answer Engine Optimization for businesses.
+
+## Optional
+
+- [Terms](/terms): Terms of service.
+- [Privacy](/privacy): Privacy policy.
