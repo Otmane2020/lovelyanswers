@@ -3,6 +3,7 @@ import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AeoSidebar } from "./AeoSidebar";
 import { AppTopbar } from "./AppTopbar";
+import { MobileBottomNav } from "./MobileBottomNav";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
 import { Progress } from "@/components/ui/progress";
@@ -105,11 +106,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </>
             )}
             
-            <main className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5">
+            <main className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5 pb-20 md:pb-0">
               <div className="container py-8">
                 {children}
               </div>
             </main>
+            <MobileBottomNav />
           </SidebarInset>
         </div>
       </SidebarProvider>
