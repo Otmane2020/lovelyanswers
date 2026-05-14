@@ -296,6 +296,7 @@ export default function Index() {
           </div>
         </nav>
 
+        <main>
         {/* HERO */}
         <section
           className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
@@ -804,6 +805,7 @@ export default function Index() {
             <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
           </div>
         </section>
+        </main>
 
         <PublicFooter />
 
