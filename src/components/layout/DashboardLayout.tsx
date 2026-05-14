@@ -106,11 +106,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </>
             )}
             
-            <main className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5">
+            <main className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5 pb-20 md:pb-0">
               <div className="container py-8">
                 {children}
               </div>
             </main>
+            <MobileBottomNav />
           </SidebarInset>
         </div>
       </SidebarProvider>
