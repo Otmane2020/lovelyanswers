@@ -445,27 +445,64 @@ export default function Dashboard() {
         <div>
           <p className="text-[10px] uppercase tracking-widest text-primary font-semibold mb-1">AI Visibility Dashboard</p>
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4">Performance Metrics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { name: "ChatGPT", logo: chatgptIcon, score: Math.min(realStats.avgScore + 8, 100), color: "from-emerald-500 to-teal-400" },
-              { name: "Gemini", logo: geminiLogo, score: Math.min(realStats.avgScore + 2, 100), color: "from-blue-500 to-cyan-400" },
-              { name: "Perplexity", logo: perplexityLogo, score: Math.max(realStats.avgScore - 5, 0), color: "from-cyan-400 to-sky-500" },
-            ].map((platform) => (
-              <Card key={platform.name} className="p-5 border border-border/50 bg-card">
-                <div className="flex items-center gap-2 mb-3">
-                  <img src={typeof platform.logo === "string" ? platform.logo : platform.logo.src} alt={platform.name} className="w-4 h-4 object-contain" />
-                  <span className="text-xs font-medium text-muted-foreground">{platform.name}</span>
+          {(() => {
+            const platforms = [
+              { name: "ChatGPT", logo: chatgptIcon, score: Math.min(realStats.avgScore + 8, 100), color: "from-emerald-500 to-teal-400", accent: "bg-emerald-500/10" },
+              { name: "Gemini", logo: geminiLogo, score: Math.min(realStats.avgScore + 2, 100), color: "from-blue-500 to-cyan-400", accent: "bg-blue-500/10" },
+              { name: "Perplexity", logo: perplexityLogo, score: Math.max(realStats.avgScore - 5, 0), color: "from-cyan-400 to-sky-500", accent: "bg-cyan-500/10" },
+            ];
+            return (
+              <>
+                {/* Mobile bento: hero + 2 mini */}
+                <div className="grid grid-cols-2 gap-3 sm:hidden">
+                  <Card className="col-span-2 relative overflow-hidden p-5 border border-border/60 bg-gradient-to-br from-primary/5 via-card to-emerald-500/5">
+                    <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-emerald-500/10 blur-2xl" />
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-8 h-8 rounded-lg ${platforms[0].accent} flex items-center justify-center`}>
+                          <img src={typeof platforms[0].logo === "string" ? platforms[0].logo : platforms[0].logo.src} alt={platforms[0].name} className="w-4 h-4 object-contain" />
+                        </div>
+                        <span className="text-xs font-semibold text-foreground">{platforms[0].name}</span>
+                        <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Top platform</span>
+                      </div>
+                      <p className="text-5xl font-bold text-foreground mb-3 tracking-tight">{platforms[0].score}%</p>
+                      <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full bg-gradient-to-r ${platforms[0].color} transition-all duration-700`} style={{ width: `${platforms[0].score}%` }} />
+                      </div>
+                    </div>
+                  </Card>
+                  {platforms.slice(1).map((platform) => (
+                    <Card key={platform.name} className="p-4 border border-border/50">
+                      <div className={`w-8 h-8 rounded-lg ${platform.accent} flex items-center justify-center mb-2`}>
+                        <img src={typeof platform.logo === "string" ? platform.logo : platform.logo.src} alt={platform.name} className="w-4 h-4 object-contain" />
+                      </div>
+                      <p className="text-[11px] font-medium text-muted-foreground mb-1">{platform.name}</p>
+                      <p className="text-2xl font-bold text-foreground mb-2">{platform.score}%</p>
+                      <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full bg-gradient-to-r ${platform.color}`} style={{ width: `${platform.score}%` }} />
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-                <p className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{platform.score}%</p>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full bg-gradient-to-r ${platform.color} transition-all duration-700`}
-                    style={{ width: `${platform.score}%` }}
-                  />
+
+                {/* Desktop: original 3-col grid */}
+                <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+                  {platforms.map((platform) => (
+                    <Card key={platform.name} className="p-5 border border-border/50 bg-card">
+                      <div className="flex items-center gap-2 mb-3">
+                        <img src={typeof platform.logo === "string" ? platform.logo : platform.logo.src} alt={platform.name} className="w-4 h-4 object-contain" />
+                        <span className="text-xs font-medium text-muted-foreground">{platform.name}</span>
+                      </div>
+                      <p className="text-4xl font-bold text-foreground mb-3">{platform.score}%</p>
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full bg-gradient-to-r ${platform.color} transition-all duration-700`} style={{ width: `${platform.score}%` }} />
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              </Card>
-            ))}
-          </div>
+              </>
+            );
+          })()}
 
           {/* Checklist badges */}
           <div className="flex flex-wrap gap-2 mt-3">
