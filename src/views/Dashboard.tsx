@@ -616,16 +616,24 @@ export default function Dashboard() {
         </div>
 
         {/* Autopilot Modal Trigger */}
-        <Card 
-          className="p-4 sm:p-6 border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+        <Card
+          className="relative overflow-hidden p-4 sm:p-6 border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-violet-500/10 cursor-pointer hover:from-primary/15 hover:to-violet-500/15 transition-all active:scale-[0.99]"
           onClick={() => setShowAutopilotModal(true)}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-foreground text-sm sm:text-base">Publish Article on Autopilot</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Connect your CMS to automatically publish articles</p>
+          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0 sm:hidden">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-foreground text-sm sm:text-base">Publish Article on Autopilot</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-1">Connect your CMS to auto-publish articles</p>
+              </div>
             </div>
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+            <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+              <ArrowRight className="w-4 h-4" />
+            </div>
           </div>
         </Card>
       </div>
