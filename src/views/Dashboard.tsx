@@ -531,8 +531,47 @@ export default function Dashboard() {
         {/* Your Overview Section */}
         <div>
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4">Your Overview</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {/* Answers Generated Card */}
+
+          {/* Mobile bento */}
+          <div className="grid grid-cols-2 gap-3 sm:hidden">
+            {/* Hero: Answers */}
+            <Card className="col-span-2 relative overflow-hidden p-5 border border-border/60 bg-gradient-to-br from-primary/10 via-card to-violet-500/5">
+              <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-primary/10 blur-2xl" />
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Answers Generated</p>
+                  <p className="text-5xl font-bold text-foreground tracking-tight">{realStats.answersCount}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Avg. score <span className="text-primary font-semibold">{realStats.avgScore}/100</span>
+                  </p>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4 border border-border/50">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3">
+                <FileText className="w-4 h-4 text-emerald-500" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Articles</p>
+              <p className="text-3xl font-bold text-foreground">{realStats.articlesCount}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Ready to publish</p>
+            </Card>
+
+            <Card className="p-4 border border-border/50">
+              <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center mb-3">
+                <TrendingUp className="w-4 h-4 text-orange-500" />
+              </div>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Reddit</p>
+              <p className="text-3xl font-bold text-foreground">{realStats.redditOpportunities}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Engagement ready</p>
+            </Card>
+          </div>
+
+          {/* Desktop: original 3-col */}
+          <div className="hidden sm:grid sm:grid-cols-3 gap-4">
             <Card className="p-5 border border-border/50">
               <div className="flex items-start justify-between">
                 <div>
@@ -548,7 +587,6 @@ export default function Dashboard() {
               </p>
             </Card>
 
-            {/* Articles Created Card */}
             <Card className="p-5 border border-border/50">
               <div className="flex items-start justify-between">
                 <div>
@@ -559,12 +597,9 @@ export default function Dashboard() {
                   <FileText className="w-5 h-5 text-emerald-500" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Ready to publish
-              </p>
+              <p className="text-sm text-muted-foreground mt-2">Ready to publish</p>
             </Card>
 
-            {/* Reddit Opportunities Card */}
             <Card className="p-5 border border-border/50">
               <div className="flex items-start justify-between">
                 <div>
@@ -575,9 +610,7 @@ export default function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-orange-500" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Engagement ready
-              </p>
+              <p className="text-sm text-muted-foreground mt-2">Engagement ready</p>
             </Card>
           </div>
         </div>
