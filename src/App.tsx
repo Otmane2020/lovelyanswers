@@ -50,6 +50,9 @@ import LocalAeoArticle from "@/views/LocalAeoArticle";
 import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
 import AeoWizard from "@/views/AeoWizard";
+import { SubscriptionGate } from "@/components/auth/SubscriptionGate";
+
+const gated = (el: React.ReactNode) => <SubscriptionGate>{el}</SubscriptionGate>;
 
 export default function App() {
   return (
@@ -60,29 +63,29 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/wizard" element={<AeoWizard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/wizard" element={gated(<AeoWizard />)} />
+        <Route path="/dashboard" element={gated(<Dashboard />)} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
-        <Route path="/settings" element={<AeoSettings />} />
-        <Route path="/answers" element={<Answers />} />
+        <Route path="/settings" element={gated(<AeoSettings />)} />
+        <Route path="/answers" element={gated(<Answers />)} />
         <Route path="/answers/:slug" element={<AeoPublicAnswer />} />
-        <Route path="/articles" element={<AeoArticles />} />
-        <Route path="/keywords" element={<AeoKeywords />} />
-        <Route path="/planning" element={<AeoPlanning />} />
-        <Route path="/analytics" element={<AeoAnalytics />} />
+        <Route path="/articles" element={gated(<AeoArticles />)} />
+        <Route path="/keywords" element={gated(<AeoKeywords />)} />
+        <Route path="/planning" element={gated(<AeoPlanning />)} />
+        <Route path="/analytics" element={gated(<AeoAnalytics />)} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/subscription" element={<AeoSubscription />} />
         <Route path="/billing" element={<AeoBilling />} />
         <Route path="/support" element={<AeoSupport />} />
-        <Route path="/integrations" element={<AeoIntegrations />} />
-        <Route path="/history" element={<AeoHistory />} />
-        <Route path="/geo" element={<AeoGeo />} />
+        <Route path="/integrations" element={gated(<AeoIntegrations />)} />
+        <Route path="/history" element={gated(<AeoHistory />)} />
+        <Route path="/geo" element={gated(<AeoGeo />)} />
         <Route path="/geo-engine" element={<GeoEngineLanding />} />
 
-        <Route path="/local" element={<AeoLocal />} />
+        <Route path="/local" element={gated(<AeoLocal />)} />
         <Route path="/localAEO" element={<LocalAeoArticle />} />
         <Route path="/reddit" element={<AeoReddit />} />
         <Route path="/seo-audit" element={<AeoSeoAudit />} />
