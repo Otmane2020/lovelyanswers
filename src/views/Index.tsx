@@ -55,7 +55,7 @@ const beforeItems = [
 
 const afterItems = [
   "ChatGPT recommends your brand",
-  "30 expert articles/month, auto",
+  "1 article/day across 5 channels, auto",
   "Auto-published to your CMS",
   "+60% avg traffic in 3 months",
 ];
