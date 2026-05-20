@@ -19,6 +19,7 @@ interface Props {
 export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutKey, setCheckoutKey] = useState(`${plan}-${cycle}`);
 
   const fetchClientSecret = useCallback(async () => {
     setLoading(true);
@@ -39,6 +40,11 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
     }
   }, [plan, cycle, onError]);
 
+  if (checkoutKey !== `${plan}-${cycle}`) {
+    setClientSecret(null);
+    setCheckoutKey(`${plan}-${cycle}`);
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-background overflow-hidden min-h-[520px]">
       {loading && !clientSecret && (
@@ -47,6 +53,7 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
         </div>
       )}
       <EmbeddedCheckoutProvider
+        key={checkoutKey}
         stripe={getStripe()}
         options={{ fetchClientSecret }}
       >
