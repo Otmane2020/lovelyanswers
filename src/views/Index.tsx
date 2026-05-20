@@ -30,10 +30,6 @@ import { InactivityPopup } from "@/components/InactivityPopup";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
-import geminiLogo from "@/assets/gemini-logo.png";
-import claudeLogo from "@/assets/claude-logo.png";
-import perplexityLogo from "@/assets/perplexity-logo.png";
-import chatgptIcon from "@/assets/chatgpt-icon.png";
 
 const aiPlatforms = [
   { name: "Google", color: "#4285f4" },
