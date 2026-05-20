@@ -402,6 +402,15 @@ export default function Auth() {
 
                       const { data: { session } } = await supabase.auth.getSession();
                       if (session?.user) {
+                        if (nextParam?.startsWith("/")) {
+                          window.location.replace(nextParam);
+                          return;
+                        }
+                        const { data: sub } = await supabase.functions.invoke("check-subscription");
+                        if (!sub?.subscribed && !sub?.trial) {
+                          window.location.replace("/checkout?plan=pro&cycle=annual");
+                          return;
+                        }
                         const { data: projects } = await supabase
                           .from("projects")
                           .select("id")
