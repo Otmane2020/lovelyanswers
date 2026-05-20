@@ -17,7 +17,7 @@ interface SubscriptionContextType {
   cycle: Cycle;
   sitesLimit: number | null;
   articlesLimit: number | null;
-  checkSubscription: () => Promise<boolean>;
+  checkSubscription: (subscriptionId?: string) => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
   openCustomerPortal: () => Promise<string | null>;
 }
@@ -39,7 +39,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [articlesLimit, setArticlesLimit] = useState<number | null>(null);
 
 
-  const checkSubscription = useCallback(async () => {
+  const checkSubscription = useCallback(async (subscriptionId?: string) => {
     // Don't check if auth is still loading
     if (authLoading) {
       return false;
@@ -57,7 +57,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       console.log("[SubscriptionContext] Checking subscription for user:", user.email);
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      const { data, error } = await supabase.functions.invoke(
+        "check-subscription",
+        subscriptionId ? { body: { subscription_id: subscriptionId } } : undefined
+      );
       
       if (error) {
         console.error("[SubscriptionContext] Error checking subscription:", error);
