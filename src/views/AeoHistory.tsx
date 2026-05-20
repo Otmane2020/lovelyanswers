@@ -99,11 +99,13 @@ export default function AeoHistory() {
         />
 
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-4xl grid-cols-6">
             <TabsTrigger value="all" className="gap-2"><History className="h-4 w-4" />All<Badge variant="secondary" className="ml-1">{unifiedHistory.length}</Badge></TabsTrigger>
             <TabsTrigger value="aeo" className="gap-2"><Sparkles className="h-4 w-4" />AEO<Badge variant="secondary" className="ml-1">{answers.length}</Badge></TabsTrigger>
             <TabsTrigger value="local" className="gap-2"><MapPin className="h-4 w-4" />Local<Badge variant="secondary" className="ml-1">{localAnswers.length}</Badge></TabsTrigger>
             <TabsTrigger value="seo" className="gap-2"><FileText className="h-4 w-4" />SEO<Badge variant="secondary" className="ml-1">{articles.length}</Badge></TabsTrigger>
+            <TabsTrigger value="geo" className="gap-2"><Globe className="h-4 w-4" />GEO<Badge variant="secondary" className="ml-1">{geoContents.length}</Badge></TabsTrigger>
+            <TabsTrigger value="shopping" className="gap-2"><ShoppingCart className="h-4 w-4" />Shopping<Badge variant="secondary" className="ml-1">{shoppingItems.length}</Badge></TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
