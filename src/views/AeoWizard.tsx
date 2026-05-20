@@ -157,12 +157,20 @@ export default function AeoWizard() {
       trackOnboardingComplete(data.websiteUrl);
       toast.success("Project created! Your 30-day content plan is generating 💜");
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating project:", error);
-      toast.error("Failed to create project");
+      const msg = error?.message || "";
+      if (msg.startsWith("SITES_LIMIT_REACHED")) {
+        toast.error(msg.replace("SITES_LIMIT_REACHED: ", ""), {
+          action: { label: "Upgrade", onClick: () => router.push("/pricing") },
+        });
+      } else {
+        toast.error("Failed to create project");
+      }
     } finally {
       setIsCreating(false);
     }
+
   };
 
   const canProceedStep1 = data.websiteUrl.length > 0 && isValidUrl(data.websiteUrl);

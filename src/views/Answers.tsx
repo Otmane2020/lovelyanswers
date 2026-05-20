@@ -24,6 +24,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 import { PageHeader } from "@/components/PageHeader";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useUsage } from "@/hooks/useUsage";
+
 import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
@@ -81,6 +83,8 @@ export default function Answers() {
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+  const { canGenerateArticle, articlesLimit, articlesThisMonth, refetch: refetchUsage } = useUsage();
+
 
   const isAnswerLocked = (answer: typeof answers[0]) => !answer.answer || answer.answer === LOCKED_ANSWER_TEXT;
 
@@ -193,6 +197,14 @@ export default function Answers() {
       toast.error("No active project");
       return;
     }
+    if (!canGenerateArticle) {
+      toast.error(
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
+      );
+      return;
+    }
+
 
     setGeneratingArticleId(answerId);
     try {
@@ -303,10 +315,18 @@ export default function Answers() {
 
   const regenerateAllAnswers = async () => {
     if (!user) return;
+    if (!canGenerateArticle) {
+      toast.error(
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
+      );
+      return;
+    }
 
     setRegeneratingAll(true);
     setIsGeneratingWithProgress(true);
     setGenerationProgress(0);
+
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -381,10 +401,18 @@ export default function Answers() {
 
   const generate30Answers = async () => {
     if (!user) return;
+    if (!canGenerateArticle) {
+      toast.error(
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
+      );
+      return;
+    }
 
     setGenerating30(true);
     setIsGeneratingWithProgress(true);
     setGenerationProgress(0);
+
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
