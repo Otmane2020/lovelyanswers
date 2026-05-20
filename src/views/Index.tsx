@@ -103,54 +103,8 @@ const showcaseFeatures = [
   },
 ];
 
-const testimonials = [
-  {
-    platform: "Trustpilot",
-    reviews: [
-      {
-        name: "Mike R.",
-        role: "Roofing Company Owner",
-        text: "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
-        rating: 5,
-      },
-      {
-        name: "Amanda K.",
-        role: "Online Store Owner",
-        text: "Went from page 3 to page 1 for 12+ keywords in 8 weeks. AI content actually works.",
-        rating: 5,
-      },
-      {
-        name: "Ryan G.",
-        role: "Agency Owner",
-        text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
-        rating: 5,
-      },
-    ],
-  },
-  {
-    platform: "G2",
-    reviews: [
-      {
-        name: "David M.",
-        role: "SaaS Founder",
-        text: "It's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
-        rating: 5,
-      },
-      {
-        name: "Jessica W.",
-        role: "Blogger",
-        text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results!",
-        rating: 5,
-      },
-      {
-        name: "Tom L.",
-        role: "Local Business Owner",
-        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $29/mo.",
-        rating: 5,
-      },
-    ],
-  },
-];
+// Testimonials removed — replaced by neutral stat pills in hero.
+
 
 const bottomFeatures = [
   {
