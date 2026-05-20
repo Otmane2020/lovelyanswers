@@ -12,6 +12,15 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+const hasConfirmedPaymentMethod = (sub: any) => {
+  const setupIntent = sub.pending_setup_intent;
+  return Boolean(
+    sub.default_payment_method ||
+    sub.default_source ||
+    setupIntent?.status === "succeeded"
+  );
+};
+
 // Price → plan map (keep in sync with src/lib/stripe-products.ts)
 const PRICE_MAP: Record<string, { plan: "starter" | "pro" | "agency"; cycle: "monthly" | "annual"; sites: number; articles: number }> = {
   "price_1TZI35Efti9t9nN9yj0tBl4c": { plan: "starter", cycle: "monthly", sites: 1, articles: 10 },
@@ -224,6 +233,7 @@ serve(async (req) => {
       customer: customerId,
       status: "all",
       limit: 10,
+      expand: ["data.pending_setup_intent", "data.default_payment_method"],
     });
 
     logStep("Fetched subscriptions", { 
@@ -232,7 +242,7 @@ serve(async (req) => {
     });
 
     const activeOrTrialingSub = subscriptions.data.find((sub: any) => {
-      const isAccessible = sub.status === "active" || sub.status === "trialing";
+      const isAccessible = sub.status === "active" || (sub.status === "trialing" && hasConfirmedPaymentMethod(sub));
       if (!isAccessible) return false;
       return requestedSubscriptionId ? sub.id === requestedSubscriptionId : true;
     });
