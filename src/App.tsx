@@ -22,6 +22,8 @@ import AeoSupport from "@/views/AeoSupport";
 import AeoIntegrations from "@/views/AeoIntegrations";
 import AeoHistory from "@/views/AeoHistory";
 import AeoGeo from "@/views/AeoGeo";
+import GeoEngineLanding from "@/views/GeoEngineLanding";
+
 import AeoLocal from "@/views/AeoLocal";
 import AeoReddit from "@/views/AeoReddit";
 import AeoSeoAudit from "@/views/AeoSeoAudit";
@@ -78,6 +80,8 @@ export default function App() {
         <Route path="/integrations" element={<AeoIntegrations />} />
         <Route path="/history" element={<AeoHistory />} />
         <Route path="/geo" element={<AeoGeo />} />
+        <Route path="/geo-engine" element={<GeoEngineLanding />} />
+
         <Route path="/local" element={<AeoLocal />} />
         <Route path="/localAEO" element={<LocalAeoArticle />} />
         <Route path="/reddit" element={<AeoReddit />} />
