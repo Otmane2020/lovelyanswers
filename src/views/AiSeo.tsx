@@ -89,21 +89,21 @@ const steps = [
 
 const testimonials = [
   {
-    name: "Mike R.",
-    role: "Roofing Company Owner",
-    text: "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
+    name: "Ben M.",
+    role: "Founder, AutoPilot GEO",
+    text: "I used AutoPilot GEO on my own projects. The blog now drives 60 organic visits/month from Google with zero manual effort.",
     rating: 5,
   },
   {
-    name: "David M.",
-    role: "SaaS Founder",
-    text: "It's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
+    name: "500+ active sites",
+    role: "Across all plans",
+    text: "Our users publish thousands of AI-optimized articles every month. Average traffic lift: +60% in 3 months.",
     rating: 5,
   },
   {
-    name: "Ryan G.",
-    role: "Agency Owner",
-    text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
+    name: "4.9 / 5",
+    role: "289 reviews on TrustAvis",
+    text: "Rated Excellent by our customers — independent reviews collected via TrustAvis.",
     rating: 5,
   },
 ];

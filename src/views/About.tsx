@@ -14,7 +14,6 @@ const aboutStructuredData = {
     "name": "AutoPilot Geo",
     "description": "Pioneering Answer Engine Optimization to help businesses thrive in the AI-first era.",
     "url": "https://autopilotgeo.com",
-    "foundingLocation": { "@type": "Place", "address": { "@type": "PostalAddress", "streetAddress": "Suite 4, Piccadilly House", "addressLocality": "Manchester", "postalCode": "M1 1AB", "addressCountry": "GB" } },
     "numberOfEmployees": { "@type": "QuantitativeValue", "value": "10-50" }
   }
 };
@@ -24,7 +23,7 @@ export default function About() {
     <>
       <Helmet>
         <title>About AutoPilot Geo - AI Answer Engine Optimization Company</title>
-        <meta name="description" content="Learn about AutoPilot Geo, the pioneering AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants. Based in Manchester, UK." />
+        <meta name="description" content="Learn about AutoPilot Geo, the AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
         <link rel="canonical" href="https://autopilotgeo.com/about" />
         <script type="application/ld+json">{JSON.stringify(aboutStructuredData)}</script>
       </Helmet>
@@ -83,7 +82,7 @@ export default function About() {
             <div className="space-y-6 text-gray-500">
               <p>AutoPilot Geo was founded with a simple observation: the way people find information is changing. With the rise of AI assistants like ChatGPT, Gemini, and Perplexity, traditional SEO alone is no longer enough to ensure your business gets discovered.</p>
               <p>We developed Answer Engine Optimization (AEO) - a new approach that makes your content not just searchable, but citable by AI systems. Our platform helps businesses create structured, authoritative content that AI assistants trust and recommend.</p>
-              <p>Based in Manchester, UK, our team combines expertise in AI, SEO, and content marketing to deliver a comprehensive solution for the AI-first era.</p>
+              <p>Our distributed team combines expertise in AI, SEO, and content marketing to deliver a comprehensive solution for the AI-first era.</p>
             </div>
           </div>
         </section>
@@ -105,9 +104,6 @@ export default function About() {
             <h2 className="text-2xl font-bold mb-6 text-[hsl(222,47%,11%)]">Company Information</h2>
             <div className="text-gray-500">
                <p className="font-medium text-[hsl(222,47%,11%)]">AutoPilot Geo Ltd</p>
-              <p>Suite 4, Piccadilly House</p>
-              <p>Manchester, M1 1AB</p>
-              <p>United Kingdom</p>
               <p className="mt-4"><a href="mailto:support@autopilotgeo.com" className="text-violet-600 hover:underline">support@autopilotgeo.com</a></p>
             </div>
           </div>
