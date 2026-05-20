@@ -103,13 +103,31 @@ export default function AeoPlanning() {
 
   const rangeDays = useMemo(() => eachDayOfInterval({ start: rangeStart, end: rangeEnd }), [rangeStart, rangeEnd]);
 
+  // Compute preview items (queued unscheduled items distributed across future days matching frequency)
+  const previewItems = useMemo<ScheduledItem[]>(() => {
+    if (!autoPublishOn || queueItems.length === 0) return [];
+    const usedDates = new Set(scheduledItems.map((i) => format(i.date, "yyyy-MM-dd")));
+    const slots: Date[] = [];
+    for (const day of rangeDays) {
+      if (day < rangeStart) continue;
+      if (!matchesFrequency(day, liveFrequency)) continue;
+      if (usedDates.has(format(day, "yyyy-MM-dd"))) continue;
+      slots.push(day);
+      if (slots.length >= queueItems.length) break;
+    }
+    return slots.map((date, idx) => ({ ...queueItems[idx], date, status: "preview" as const, isPreview: true }));
+  }, [queueItems, scheduledItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
+
+  const allItems = useMemo(() => [...scheduledItems, ...previewItems], [scheduledItems, previewItems]);
+
   const getItemsForDate = (date: Date) => {
-    return scheduledItems.filter((item) => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"));
+    return allItems.filter((item) => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"));
   };
 
   const getUpcomingItems = () => {
-    return scheduledItems.filter((item) => item.date >= new Date()).sort((a, b) => a.date.getTime() - b.date.getTime());
+    return allItems.filter((item) => item.date >= new Date()).sort((a, b) => a.date.getTime() - b.date.getTime());
   };
+
 
   const fetchScheduledItems = async () => {
     if (!project?.id) return;
