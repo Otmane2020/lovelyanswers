@@ -206,6 +206,7 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
+  const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
 
@@ -215,7 +216,24 @@ export default function Index() {
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
+    try {
+      const ref = (document.referrer || "").toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const utm = (params.get("utm_source") || "").toLowerCase();
+      const match =
+        /chatgpt|openai/.test(ref) || /chatgpt|openai/.test(utm)
+          ? "ChatGPT"
+          : /perplexity/.test(ref) || /perplexity/.test(utm)
+          ? "Perplexity"
+          : /gemini|bard|google\.com\/search\?.*ai/.test(ref) || /gemini/.test(utm)
+          ? "Gemini"
+          : /claude|anthropic/.test(ref) || /claude/.test(utm)
+          ? "Claude"
+          : null;
+      if (match) setAiReferrer(match);
+    } catch {}
   }, []);
+
 
   return (
     <>
