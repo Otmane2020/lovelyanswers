@@ -216,6 +216,9 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
+    const body = await req.json().catch(() => ({}));
+    const requestedSubscriptionId = typeof body?.subscription_id === "string" ? body.subscription_id : null;
+
     // Check for active or trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
@@ -228,9 +231,11 @@ serve(async (req) => {
       statuses: subscriptions.data.map((s: any) => s.status)
     });
 
-    const activeOrTrialingSub = subscriptions.data.find(
-      (sub: any) => sub.status === "active" || sub.status === "trialing"
-    );
+    const activeOrTrialingSub = subscriptions.data.find((sub: any) => {
+      const isAccessible = sub.status === "active" || sub.status === "trialing";
+      if (!isAccessible) return false;
+      return requestedSubscriptionId ? sub.id === requestedSubscriptionId : true;
+    });
 
     if (!activeOrTrialingSub) {
       logStep("No active subscription found");
