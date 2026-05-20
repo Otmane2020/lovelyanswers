@@ -24,6 +24,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CmsConnectPopup } from "@/components/CmsConnectPopup";
 import { PageHeader } from "@/components/PageHeader";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useUsage } from "@/hooks/useUsage";
+
 import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 import chatGptLogo from "@/assets/chatgpt-logo.png";
 import chatGptIcon from "@/assets/chatgpt-icon.png";
