@@ -55,7 +55,7 @@ const beforeItems = [
 
 const afterItems = [
   "ChatGPT recommends your brand",
-  "30 expert articles/month, auto",
+  "1 article/day across 5 channels, auto",
   "Auto-published to your CMS",
   "+60% avg traffic in 3 months",
 ];
@@ -103,54 +103,8 @@ const showcaseFeatures = [
   },
 ];
 
-const testimonials = [
-  {
-    platform: "Trustpilot",
-    reviews: [
-      {
-        name: "Mike R.",
-        role: "Roofing Company Owner",
-        text: "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my own clients as a managed service.",
-        rating: 5,
-      },
-      {
-        name: "Amanda K.",
-        role: "Online Store Owner",
-        text: "Went from page 3 to page 1 for 12+ keywords in 8 weeks. AI content actually works.",
-        rating: 5,
-      },
-      {
-        name: "Ryan G.",
-        role: "Agency Owner",
-        text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
-        rating: 5,
-      },
-    ],
-  },
-  {
-    platform: "G2",
-    reviews: [
-      {
-        name: "David M.",
-        role: "SaaS Founder",
-        text: "It's nice knowing the blog and SEO aren't neglected. The articles are great and totally in context!",
-        rating: 5,
-      },
-      {
-        name: "Jessica W.",
-        role: "Blogger",
-        text: "Went from 0 to 24 DA in just 3 months. Absolutely amazing results!",
-        rating: 5,
-      },
-      {
-        name: "Tom L.",
-        role: "Local Business Owner",
-        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $29/mo.",
-        rating: 5,
-      },
-    ],
-  },
-];
+// Testimonials removed — replaced by neutral stat pills in hero.
+
 
 const bottomFeatures = [
   {
@@ -201,7 +155,7 @@ const faqs = [
 ];
 
 export default function Index() {
-  const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
+  
   const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -281,25 +235,26 @@ export default function Index() {
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
-        {/* AI Referrer Banner */}
-        {aiReferrer && (
-          <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center text-sm py-2.5 px-4 shadow-md">
+        {/* AI Announcement Banner — always visible */}
+        <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md">
+          <div className="container flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 px-4 py-2 text-sm text-center">
             <span className="font-medium">
-              🤖 You found us through <span className="font-bold">{aiReferrer}</span>? That's exactly what we do for your
+              🤖 Found us through{" "}
+              <span className="font-bold">{aiReferrer ?? "an AI assistant"}</span>? That's exactly what we do for your
               business.
-            </span>{" "}
-            <Link href="/onboarding" className="underline font-semibold ml-1 hover:opacity-90">
-              Start free →
+            </span>
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-1 bg-white text-blue-700 font-semibold rounded-full px-4 py-1 text-xs hover:bg-blue-50 transition whitespace-nowrap"
+            >
+              Start free trial →
             </Link>
           </div>
-        )}
+        </div>
 
         {/* NAV */}
-        <nav
-          className={`fixed z-50 w-full bg-white border-b border-gray-100 shadow-sm ${
-            aiReferrer ? "top-10" : "top-0"
-          }`}
-        >
+        <nav className="fixed top-10 sm:top-9 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
+
 
           <div className="container flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center">
@@ -333,7 +288,7 @@ export default function Index() {
         <main>
         {/* HERO */}
         <section
-          className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
+          className="relative pt-40 md:pt-44 pb-20 md:pb-28 overflow-hidden"
           style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%)" }}
         >
           <div
@@ -414,9 +369,9 @@ export default function Index() {
                 transition={{ delay: 0.45 }}
                 className="text-sm text-gray-400 mb-12"
               >
-                No credit card · Results in <span className="text-gray-600 font-medium">30 seconds</span> · Cancel
-                anytime
+                3-day free trial · <span className="text-gray-600 font-medium">Card required</span> · Cancel anytime
               </motion.p>
+
 
               {/* Social proof pills */}
               <motion.div
@@ -627,60 +582,8 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section className="py-16 md:py-24 bg-white">
-          <div className="container px-4">
-            <div className="text-center mb-10">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                What people say about <span className="text-blue-600 font-extrabold">AutoPilot Geo</span>
-              </h2>
-              <p className="text-gray-500 max-w-xl mx-auto">
-                Join 500+ businesses already growing with AI search optimization.
-              </p>
-            </div>
-            <div className="flex justify-center gap-2 mb-10">
-              {testimonials.map((t, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTestimonialPlatform(i)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTestimonialPlatform === i ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                >
-                  {t.platform}
-                </button>
-              ))}
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {testimonials[activeTestimonialPlatform].reviews.map((review, i) => (
-                <motion.div
-                  key={`${activeTestimonialPlatform}-${i}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-1 mb-3">
-                    {Array.from({ length: review.rating }).map((_, j) => (
-                      <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">"{review.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-gray-900 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {review.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{review.name}</p>
-                      <p className="text-xs text-gray-400">{review.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Testimonials removed — see neutral stat pills in hero */}
+
 
         {/* Showcase */}
         <section className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
@@ -830,10 +733,11 @@ export default function Index() {
               asChild
             >
               <Link href="/onboarding">
-                Get started — it's free <ArrowRight className="h-4 w-4" />
+                Start your 3-day free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
+            <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
+
           </div>
         </section>
         </main>
