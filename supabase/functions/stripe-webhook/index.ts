@@ -179,7 +179,44 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     updated_at: new Date().toISOString()
   }, { onConflict: "user_id" });
 
+  await supabaseAdmin.from("credits").upsert({
+    user_id: profile.id,
+    credits_total: creditsTotal,
+    credits_used: 0,
+    updated_at: new Date().toISOString()
+  }, { onConflict: "user_id" });
+
   logStep("Credits updated", { userId: profile.id, credits: creditsTotal });
+
+  // Upsert subscriptions row (plan/cycle/limits)
+  try {
+    const priceId = (subscription.items?.data?.[0]?.price?.id as string) || "";
+    const mapped = PRICE_MAP[priceId];
+    const trialEnd = (subscription as any).trial_end
+      ? new Date((subscription as any).trial_end * 1000).toISOString()
+      : null;
+    const periodEnd = (subscription as any).current_period_end
+      ? new Date((subscription as any).current_period_end * 1000).toISOString()
+      : null;
+
+    await supabaseAdmin.from("subscriptions").upsert({
+      user_id: profile.id,
+      stripe_customer_id: subscription.customer as string,
+      stripe_subscription_id: subscription.id,
+      plan: mapped?.plan ?? "starter",
+      cycle: mapped?.cycle ?? "monthly",
+      status: subscription.status,
+      trial_end: trialEnd,
+      current_period_end: periodEnd,
+      sites_limit: mapped?.sites ?? 1,
+      articles_limit: mapped?.articles ?? 10,
+      cancel_at_period_end: !!(subscription as any).cancel_at_period_end,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    logStep("Subscription upserted", { plan: mapped?.plan, cycle: mapped?.cycle, status: subscription.status });
+  } catch (subErr) {
+    logStep("Error upserting subscription", { error: String(subErr) });
+  }
 
   // AUTO-UNLOCK: When subscription becomes active, unlock all locked articles
   if (isActive) {
@@ -190,6 +227,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
         .select("id")
         .eq("user_id", profile.id)
         .limit(1);
+
+
 
       if (projects && projects.length > 0) {
         const projectId = projects[0].id;
