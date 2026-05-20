@@ -144,9 +144,23 @@ export default function Auth() {
         return;
       }
 
-      console.log("[AUTH] User found, checking for projects...", user.id);
+      console.log("[AUTH] User found, checking subscription + projects...", user.id);
 
-      // FIRST: Check if user has an existing project
+      // GATE: require active subscription/trial before any app access
+      let hasAccess = false;
+      try {
+        const { data: sub } = await supabase.functions.invoke("check-subscription");
+        hasAccess = !!(sub?.subscribed || sub?.trial);
+      } catch (e) {
+        console.error("[AUTH] check-subscription failed", e);
+      }
+
+      if (!hasAccess && !checkoutSuccess) {
+        console.log("[AUTH] No active subscription/trial → /checkout");
+        window.location.replace("/checkout?plan=pro&cycle=annual");
+        return;
+      }
+
       const { data: existingProjects, error } = await supabase
         .from("projects")
         .select("id")
@@ -158,23 +172,16 @@ export default function Auth() {
         return;
       }
 
-      console.log("[AUTH] Existing projects found:", existingProjects?.length);
-
-      // If user already has projects, clear any stale onboarding data and go to dashboard
       if (existingProjects && existingProjects.length > 0) {
         localStorage.removeItem('onboarding_data');
         localStorage.removeItem('onboarding_email');
-        
-        console.log("[AUTH] Existing user with project, redirecting to dashboard...");
         const target = checkoutSuccess ? "/dashboard?subscription=success" : "/dashboard";
         window.location.replace(target);
         return;
       }
 
-      // New user without project → Wizard (project creation happens there)
       localStorage.removeItem('onboarding_data');
       localStorage.removeItem('onboarding_email');
-      console.log("[AUTH] No projects, redirecting to wizard...");
       window.location.replace("/wizard");
     };
 
