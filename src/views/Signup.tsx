@@ -101,7 +101,7 @@ export default function Signup() {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      window.location.replace("/wizard");
+      window.location.replace("/checkout?plan=pro&cycle=annual");
     }
   };
 
