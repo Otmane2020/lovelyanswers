@@ -414,9 +414,9 @@ export default function Index() {
                 transition={{ delay: 0.45 }}
                 className="text-sm text-gray-400 mb-12"
               >
-                No credit card · Results in <span className="text-gray-600 font-medium">30 seconds</span> · Cancel
-                anytime
+                3-day free trial · <span className="text-gray-600 font-medium">Card required</span> · Cancel anytime
               </motion.p>
+
 
               {/* Social proof pills */}
               <motion.div
