@@ -315,10 +315,18 @@ export default function Answers() {
 
   const regenerateAllAnswers = async () => {
     if (!user) return;
+    if (!canGenerateArticle) {
+      toast.error(
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
+      );
+      return;
+    }
 
     setRegeneratingAll(true);
     setIsGeneratingWithProgress(true);
     setGenerationProgress(0);
+
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
