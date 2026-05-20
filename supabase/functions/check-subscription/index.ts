@@ -314,16 +314,22 @@ serve(async (req) => {
     await triggerUnlockIfNeeded(supabaseClient, user.id, authHeader);
     await triggerGeoIfNeeded(supabaseClient, user.id);
 
+    const mappedFinal = PRICE_MAP[(sub.items?.data?.[0]?.price?.id as string) || ""];
     return new Response(JSON.stringify({
       subscribed: true,
       trial: isTrialing,
       product_id: productId,
       subscription_end: subscriptionEnd,
-      credits_total: creditsTotal
+      credits_total: creditsTotal,
+      plan: mappedFinal?.plan ?? null,
+      cycle: mappedFinal?.cycle ?? null,
+      sites_limit: mappedFinal?.sites ?? null,
+      articles_limit: mappedFinal?.articles ?? null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
