@@ -83,6 +83,8 @@ export default function Answers() {
   const [generatingArticleId, setGeneratingArticleId] = useState<string | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+  const { canGenerateArticle, articlesLimit, articlesThisMonth, refetch: refetchUsage } = useUsage();
+
 
   const isAnswerLocked = (answer: typeof answers[0]) => !answer.answer || answer.answer === LOCKED_ANSWER_TEXT;
 
