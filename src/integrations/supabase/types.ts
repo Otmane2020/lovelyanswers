@@ -2541,6 +2541,57 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          articles_limit: number
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          cycle: string
+          id: string
+          plan: string
+          sites_limit: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          articles_limit?: number
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          cycle?: string
+          id?: string
+          plan: string
+          sites_limit?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          articles_limit?: number
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          cycle?: string
+          id?: string
+          plan?: string
+          sites_limit?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_messages: {
         Row: {
           attachment_url: string | null
