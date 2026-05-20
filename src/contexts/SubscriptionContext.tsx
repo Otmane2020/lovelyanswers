@@ -3,6 +3,9 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+type PlanId = "starter" | "pro" | "agency" | null;
+type Cycle = "monthly" | "annual" | null;
+
 interface SubscriptionContextType {
   isSubscribed: boolean;
   isTrial: boolean;
@@ -10,10 +13,15 @@ interface SubscriptionContextType {
   productId: string | null;
   subscriptionEnd: string | null;
   creditsTotal: number;
+  plan: PlanId;
+  cycle: Cycle;
+  sitesLimit: number | null;
+  articlesLimit: number | null;
   checkSubscription: () => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
   openCustomerPortal: () => Promise<string | null>;
 }
+
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
