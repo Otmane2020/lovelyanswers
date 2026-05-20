@@ -30,23 +30,21 @@ import { InactivityPopup } from "@/components/InactivityPopup";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 
-import geminiLogo from "@/assets/gemini-logo.png";
-import claudeLogo from "@/assets/claude-logo.png";
-import perplexityLogo from "@/assets/perplexity-logo.png";
-import chatgptIcon from "@/assets/chatgpt-icon.png";
 
 const aiPlatforms = [
-  { name: "ChatGPT", logo: chatgptIcon, color: "#10a37f" },
-  { name: "Gemini", logo: geminiLogo, color: "#4285f4" },
-  { name: "Perplexity", logo: perplexityLogo, color: "#6366f1" },
-  { name: "Claude", logo: claudeLogo, color: "#cc785c" },
+  { name: "Google", color: "#4285f4" },
+  { name: "ChatGPT", color: "#10a37f" },
+  { name: "Gemini", color: "#4285f4" },
+  { name: "Perplexity", color: "#6366f1" },
+  { name: "Shopping", color: "#f59e0b" },
 ];
 
 const socialProofPills = [
-  { initial: "★", bg: "#fef3c7", color: "#92400e", name: "4.9 / 5", role: "289 reviews", result: "Excellent" },
-  { initial: "+", bg: "#d1fae5", color: "#065f46", name: "+60%", role: "avg traffic", result: "in 3 months" },
   { initial: "5", bg: "#dbeafe", color: "#1e3a8a", name: "500+", role: "active sites", result: "ranking on AI" },
+  { initial: "★", bg: "#fef3c7", color: "#92400e", name: "4.9 / 5", role: "founder reviews", result: "Excellent" },
+  { initial: "+", bg: "#d1fae5", color: "#065f46", name: "+60%", role: "avg traffic", result: "in 3 months" },
 ];
+
 
 const beforeItems = [
   "AI never mentions your brand",
@@ -204,6 +202,7 @@ const faqs = [
 
 export default function Index() {
   const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
+  const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
 
@@ -213,7 +212,24 @@ export default function Index() {
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
+    try {
+      const ref = (document.referrer || "").toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const utm = (params.get("utm_source") || "").toLowerCase();
+      const match =
+        /chatgpt|openai/.test(ref) || /chatgpt|openai/.test(utm)
+          ? "ChatGPT"
+          : /perplexity/.test(ref) || /perplexity/.test(utm)
+          ? "Perplexity"
+          : /gemini|bard|google\.com\/search\?.*ai/.test(ref) || /gemini/.test(utm)
+          ? "Gemini"
+          : /claude|anthropic/.test(ref) || /claude/.test(utm)
+          ? "Claude"
+          : null;
+      if (match) setAiReferrer(match);
+    } catch {}
   }, []);
+
 
   return (
     <>
@@ -265,8 +281,26 @@ export default function Index() {
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
+        {/* AI Referrer Banner */}
+        {aiReferrer && (
+          <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center text-sm py-2.5 px-4 shadow-md">
+            <span className="font-medium">
+              🤖 You found us through <span className="font-bold">{aiReferrer}</span>? That's exactly what we do for your
+              business.
+            </span>{" "}
+            <Link href="/onboarding" className="underline font-semibold ml-1 hover:opacity-90">
+              Start free →
+            </Link>
+          </div>
+        )}
+
         {/* NAV */}
-        <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
+        <nav
+          className={`fixed z-50 w-full bg-white border-b border-gray-100 shadow-sm ${
+            aiReferrer ? "top-10" : "top-0"
+          }`}
+        >
+
           <div className="container flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
@@ -324,10 +358,11 @@ export default function Index() {
                 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
                 style={{ letterSpacing: "-0.03em" }}
               >
-                Get your business
+                One article written.
                 <br />
-                recommended by <span className="text-blue-600">ChatGPT</span> &{" "}
-                <span className="text-blue-600">Google</span>
+                <span className="text-blue-600">Five channels</span> covered.
+                <br />
+                Zero manual effort.
               </h1>
 
               <motion.p
@@ -336,9 +371,11 @@ export default function Index() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
               >
-                Automatically publish expert content that makes AI search engines recommend{" "}
-                <span className="font-semibold text-gray-700">you</span> — not your competitors. Works for any industry.
+                One daily piece of content, automatically optimized for{" "}
+                <span className="font-semibold text-gray-700">Google · ChatGPT · Gemini · Perplexity · Shopping</span>.
+                Hundreds of businesses found us the same way you did — through AI. Now AI recommends them too.
               </motion.p>
+
 
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -489,21 +526,18 @@ export default function Index() {
             <p className="text-center text-sm text-gray-400 mb-6 uppercase tracking-widest">
               Optimize your presence across all major AI platforms
             </p>
-            <div className="flex items-center justify-center gap-8 md:gap-14">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
               {aiPlatforms.map((platform) => (
                 <div
                   key={platform.name}
-                  className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-full px-5 py-2.5 shadow-sm"
                 >
-                  <img
-                    src={typeof platform.logo === "string" ? platform.logo : platform.logo.src}
-                    alt={platform.name}
-                    className="h-6 md:h-8 w-auto object-contain"
-                  />
-                  <span className="hidden md:inline text-sm font-medium text-gray-500">{platform.name}</span>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: platform.color }} />
+                  <span className="text-sm font-semibold text-gray-700">{platform.name}</span>
                 </div>
               ))}
             </div>
+
           </div>
         </section>
 
