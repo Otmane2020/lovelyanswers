@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { History, MessageSquare, FileText, CheckCircle, Clock, AlertCircle, ExternalLink, Eye, Pencil, Globe, Loader2, Copy, MapPin, Sparkles, Search } from "lucide-react";
+import { History, MessageSquare, FileText, CheckCircle, Clock, AlertCircle, ExternalLink, Eye, Pencil, Globe, Loader2, Copy, MapPin, Sparkles, Search, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { useAnswers } from "@/hooks/useAnswers";
 import { useArticles } from "@/hooks/useArticles";
 import { useLocalAnswers } from "@/hooks/useLocalAnswers";
+import { useGeoContents } from "@/hooks/useGeoContents";
+import { useShoppingPlanning } from "@/hooks/useShoppingPlanning";
 import { useActiveProject } from "@/hooks/useProjects";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { useRouter } from "next/navigation";
@@ -21,14 +23,16 @@ import shopifyLogo from "@/assets/shopify-logo.png";
 import wixLogo from "@/assets/wix-logo.png";
 
 const platformLogos: Record<string, any> = { wordpress: wordpressLogo, shopify: shopifyLogo, wix: wixLogo };
-type SourceType = "aeo" | "local" | "seo";
+type SourceType = "aeo" | "local" | "seo" | "geo" | "shopping";
 interface UnifiedHistoryItem { id: string; title: string; source: SourceType; score: number | null; is_public: boolean; published_at: string | null; published_url: string | null; created_at: string; slug?: string; word_count?: number; status?: string; }
 
 const getSourceBadge = (source: SourceType) => {
   switch (source) {
     case "aeo": return <Badge className="bg-primary/10 text-primary border-primary/20 gap-1"><Sparkles className="h-3 w-3" />AEO</Badge>;
     case "local": return <Badge className="bg-[hsl(222,47%,11%)]/10 text-[hsl(222,47%,30%)] border-[hsl(222,47%,11%)]/20 gap-1"><MapPin className="h-3 w-3" />Local AEO</Badge>;
-    case "seo": return <Badge className="bg-primary/10 text-primary border-primary/20 gap-1"><Search className="h-3 w-3" />SEO</Badge>;
+    case "seo": return <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 gap-1"><Search className="h-3 w-3" />SEO</Badge>;
+    case "geo": return <Badge className="bg-violet-500/10 text-violet-700 border-violet-500/20 gap-1"><Globe className="h-3 w-3" />GEO</Badge>;
+    case "shopping": return <Badge className="bg-pink-500/10 text-pink-700 border-pink-500/20 gap-1"><ShoppingCart className="h-3 w-3" />Shopping</Badge>;
   }
 };
 
