@@ -43,9 +43,9 @@ const aiPlatforms = [
 ];
 
 const socialProofPills = [
-  { initial: "M", bg: "#fef3c7", color: "#92400e", name: "Mike", role: "Roofing", result: "+180% impressions" },
-  { initial: "A", bg: "#d1fae5", color: "#065f46", name: "Amanda", role: "Store", result: "Page 1 in 8 weeks" },
-  { initial: "R", bg: "#dbeafe", color: "#1e3a8a", name: "Ryan", role: "Agency", result: "-$1,200/mo in tools" },
+  { initial: "★", bg: "#fef3c7", color: "#92400e", name: "4.9 / 5", role: "289 reviews", result: "Excellent" },
+  { initial: "+", bg: "#d1fae5", color: "#065f46", name: "+60%", role: "avg traffic", result: "in 3 months" },
+  { initial: "5", bg: "#dbeafe", color: "#1e3a8a", name: "500+", role: "active sites", result: "ranking on AI" },
 ];
 
 const beforeItems = [
@@ -66,7 +66,7 @@ const heroStats = [
   { value: "4.5", suffix: "x", label: "More AI visibility" },
   { value: "9.7", suffix: "x", label: "More brand mentions" },
   { value: "60", suffix: "%", label: "Traffic increase avg" },
-  { value: "$29", suffix: "/mo", label: "All-in pricing" },
+  { value: "$49", suffix: "/mo", label: "From" },
 ];
 
 const featureCards = [
