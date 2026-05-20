@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { Loader2 } from "lucide-react";
 import { getStripe } from "@/lib/stripe-client";
@@ -40,10 +40,10 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
     }
   }, [plan, cycle, onError]);
 
-  if (checkoutKey !== `${plan}-${cycle}`) {
+  useEffect(() => {
     setClientSecret(null);
     setCheckoutKey(`${plan}-${cycle}`);
-  }
+  }, [plan, cycle]);
 
   return (
     <div className="rounded-2xl border border-border bg-background overflow-hidden min-h-[520px]">
