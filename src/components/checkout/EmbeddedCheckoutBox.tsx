@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Elements,
   PaymentElement,
@@ -27,6 +27,11 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   const init = useCallback(async () => {
     setLoading(true);
@@ -43,11 +48,11 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
     } catch (e: any) {
       const msg = e?.message || "Failed to start checkout";
       setErrorMsg(msg);
-      onError?.(msg);
+      onErrorRef.current?.(msg);
     } finally {
       setLoading(false);
     }
-  }, [plan, cycle, onError]);
+  }, [plan, cycle]);
 
   useEffect(() => {
     init();
