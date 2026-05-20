@@ -33,6 +33,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [creditsTotal, setCreditsTotal] = useState(0);
+  const [plan, setPlan] = useState<PlanId>(null);
+  const [cycle, setCycle] = useState<Cycle>(null);
+  const [sitesLimit, setSitesLimit] = useState<number | null>(null);
+  const [articlesLimit, setArticlesLimit] = useState<number | null>(null);
+
 
   const checkSubscription = useCallback(async () => {
     // Don't check if auth is still loading
