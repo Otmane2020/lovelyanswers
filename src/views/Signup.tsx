@@ -38,13 +38,26 @@ export default function Signup() {
 
   useEffect(() => {
     if (!user) return;
-    const checkProject = async () => {
+    const checkSubAndRedirect = async () => {
+      // Check active subscription/trial first — if none, force checkout
+      try {
+        const { data: sub } = await supabase.functions.invoke("check-subscription");
+        if (!sub?.subscribed && !sub?.trial) {
+          console.log("[SIGNUP] No active subscription/trial → /checkout");
+          window.location.replace("/checkout?plan=pro&cycle=annual");
+          return;
+        }
+      } catch (e) {
+        console.error("[SIGNUP] check-subscription failed", e);
+        window.location.replace("/checkout?plan=pro&cycle=annual");
+        return;
+      }
       const { data } = await supabase.from("projects").select("id").eq("user_id", user.id).limit(1);
       const target = data && data.length > 0 ? "/dashboard" : "/wizard";
-      console.log("[SIGNUP] Redirecting to", target);
+      console.log("[SIGNUP] Has subscription → redirecting to", target);
       window.location.replace(target);
     };
-    checkProject();
+    checkSubAndRedirect();
   }, [user]);
 
   const validateForm = () => {
