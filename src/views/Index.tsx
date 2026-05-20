@@ -244,7 +244,7 @@ export default function Index() {
               business.
             </span>
             <Link
-              href="/onboarding"
+              href="/checkout?plan=pro&cycle=annual"
               className="inline-flex items-center gap-1 bg-white text-blue-700 font-semibold rounded-full px-4 py-1 text-xs hover:bg-blue-50 transition whitespace-nowrap"
             >
               Start free trial →
@@ -271,7 +271,7 @@ export default function Index() {
                 <Link href="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link href="/onboarding">Start Free Audit →</Link>
+                <Link href="/checkout?plan=pro&cycle=annual">Start Free Audit →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
@@ -279,7 +279,7 @@ export default function Index() {
                 <Link href="/auth">Log in</Link>
               </Button>
               <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
-                <Link href="/onboarding">Start Free</Link>
+                <Link href="/checkout?plan=pro&cycle=annual">Start Free</Link>
               </Button>
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function Index() {
                   style={{ height: "52px" }}
                   asChild
                 >
-                  <Link href="/onboarding">
+                  <Link href="/checkout?plan=pro&cycle=annual">
                     Get your free AI score
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -688,7 +688,7 @@ export default function Index() {
                   style={{ height: "52px" }}
                   asChild
                 >
-                  <Link href="/onboarding">
+                  <Link href="/checkout?plan=pro&cycle=annual">
                     Start for free <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -732,7 +732,7 @@ export default function Index() {
               style={{ height: "52px" }}
               asChild
             >
-              <Link href="/onboarding">
+              <Link href="/checkout?plan=pro&cycle=annual">
                 Start your 3-day free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -750,7 +750,7 @@ export default function Index() {
             className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-semibold gap-2 rounded-xl"
             asChild
           >
-            <Link href="/onboarding">
+            <Link href="/checkout?plan=pro&cycle=annual">
               Get free AI score <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
