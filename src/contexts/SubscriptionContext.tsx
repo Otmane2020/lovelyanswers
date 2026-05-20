@@ -158,6 +158,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       productId,
       subscriptionEnd, 
       creditsTotal,
+      plan,
+      cycle,
+      sitesLimit,
+      articlesLimit,
+
       checkSubscription,
       startCheckout,
       openCustomerPortal 
