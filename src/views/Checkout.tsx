@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackCheckoutStart } from "@/lib/gtag-conversions";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Loader2, Shield, LogOut, Star, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Loader2, Shield, LogOut, Star, CheckCircle2, Lock } from "lucide-react";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { cn } from "@/lib/utils";
 import { PLANS, type BillingCycle, type PlanId, formatUSD } from "@/lib/stripe-products";
+import { EmbeddedCheckoutBox } from "@/components/checkout/EmbeddedCheckoutBox";
+
 
 export default function Checkout() {
   const { toast } = useToast();
@@ -18,6 +20,8 @@ export default function Checkout() {
   const searchParams = useSearchParams();
   const { isSubscribed, isTrial, isLoading: subLoading } = useSubscriptionContext();
   const [isLoading, setIsLoading] = useState(false);
+  const [showCard, setShowCard] = useState(false);
+
 
   // Read plan + cycle from URL, default to Pro / annual
   const planParam = (searchParams?.get("plan") as PlanId) || "pro";
@@ -47,34 +51,26 @@ export default function Checkout() {
     router.push("/auth");
   };
 
-  const handleCheckout = async () => {
+  const handleStart = async () => {
     setIsLoading(true);
     trackCheckoutStart(billingCycle, priceInfo.amount / 100);
     try {
-      // Require auth before checkout — Stripe needs an email to attach the subscription
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) {
         const next = `/checkout?plan=${planId}&cycle=${billingCycle}`;
         router.push(`/auth?mode=signup&next=${encodeURIComponent(next)}`);
         return;
       }
-
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: planId, cycle: billingCycle },
-      });
-      if (error || !data?.url) {
-        console.error("Checkout error:", error);
-        toast({ title: "Checkout error", description: "Please try again or contact support.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
-      window.location.href = data.url;
+      // Reveal embedded Stripe checkout in-page (no redirect)
+      setShowCard(true);
     } catch (err) {
       console.error("Checkout failed:", err);
       toast({ title: "Error", description: "Failed to start checkout. Please try again.", variant: "destructive" });
+    } finally {
       setIsLoading(false);
     }
   };
+
 
 
   if (subLoading) {
@@ -172,22 +168,39 @@ export default function Checkout() {
             </button>
           </div>
 
-          <Button
-            onClick={handleCheckout}
-            disabled={isLoading}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
-          >
-            {isLoading ? (
-              <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Redirecting to secure checkout...</>
-            ) : (
-              <>Start 3 days free <ArrowRight className="h-5 w-5 ml-2" /></>
-            )}
-          </Button>
+          {!showCard ? (
+            <Button
+              onClick={handleStart}
+              disabled={isLoading}
+              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+            >
+              {isLoading ? (
+                <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading secure checkout...</>
+              ) : (
+                <>Start 3 days free <ArrowRight className="h-5 w-5 ml-2" /></>
+              )}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Lock className="h-4 w-4 text-primary" />
+                Enter your card — no charge during your 3-day trial.
+              </div>
+              <EmbeddedCheckoutBox
+                plan={planId}
+                cycle={billingCycle}
+                onError={(msg) =>
+                  toast({ title: "Checkout error", description: msg, variant: "destructive" })
+                }
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
             <span>Secure payment by Stripe · No charge during trial</span>
           </div>
+
 
           <a
             href="https://trust-avis.com/entreprise/autopilotgeo"
