@@ -42,17 +42,23 @@ export default function AeoHistory() {
   const { data: rawAnswers = [], isLoading: answersLoading } = useAnswers();
   const { data: rawArticles = [], isLoading: articlesLoading } = useArticles();
   const { data: rawLocalAnswers = [], isLoading: localLoading } = useLocalAnswers();
+  const { data: rawGeoContents = [], isLoading: geoLoading } = useGeoContents();
+  const { data: rawShopping = [], isLoading: shoppingLoading } = useShoppingPlanning();
   const publishAnswer = usePublishAnswer();
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
   const answers = [...rawAnswers].filter((a) => a.is_public).sort((a, b) => { const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime(); const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime(); return dateB - dateA; });
   const localAnswers = [...rawLocalAnswers].filter((a) => a.is_public).sort((a, b) => { const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime(); const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime(); return dateB - dateA; });
   const articles = [...rawArticles].filter((a) => a.status === "published").sort((a, b) => { return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(); });
+  const geoContents = [...rawGeoContents].filter((g) => g.is_public || g.published_at).sort((a, b) => { const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime(); const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime(); return dateB - dateA; });
+  const shoppingItems = [...rawShopping].filter((s: any) => s.published).sort((a: any, b: any) => { const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.scheduled_date).getTime(); const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.scheduled_date).getTime(); return dateB - dateA; });
 
   const unifiedHistory: UnifiedHistoryItem[] = [
     ...answers.map((a) => ({ id: a.id, title: a.question, source: "aeo" as SourceType, score: a.score, is_public: a.is_public, published_at: a.published_at, published_url: a.published_url, created_at: a.created_at, slug: a.slug })),
     ...localAnswers.map((a) => ({ id: a.id, title: a.question, source: "local" as SourceType, score: a.score, is_public: a.is_public, published_at: a.published_at, published_url: a.published_url, created_at: a.created_at, slug: a.slug })),
     ...articles.map((a) => ({ id: a.id, title: a.title, source: "seo" as SourceType, score: a.aeo_score, is_public: true, published_at: a.created_at, published_url: a.published_url || null, created_at: a.created_at || new Date().toISOString(), word_count: a.word_count, status: a.status })),
+    ...geoContents.map((g) => ({ id: g.id, title: g.title || g.topic, source: "geo" as SourceType, score: g.score, is_public: g.is_public, published_at: g.published_at, published_url: g.published_url, created_at: g.created_at, slug: g.slug || undefined })),
+    ...shoppingItems.map((s: any) => ({ id: s.id, title: s.product?.ai_title || s.product?.title || "Product", source: "shopping" as SourceType, score: s.product?.ai_score ?? null, is_public: true, published_at: s.published_at, published_url: null, created_at: s.scheduled_date || s.created_at })),
   ].sort((a, b) => { const dateA = a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime(); const dateB = b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime(); return dateB - dateA; });
 
   const handlePublish = async (answerId: string) => { if (!project) return; setPublishingId(answerId); try { await publishAnswer.mutateAsync({ answerId, projectId: project.id }); } finally { setPublishingId(null); } };
