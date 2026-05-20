@@ -72,6 +72,9 @@ export default function AeoPlanning() {
   const canPublish = isSubscribed || canPublishFree;
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
+  const [queueItems, setQueueItems] = useState<ScheduledItem[]>([]);
+  const [liveFrequency, setLiveFrequency] = useState<string>("3x_week");
+  const [autoPublishOn, setAutoPublishOn] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
