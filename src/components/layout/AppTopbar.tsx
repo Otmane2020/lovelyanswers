@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
-import { Globe, ChevronDown, Crown, Bell, LogOut, Check } from "lucide-react";
+import { ChevronDown, Crown, Bell, LogOut, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useActiveProject, useProjects, useSetActiveProject } from "@/hooks/useProjects";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher";
 
 const languages = [
   { code: "fr", label: "Français", flag: "🇫🇷" },
