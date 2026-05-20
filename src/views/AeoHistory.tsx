@@ -252,6 +252,82 @@ export default function AeoHistory() {
               )}
             </Card>
           </TabsContent>
+
+          <TabsContent value="geo" className="mt-6">
+            <Card>
+              {geoLoading ? (
+                <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : geoContents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center"><Globe className="h-12 w-12 text-muted-foreground mb-4" /><h3 className="font-semibold text-lg">No GEO content yet</h3><p className="text-muted-foreground mb-4">Generate GEO content to see it here</p><Button onClick={() => router.push("/geo")}>Go to GEO Engine</Button></div>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow><TableHead className="w-[40%]">Title</TableHead><TableHead>Score</TableHead><TableHead>Status</TableHead><TableHead>Integration</TableHead><TableHead>Published</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {geoContents.map((g) => (
+                      <TableRow key={g.id}>
+                        <TableCell className="font-medium"><div className="line-clamp-2">{g.title || g.topic}</div></TableCell>
+                        <TableCell>{g.score !== null ? (<Badge variant="outline" className={g.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : g.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{g.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                        <TableCell>{getStatusBadge(g)}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            const platformInfo = getPlatformInfo(g.published_url);
+                            if (!platformInfo) return <span className="text-muted-foreground">—</span>;
+                            return g.published_url ? (<a href={g.published_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary text-sm">{platformInfo.icon}<span className="truncate max-w-[100px]">{platformInfo.label}</span><ExternalLink className="h-3 w-3 flex-shrink-0" /></a>) : (<div className="flex items-center gap-2 text-sm text-muted-foreground">{platformInfo.icon}<span className="truncate max-w-[100px]">{platformInfo.label}</span></div>);
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{g.published_at ? format(new Date(g.published_at), "MMM d, yyyy") : format(new Date(g.created_at), "MMM d, yyyy")}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {g.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(g.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[hsl(222,47%,30%)]" /></Button>)}
+                            {g.slug && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyLink(g.slug!)} title="Copy Link"><Copy className="h-4 w-4" /></Button>)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="shopping" className="mt-6">
+            <Card>
+              {shoppingLoading ? (
+                <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : shoppingItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center"><ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" /><h3 className="font-semibold text-lg">No Shopping items yet</h3><p className="text-muted-foreground mb-4">Publish products to see them here</p><Button onClick={() => router.push("/shopping")}>Go to Shopping</Button></div>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow><TableHead className="w-[40%]">Product</TableHead><TableHead>AI Score</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Published</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {shoppingItems.map((s: any) => {
+                      const title = s.product?.ai_title || s.product?.title || "Product";
+                      const score = s.product?.ai_score;
+                      const price = s.product?.price;
+                      const currency = s.product?.currency || "EUR";
+                      return (
+                        <TableRow key={s.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {s.product?.image_url && <img src={s.product.image_url} alt="" className="h-8 w-8 rounded object-cover" />}
+                              <div className="line-clamp-2">{title}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{score != null ? (<Badge variant="outline" className={score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : score >= 60 ? "border-amber-500 text-amber-600" : ""}>{score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{price != null ? `${price} ${currency}` : "—"}</TableCell>
+                          <TableCell><Badge className="bg-primary/10 text-primary border-primary/20 gap-1"><CheckCircle className="h-3 w-3" />Published</Badge></TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{s.published_at ? format(new Date(s.published_at), "MMM d, yyyy") : format(new Date(s.scheduled_date), "MMM d, yyyy")}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push("/shopping")} title="View"><Eye className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
