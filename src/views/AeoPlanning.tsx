@@ -26,7 +26,7 @@ interface ScheduledItem {
   type: "answer" | "article" | "local" | "geo" | "shopping";
   origin: "AEO" | "Auto SEO" | "Local AEO" | "GEO" | "Shopping";
   date: Date;
-  status: "scheduled" | "published" | "draft";
+  status: "scheduled" | "published" | "draft" | "preview";
   publishedUrl?: string;
   publishedAt?: string | null;
   answer?: string;
@@ -35,10 +35,25 @@ interface ScheduledItem {
   aeoScore?: number | null;
   wordCount?: number | null;
   createdAt?: string | null;
+  isPreview?: boolean;
 }
 
 function getPublishStatus(input: { published_url?: string | null; published_at?: string | null }) {
   return input.published_url || input.published_at ? "published" : "scheduled";
+}
+
+// Mirrors backend `shouldPublishToday` in publish-scheduled-answers
+function matchesFrequency(date: Date, frequency: string): boolean {
+  const dow = date.getDay();
+  const dom = date.getDate();
+  switch (frequency) {
+    case "weekly": return dow === 1;
+    case "monthly": return dom === 1;
+    case "2x_week": return dow === 2 || dow === 4;
+    case "3x_week": return dow === 1 || dow === 3 || dow === 5;
+    case "daily":
+    default: return true;
+  }
 }
 
 export default function AeoPlanning() {
