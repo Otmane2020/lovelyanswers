@@ -27,6 +27,7 @@ export default function Auth() {
   const searchParams = useSearchParams();
   const modeFromUrl = searchParams.get('mode');
   const checkoutSuccess = searchParams.get('checkout') === 'success';
+  const nextParam = searchParams.get('next');
   const [isLogin, setIsLogin] = useState(modeFromUrl !== 'signup');
   
   // Pre-fill email from onboarding if available (client-side only)
@@ -157,7 +158,7 @@ export default function Auth() {
 
       if (!hasAccess && !checkoutSuccess) {
         console.log("[AUTH] No active subscription/trial → /checkout");
-        window.location.replace("/checkout?plan=pro&cycle=annual");
+        window.location.replace(nextParam?.startsWith("/") ? nextParam : "/checkout?plan=pro&cycle=annual");
         return;
       }
 
@@ -186,7 +187,7 @@ export default function Auth() {
     };
 
     checkUserAndRedirect();
-  }, [user, router, isResetPassword, checkoutSuccess]);
+  }, [user, router, isResetPassword, checkoutSuccess, nextParam]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
