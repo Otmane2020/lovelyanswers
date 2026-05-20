@@ -25,6 +25,7 @@ interface Props {
  */
 export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const onErrorRef = useRef(onError);
@@ -37,6 +38,7 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
     setLoading(true);
     setErrorMsg(null);
     setClientSecret(null);
+    setSubscriptionId(null);
     try {
       const { data, error } = await supabase.functions.invoke(
         "create-subscription-setup",
@@ -44,7 +46,9 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
       );
       if (error) throw error;
       if (!data?.client_secret) throw new Error("Missing client_secret");
+      if (!data?.subscription_id) throw new Error("Missing subscription_id");
       setClientSecret(data.client_secret);
+      setSubscriptionId(data.subscription_id);
     } catch (e: any) {
       const msg = e?.message || "Failed to start checkout";
       setErrorMsg(msg);
@@ -108,7 +112,7 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
     );
   }
 
-  if (errorMsg || !options) {
+  if (errorMsg || !options || !subscriptionId) {
     return (
       <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
         {errorMsg || "Unable to load payment form."}
@@ -122,13 +126,13 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-background p-5">
       <Elements stripe={getStripe()} options={options} key={clientSecret!}>
-        <InnerForm />
+        <InnerForm subscriptionId={subscriptionId} />
       </Elements>
     </div>
   );
 }
 
-function InnerForm() {
+function InnerForm({ subscriptionId }: { subscriptionId: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -142,7 +146,7 @@ function InnerForm() {
     const { error: err } = await stripe.confirmSetup({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/thank-you`,
+        return_url: `${window.location.origin}/thank-you?subscription_id=${encodeURIComponent(subscriptionId)}`,
       },
     });
     if (err) {
