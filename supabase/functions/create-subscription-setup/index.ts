@@ -25,6 +25,24 @@ const PRICES: Record<string, Record<string, string>> = {
 
 const TRIAL_DAYS = 3;
 
+function getStripeKey() {
+  const key = (Deno.env.get("STRIPE_SECRET_KEY") || "").trim();
+
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is not set");
+  }
+
+  if (key.startsWith("pk_")) {
+    throw new Error("STRIPE_SECRET_KEY is a publishable key. Use a Stripe secret key instead.");
+  }
+
+  if (!key.startsWith("sk_test_") && !key.startsWith("sk_live_") && !key.startsWith("rk_test_") && !key.startsWith("rk_live_")) {
+    throw new Error("STRIPE_SECRET_KEY must start with sk_test_, sk_live_, rk_test_, or rk_live_");
+  }
+
+  return key;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,11 +67,7 @@ serve(async (req) => {
     const email = userData.user?.email;
     if (!email) throw new Error("User email not available");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-    if (!stripeKey.startsWith("sk_")) {
-      throw new Error("STRIPE_SECRET_KEY is not a valid secret key");
-    }
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(getStripeKey(), { apiVersion: "2025-08-27.basil" });
 
     // Find or create customer
     const existing = await stripe.customers.list({ email, limit: 1 });
