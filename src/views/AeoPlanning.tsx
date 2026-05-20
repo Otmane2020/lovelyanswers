@@ -314,7 +314,15 @@ export default function AeoPlanning() {
                 <span>Generating content...</span>
               </div>
             )}
-            {project && <AutoPublishSettings projectId={project.id} />}
+            {project && (
+              <AutoPublishSettings
+                projectId={project.id}
+                onSettingsChange={(s) => {
+                  setLiveFrequency(s.frequency);
+                  setAutoPublishOn(s.enabled);
+                }}
+              />
+            )}
         </PageHeader>
 
         <Card className="p-3 sm:p-4">
