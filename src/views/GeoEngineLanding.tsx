@@ -98,7 +98,7 @@ export default function GeoEngineLanding() {
             <Link href="/pricing" className="text-sm text-white/70 hover:text-white px-3 py-2">
               Pricing
             </Link>
-            <Link href="/onboarding">
+            <Link href="/checkout?plan=pro&cycle=annual">
               <Button size="sm" className="bg-white text-black hover:bg-white/90">
                 Start free trial
               </Button>
@@ -151,7 +151,7 @@ export default function GeoEngineLanding() {
             transition={{ duration: 0.5, delay: 0.25 }}
             className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <Link href="/onboarding">
+            <Link href="/checkout?plan=pro&cycle=annual">
               <Button size="lg" className="bg-white text-black hover:bg-white/90 h-12 px-6">
                 Start free trial <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -270,7 +270,7 @@ export default function GeoEngineLanding() {
             3-day free trial. Card required. Cancel anytime.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/onboarding">
+            <Link href="/checkout?plan=pro&cycle=annual">
               <Button size="lg" className="bg-white text-black hover:bg-white/90 h-12 px-6">
                 Start free trial <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
