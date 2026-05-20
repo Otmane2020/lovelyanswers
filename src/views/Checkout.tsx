@@ -12,6 +12,7 @@ import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { cn } from "@/lib/utils";
 import { PLANS, type BillingCycle, type PlanId, formatUSD } from "@/lib/stripe-products";
 import { EmbeddedCheckoutBox } from "@/components/checkout/EmbeddedCheckoutBox";
+import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher";
 
 
 export default function Checkout() {
