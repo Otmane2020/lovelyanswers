@@ -8,8 +8,8 @@ const corsHeaders = {
 };
 
 const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-if (!stripeKey.startsWith("sk_")) {
-  console.error("[STRIPE-WEBHOOK] Invalid STRIPE_SECRET_KEY: expected sk_live_ or sk_test_, never pk_*");
+if (stripeKey.startsWith("pk_") || (!stripeKey.startsWith("sk_") && !stripeKey.startsWith("rk_"))) {
+  console.error("[STRIPE-WEBHOOK] Invalid STRIPE_SECRET_KEY: expected sk_* or rk_*, never pk_*");
 }
 
 const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -24,6 +24,12 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
+
+const hasConfirmedPaymentMethod = (subscription: any) => Boolean(
+  subscription.default_payment_method ||
+  subscription.default_source ||
+  subscription.pending_setup_intent?.status === "succeeded"
+);
 
 // Price → plan map (keep in sync with src/lib/stripe-products.ts)
 const PRICE_MAP: Record<string, { plan: "starter" | "pro" | "agency"; cycle: "monthly" | "annual"; sites: number; articles: number }> = {
@@ -180,8 +186,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   if (!profile) return;
 
-  const isActive = subscription.status === "active" || subscription.status === "trialing";
-  const creditsTotal = subscription.status === "trialing" ? 50 : (isActive ? 500 : 0);
+  const isActive = subscription.status === "active" || (subscription.status === "trialing" && hasConfirmedPaymentMethod(subscription));
+  const creditsTotal = subscription.status === "trialing" && isActive ? 50 : (isActive ? 500 : 0);
 
   await supabaseAdmin.from("credits").upsert({
     user_id: profile.id,
