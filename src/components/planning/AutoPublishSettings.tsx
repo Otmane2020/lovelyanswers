@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 
 interface AutoPublishSettingsProps {
   projectId: string;
+  onSettingsChange?: (s: { frequency: string; enabled: boolean }) => void;
 }
 
-export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
+export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
