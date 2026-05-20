@@ -12,6 +12,7 @@ import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { cn } from "@/lib/utils";
 import { PLANS, type BillingCycle, type PlanId, formatUSD } from "@/lib/stripe-products";
 import { EmbeddedCheckoutBox } from "@/components/checkout/EmbeddedCheckoutBox";
+import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher";
 
 
 export default function Checkout() {
@@ -87,11 +88,14 @@ export default function Checkout() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="py-4 px-4 border-b border-border">
-        <div className="container flex items-center justify-between">
+        <div className="container flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center"><AnimatedLogo size="md" /></Link>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="h-4 w-4 mr-2" /> Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <ProjectSwitcher />
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
+          </div>
         </div>
       </header>
 
