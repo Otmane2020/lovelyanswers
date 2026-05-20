@@ -491,21 +491,18 @@ export default function Index() {
             <p className="text-center text-sm text-gray-400 mb-6 uppercase tracking-widest">
               Optimize your presence across all major AI platforms
             </p>
-            <div className="flex items-center justify-center gap-8 md:gap-14">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
               {aiPlatforms.map((platform) => (
                 <div
                   key={platform.name}
-                  className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-100 rounded-full px-5 py-2.5 shadow-sm"
                 >
-                  <img
-                    src={typeof platform.logo === "string" ? platform.logo : platform.logo.src}
-                    alt={platform.name}
-                    className="h-6 md:h-8 w-auto object-contain"
-                  />
-                  <span className="hidden md:inline text-sm font-medium text-gray-500">{platform.name}</span>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: platform.color }} />
+                  <span className="text-sm font-semibold text-gray-700">{platform.name}</span>
                 </div>
               ))}
             </div>
+
           </div>
         </section>
 
