@@ -67,10 +67,12 @@ export default function ThankYou() {
         }
 
         // Force-refresh subscription state with retries to overcome Stripe propagation lag.
+        let activeConfirmed = false;
         for (let i = 0; i < 6; i++) {
           try {
             const active = await checkSubscription(subscriptionId || undefined);
             if (active) {
+              activeConfirmed = true;
               setVerified(true);
               setPostPaymentReady(true);
               break;
@@ -79,7 +81,7 @@ export default function ThankYou() {
           await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
         }
 
-        if (!postPaymentReady) {
+        if (!activeConfirmed) {
           const active = await checkSubscription(subscriptionId || undefined);
           if (!active) {
             setVerified(false);
@@ -119,7 +121,7 @@ export default function ThankYou() {
     };
 
     verify();
-  }, [sessionId, subscriptionId, setupIntent, redirectStatus, router, checkSubscription, postPaymentReady]);
+  }, [sessionId, subscriptionId, setupIntent, redirectStatus, router, checkSubscription]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
