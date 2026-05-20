@@ -82,12 +82,9 @@ serve(async (req) => {
     const customerId = customers.data[0]?.id;
 
     const origin = req.headers.get("origin") || "https://autopilotgeo.com";
+    const uiMode = (body.ui_mode === "hosted" ? "hosted" : "embedded") as "embedded" | "hosted";
 
-    const successUrl = isGuest
-      ? `${origin}/auth?mode=signup&checkout=success`
-      : `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
-
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -105,16 +102,35 @@ serve(async (req) => {
         },
       },
       payment_method_collection: "always",
-      success_url: successUrl,
-      cancel_url: `${origin}/pricing`,
-    });
+      ui_mode: uiMode,
+    };
 
-    console.log("[CREATE-CHECKOUT] Session created:", session.id);
+    if (uiMode === "embedded") {
+      // Embedded checkout — Stripe renders inside our page, no redirect.
+      sessionParams.return_url = `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
+    } else {
+      sessionParams.success_url = isGuest
+        ? `${origin}/auth?mode=signup&checkout=success`
+        : `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
+      sessionParams.cancel_url = `${origin}/pricing`;
+    }
 
-    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    const session = await stripe.checkout.sessions.create(sessionParams);
+
+    console.log("[CREATE-CHECKOUT] Session created:", session.id, "ui_mode:", uiMode);
+
+    return new Response(
+      JSON.stringify({
+        url: session.url,
+        sessionId: session.id,
+        client_secret: (session as any).client_secret ?? null,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+
   } catch (error) {
     console.error("[CREATE-CHECKOUT] Error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
