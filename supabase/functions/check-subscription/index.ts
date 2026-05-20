@@ -285,6 +285,30 @@ serve(async (req) => {
 
     logStep("Credits updated", { creditsTotal });
 
+    // Upsert plan/limits into subscriptions table
+    try {
+      const priceId = (sub.items?.data?.[0]?.price?.id as string) || "";
+      const mapped = PRICE_MAP[priceId];
+      await supabaseClient.from("subscriptions").upsert({
+        user_id: user.id,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: sub.id,
+        plan: mapped?.plan ?? "starter",
+        cycle: mapped?.cycle ?? "monthly",
+        status: sub.status,
+        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        sites_limit: mapped?.sites ?? 1,
+        articles_limit: mapped?.articles ?? 10,
+        cancel_at_period_end: !!sub.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      logStep("Subscription row upserted", { plan: mapped?.plan, cycle: mapped?.cycle });
+    } catch (subErr) {
+      logStep("Error upserting subscription row", { error: String(subErr) });
+    }
+
+
     // Paid/trial users may already have placeholder locked content generated before checkout.
     // Trigger the unlock/generation job here too, not only for VIP users.
     await triggerUnlockIfNeeded(supabaseClient, user.id, authHeader);
