@@ -733,10 +733,11 @@ export default function Index() {
               asChild
             >
               <Link href="/onboarding">
-                Get started — it's free <ArrowRight className="h-4 w-4" />
+                Start your 3-day free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <p className="text-gray-500 text-sm mt-4">No credit card required · Cancel anytime</p>
+            <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
+
           </div>
         </section>
         </main>
