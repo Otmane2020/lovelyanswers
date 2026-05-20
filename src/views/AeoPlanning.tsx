@@ -361,6 +361,11 @@ export default function AeoPlanning() {
                 <h2 className="text-base sm:text-xl font-semibold">Content Calendar</h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   {format(visibleStart, "d MMM", { locale: enUS })} – {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
+                  {previewItems.length > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-[10px]">
+                      · <span className="inline-block w-2 h-2 rounded border border-dashed border-muted-foreground" /> {previewItems.length} preview ({liveFrequency.replace("_", "/")})
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
