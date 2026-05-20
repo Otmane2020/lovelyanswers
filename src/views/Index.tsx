@@ -288,7 +288,7 @@ export default function Index() {
         <main>
         {/* HERO */}
         <section
-          className="relative pt-28 md:pt-36 pb-20 md:pb-28 overflow-hidden"
+          className="relative pt-40 md:pt-44 pb-20 md:pb-28 overflow-hidden"
           style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%)" }}
         >
           <div
