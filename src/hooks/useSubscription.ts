@@ -20,9 +20,14 @@ export function useSubscription() {
     productId: subscription.productId,
     subscriptionEnd: subscription.subscriptionEnd,
     creditsTotal: subscription.creditsTotal,
+    plan: subscription.plan,
+    cycle: subscription.cycle,
+    sitesLimit: subscription.sitesLimit,
+    articlesLimit: subscription.articlesLimit,
     isLoading: subscription.isLoading,
     checkSubscription: subscription.checkSubscription,
     startCheckout,
     openCustomerPortal,
   };
 }
+

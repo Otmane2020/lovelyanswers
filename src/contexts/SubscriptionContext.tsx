@@ -3,6 +3,9 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+type PlanId = "starter" | "pro" | "agency" | null;
+type Cycle = "monthly" | "annual" | null;
+
 interface SubscriptionContextType {
   isSubscribed: boolean;
   isTrial: boolean;
@@ -10,10 +13,15 @@ interface SubscriptionContextType {
   productId: string | null;
   subscriptionEnd: string | null;
   creditsTotal: number;
+  plan: PlanId;
+  cycle: Cycle;
+  sitesLimit: number | null;
+  articlesLimit: number | null;
   checkSubscription: () => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
   openCustomerPortal: () => Promise<string | null>;
 }
+
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
@@ -25,6 +33,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [creditsTotal, setCreditsTotal] = useState(0);
+  const [plan, setPlan] = useState<PlanId>(null);
+  const [cycle, setCycle] = useState<Cycle>(null);
+  const [sitesLimit, setSitesLimit] = useState<number | null>(null);
+  const [articlesLimit, setArticlesLimit] = useState<number | null>(null);
+
 
   const checkSubscription = useCallback(async () => {
     // Don't check if auth is still loading
@@ -62,6 +75,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
       setCreditsTotal(data?.credits_total || 0);
+      setPlan((data?.plan as PlanId) ?? null);
+      setCycle((data?.cycle as Cycle) ?? null);
+      setSitesLimit(typeof data?.sites_limit === "number" ? data.sites_limit : null);
+      setArticlesLimit(typeof data?.articles_limit === "number" ? data.articles_limit : null);
+
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
       return subscribed || trial;
@@ -140,6 +158,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       productId,
       subscriptionEnd, 
       creditsTotal,
+      plan,
+      cycle,
+      sitesLimit,
+      articlesLimit,
+
       checkSubscription,
       startCheckout,
       openCustomerPortal 

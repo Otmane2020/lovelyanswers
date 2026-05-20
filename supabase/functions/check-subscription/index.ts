@@ -12,6 +12,17 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+// Price → plan map (keep in sync with src/lib/stripe-products.ts)
+const PRICE_MAP: Record<string, { plan: "starter" | "pro" | "agency"; cycle: "monthly" | "annual"; sites: number; articles: number }> = {
+  "price_1TZI35Efti9t9nN9yj0tBl4c": { plan: "starter", cycle: "monthly", sites: 1, articles: 10 },
+  "price_1TZIB3Efti9t9nN9A4NxsNsg": { plan: "starter", cycle: "annual",  sites: 1, articles: 10 },
+  "price_1TZIBYEfti9t9nN9lG9JGwUa": { plan: "pro",     cycle: "monthly", sites: 3, articles: 30 },
+  "price_1TZIBfEfti9t9nN9ZYClUCvF": { plan: "pro",     cycle: "annual",  sites: 3, articles: 30 },
+  "price_1TZIBjEfti9t9nN9ToqTd8xu": { plan: "agency",  cycle: "monthly", sites: 10, articles: -1 },
+  "price_1TZIBnEfti9t9nN9fmZiURZR": { plan: "agency",  cycle: "annual",  sites: 10, articles: -1 },
+};
+
+
 // VIP emails with permanent unlimited access
 
 async function triggerUnlockIfNeeded(supabaseClient: any, userId: string, authHeader: string) {
@@ -274,21 +285,51 @@ serve(async (req) => {
 
     logStep("Credits updated", { creditsTotal });
 
+    // Upsert plan/limits into subscriptions table
+    try {
+      const priceId = (sub.items?.data?.[0]?.price?.id as string) || "";
+      const mapped = PRICE_MAP[priceId];
+      await supabaseClient.from("subscriptions").upsert({
+        user_id: user.id,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: sub.id,
+        plan: mapped?.plan ?? "starter",
+        cycle: mapped?.cycle ?? "monthly",
+        status: sub.status,
+        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        sites_limit: mapped?.sites ?? 1,
+        articles_limit: mapped?.articles ?? 10,
+        cancel_at_period_end: !!sub.cancel_at_period_end,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      logStep("Subscription row upserted", { plan: mapped?.plan, cycle: mapped?.cycle });
+    } catch (subErr) {
+      logStep("Error upserting subscription row", { error: String(subErr) });
+    }
+
+
     // Paid/trial users may already have placeholder locked content generated before checkout.
     // Trigger the unlock/generation job here too, not only for VIP users.
     await triggerUnlockIfNeeded(supabaseClient, user.id, authHeader);
     await triggerGeoIfNeeded(supabaseClient, user.id);
 
+    const mappedFinal = PRICE_MAP[(sub.items?.data?.[0]?.price?.id as string) || ""];
     return new Response(JSON.stringify({
       subscribed: true,
       trial: isTrialing,
       product_id: productId,
       subscription_end: subscriptionEnd,
-      credits_total: creditsTotal
+      credits_total: creditsTotal,
+      plan: mappedFinal?.plan ?? null,
+      cycle: mappedFinal?.cycle ?? null,
+      sites_limit: mappedFinal?.sites ?? null,
+      articles_limit: mappedFinal?.articles ?? null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
