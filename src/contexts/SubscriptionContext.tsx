@@ -75,6 +75,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
       setCreditsTotal(data?.credits_total || 0);
+      setPlan((data?.plan as PlanId) ?? null);
+      setCycle((data?.cycle as Cycle) ?? null);
+      setSitesLimit(typeof data?.sites_limit === "number" ? data.sites_limit : null);
+      setArticlesLimit(typeof data?.articles_limit === "number" ? data.articles_limit : null);
+
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
       return subscribed || trial;
