@@ -285,8 +285,26 @@ export default function Index() {
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
+        {/* AI Referrer Banner */}
+        {aiReferrer && (
+          <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center text-sm py-2.5 px-4 shadow-md">
+            <span className="font-medium">
+              🤖 You found us through <span className="font-bold">{aiReferrer}</span>? That's exactly what we do for your
+              business.
+            </span>{" "}
+            <Link href="/onboarding" className="underline font-semibold ml-1 hover:opacity-90">
+              Start free →
+            </Link>
+          </div>
+        )}
+
         {/* NAV */}
-        <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
+        <nav
+          className={`fixed z-50 w-full bg-white border-b border-gray-100 shadow-sm ${
+            aiReferrer ? "top-10" : "top-0"
+          }`}
+        >
+
           <div className="container flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
