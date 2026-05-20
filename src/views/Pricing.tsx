@@ -53,14 +53,14 @@ export default function Pricing() {
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
       </Helmet>
 
-      <div className="min-h-screen bg-[hsl(222,47%,11%)]">
-        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+      <div className="min-h-screen bg-white text-gray-900">
+        <nav className="fixed top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center"><AnimatedLogo size="md" /></Link>
             <div className="flex items-center gap-2 sm:gap-4">
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link href="/">Home</Link></Button>
-              <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link href="/auth">Sign In</Link></Button>
-              <Button className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild><Link href="/">Home</Link></Button>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild><Link href="/auth">Sign In</Link></Button>
+              <Button className="bg-gray-900 text-white hover:bg-gray-800 rounded-xl" asChild>
                 <Link href="/checkout?plan=pro&cycle=annual">Start free <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             </div>
@@ -68,25 +68,28 @@ export default function Pricing() {
         </nav>
 
         {/* HERO */}
-        <section className="relative overflow-hidden pt-32 pb-12">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-400/8 rounded-full blur-[150px]" />
+        <section className="relative overflow-hidden pt-32 pb-12" style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%)" }}>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37,99,235,0.06) 0%, transparent 70%)" }}
+          />
           <div className="container relative">
             <div className="mx-auto max-w-3xl text-center">
-              <Badge className="mb-6 bg-white/10 text-white/70 border-white/20">3-day free trial · Cancel anytime</Badge>
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
-                Get cited by <span className="text-violet-400">ChatGPT</span> in 30 days
+              <Badge className="mb-6 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-50">3-day free trial · Card required · Cancel anytime</Badge>
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-gray-900" style={{ letterSpacing: "-0.02em" }}>
+                Get cited by <span className="text-blue-600">ChatGPT</span> in 30 days
               </h1>
-              <p className="mt-6 text-xl text-white/50 max-w-2xl mx-auto">
+              <p className="mt-6 text-xl text-gray-500 max-w-2xl mx-auto">
                 Simple pricing. No setup fees. No long-term commitment. Just AI visibility.
               </p>
 
               {/* Billing toggle */}
-              <div className="mt-10 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+              <div className="mt-10 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white p-1 shadow-sm">
                 <button
                   onClick={() => setCycle("monthly")}
                   className={cn(
                     "px-5 py-2 rounded-full text-sm font-medium transition",
-                    cycle === "monthly" ? "bg-white text-[hsl(222,47%,11%)]" : "text-white/60 hover:text-white"
+                    cycle === "monthly" ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
                   )}
                 >
                   Monthly
@@ -95,11 +98,11 @@ export default function Pricing() {
                   onClick={() => setCycle("annual")}
                   className={cn(
                     "px-5 py-2 rounded-full text-sm font-medium transition flex items-center gap-2",
-                    cycle === "annual" ? "bg-white text-[hsl(222,47%,11%)]" : "text-white/60 hover:text-white"
+                    cycle === "annual" ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
                   )}
                 >
                   Annual
-                  <span className="text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">−20%</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">−20%</span>
                 </button>
               </div>
             </div>
@@ -113,42 +116,42 @@ export default function Pricing() {
                   <div
                     key={plan.id}
                     className={cn(
-                      "relative rounded-2xl border p-7 flex flex-col backdrop-blur-sm transition-all",
+                      "relative rounded-2xl border p-7 flex flex-col bg-white transition-all",
                       isPopular
-                        ? "border-violet-400/40 bg-gradient-to-b from-violet-500/10 to-white/5 shadow-2xl shadow-violet-500/10 md:scale-[1.03]"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
+                        ? "border-blue-300 shadow-2xl shadow-blue-500/10 md:scale-[1.03] ring-1 ring-blue-200"
+                        : "border-gray-100 shadow-sm hover:border-gray-200 hover:shadow-md"
                     )}
                   >
                     {isPopular && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="inline-flex items-center gap-1 bg-violet-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                        <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
                           <Sparkles className="h-3 w-3" /> Most popular
                         </span>
                       </div>
                     )}
                     <div>
-                      <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                      <p className="mt-2 text-sm text-white/50">{plan.tagline}</p>
+                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                      <p className="mt-2 text-sm text-gray-500">{plan.tagline}</p>
                     </div>
 
                     <div className="mt-6">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-5xl font-bold text-white">{formatUSD(price.perMonth)}</span>
-                        <span className="text-white/40 text-sm">/mo</span>
+                        <span className="text-5xl font-bold text-gray-900">{formatUSD(price.perMonth)}</span>
+                        <span className="text-gray-400 text-sm">/mo</span>
                       </div>
                       {cycle === "annual" ? (
-                        <p className="mt-1 text-xs text-white/40">Billed {formatUSD(price.amount)} /year</p>
+                        <p className="mt-1 text-xs text-gray-400">Billed {formatUSD(price.amount)} /year</p>
                       ) : (
-                        <p className="mt-1 text-xs text-white/40">Billed monthly · Cancel anytime</p>
+                        <p className="mt-1 text-xs text-gray-400">Billed monthly · Cancel anytime</p>
                       )}
                     </div>
 
                     <Button
                       className={cn(
-                        "mt-6 w-full",
+                        "mt-6 w-full rounded-xl",
                         isPopular
-                          ? "bg-violet-500 hover:bg-violet-400 text-white"
-                          : "bg-white text-[hsl(222,47%,11%)] hover:bg-white/90"
+                          ? "bg-blue-600 hover:bg-blue-500 text-white"
+                          : "bg-gray-900 hover:bg-gray-800 text-white"
                       )}
                       asChild
                     >
@@ -159,8 +162,8 @@ export default function Pricing() {
 
                     <ul className="mt-7 space-y-3 flex-1">
                       {plan.features.map((f, i) => (
-                        <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
-                          <Check className="h-4 w-4 text-violet-300 shrink-0 mt-0.5" />
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                          <Check className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                           <span>{f}</span>
                         </li>
                       ))}
@@ -170,11 +173,12 @@ export default function Pricing() {
               })}
             </div>
 
-            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-white/40">
-              <Shield className="h-4 w-4" /> No charge during trial · Cancel in 1 click
+            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-500">
+              <Shield className="h-4 w-4" /> Card required · No charge during trial · Cancel in 1 click
             </div>
           </div>
         </section>
+
 
         {/* FAQ */}
         <section className="py-20 bg-white">
