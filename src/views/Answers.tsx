@@ -197,6 +197,14 @@ export default function Answers() {
       toast.error("No active project");
       return;
     }
+    if (!canGenerateArticle) {
+      toast.error(
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
+      );
+      return;
+    }
+
 
     setGeneratingArticleId(answerId);
     try {
