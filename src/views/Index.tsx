@@ -326,10 +326,11 @@ export default function Index() {
                 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
                 style={{ letterSpacing: "-0.03em" }}
               >
-                Get your business
+                One article written.
                 <br />
-                recommended by <span className="text-blue-600">ChatGPT</span> &{" "}
-                <span className="text-blue-600">Google</span>
+                <span className="text-blue-600">Five channels</span> covered.
+                <br />
+                Zero manual effort.
               </h1>
 
               <motion.p
@@ -338,9 +339,11 @@ export default function Index() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
               >
-                Automatically publish expert content that makes AI search engines recommend{" "}
-                <span className="font-semibold text-gray-700">you</span> — not your competitors. Works for any industry.
+                One daily piece of content, automatically optimized for{" "}
+                <span className="font-semibold text-gray-700">Google · ChatGPT · Gemini · Perplexity · Shopping</span>.
+                Hundreds of businesses found us the same way you did — through AI. Now AI recommends them too.
               </motion.p>
+
 
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
