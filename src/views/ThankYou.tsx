@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackPurchase } from "@/lib/gtag-conversions";
@@ -16,6 +16,7 @@ export default function ThankYou() {
   const { checkSubscription } = useSubscriptionContext();
   const [verified, setVerified] = useState<boolean | null>(null);
   const [postPaymentReady, setPostPaymentReady] = useState(false);
+  const trackedRef = useRef(false);
   const sessionId = searchParams.get("session_id");
   const subscriptionId = searchParams.get("subscription_id");
   const setupIntent = searchParams.get("setup_intent");
@@ -31,8 +32,6 @@ export default function ThankYou() {
       router.replace("/checkout");
       return;
     }
-
-    let tracked = false;
 
     const verify = async () => {
       try {
@@ -90,27 +89,28 @@ export default function ThankYou() {
           setPostPaymentReady(true);
         }
 
-        if (!tracked) {
-          tracked = true;
+        if (!trackedRef.current) {
+          trackedRef.current = true;
           const value = data?.amount ? data.amount / 100 : 29;
-          trackPurchase(value, sessionId);
+          const transactionId = sessionId || setupIntent || subscriptionId || undefined;
+          trackPurchase(value, transactionId);
           // Second account purchase conversion (AW-17956394555)
           if (typeof window !== "undefined" && window.gtag) {
             window.gtag("event", "conversion", {
               send_to: "AW-17956394555/lC8cCNymrfkbELuso_JC",
               value: value,
               currency: "USD",
-              transaction_id: sessionId || "",
+              transaction_id: transactionId || "",
             });
           }
           // Tapfiliate trial conversion
-          if (typeof window !== "undefined" && (window as any).tap && data.customer_id) {
+          if (typeof window !== "undefined" && (window as any).tap && data?.customer_id) {
             (window as any).tap("trial", data.customer_id);
             console.log("[ThankYou] Tapfiliate trial fired:", data.customer_id);
           }
           // Meta Pixel — Subscribe + Purchase conversion
-          trackMetaPurchase(value, sessionId || undefined);
-          console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
+          trackMetaPurchase(value, transactionId);
+          console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, transactionId });
         }
       } catch (err) {
         console.error("[ThankYou] Verification error:", err);
