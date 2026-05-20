@@ -17,6 +17,9 @@ export default function ThankYou() {
   const [verified, setVerified] = useState<boolean | null>(null);
   const [postPaymentReady, setPostPaymentReady] = useState(false);
   const sessionId = searchParams.get("session_id");
+  const subscriptionId = searchParams.get("subscription_id");
+  const setupIntent = searchParams.get("setup_intent");
+  const redirectStatus = searchParams.get("redirect_status");
 
   // Force light theme
   useEffect(() => {
@@ -24,8 +27,8 @@ export default function ThankYou() {
   }, []);
 
   useEffect(() => {
-    if (!sessionId) {
-      router.replace("/dashboard");
+    if (!sessionId && !subscriptionId) {
+      router.replace("/checkout");
       return;
     }
 
@@ -33,17 +36,29 @@ export default function ThankYou() {
 
     const verify = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("verify-checkout-session", {
-          body: { session_id: sessionId },
-        });
-
-        if (error || !data?.paid) {
-          console.warn("[ThankYou] Payment not verified:", error);
+        if (subscriptionId && redirectStatus && redirectStatus !== "succeeded") {
           setVerified(false);
           return;
         }
 
-        setVerified(true);
+        if (subscriptionId && !setupIntent) {
+          setVerified(false);
+          return;
+        }
+
+        let data: any = null;
+        if (sessionId) {
+          const { data: verifyData, error } = await supabase.functions.invoke("verify-checkout-session", {
+            body: { session_id: sessionId },
+          });
+
+          if (error || !verifyData?.paid) {
+            console.warn("[ThankYou] Payment not verified:", error);
+            setVerified(false);
+            return;
+          }
+          data = verifyData;
+        }
 
         // Trigger backend unlock immediately (verifies Stripe + unlocks articles/geo)
         try {
@@ -55,19 +70,29 @@ export default function ThankYou() {
         // Force-refresh subscription state with retries to overcome Stripe propagation lag.
         for (let i = 0; i < 6; i++) {
           try {
-            const active = await checkSubscription();
+            const active = await checkSubscription(subscriptionId || undefined);
             if (active) {
+              setVerified(true);
               setPostPaymentReady(true);
               break;
             }
           } catch {}
           await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
         }
-        setPostPaymentReady(true);
+
+        if (!postPaymentReady) {
+          const active = await checkSubscription(subscriptionId || undefined);
+          if (!active) {
+            setVerified(false);
+            return;
+          }
+          setVerified(true);
+          setPostPaymentReady(true);
+        }
 
         if (!tracked) {
           tracked = true;
-          const value = data.amount ? data.amount / 100 : 29;
+          const value = data?.amount ? data.amount / 100 : 29;
           trackPurchase(value, sessionId);
           // Second account purchase conversion (AW-17956394555)
           if (typeof window !== "undefined" && window.gtag) {
@@ -94,7 +119,7 @@ export default function ThankYou() {
     };
 
     verify();
-  }, [sessionId, router, checkSubscription]);
+  }, [sessionId, subscriptionId, setupIntent, redirectStatus, router, checkSubscription, postPaymentReady]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
