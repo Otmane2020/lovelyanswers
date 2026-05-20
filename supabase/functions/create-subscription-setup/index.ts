@@ -25,6 +25,11 @@ const PRICES: Record<string, Record<string, string>> = {
 
 const TRIAL_DAYS = 3;
 
+// Map of known promo codes -> Stripe coupon IDs
+const PROMO_CODES: Record<string, { coupon: string; label: string }> = {
+  WELCOME10: { coupon: "auqNm7gc", label: "10% off — Welcome offer" },
+};
+
 function getStripeKey() {
   const key = (Deno.env.get("STRIPE_SECRET_KEY") || "").trim();
 
@@ -60,6 +65,19 @@ serve(async (req) => {
     const priceId = PRICES[plan]?.[cycle];
     if (!priceId) throw new Error(`Unknown plan/cycle: ${plan}/${cycle}`);
 
+    const rawPromo = String(body.promo_code ?? "").trim().toUpperCase();
+    let appliedPromo: { coupon: string; label: string; code: string } | null = null;
+    if (rawPromo) {
+      const match = PROMO_CODES[rawPromo];
+      if (!match) {
+        return new Response(
+          JSON.stringify({ error: `Invalid promo code: ${rawPromo}` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+      appliedPromo = { ...match, code: rawPromo };
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization");
     const token = authHeader.replace("Bearer ", "");
@@ -92,7 +110,13 @@ serve(async (req) => {
       },
       payment_behavior: "default_incomplete",
       expand: ["pending_setup_intent"],
-      metadata: { plan, cycle, user_id: userData.user!.id },
+      ...(appliedPromo ? { discounts: [{ coupon: appliedPromo.coupon }] } : {}),
+      metadata: {
+        plan,
+        cycle,
+        user_id: userData.user!.id,
+        ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
+      },
     });
 
     const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent | null;
@@ -105,6 +129,9 @@ serve(async (req) => {
         client_secret: setupIntent.client_secret,
         subscription_id: subscription.id,
         customer_id: customer.id,
+        promo: appliedPromo
+          ? { code: appliedPromo.code, label: appliedPromo.label }
+          : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
