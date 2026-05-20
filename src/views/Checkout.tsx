@@ -51,6 +51,14 @@ export default function Checkout() {
     setIsLoading(true);
     trackCheckoutStart(billingCycle, priceInfo.amount / 100);
     try {
+      // Require auth before checkout — Stripe needs an email to attach the subscription
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        const next = `/checkout?plan=${planId}&cycle=${billingCycle}`;
+        router.push(`/auth?mode=signup&next=${encodeURIComponent(next)}`);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: planId, cycle: billingCycle },
       });
@@ -67,6 +75,7 @@ export default function Checkout() {
       setIsLoading(false);
     }
   };
+
 
   if (subLoading) {
     return (
