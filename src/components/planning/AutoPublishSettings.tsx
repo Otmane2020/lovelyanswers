@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 
 interface AutoPublishSettingsProps {
   projectId: string;
+  onSettingsChange?: (s: { frequency: string; enabled: boolean }) => void;
 }
 
-export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
+export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
@@ -124,6 +125,13 @@ export function AutoPublishSettings({ projectId }: AutoPublishSettingsProps) {
     setter(value);
     setHasChanges(true);
   };
+
+  // Live-emit frequency + enabled state so the calendar can preview
+  useEffect(() => {
+    if (isLoading) return;
+    onSettingsChange?.({ frequency, enabled: autoPublishEnabled });
+  }, [frequency, autoPublishEnabled, isLoading, onSettingsChange]);
+
 
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
 

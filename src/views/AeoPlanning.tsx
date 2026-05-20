@@ -26,7 +26,7 @@ interface ScheduledItem {
   type: "answer" | "article" | "local" | "geo" | "shopping";
   origin: "AEO" | "Auto SEO" | "Local AEO" | "GEO" | "Shopping";
   date: Date;
-  status: "scheduled" | "published" | "draft";
+  status: "scheduled" | "published" | "draft" | "preview";
   publishedUrl?: string;
   publishedAt?: string | null;
   answer?: string;
@@ -35,10 +35,25 @@ interface ScheduledItem {
   aeoScore?: number | null;
   wordCount?: number | null;
   createdAt?: string | null;
+  isPreview?: boolean;
 }
 
 function getPublishStatus(input: { published_url?: string | null; published_at?: string | null }) {
   return input.published_url || input.published_at ? "published" : "scheduled";
+}
+
+// Mirrors backend `shouldPublishToday` in publish-scheduled-answers
+function matchesFrequency(date: Date, frequency: string): boolean {
+  const dow = date.getDay();
+  const dom = date.getDate();
+  switch (frequency) {
+    case "weekly": return dow === 1;
+    case "monthly": return dom === 1;
+    case "2x_week": return dow === 2 || dow === 4;
+    case "3x_week": return dow === 1 || dow === 3 || dow === 5;
+    case "daily":
+    default: return true;
+  }
 }
 
 export default function AeoPlanning() {
@@ -57,6 +72,9 @@ export default function AeoPlanning() {
   const canPublish = isSubscribed || canPublishFree;
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
+  const [queueItems, setQueueItems] = useState<ScheduledItem[]>([]);
+  const [liveFrequency, setLiveFrequency] = useState<string>("3x_week");
+  const [autoPublishOn, setAutoPublishOn] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -85,13 +103,31 @@ export default function AeoPlanning() {
 
   const rangeDays = useMemo(() => eachDayOfInterval({ start: rangeStart, end: rangeEnd }), [rangeStart, rangeEnd]);
 
+  // Compute preview items (queued unscheduled items distributed across future days matching frequency)
+  const previewItems = useMemo<ScheduledItem[]>(() => {
+    if (!autoPublishOn || queueItems.length === 0) return [];
+    const usedDates = new Set(scheduledItems.map((i) => format(i.date, "yyyy-MM-dd")));
+    const slots: Date[] = [];
+    for (const day of rangeDays) {
+      if (day < rangeStart) continue;
+      if (!matchesFrequency(day, liveFrequency)) continue;
+      if (usedDates.has(format(day, "yyyy-MM-dd"))) continue;
+      slots.push(day);
+      if (slots.length >= queueItems.length) break;
+    }
+    return slots.map((date, idx) => ({ ...queueItems[idx], date, status: "preview" as const, isPreview: true }));
+  }, [queueItems, scheduledItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
+
+  const allItems = useMemo(() => [...scheduledItems, ...previewItems], [scheduledItems, previewItems]);
+
   const getItemsForDate = (date: Date) => {
-    return scheduledItems.filter((item) => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"));
+    return allItems.filter((item) => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"));
   };
 
   const getUpcomingItems = () => {
-    return scheduledItems.filter((item) => item.date >= new Date()).sort((a, b) => a.date.getTime() - b.date.getTime());
+    return allItems.filter((item) => item.date >= new Date()).sort((a, b) => a.date.getTime() - b.date.getTime());
   };
+
 
   const fetchScheduledItems = async () => {
     if (!project?.id) return;
@@ -150,9 +186,58 @@ export default function AeoPlanning() {
     }
   };
 
+  const fetchQueue = async () => {
+    if (!project?.id) return;
+    try {
+      const items: ScheduledItem[] = [];
+      const { data: ans } = await supabase.from("answers")
+        .select("id, question, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      ans?.forEach((a: any) => items.push({ id: `prev-a-${a.id}`, title: a.question, type: "answer", origin: "AEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: arts } = await supabase.from("articles")
+        .select("id, title, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      arts?.forEach((a: any) => items.push({ id: `prev-art-${a.id}`, title: a.title, type: "article", origin: "Auto SEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: locals } = await supabase.from("local_answers")
+        .select("id, question, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      locals?.forEach((a: any) => items.push({ id: `prev-l-${a.id}`, title: a.question, type: "local", origin: "Local AEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: geos } = await supabase.from("geo_contents")
+        .select("id, title, topic, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      geos?.forEach((g: any) => items.push({ id: `prev-g-${g.id}`, title: g.title || g.topic, type: "geo", origin: "GEO", date: new Date(), status: "preview", createdAt: g.created_at, isPreview: true }));
+
+      // Sort by created_at to mimic FIFO queue
+      items.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+      setQueueItems(items);
+    } catch (e) {
+      console.error("Error fetching queue:", e);
+    }
+  };
+
   useEffect(() => {
     fetchScheduledItems();
+    fetchQueue();
   }, [project?.id]);
+
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project) return;
@@ -229,7 +314,15 @@ export default function AeoPlanning() {
                 <span>Generating content...</span>
               </div>
             )}
-            {project && <AutoPublishSettings projectId={project.id} />}
+            {project && (
+              <AutoPublishSettings
+                projectId={project.id}
+                onSettingsChange={(s) => {
+                  setLiveFrequency(s.frequency);
+                  setAutoPublishOn(s.enabled);
+                }}
+              />
+            )}
         </PageHeader>
 
         <Card className="p-3 sm:p-4">
@@ -268,6 +361,11 @@ export default function AeoPlanning() {
                 <h2 className="text-base sm:text-xl font-semibold">Content Calendar</h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   {format(visibleStart, "d MMM", { locale: enUS })} – {format(visibleEnd, "d MMM yyyy", { locale: enUS })}
+                  {previewItems.length > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-[10px]">
+                      · <span className="inline-block w-2 h-2 rounded border border-dashed border-muted-foreground" /> {previewItems.length} preview ({liveFrequency.replace("_", "/")})
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -338,7 +436,8 @@ export default function AeoPlanning() {
                               key={item.id}
                               className={cn(
                                 "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-0.5 sm:gap-1",
-                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : item.type === "geo" ? "bg-violet-500/20 text-violet-700" : "bg-emerald-500/20 text-emerald-700"
+                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : item.type === "geo" ? "bg-violet-500/20 text-violet-700" : "bg-emerald-500/20 text-emerald-700",
+                                item.isPreview && "opacity-60 border border-dashed border-current bg-transparent"
                               )}
                             >
                               {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "local" ? <MapPin className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "geo" ? <Globe className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
