@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackPurchase } from "@/lib/gtag-conversions";
@@ -16,7 +16,11 @@ export default function ThankYou() {
   const { checkSubscription } = useSubscriptionContext();
   const [verified, setVerified] = useState<boolean | null>(null);
   const [postPaymentReady, setPostPaymentReady] = useState(false);
+  const trackedRef = useRef(false);
   const sessionId = searchParams.get("session_id");
+  const subscriptionId = searchParams.get("subscription_id");
+  const setupIntent = searchParams.get("setup_intent");
+  const redirectStatus = searchParams.get("redirect_status");
 
   // Force light theme
   useEffect(() => {
@@ -24,26 +28,36 @@ export default function ThankYou() {
   }, []);
 
   useEffect(() => {
-    if (!sessionId) {
-      router.replace("/dashboard");
+    if (!sessionId && !subscriptionId) {
+      router.replace("/checkout");
       return;
     }
 
-    let tracked = false;
-
     const verify = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("verify-checkout-session", {
-          body: { session_id: sessionId },
-        });
-
-        if (error || !data?.paid) {
-          console.warn("[ThankYou] Payment not verified:", error);
+        if (subscriptionId && redirectStatus && redirectStatus !== "succeeded") {
           setVerified(false);
           return;
         }
 
-        setVerified(true);
+        if (subscriptionId && !setupIntent) {
+          setVerified(false);
+          return;
+        }
+
+        let data: any = null;
+        if (sessionId) {
+          const { data: verifyData, error } = await supabase.functions.invoke("verify-checkout-session", {
+            body: { session_id: sessionId },
+          });
+
+          if (error || !verifyData?.paid) {
+            console.warn("[ThankYou] Payment not verified:", error);
+            setVerified(false);
+            return;
+          }
+          data = verifyData;
+        }
 
         // Trigger backend unlock immediately (verifies Stripe + unlocks articles/geo)
         try {
@@ -53,39 +67,52 @@ export default function ThankYou() {
         }
 
         // Force-refresh subscription state with retries to overcome Stripe propagation lag.
+        let activeConfirmed = false;
         for (let i = 0; i < 6; i++) {
           try {
-            const active = await checkSubscription();
+            const active = await checkSubscription(subscriptionId || undefined);
             if (active) {
+              activeConfirmed = true;
+              setVerified(true);
               setPostPaymentReady(true);
               break;
             }
           } catch {}
           await new Promise((r) => setTimeout(r, i < 2 ? 1500 : 2500));
         }
-        setPostPaymentReady(true);
 
-        if (!tracked) {
-          tracked = true;
-          const value = data.amount ? data.amount / 100 : 29;
-          trackPurchase(value, sessionId);
+        if (!activeConfirmed) {
+          const active = await checkSubscription(subscriptionId || undefined);
+          if (!active) {
+            setVerified(false);
+            return;
+          }
+          setVerified(true);
+          setPostPaymentReady(true);
+        }
+
+        if (!trackedRef.current) {
+          trackedRef.current = true;
+          const value = data?.amount ? data.amount / 100 : 29;
+          const transactionId = sessionId || setupIntent || subscriptionId || undefined;
+          trackPurchase(value, transactionId);
           // Second account purchase conversion (AW-17956394555)
           if (typeof window !== "undefined" && window.gtag) {
             window.gtag("event", "conversion", {
               send_to: "AW-17956394555/lC8cCNymrfkbELuso_JC",
               value: value,
               currency: "USD",
-              transaction_id: sessionId || "",
+              transaction_id: transactionId || "",
             });
           }
           // Tapfiliate trial conversion
-          if (typeof window !== "undefined" && (window as any).tap && data.customer_id) {
+          if (typeof window !== "undefined" && (window as any).tap && data?.customer_id) {
             (window as any).tap("trial", data.customer_id);
             console.log("[ThankYou] Tapfiliate trial fired:", data.customer_id);
           }
           // Meta Pixel — Subscribe + Purchase conversion
-          trackMetaPurchase(value, sessionId || undefined);
-          console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, sessionId });
+          trackMetaPurchase(value, transactionId);
+          console.log("[ThankYou] Purchase conversion fired (both accounts):", { value, transactionId });
         }
       } catch (err) {
         console.error("[ThankYou] Verification error:", err);
@@ -94,7 +121,7 @@ export default function ThankYou() {
     };
 
     verify();
-  }, [sessionId, router, checkSubscription]);
+  }, [sessionId, subscriptionId, setupIntent, redirectStatus, router, checkSubscription]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

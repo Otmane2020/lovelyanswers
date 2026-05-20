@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const searchParams = new URLSearchParams(window.location.search);
     const isRecovery = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
     const intent = searchParams.get("intent") || sessionStorage.getItem("post_oauth_intent");
+    const next = searchParams.get("next");
 
     if (isRecovery || !["/auth", "/signup"].includes(path)) return;
     if (redirectInFlight.current) return;
@@ -44,9 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     sessionStorage.removeItem("post_oauth_intent");
 
+    if (next?.startsWith("/")) {
+      console.log("[AuthContext] Post-auth next redirect →", next, { source });
+      window.location.replace(next);
+      return;
+    }
+
     if (intent === "signup") {
-      console.log("[AuthContext] OAuth signup redirect → /wizard", { source });
-      window.location.replace("/wizard");
+      console.log("[AuthContext] OAuth signup redirect → /checkout", { source });
+      window.location.replace("/checkout?plan=pro&cycle=annual");
       return;
     }
 
