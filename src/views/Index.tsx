@@ -155,7 +155,7 @@ const faqs = [
 ];
 
 export default function Index() {
-  const [activeTestimonialPlatform, setActiveTestimonialPlatform] = useState(0);
+  const [, ] = useState(0); // legacy slot kept to preserve effect order
   const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
