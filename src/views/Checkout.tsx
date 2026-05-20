@@ -168,22 +168,39 @@ export default function Checkout() {
             </button>
           </div>
 
-          <Button
-            onClick={handleCheckout}
-            disabled={isLoading}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
-          >
-            {isLoading ? (
-              <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Redirecting to secure checkout...</>
-            ) : (
-              <>Start 3 days free <ArrowRight className="h-5 w-5 ml-2" /></>
-            )}
-          </Button>
+          {!showCard ? (
+            <Button
+              onClick={handleStart}
+              disabled={isLoading}
+              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-violet-500 hover:opacity-90 transition-opacity rounded-xl"
+            >
+              {isLoading ? (
+                <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading secure checkout...</>
+              ) : (
+                <>Start 3 days free <ArrowRight className="h-5 w-5 ml-2" /></>
+              )}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Lock className="h-4 w-4 text-primary" />
+                Enter your card — no charge during your 3-day trial.
+              </div>
+              <EmbeddedCheckoutBox
+                plan={planId}
+                cycle={billingCycle}
+                onError={(msg) =>
+                  toast({ title: "Checkout error", description: msg, variant: "destructive" })
+                }
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
             <span>Secure payment by Stripe · No charge during trial</span>
           </div>
+
 
           <a
             href="https://trust-avis.com/entreprise/autopilotgeo"
