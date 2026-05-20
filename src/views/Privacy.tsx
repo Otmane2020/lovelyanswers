@@ -95,7 +95,7 @@ export default function Privacy() {
               </section>
               <section className="space-y-3">
                 <h2 className="text-2xl font-semibold text-[hsl(222,47%,11%)]">8. Company Information</h2>
-                <p>AutoPilot Geo Ltd<br />Suite 4, Piccadilly House<br />Manchester, M1 1AB<br />United Kingdom</p>
+                <p>AutoPilot Geo Ltd — Contact: <a href="mailto:support@autopilotgeo.com" className="text-violet-600 hover:underline">support@autopilotgeo.com</a></p>
               </section>
             </div>
           </div>

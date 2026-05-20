@@ -15,9 +15,7 @@ export function PublicFooter() {
             <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
             <div className="text-sm text-white/40 space-y-1">
               <p className="font-medium text-white/60">AutoPilot Geo Ltd</p>
-              <p>Suite 4, Piccadilly House</p>
-              <p>Manchester, M1 1AB</p>
-              <p>United Kingdom</p>
+              <p><a href="mailto:support@autopilotgeo.com" className="hover:text-white transition-colors">support@autopilotgeo.com</a></p>
             </div>
           </div>
           <div>
@@ -27,7 +25,7 @@ export function PublicFooter() {
               <li><Link href="/localAEO" className="text-white/40 hover:text-white transition-colors">Local AEO</Link></li>
               <li><Link href="/pricing" className="text-white/40 hover:text-white transition-colors">Pricing</Link></li>
               <li><Link href="/auth" className="text-white/40 hover:text-white transition-colors">Login</Link></li>
-              <li><Link href="/onboarding" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
+              <li><Link href="/checkout?plan=pro&cycle=annual" className="text-white/40 hover:text-white transition-colors">Start Free Trial</Link></li>
             </ul>
           </div>
           <div>
@@ -61,8 +59,6 @@ export function PublicFooter() {
           <p className="text-sm text-white/30">© {new Date().getFullYear()} AutoPilot Geo Ltd. All rights reserved.</p>
           <div className="flex items-center gap-4 text-sm text-white/30">
             <span>Answer Engine Optimization Platform</span>
-            <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline">Made with ❤️ in Manchester</span>
           </div>
         </div>
       </div>

@@ -587,13 +587,13 @@ export default function Onboarding() {
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 text-left max-w-sm mx-auto"
                   >
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
-                      M
+                      B
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        "Impressions up 180%, clicks up 90% in 3 months. Now I sell it to my clients."
+                        "I used AutoPilot GEO on my own projects. The blog now drives 60 organic visits/month from Google with zero manual effort."
                       </p>
-                      <p className="text-xs font-medium mt-1">Mike — Roofing Company</p>
+                      <p className="text-xs font-medium mt-1">Ben M. — Founder, AutoPilot GEO</p>
                     </div>
                   </motion.div>
 
