@@ -298,5 +298,12 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
     updated_at: new Date().toISOString()
   }, { onConflict: "user_id" });
 
+  // Mark subscription canceled
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({ status: "canceled", updated_at: new Date().toISOString() })
+    .eq("user_id", profile.id);
+
   logStep("Credits reset for canceled subscription", { userId: profile.id });
 }
+
