@@ -113,9 +113,14 @@ export default function AeoPlanning() {
       if (!matchesFrequency(day, liveFrequency)) continue;
       if (usedDates.has(format(day, "yyyy-MM-dd"))) continue;
       slots.push(day);
-      if (slots.length >= queueItems.length) break;
     }
-    return slots.map((date, idx) => ({ ...queueItems[idx], date, status: "preview" as const, isPreview: true }));
+    // Cycle through the queue so every matching day is filled, even if queue is shorter
+    return slots.map((date, idx) => ({
+      ...queueItems[idx % queueItems.length],
+      date,
+      status: "preview" as const,
+      isPreview: true,
+    }));
   }, [queueItems, scheduledItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
 
   const allItems = useMemo(() => [...scheduledItems, ...previewItems], [scheduledItems, previewItems]);
