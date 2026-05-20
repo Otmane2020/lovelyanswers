@@ -179,12 +179,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     updated_at: new Date().toISOString()
   }, { onConflict: "user_id" });
 
-  await supabaseAdmin.from("credits").upsert({
-    user_id: profile.id,
-    credits_total: creditsTotal,
-    credits_used: 0,
-    updated_at: new Date().toISOString()
-  }, { onConflict: "user_id" });
 
   logStep("Credits updated", { userId: profile.id, credits: creditsTotal });
 
