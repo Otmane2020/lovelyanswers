@@ -368,12 +368,13 @@ Rules:
 </body>
 </html>`;
 
-    const { error: emailError } = await resend.emails.send({
-      from: "AutoPilot Geo <audit@autopilotgeo.com>",
+    const { data: sendData, error: emailError } = await resend.emails.send({
+      from: "AutoPilot Geo <support@autopilotgeo.com>",
       to: [email],
       subject: `🔍 Your SEO & AEO Audit: ${domain} scored ${overallScore}/100`,
       html: emailHtml,
     });
+    console.log("[send-audit-email] Resend response:", JSON.stringify({ sendData, emailError }));
 
     if (emailError) {
       console.error("[send-audit-email] Resend error:", emailError);
