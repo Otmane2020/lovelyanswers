@@ -36,17 +36,19 @@ import perplexityLogo from "@/assets/perplexity-logo.png";
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 
 const aiPlatforms = [
-  { name: "ChatGPT", logo: chatgptIcon, color: "#10a37f" },
-  { name: "Gemini", logo: geminiLogo, color: "#4285f4" },
-  { name: "Perplexity", logo: perplexityLogo, color: "#6366f1" },
-  { name: "Claude", logo: claudeLogo, color: "#cc785c" },
+  { name: "Google", color: "#4285f4" },
+  { name: "ChatGPT", color: "#10a37f" },
+  { name: "Gemini", color: "#4285f4" },
+  { name: "Perplexity", color: "#6366f1" },
+  { name: "Shopping", color: "#f59e0b" },
 ];
 
 const socialProofPills = [
-  { initial: "★", bg: "#fef3c7", color: "#92400e", name: "4.9 / 5", role: "289 reviews", result: "Excellent" },
-  { initial: "+", bg: "#d1fae5", color: "#065f46", name: "+60%", role: "avg traffic", result: "in 3 months" },
   { initial: "5", bg: "#dbeafe", color: "#1e3a8a", name: "500+", role: "active sites", result: "ranking on AI" },
+  { initial: "★", bg: "#fef3c7", color: "#92400e", name: "4.9 / 5", role: "founder reviews", result: "Excellent" },
+  { initial: "+", bg: "#d1fae5", color: "#065f46", name: "+60%", role: "avg traffic", result: "in 3 months" },
 ];
+
 
 const beforeItems = [
   "AI never mentions your brand",
