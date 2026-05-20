@@ -186,9 +186,58 @@ export default function AeoPlanning() {
     }
   };
 
+  const fetchQueue = async () => {
+    if (!project?.id) return;
+    try {
+      const items: ScheduledItem[] = [];
+      const { data: ans } = await supabase.from("answers")
+        .select("id, question, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      ans?.forEach((a: any) => items.push({ id: `prev-a-${a.id}`, title: a.question, type: "answer", origin: "AEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: arts } = await supabase.from("articles")
+        .select("id, title, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      arts?.forEach((a: any) => items.push({ id: `prev-art-${a.id}`, title: a.title, type: "article", origin: "Auto SEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: locals } = await supabase.from("local_answers")
+        .select("id, question, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      locals?.forEach((a: any) => items.push({ id: `prev-l-${a.id}`, title: a.question, type: "local", origin: "Local AEO", date: new Date(), status: "preview", createdAt: a.created_at, isPreview: true }));
+
+      const { data: geos } = await supabase.from("geo_contents")
+        .select("id, title, topic, created_at")
+        .eq("project_id", project.id)
+        .is("scheduled_date", null)
+        .is("published_at", null)
+        .order("created_at", { ascending: true })
+        .limit(60);
+      geos?.forEach((g: any) => items.push({ id: `prev-g-${g.id}`, title: g.title || g.topic, type: "geo", origin: "GEO", date: new Date(), status: "preview", createdAt: g.created_at, isPreview: true }));
+
+      // Sort by created_at to mimic FIFO queue
+      items.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+      setQueueItems(items);
+    } catch (e) {
+      console.error("Error fetching queue:", e);
+    }
+  };
+
   useEffect(() => {
     fetchScheduledItems();
+    fetchQueue();
   }, [project?.id]);
+
 
   const handlePublishNow = async (item: ScheduledItem) => {
     if (!project) return;
