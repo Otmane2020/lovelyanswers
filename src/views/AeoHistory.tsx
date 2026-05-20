@@ -82,7 +82,7 @@ export default function AeoHistory() {
     return { icon: <Globe className="h-4 w-4 text-muted-foreground" />, label: domain };
   };
 
-  const isLoading = answersLoading || articlesLoading || localLoading;
+  const isLoading = answersLoading || articlesLoading || localLoading || geoLoading || shoppingLoading;
 
   return (
     <DashboardLayout>
