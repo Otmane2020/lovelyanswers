@@ -581,60 +581,8 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section className="py-16 md:py-24 bg-white">
-          <div className="container px-4">
-            <div className="text-center mb-10">
-              <h2
-                className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                What people say about <span className="text-blue-600 font-extrabold">AutoPilot Geo</span>
-              </h2>
-              <p className="text-gray-500 max-w-xl mx-auto">
-                Join 500+ businesses already growing with AI search optimization.
-              </p>
-            </div>
-            <div className="flex justify-center gap-2 mb-10">
-              {testimonials.map((t, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTestimonialPlatform(i)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTestimonialPlatform === i ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                >
-                  {t.platform}
-                </button>
-              ))}
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {testimonials[activeTestimonialPlatform].reviews.map((review, i) => (
-                <motion.div
-                  key={`${activeTestimonialPlatform}-${i}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-                >
-                  <div className="flex items-center gap-1 mb-3">
-                    {Array.from({ length: review.rating }).map((_, j) => (
-                      <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">"{review.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-gray-900 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {review.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{review.name}</p>
-                      <p className="text-xs text-gray-400">{review.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Testimonials removed — see neutral stat pills in hero */}
+
 
         {/* Showcase */}
         <section className="py-16 md:py-24" style={{ background: "#f8f7f4" }}>
