@@ -77,6 +77,28 @@ export function useCreateProject() {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Enforce plan sites_limit (read from latest subscription row)
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("sites_limit, status")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const sitesLimit = (sub as any)?.sites_limit as number | null | undefined;
+      if (typeof sitesLimit === "number") {
+        const { count } = await supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
+        if ((count ?? 0) >= sitesLimit) {
+          throw new Error(
+            `SITES_LIMIT_REACHED: Your plan allows up to ${sitesLimit} site${sitesLimit > 1 ? "s" : ""}. Upgrade to add more.`
+          );
+        }
+      }
+
       const { data, error } = await supabase
         .from("projects")
         .insert({
@@ -89,6 +111,7 @@ export function useCreateProject() {
 
       if (error) throw error;
       return data as Project;
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
