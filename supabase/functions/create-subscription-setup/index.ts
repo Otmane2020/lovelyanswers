@@ -129,6 +129,9 @@ serve(async (req) => {
         client_secret: setupIntent.client_secret,
         subscription_id: subscription.id,
         customer_id: customer.id,
+        promo: appliedPromo
+          ? { code: appliedPromo.code, label: appliedPromo.label }
+          : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
