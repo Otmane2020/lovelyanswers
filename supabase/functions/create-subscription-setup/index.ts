@@ -25,6 +25,11 @@ const PRICES: Record<string, Record<string, string>> = {
 
 const TRIAL_DAYS = 3;
 
+// Map of known promo codes -> Stripe coupon IDs
+const PROMO_CODES: Record<string, { coupon: string; label: string }> = {
+  WELCOME10: { coupon: "auqNm7gc", label: "10% off — Welcome offer" },
+};
+
 function getStripeKey() {
   const key = (Deno.env.get("STRIPE_SECRET_KEY") || "").trim();
 
