@@ -431,7 +431,8 @@ export default function AeoPlanning() {
                               key={item.id}
                               className={cn(
                                 "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded truncate font-medium flex items-center gap-0.5 sm:gap-1",
-                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : item.type === "geo" ? "bg-violet-500/20 text-violet-700" : "bg-emerald-500/20 text-emerald-700"
+                                item.type === "answer" ? "bg-primary/10 text-primary" : item.type === "local" ? "bg-orange-500/20 text-orange-700" : item.type === "geo" ? "bg-violet-500/20 text-violet-700" : "bg-emerald-500/20 text-emerald-700",
+                                item.isPreview && "opacity-60 border border-dashed border-current bg-transparent"
                               )}
                             >
                               {item.type === "answer" ? <MessageSquare className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "local" ? <MapPin className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : item.type === "geo" ? <Globe className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" /> : <FileText className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />}
