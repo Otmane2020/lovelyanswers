@@ -13,6 +13,7 @@ serve(async (req) => {
     const token = Deno.env.get("META_ACCESS_TOKEN");
     let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!token || !adAccountId) throw new Error("Meta credentials not configured");
+    if (!adAccountId.startsWith("act_")) adAccountId = `act_${adAccountId}`;
 
     const {
       page_id, instagram_actor_id,
