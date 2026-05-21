@@ -12,7 +12,13 @@ const LAI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LAI_TEXT_MODEL = "google/gemini-2.5-flash";
 const LAI_TOOL_MODEL = "google/gemini-2.5-flash";
 const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OR_FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+const OR_FREE_MODELS = [
+  "deepseek/deepseek-chat-v3.1:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "google/gemini-2.0-flash-exp:free",
+  "qwen/qwen-2.5-72b-instruct:free",
+  "mistralai/mistral-small-3.2-24b-instruct:free",
+];
 
 async function callLovableAI(body: any) {
   const r = await fetch(LAI_URL, {
