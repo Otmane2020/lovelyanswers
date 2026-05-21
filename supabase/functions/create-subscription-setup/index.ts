@@ -132,7 +132,11 @@ serve(async (req) => {
       },
       payment_behavior: "default_incomplete",
       expand: ["pending_setup_intent"],
-      ...(appliedPromo ? { discounts: [{ coupon: appliedPromo.coupon }] } : {}),
+      ...(appliedPromo?.promotion_code
+        ? { discounts: [{ promotion_code: appliedPromo.promotion_code }] }
+        : appliedPromo?.coupon
+        ? { discounts: [{ coupon: appliedPromo.coupon }] }
+        : {}),
       metadata: {
         plan,
         cycle,
