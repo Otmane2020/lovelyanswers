@@ -412,7 +412,14 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                 </div>
               </Field>
               <Field label="Destination URL"><input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://yoursite.com/landing" className={inputClass} /></Field>
-              <Field label="Image URL"><input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080 recommended)" className={inputClass} /></Field>
+              <Field label="Image">
+                <div className="relative">
+                  <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080) — or generate with AI" className={`${inputClass} pr-36`} />
+                  <button type="button" onClick={aiImage} disabled={aiLoading === "image"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-fuchsia-600/20 hover:bg-fuchsia-600/30 text-fuchsia-200 border border-fuchsia-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "image" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} {aiLoading === "image" ? "Generating…" : "Generate image"}
+                  </button>
+                </div>
+              </Field>
               <Field label="Call to action">
                 <select value={cta} onChange={e => setCta(e.target.value)} className={inputClass}>
                   {["SIGN_UP", "LEARN_MORE", "SHOP_NOW", "GET_OFFER", "SUBSCRIBE", "DOWNLOAD", "CONTACT_US", "BOOK_TRAVEL"].map(c => <option key={c}>{c}</option>)}
