@@ -240,6 +240,286 @@ export type Database = {
           },
         ]
       }
+      adsflow_ad_sets: {
+        Row: {
+          budget: number | null
+          campaign_id: string
+          created_at: string
+          id: string
+          name: string
+          optimization_goal: string | null
+          placements_json: Json | null
+          status: string
+          targeting_json: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          campaign_id: string
+          created_at?: string
+          id?: string
+          name: string
+          optimization_goal?: string | null
+          placements_json?: Json | null
+          status?: string
+          targeting_json?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          optimization_goal?: string | null
+          placements_json?: Json | null
+          status?: string
+          targeting_json?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adsflow_ad_sets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "adsflow_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      adsflow_ads: {
+        Row: {
+          ad_set_id: string
+          copy_json: Json | null
+          created_at: string
+          cta: string | null
+          destination_url: string | null
+          fb_page_id: string | null
+          format: string
+          id: string
+          ig_account_id: string | null
+          media_url: string | null
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_set_id: string
+          copy_json?: Json | null
+          created_at?: string
+          cta?: string | null
+          destination_url?: string | null
+          fb_page_id?: string | null
+          format?: string
+          id?: string
+          ig_account_id?: string | null
+          media_url?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_set_id?: string
+          copy_json?: Json | null
+          created_at?: string
+          cta?: string | null
+          destination_url?: string | null
+          fb_page_id?: string | null
+          format?: string
+          id?: string
+          ig_account_id?: string | null
+          media_url?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adsflow_ads_ad_set_id_fkey"
+            columns: ["ad_set_id"]
+            isOneToOne: false
+            referencedRelation: "adsflow_ad_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      adsflow_audiences: {
+        Row: {
+          config_json: Json | null
+          created_at: string
+          id: string
+          name: string
+          size_estimate: number | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config_json?: Json | null
+          created_at?: string
+          id?: string
+          name: string
+          size_estimate?: number | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config_json?: Json | null
+          created_at?: string
+          id?: string
+          name?: string
+          size_estimate?: number | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      adsflow_campaigns: {
+        Row: {
+          ab_test_enabled: boolean | null
+          ad_schedule_json: Json | null
+          bid_strategy: string | null
+          budget_amount: number
+          budget_type: string
+          cbo_enabled: boolean | null
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          objective: string
+          special_ad_category: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ab_test_enabled?: boolean | null
+          ad_schedule_json?: Json | null
+          bid_strategy?: string | null
+          budget_amount?: number
+          budget_type?: string
+          cbo_enabled?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          objective?: string
+          special_ad_category?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ab_test_enabled?: boolean | null
+          ad_schedule_json?: Json | null
+          bid_strategy?: string | null
+          budget_amount?: number
+          budget_type?: string
+          cbo_enabled?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          objective?: string
+          special_ad_category?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      adsflow_creatives: {
+        Row: {
+          created_at: string
+          dimensions: string | null
+          filename: string
+          id: string
+          media_type: string
+          size_bytes: number | null
+          tags: string[] | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dimensions?: string | null
+          filename: string
+          id?: string
+          media_type?: string
+          size_bytes?: number | null
+          tags?: string[] | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dimensions?: string | null
+          filename?: string
+          id?: string
+          media_type?: string
+          size_bytes?: number | null
+          tags?: string[] | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      adsflow_performance_metrics: {
+        Row: {
+          clicks: number | null
+          conversions: number | null
+          created_at: string
+          date: string
+          entity_id: string
+          entity_type: string
+          id: string
+          impressions: number | null
+          reach: number | null
+          revenue: number | null
+          spend: number | null
+          user_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          date: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          revenue?: number | null
+          spend?: number | null
+          user_id: string
+        }
+        Update: {
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          date?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          revenue?: number | null
+          spend?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           answer: string
