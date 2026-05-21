@@ -66,17 +66,40 @@ serve(async (req) => {
     if (!priceId) throw new Error(`Unknown plan/cycle: ${plan}/${cycle}`);
 
     const rawPromo = String(body.promo_code ?? "").trim().toUpperCase();
-    let appliedPromo: { coupon: string; label: string; code: string } | null = null;
+    let appliedPromo:
+      | { code: string; label: string; coupon?: string; promotion_code?: string }
+      | null = null;
+
+    const stripe = new Stripe(getStripeKey(), { apiVersion: "2025-08-27.basil" });
+
     if (rawPromo) {
-      const match = PROMO_CODES[rawPromo];
-      if (!match) {
-        return new Response(
-          JSON.stringify({ error: `Invalid promo code: ${rawPromo}`, invalid_promo: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-        );
+      const hardcoded = PROMO_CODES[rawPromo];
+      if (hardcoded) {
+        appliedPromo = { ...hardcoded, code: rawPromo };
+      } else {
+        // Look up an actual Stripe promotion code (case-insensitive in Stripe)
+        const found = await stripe.promotionCodes.list({
+          code: rawPromo,
+          active: true,
+          limit: 1,
+        });
+        const promo = found.data[0];
+        if (!promo) {
+          return new Response(
+            JSON.stringify({ error: `Invalid promo code: ${rawPromo}`, invalid_promo: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+          );
+        }
+        const coupon = typeof promo.coupon === "string" ? null : promo.coupon;
+        const label = coupon?.percent_off
+          ? `${coupon.percent_off}% off`
+          : coupon?.amount_off
+          ? `${(coupon.amount_off / 100).toFixed(2)} ${coupon.currency?.toUpperCase() ?? ""} off`
+          : "Discount applied";
+        appliedPromo = { code: rawPromo, label, promotion_code: promo.id };
       }
-      appliedPromo = { ...match, code: rawPromo };
     }
+
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization");
@@ -85,7 +108,6 @@ serve(async (req) => {
     const email = userData.user?.email;
     if (!email) throw new Error("User email not available");
 
-    const stripe = new Stripe(getStripeKey(), { apiVersion: "2025-08-27.basil" });
 
     // Find or create customer
     const existing = await stripe.customers.list({ email, limit: 1 });
@@ -110,7 +132,11 @@ serve(async (req) => {
       },
       payment_behavior: "default_incomplete",
       expand: ["pending_setup_intent"],
-      ...(appliedPromo ? { discounts: [{ coupon: appliedPromo.coupon }] } : {}),
+      ...(appliedPromo?.promotion_code
+        ? { discounts: [{ promotion_code: appliedPromo.promotion_code }] }
+        : appliedPromo?.coupon
+        ? { discounts: [{ coupon: appliedPromo.coupon }] }
+        : {}),
       metadata: {
         plan,
         cycle,
