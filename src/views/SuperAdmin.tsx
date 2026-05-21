@@ -750,7 +750,15 @@ const SuperAdmin = () => {
               onClick={() => router.push("/superadmin/ads")}
             >
               <Megaphone className="h-4 w-4" />
-              Ads Agency Dashboard
+              Google Ads
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start gap-2 px-3 py-2.5 w-full font-normal rounded-lg hover:bg-primary/10 hover:text-primary"
+              onClick={() => router.push("/superadmin/meta-ads")}
+            >
+              <Megaphone className="h-4 w-4" />
+              Meta Ads (FB & IG)
             </Button>
           </TabsList>
         </aside>
