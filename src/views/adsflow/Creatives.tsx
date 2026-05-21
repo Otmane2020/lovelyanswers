@@ -16,11 +16,11 @@ export default function AdsFlowCreatives() {
         <button onClick={() => toast.success("Upload started")} className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Upload</button>
       </div>
 
-      <Card className="p-6 mb-4 border-dashed border-2 border-white/10 text-center hover:border-indigo-500/30 transition-colors cursor-pointer" onClick={() => toast.info("File picker would open")}>
+      <div onClick={() => toast.info("File picker would open")} className="rounded-2xl border-dashed border-2 border-white/10 bg-[#1a1a1a] p-6 mb-4 text-center hover:border-indigo-500/30 transition-colors cursor-pointer">
         <Upload className="h-8 w-8 mx-auto text-[#9ca3af] mb-2" />
         <div className="text-sm font-medium">Drop files here or click to upload</div>
         <div className="text-xs text-[#9ca3af] mt-1">JPG, PNG, WEBP, MP4, MOV — up to 4GB per file</div>
-      </Card>
+      </div>
 
       <div className="flex items-center gap-2 mb-4">
         {["all", "image", "video"].map(t => (
