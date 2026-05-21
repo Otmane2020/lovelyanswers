@@ -103,10 +103,23 @@ export default function AeoPlanning() {
 
   const rangeDays = useMemo(() => eachDayOfInterval({ start: rangeStart, end: rangeEnd }), [rangeStart, rangeEnd]);
 
-  // Compute preview items (queued unscheduled items distributed across future days matching frequency)
+  // Keep published items at their actual dates. Everything else (already scheduled but unpublished + queue)
+  // gets redistributed across days matching the live frequency from the AutoPublishSettings block, so the
+  // calendar always mirrors what the user selects in that block.
+  const publishedItems = useMemo(
+    () => scheduledItems.filter((i) => i.status === "published"),
+    [scheduledItems]
+  );
+  const reschedulablePool = useMemo<ScheduledItem[]>(() => {
+    const pending = scheduledItems
+      .filter((i) => i.status !== "published")
+      .map((i) => ({ ...i, status: "preview" as const, isPreview: true }));
+    return [...pending, ...queueItems];
+  }, [scheduledItems, queueItems]);
+
   const previewItems = useMemo<ScheduledItem[]>(() => {
-    if (!autoPublishOn || queueItems.length === 0) return [];
-    const usedDates = new Set(scheduledItems.map((i) => format(i.date, "yyyy-MM-dd")));
+    if (!autoPublishOn || reschedulablePool.length === 0) return [];
+    const usedDates = new Set(publishedItems.map((i) => format(i.date, "yyyy-MM-dd")));
     const slots: Date[] = [];
     for (const day of rangeDays) {
       if (day < rangeStart) continue;
@@ -114,16 +127,17 @@ export default function AeoPlanning() {
       if (usedDates.has(format(day, "yyyy-MM-dd"))) continue;
       slots.push(day);
     }
-    // Cycle through the queue so every matching day is filled, even if queue is shorter
-    return slots.map((date, idx) => ({
-      ...queueItems[idx % queueItems.length],
+    const limit = Math.min(slots.length, reschedulablePool.length);
+    return slots.slice(0, limit).map((date, idx) => ({
+      ...reschedulablePool[idx],
       date,
       status: "preview" as const,
       isPreview: true,
     }));
-  }, [queueItems, scheduledItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
+  }, [reschedulablePool, publishedItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
 
-  const allItems = useMemo(() => [...scheduledItems, ...previewItems], [scheduledItems, previewItems]);
+  const allItems = useMemo(() => [...publishedItems, ...previewItems], [publishedItems, previewItems]);
+
 
   const getItemsForDate = (date: Date) => {
     return allItems.filter((item) => format(item.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd"));
