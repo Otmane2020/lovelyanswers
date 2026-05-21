@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, X, ExternalLink, Loader2, AlertTriangle, Link2, RefreshCw, CheckCircle2, Trash2, Plus } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
 import { useSitePages, useParseSitemap, useSitePagesCount } from "@/hooks/useSitePages";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -36,11 +37,14 @@ const siteWizardPath = (url?: string) =>
 
 export function BusinessSettings() {
   const router = useRouter();
-  const { project, isLoading } = useActiveProject();
+  const { project, projects, isLoading } = useActiveProject();
   const updateProject = useUpdateProject();
   const { data: sitePages = [] } = useSitePages();
   const { data: sitePagesCount = 0 } = useSitePagesCount();
   const parseSitemap = useParseSitemap();
+  const { sitesLimit, sitesUnlimited, hasPlan, plan } = usePlanFeatures();
+  const currentSitesCount = projects?.length ?? 0;
+  const canAddSite = hasPlan && (sitesUnlimited || (typeof sitesLimit === "number" && currentSitesCount < sitesLimit));
 
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -209,6 +213,16 @@ export function BusinessSettings() {
   const handleAddUrl = () => {
     if (!newUrl.trim()) {
       toast.error("Please enter a URL");
+      return;
+    }
+    if (!canAddSite) {
+      if (!hasPlan) {
+        toast.error("Subscribe to a plan to add more sites");
+      } else {
+        toast.error(`Your ${plan ?? "current"} plan allows up to ${sitesLimit} site${(sitesLimit ?? 1) > 1 ? "s" : ""}. Upgrade to add more.`);
+      }
+      setShowAddUrlDialog(false);
+      router.push("/checkout?plan=pro");
       return;
     }
 
@@ -446,11 +460,34 @@ export function BusinessSettings() {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => setShowAddUrlDialog(true)}
+              onClick={() => {
+                if (!canAddSite) {
+                  if (!hasPlan) {
+                    toast.error("Subscribe to a plan to add more sites");
+                  } else {
+                    toast.error(`Your ${plan ?? "current"} plan allows up to ${sitesLimit} site${(sitesLimit ?? 1) > 1 ? "s" : ""}. Upgrade to add more.`);
+                  }
+                  router.push("/checkout?plan=pro");
+                  return;
+                }
+                setShowAddUrlDialog(true);
+              }}
               disabled={isDeleting || isResetting}
+              title={
+                !canAddSite
+                  ? (hasPlan
+                      ? `Limit reached: ${currentSitesCount}/${sitesLimit} sites on ${plan ?? "your"} plan`
+                      : "Subscribe to add more sites")
+                  : sitesUnlimited
+                    ? "Unlimited sites"
+                    : `${currentSitesCount}/${sitesLimit} sites used`
+              }
             >
               <Plus className="w-4 h-4 mr-2" />
               Add URL
+              {hasPlan && !sitesUnlimited && typeof sitesLimit === "number" && (
+                <span className="ml-2 text-xs text-muted-foreground">({currentSitesCount}/{sitesLimit})</span>
+              )}
             </Button>
             <Button 
               variant="destructive"
