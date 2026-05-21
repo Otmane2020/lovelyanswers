@@ -352,8 +352,9 @@ serve(async (req) => {
       credits_total: creditsTotal,
       plan: mappedFinal?.plan ?? null,
       cycle: mappedFinal?.cycle ?? null,
-      sites_limit: mappedFinal?.sites ?? null,
-      articles_limit: mappedFinal?.articles ?? null,
+      sites_limit: normalizeLimit(mappedFinal?.sites ?? null),
+      articles_limit: normalizeLimit(mappedFinal?.articles ?? null),
+      features: mappedFinal?.caps ?? STARTER_CAPS,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
