@@ -38,6 +38,13 @@ export default function AeoWizard() {
     businessDescription: "",
   });
 
+  useEffect(() => {
+    const urlFromParam = searchParams.get("url");
+    if (urlFromParam && !data.websiteUrl) {
+      setData((prev) => ({ ...prev, websiteUrl: decodeURIComponent(urlFromParam) }));
+    }
+  }, [searchParams, data.websiteUrl]);
+
   // Force light theme
   useEffect(() => {
     document.documentElement.classList.remove("dark");
