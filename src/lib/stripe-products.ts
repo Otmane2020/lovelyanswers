@@ -69,6 +69,7 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: "For solo founders launching their AI visibility",
     sitesLimit: 1,
     articlesLimit: 10,
+    capabilities: STARTER_CAPS,
     features: [
       "1 website",
       "10 AI-optimized articles / month",
@@ -89,6 +90,7 @@ export const PLANS: Record<PlanId, Plan> = {
     popular: true,
     sitesLimit: 3,
     articlesLimit: 30,
+    capabilities: PRO_CAPS,
     features: [
       "3 websites",
       "30 AI-optimized articles / month",
@@ -109,6 +111,7 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: "For agencies managing multiple client sites",
     sitesLimit: 10,
     articlesLimit: -1,
+    capabilities: AGENCY_CAPS,
     features: [
       "10 websites",
       "Unlimited AI-optimized articles",
