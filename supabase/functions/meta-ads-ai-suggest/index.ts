@@ -243,10 +243,10 @@ Deno.serve(async (req) => {
         tools: [FULL_CAMPAIGN_TOOL],
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
-      if (!r.ok) {
+      if (!r?.ok) {
         const t = await r.text();
         console.error("[full_campaign] AI failed:", r.status, t);
-        return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ plan: safeCampaignFallback(ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const j = await r.json();
@@ -257,8 +257,8 @@ Deno.serve(async (req) => {
       } else {
         // Fallback path (OpenRouter without tools): parse JSON content
         const content = j.choices?.[0]?.message?.content || "";
-        try { args = JSON.parse(content); } catch { 
-          return new Response(JSON.stringify({ error: "No tool call" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        try { args = JSON.parse(content); } catch {
+          return new Response(JSON.stringify({ plan: safeCampaignFallback(ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
       return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -276,13 +276,12 @@ Deno.serve(async (req) => {
         { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
       ],
     });
-    if (!r.ok) {
+    if (!r?.ok) {
       const t = await r.text();
       console.error("[text field] AI failed:", r.status, t);
-      return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ text: safeTextFallback(field, ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    }
     const j = await r.json();
     const text = (j.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
     return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
