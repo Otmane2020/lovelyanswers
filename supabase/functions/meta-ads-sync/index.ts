@@ -134,14 +134,18 @@ serve(async (req) => {
         last_synced_at: new Date().toISOString(),
       };
     });
+    let campaignsUpserted = 0;
     if (project_id && campaigns.length) {
-      await supabase.from("meta_campaigns").upsert(campaigns, { onConflict: "project_id,campaign_id" });
+      const { error: cErr } = await supabase.from("meta_campaigns").upsert(campaigns, { onConflict: "project_id,campaign_id" });
+      if (cErr) console.error("campaigns upsert error:", cErr);
+      else campaignsUpserted = campaigns.length;
       const snaps = campaigns.map((c: any) => ({
         project_id, level: "campaign", ref_id: c.campaign_id, ref_name: c.name,
         snapshot_date: today, spend: c.spend, revenue: c.revenue, conversions: c.conversions,
         impressions: c.impressions, clicks: c.clicks, roas: c.roas, cpa: c.cpa,
       }));
-      await supabase.from("meta_roas_snapshots").upsert(snaps, { onConflict: "project_id,level,ref_id,snapshot_date" });
+      const { error: sErr } = await supabase.from("meta_roas_snapshots").upsert(snaps, { onConflict: "project_id,level,ref_id,snapshot_date" });
+      if (sErr) console.error("snapshots upsert error:", sErr);
     }
 
     // Ad Sets
@@ -173,7 +177,8 @@ serve(async (req) => {
       };
     });
     if (project_id && adsets.length) {
-      await supabase.from("meta_adsets").upsert(adsets, { onConflict: "project_id,adset_id" });
+      const { error: asErr } = await supabase.from("meta_adsets").upsert(adsets, { onConflict: "project_id,adset_id" });
+      if (asErr) console.error("adsets upsert error:", asErr);
     }
 
     // Ads
@@ -196,7 +201,8 @@ serve(async (req) => {
       };
     });
     if (project_id && ads.length) {
-      await supabase.from("meta_ads").upsert(ads, { onConflict: "project_id,ad_id" });
+      const { error: adErr } = await supabase.from("meta_ads").upsert(ads, { onConflict: "project_id,ad_id" });
+      if (adErr) console.error("ads upsert error:", adErr);
     }
 
     return new Response(JSON.stringify({
