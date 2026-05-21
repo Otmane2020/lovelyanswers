@@ -20,7 +20,7 @@ const nav = [
   { to: "/adsflow/billing", icon: CreditCard, label: "Billing" },
 ];
 
-export default function AdsFlowLayout({ children, title }: { children: ReactNode; title?: string }) {
+export default function AdsFlowLayout({ children, title, accountName, onSync, syncing }: { children: ReactNode; title?: string; accountName?: string | null; onSync?: () => void; syncing?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const { pathname } = useLocation();
 
@@ -88,8 +88,13 @@ export default function AdsFlowLayout({ children, title }: { children: ReactNode
               <Search className="h-4 w-4" />
               <input className="bg-transparent outline-none flex-1 text-[#f1f1f1] placeholder:text-[#9ca3af]" placeholder="Search campaigns, ads…" />
             </div>
+            {onSync && (
+              <button onClick={onSync} disabled={syncing} className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-sm font-medium flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full bg-white ${syncing ? "animate-pulse" : ""}`} /> {syncing ? "Syncing…" : "Sync Meta"}
+              </button>
+            )}
             <button className="h-9 px-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-sm flex items-center gap-2 hover:bg-white/5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Acme Brand
+              <span className={`h-2 w-2 rounded-full ${accountName ? "bg-emerald-400" : "bg-zinc-500"}`} /> {accountName || "No account"}
             </button>
             <button className="h-9 w-9 rounded-lg bg-[#1a1a1a] border border-white/5 hover:bg-white/5 flex items-center justify-center relative">
               <Bell className="h-4 w-4 text-[#9ca3af]" />
