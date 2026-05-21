@@ -62,7 +62,7 @@ export function useActiveProject() {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { sitesLimit: liveSitesLimit, subscribed, trial, checkSubscription } = useSubscription();
+  const { sitesLimit: contextSitesLimit, subscribed, trial } = useSubscription();
 
   return useMutation({
     mutationFn: async (projectData: {
@@ -80,11 +80,16 @@ export function useCreateProject() {
       if (!user) throw new Error("Not authenticated");
 
       // Refresh Stripe-backed plan state first so paid/full-access users are not blocked by stale DB limits.
-      const hasLiveAccess = (await checkSubscription().catch(() => false)) || subscribed || trial;
-      let sitesLimit: number | null | undefined = hasLiveAccess ? liveSitesLimit : undefined;
+      let hasLiveAccess = subscribed || trial;
+      let sitesLimit: number | null | undefined = hasLiveAccess ? contextSitesLimit : undefined;
+      const { data: liveSub } = await supabase.functions.invoke("check-subscription").catch(() => ({ data: null }));
+      if (liveSub?.subscribed || liveSub?.trial) {
+        hasLiveAccess = true;
+        sitesLimit = liveSub.sites_limit ?? null;
+      }
 
       // Fallback to the latest subscription row only when live subscription state is unavailable.
-      if (sitesLimit === undefined) {
+      if (!hasLiveAccess && sitesLimit === undefined) {
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("sites_limit, status")
