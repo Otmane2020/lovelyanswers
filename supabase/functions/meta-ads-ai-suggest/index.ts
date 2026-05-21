@@ -237,8 +237,8 @@ Deno.serve(async (req) => {
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
       if (!r?.ok) {
-        const t = await r.text();
-        console.error("[full_campaign] AI failed:", r.status, t);
+        const t = r ? await r.text() : "No AI provider returned a response";
+        console.error("[full_campaign] AI failed:", r?.status ?? "no-response", t);
         return new Response(JSON.stringify({ plan: safeCampaignFallback(ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -270,8 +270,8 @@ Deno.serve(async (req) => {
       ],
     });
     if (!r?.ok) {
-      const t = await r.text();
-      console.error("[text field] AI failed:", r.status, t);
+      const t = r ? await r.text() : "No AI provider returned a response";
+      console.error("[text field] AI failed:", r?.status ?? "no-response", t);
       return new Response(JSON.stringify({ text: safeTextFallback(field, ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
