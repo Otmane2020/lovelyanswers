@@ -29,6 +29,7 @@ import { AdminUsersList } from "@/components/admin/AdminUsersList";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { AdminEmails } from "@/components/admin/AdminEmails";
 
 interface SupportTicket {
   id: string;
@@ -738,6 +739,10 @@ const SuperAdmin = () => {
               <Globe className="h-4 w-4" />
               Articles Actifs
             </TabsTrigger>
+            <TabsTrigger value="emails" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Mail className="h-4 w-4" />
+              Emails
+            </TabsTrigger>
             <Separator className="my-2" />
             <Button
               variant="ghost"
@@ -762,6 +767,11 @@ const SuperAdmin = () => {
           <TabsContent value="active-articles">
             <ActiveArticleUsers />
           </TabsContent>
+
+          <TabsContent value="emails">
+            <AdminEmails />
+          </TabsContent>
+
 
 
 
