@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check, Sparkles } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check, Sparkles, Wand2, Instagram, Zap } from "lucide-react";
 
 const OBJECTIVES = [
   { id: "OUTCOME_TRAFFIC", label: "Traffic", desc: "Drive visitors to your site" },
@@ -29,10 +29,11 @@ type Props = {
   accountCurrency?: string;
   pages?: { id: string; name: string }[];
   pixels?: { pixel_id: string; name: string }[];
+  instagramAccount?: { id: string; username?: string } | null;
   onCreated?: () => void;
 };
 
-export default function CreateCampaignWizard({ open, onClose, projectId, accountCurrency = "EUR", pages = [], pixels = [], onCreated }: Props) {
+export default function CreateCampaignWizard({ open, onClose, projectId, accountCurrency = "EUR", pages = [], pixels = [], instagramAccount = null, onCreated }: Props) {
   const [step, setStep] = useState(1);
   const [creating, setCreating] = useState(false);
 
@@ -81,6 +82,79 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
       toast.success("AI suggestion applied");
     } catch (e: any) {
       toast.error(`AI: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function aiFullCampaign() {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading("full");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field: "full_campaign" },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const p = data?.plan;
+      if (!p) throw new Error("No plan returned");
+      setName(p.name || ""); setObjective(p.objective || "OUTCOME_TRAFFIC");
+      setDailyBudget(Number(p.daily_budget) || 10);
+      setCountries(p.countries || "FR,BE,CH"); setAgeMin(p.age_min || 25); setAgeMax(p.age_max || 65);
+      setInterests(p.interests || "");
+      setHeadline((p.headline || "").slice(0, 40));
+      setPrimaryText(p.primary_text || "");
+      setDescription((p.description || "").slice(0, 30));
+      setCta(p.cta || "SIGN_UP");
+      toast.success("Campaign drafted by AI — generating image…");
+      // Auto-generate image based on the AI's image prompt
+      if (p.image_prompt) {
+        const { data: img, error: imgErr } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+          body: { project_id: projectId, field: "image", image_prompt: p.image_prompt },
+        });
+        if (!imgErr && img?.image_url) {
+          setImageUrl(img.image_url);
+          toast.success("Image generated ✨");
+        }
+      }
+      setStep(4);
+    } catch (e: any) {
+      toast.error(`AI: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function aiImage() {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading("image");
+    try {
+      const prompt = primaryText || headline || undefined;
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field: "image", image_prompt: prompt ? `Photorealistic Meta Ads visual, square 1:1, no text overlay. Context: ${prompt}` : undefined },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.image_url) { setImageUrl(data.image_url); toast.success("Image generated"); }
+    } catch (e: any) {
+      toast.error(`AI image: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function testPixel() {
+    if (!projectId || !pixelId) return toast.error("Select a pixel first");
+    setAiLoading("pixel");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-conversions-api", {
+        body: {
+          project_id: projectId, pixel_id: pixelId, event_name: "PageView",
+          event_id: `wizard_test_${Date.now()}`, test_event_code: "TEST12345",
+        },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success("Pixel responded ✓ — check Events Manager → Test Events");
+    } catch (e: any) {
+      toast.error(`Pixel test failed: ${e.message}`);
     } finally {
       setAiLoading(null);
     }
@@ -136,6 +210,7 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
           adset_id: adsetFbId,
           name: adName || `${name} — Ad`,
           page_id: pageId,
+          instagram_actor_id: instagramAccount?.id,
           link_url: linkUrl,
           message: primaryText,
           headline,
@@ -178,14 +253,25 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
       <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="w-full max-w-[640px] h-full bg-[#0f0f0f] border-l border-white/5 flex flex-col animate-in slide-in-from-right duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <div>
+        <div className="flex items-start justify-between p-5 border-b border-white/5 gap-3">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold">Create Campaign</h2>
             <p className="text-xs text-[#9ca3af] mt-0.5">Publishes to Meta as paused — review in Ads Manager.</p>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={aiFullCampaign}
+              disabled={aiLoading === "full"}
+              className="h-9 px-3 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:opacity-90 text-white flex items-center gap-1.5 disabled:opacity-50"
+              title="Let AI draft the full campaign from your brand"
+            >
+              {aiLoading === "full" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              {aiLoading === "full" ? "AI drafting…" : "Auto-fill with AI"}
+            </button>
+            <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Steps */}
@@ -273,13 +359,33 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                     {pages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </Field>
-                <Field label="Pixel (optional)">
-                  <select value={pixelId} onChange={e => setPixelId(e.target.value)} className={inputClass}>
-                    <option value="">None</option>
-                    {pixels.map(p => <option key={p.pixel_id} value={p.pixel_id}>{p.name}</option>)}
-                  </select>
+                <Field label="Instagram account">
+                  {instagramAccount ? (
+                    <div className="h-10 px-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-sm flex items-center gap-2">
+                      <Instagram className="h-3.5 w-3.5 text-pink-400" />
+                      <span className="truncate">@{instagramAccount.username || instagramAccount.id}</span>
+                      <span className="ml-auto text-[10px] text-emerald-300">Linked</span>
+                    </div>
+                  ) : (
+                    <div className="h-10 px-3 rounded-lg bg-[#1a1a1a] border border-amber-500/30 text-xs flex items-center gap-2 text-amber-200">
+                      <Instagram className="h-3.5 w-3.5" />
+                      No IG linked to this Page — link it in Meta Business Suite
+                    </div>
+                  )}
                 </Field>
               </div>
+              <Field label="Pixel (conversion tracking)">
+                <div className="flex gap-2">
+                  <select value={pixelId} onChange={e => setPixelId(e.target.value)} className={`${inputClass} flex-1`}>
+                    <option value="">None</option>
+                    {pixels.map(p => <option key={p.pixel_id} value={p.pixel_id}>{p.name} ({p.pixel_id})</option>)}
+                  </select>
+                  <button type="button" onClick={testPixel} disabled={!pixelId || aiLoading === "pixel"} className="shrink-0 h-10 px-3 rounded-lg text-xs font-medium bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 flex items-center gap-1 disabled:opacity-40">
+                    {aiLoading === "pixel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />} Test
+                  </button>
+                </div>
+                {pixelId && <p className="text-[11px] text-[#9ca3af] mt-1">Sends a server-side PageView via CAPI with <code className="text-[10px]">test_event_code=TEST12345</code>.</p>}
+              </Field>
               <Field label="Ad name"><input value={adName} onChange={e => setAdName(e.target.value)} placeholder="Auto from campaign if empty" className={inputClass} /></Field>
               <Field label="Headline (max 40 chars)">
                 <div className="relative">
@@ -306,7 +412,14 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                 </div>
               </Field>
               <Field label="Destination URL"><input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://yoursite.com/landing" className={inputClass} /></Field>
-              <Field label="Image URL"><input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080 recommended)" className={inputClass} /></Field>
+              <Field label="Image">
+                <div className="relative">
+                  <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080) — or generate with AI" className={`${inputClass} pr-36`} />
+                  <button type="button" onClick={aiImage} disabled={aiLoading === "image"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-fuchsia-600/20 hover:bg-fuchsia-600/30 text-fuchsia-200 border border-fuchsia-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "image" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} {aiLoading === "image" ? "Generating…" : "Generate image"}
+                  </button>
+                </div>
+              </Field>
               <Field label="Call to action">
                 <select value={cta} onChange={e => setCta(e.target.value)} className={inputClass}>
                   {["SIGN_UP", "LEARN_MORE", "SHOP_NOW", "GET_OFFER", "SUBSCRIBE", "DOWNLOAD", "CONTACT_US", "BOOK_TRAVEL"].map(c => <option key={c}>{c}</option>)}

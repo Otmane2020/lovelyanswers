@@ -98,6 +98,7 @@ export default function AdsFlowCampaigns() {
         accountCurrency={data.account?.currency}
         pages={data.account?.page_id ? [{ id: data.account.page_id, name: data.account.page_name || "Page" }] : []}
         pixels={data.pixels.map((p: any) => ({ pixel_id: p.pixel_id, name: p.name }))}
+        instagramAccount={data.account?.instagram_actor_id ? { id: data.account.instagram_actor_id, username: data.account.instagram_username } : null}
         onCreated={() => data.sync()}
       />
     </AdsFlowLayout>
