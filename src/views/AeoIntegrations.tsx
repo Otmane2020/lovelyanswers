@@ -16,6 +16,7 @@ import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
 import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
@@ -61,6 +62,10 @@ export default function AeoIntegrations() {
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   const { isSubscribed } = useSubscriptionContext();
+  const { features } = usePlanFeatures();
+  const STARTER_CMS = new Set(["wordpress", "shopify"]);
+  const isCmsAllowed = (id: string) =>
+    features.allCms || STARTER_CMS.has(id) || ["api", "webhook"].includes(id);
   const {
     isConnected: gmbConnected,
     locations: gmbLocations,
@@ -433,6 +438,10 @@ export default function AeoIntegrations() {
   const handleCMSClick = (platformId: string) => {
     if (!isSubscribed) {
       setShowPaywall(true);
+      return;
+    }
+    if (!isCmsAllowed(platformId)) {
+      toast.error("This CMS requires the Pro or Agency plan. Upgrade to unlock all CMS integrations.");
       return;
     }
     const existing = getConnectedIntegration(platformId);
