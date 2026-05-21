@@ -115,7 +115,6 @@ export default function App() {
         <Route path="/shopping/product/:productId" element={<ShoppingProduct />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/superadmin/ads" element={<SuperAdminAds />} />
-        <Route path="/superadmin/meta-ads" element={<SuperAdminMetaAds />} />
         <Route path="/superadmin/meta-ads" element={<Navigate to="/adsflow" replace />} />
         <Route path="/adsflow" element={<AdsFlowDashboard />} />
         <Route path="/adsflow/campaigns" element={<AdsFlowCampaigns />} />
