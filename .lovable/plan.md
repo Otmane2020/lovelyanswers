@@ -1,82 +1,73 @@
-# Facebook & Instagram Ads — SuperAdmin Module
 
-Build a Meta Ads management module mirroring the existing Google Ads admin pattern at `/superadmin/ads`, with automatic Pixel creation and Google Analytics linkage.
+# Meta Ads — Vrai gestionnaire complet (token système enrichi)
 
-## 1. Secrets (Meta Marketing API)
+On garde `META_ACCESS_TOKEN` + `META_AD_ACCOUNT_ID` mais on construit l'équivalent fonctionnel de Facebook Ads Manager : hiérarchie complète, ROAS, Conversions API serveur, audiences custom/lookalike, optimisation IA automatique, et triple méthode d'installation du pixel.
 
-Request via `add_secret`:
-- `META_APP_ID`
-- `META_APP_SECRET`
-- `META_ACCESS_TOKEN` (long-lived, with `ads_management`, `ads_read`, `business_management`, `pages_show_list`)
-- `META_AD_ACCOUNT_ID` (format `act_XXXXX`)
+## 1. Base de données (migration)
 
-## 2. Database (migration)
+Nouvelles tables :
 
-```sql
--- Meta ad accounts linked per project
-create table meta_ad_accounts (
-  id uuid pk, project_id uuid fk, account_id text,
-  business_id text, currency text, name text, status text,
-  created_at, updated_at
-);
+- `meta_adsets` (existante → enrichir) : `targeting jsonb` (geo, age_min/max, genders, interests[], custom_audiences[], lookalike_audiences[]), `optimization_goal`, `billing_event`, `bid_amount`, `daily_budget`, `start_time/end_time`, métriques (spend, impressions, clicks, conversions, cpa, roas).
+- `meta_ads` (existante → enrichir) : `creative jsonb` (image_hash, video_id, title, body, cta_type, link_url), `preview_url`, métriques.
+- `meta_creatives` : `id`, `project_id`, `image_hash` ou `video_id`, `media_url` (Supabase Storage), `media_type` (image/video), `title`, `body`, `cta_type`, `link_url`.
+- `meta_audiences` : `id`, `project_id`, `audience_id`, `name`, `type` (CUSTOM, LOOKALIKE, WEBSITE), `subtype`, `approximate_count`, `source_audience_id` (pour lookalike), `rule jsonb`.
+- `meta_conversions_events` : `id`, `project_id`, `pixel_id`, `event_name` (Purchase, Lead, AddToCart, ViewContent), `event_time`, `event_id`, `user_data jsonb` (hashed email/phone/ip/ua), `custom_data jsonb` (value, currency, content_ids), `sent_at`, `response jsonb`.
+- `meta_roas_snapshots` : daily snapshot par campagne/adset (spend, revenue, roas, cpa) pour graphique 30j.
+- `meta_optimization_runs` : `id`, `project_id`, `ran_at`, `actions jsonb` (pause/budget changes appliqués), `dry_run bool`.
+- `meta_pixels` (existante) : ajouter `gtm_pushed bool`, `lovable_injected bool`.
 
--- Pixels created/managed
-create table meta_pixels (
-  id uuid pk, project_id uuid fk, pixel_id text,
-  name text, code_snippet text, ga4_linked bool default false,
-  installed_at, created_at
-);
+Storage bucket `meta-creatives` (public) pour images/vidéos uploadées.
 
--- Cached campaigns/adsets/ads + insights snapshots
-create table meta_campaigns (id, project_id, campaign_id, name, objective, status, daily_budget, spend, impressions, clicks, conversions, roas, ...);
-create table meta_adsets (id, project_id, campaign_id, adset_id, name, targeting jsonb, ...);
-create table meta_ads (id, project_id, adset_id, ad_id, name, creative jsonb, preview_url, ...);
-```
-RLS: admin-only (uses `is_admin()`).
+## 2. Edge functions
 
-## 3. Edge functions
+| Function | Rôle |
+|---|---|
+| `meta-ads-sync` (existante → étendre) | Sync campaigns + adsets + ads + insights par niveau, snapshot ROAS quotidien |
+| `meta-adset-create` | POST `/{ad_account}/adsets` avec targeting JSON complet (geo/age/interests/CA/LAL) |
+| `meta-ad-create` | Upload créative (image: `/{ad_account}/adimages`, vidéo: `/{ad_account}/advideos`) → crée `adcreative` → crée `ad` |
+| `meta-ad-preview` | `GET /{ad_id}/previews?ad_format=DESKTOP_FEED_STANDARD` retourne HTML preview |
+| `meta-audience-create` | Custom audience (WEBSITE/CUSTOMER_FILE) via `/{ad_account}/customaudiences` |
+| `meta-audience-lookalike` | Lookalike depuis source audience (`/customaudiences` avec `subtype: LOOKALIKE`, `lookalike_spec`) |
+| `meta-interest-search` | Autocomplete `/search?type=adinterest&q=` |
+| `meta-conversions-api` | POST server-side `/{pixel_id}/events` avec hashing SHA256 (email/phone/ip), supporte event_id pour dédup avec pixel client |
+| `meta-ads-optimize` (cron quotidien) | Analyse ROAS/CPA, pause ads avec ROAS<seuil et >100$ dépensés sans conv, réalloue budget des perdants vers gagnants. Mode dry_run/auto. |
+| `meta-pixel-gtm-push` | Push tag GTM via API Tag Manager (réutilise GMB OAuth) |
+| `meta-pixel-lovable-inject` | Marque le pixel pour injection auto dans `index.html` du projet Lovable |
 
-- `meta-ads-sync` — pulls account, campaigns, adsets, ads + insights (last 30d) from `graph.facebook.com/v21.0`
-- `meta-ads-create-campaign` — POST campaign + adset + creative + ad in one call
-- `meta-ads-update-status` — pause/resume/delete
-- `meta-pixel-create` — creates Pixel via `/{ad_account_id}/adspixels`, stores snippet
-- `meta-pixel-link-ga4` — calls Pixel `event_source` API to attach GA4 measurement ID
-- `meta-ads-ai-recommendations` — Lovable AI Gateway (Gemini Flash) audits campaigns and suggests budget/creative changes
+## 3. UI — `src/views/SuperAdminMetaAds.tsx` (refonte complète)
 
-All use `verify_jwt = true` + admin check.
+Onglets enrichis :
 
-## 4. UI — `src/views/SuperAdminMetaAds.tsx`
+- **Overview** : KPIs (Spend, Revenue, ROAS global, CPA moyen, conv), graphique 30j (ligne ROAS + barres spend), top 3 campagnes / bottom 3.
+- **Campagnes** : table existante + drill-down → onglet Ad Sets de cette campagne.
+- **Ad Sets** : table par campagne + dialog création (geo multi-pays autocomplete, slider âge, recherche d'intérêts debounced via `meta-interest-search`, sélection audiences custom/lookalike, optimization_goal, bid).
+- **Ads** : grille de cards avec preview iframe Facebook, upload image/vidéo (drag-drop → bucket `meta-creatives` → hash Meta), formulaire title/body/CTA/URL, toggle status.
+- **Audiences** : liste custom/lookalike avec compteur, dialog "Create Custom" (visiteurs site 30/60/90j via pixel) et "Create Lookalike" (source + pays + % 1-10 slider).
+- **Pixel & Tracking** : 3 méthodes affichées (snippet copy / "Push to GTM" si GTM connecté / "Install on Lovable site" toggle), badge GA4, **Conversions API tester** (form pour envoyer un test Purchase event).
+- **AI Optimizer** : panneau avec "Dry run" / "Apply now", historique des runs (actions appliquées), réglage seuils ROAS min / spend min / lookback days, planificateur cron on/off.
+- **Reports** : ROAS par campagne sur 7/30/90j, export CSV.
 
-Route: `/superadmin/meta-ads` (+ `app/superadmin/meta-ads/page.tsx`).
-Same `PageHeader` + `Tabs` pattern as `SuperAdminAds`:
+Composants extraits sous `src/components/admin/meta-ads/` :
+`OverviewTab.tsx`, `CampaignsTab.tsx`, `AdSetsTab.tsx`, `AdsTab.tsx`, `AudiencesTab.tsx`, `PixelTab.tsx`, `AIOptimizerTab.tsx`, `ReportsTab.tsx`, dialogs (`CreateAdSetDialog`, `CreateAdDialog`, `CreateAudienceDialog`, `CreateLookalikeDialog`, `TestConversionDialog`).
 
-- **Overview** — account KPIs (spend, ROAS, CPM, CTR), 30d chart
-- **Campaigns** — list + create dialog (objective, budget, audience)
-- **Ad Sets** — targeting (geo, age, interests via `/search?type=adinterest`)
-- **Ads** — creative upload, preview, status toggle
-- **Pixel & Tracking** — one-click "Create Pixel", show snippet, "Link Google Analytics" button, install-status badge
-- **AI Strategy** — recommendations panel (reuse pattern from `StrategyTab`)
-- **Reports** — historical insights
+## 4. Cron & automatisation
 
-Components in `src/components/admin/meta-ads/` mirroring `src/components/admin/ads/`.
+- `pg_cron` daily 03:00 UTC → `meta-ads-sync` pour tous les projets avec compte connecté.
+- `pg_cron` daily 04:00 UTC → `meta-ads-optimize` en mode `dry_run` par défaut (toggle `auto_apply` dans `meta_optimization_settings`).
 
-## 5. Sidebar entry
+## 5. Hors-scope v1
 
-Add link in `AeoSidebar` / SuperAdmin section: "Meta Ads" with `Facebook` lucide icon, admin-gated via `ADMIN_EMAILS`.
+- Multi-comptes par projet (un seul `META_AD_ACCOUNT_ID` global pour l'instant).
+- Catalog/DPA (Dynamic Product Ads).
+- A/B split testing automatique des créatives.
 
-## 6. Pixel injection (Lovable-managed)
+## Notes techniques
 
-Since the pixel "connexion avec Lovable" was chosen: after pixel creation, the snippet is stored in `meta_pixels.code_snippet` and surfaced in **Settings → Integrations** with a copy-button + auto-injection into the project's `index.html` `<head>` for sites hosted on Lovable (managed via a new `lovable_managed_pixels` row that the SSR layer reads).
+- Tous les budgets/spend en **minor units** (cents) → diviser/multiplier par 100 dans l'UI.
+- Conversions API : hasher email/phone en SHA-256 lowercase trim, `action_source: "website"`, et utiliser un `event_id` partagé avec le pixel pour la déduplication.
+- Upload image : Meta exige multipart `source=@file`. On envoie depuis l'edge function en `FormData` après lecture du fichier depuis le bucket Supabase.
+- Lookalike : `lookalike_spec: { country, ratio: 0.01-0.10, type: "similarity" }`.
+- Pixel Lovable injection : ajoute le snippet dans `index.html` au build via un fichier `public/meta-pixel.html` lu par `next.config.mjs` ou via un composant `<MetaPixel projectId={pixel_id} />` monté dans `app/layout.tsx` quand `lovable_managed_pixels` contient une row pour le projet.
+- IA optimizer : Gemini 2.5 Flash (déjà en place) recevra les snapshots ROAS 14j + règles + budgets, retournera `{ actions: [{ kind: "pause_ad"|"increase_budget"|"decrease_budget", target_id, amount, reason }] }` via tool calling.
 
-## Out of scope (v1)
-- Conversions API server-side events (can be added later)
-- A/B testing automation
-- Multi-account switcher (single account per project for now)
-
-## Technical notes
-- Meta Marketing API base: `https://graph.facebook.com/v21.0`
-- All money fields are in account currency minor units (cents) — convert on display
-- Rate limit: respect `X-Business-Use-Case-Usage` header; use 60s cache on read endpoints
-- Interest targeting search is autocomplete-style (debounced)
-
-Ready to proceed once secrets are added.
+Prêt à implémenter dès validation. La migration et les ~10 edge functions seront ajoutées d'un coup, puis la refonte UI par onglets.
