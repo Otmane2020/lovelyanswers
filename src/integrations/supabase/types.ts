@@ -1483,6 +1483,41 @@ export type Database = {
           },
         ]
       }
+      lovable_managed_pixels: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          pixel_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pixel_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pixel_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lovable_managed_pixels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mentions: {
         Row: {
           brand_mentioned: boolean | null
@@ -1600,45 +1635,63 @@ export type Database = {
         Row: {
           ad_id: string
           adset_id: string
+          campaign_id: string | null
           clicks: number | null
+          conversions: number | null
+          cpc: number | null
           created_at: string
           creative: Json | null
+          ctr: number | null
           id: string
           impressions: number | null
           last_synced_at: string
           name: string | null
           preview_url: string | null
           project_id: string
+          revenue: number | null
+          roas: number | null
           spend: number | null
           status: string | null
         }
         Insert: {
           ad_id: string
           adset_id: string
+          campaign_id?: string | null
           clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
           created_at?: string
           creative?: Json | null
+          ctr?: number | null
           id?: string
           impressions?: number | null
           last_synced_at?: string
           name?: string | null
           preview_url?: string | null
           project_id: string
+          revenue?: number | null
+          roas?: number | null
           spend?: number | null
           status?: string | null
         }
         Update: {
           ad_id?: string
           adset_id?: string
+          campaign_id?: string | null
           clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
           created_at?: string
           creative?: Json | null
+          ctr?: number | null
           id?: string
           impressions?: number | null
           last_synced_at?: string
           name?: string | null
           preview_url?: string | null
           project_id?: string
+          revenue?: number | null
+          roas?: number | null
           spend?: number | null
           status?: string | null
         }
@@ -1655,54 +1708,87 @@ export type Database = {
       meta_adsets: {
         Row: {
           adset_id: string
+          bid_amount: number | null
           billing_event: string | null
           campaign_id: string
           clicks: number | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
           created_at: string
+          ctr: number | null
           daily_budget: number | null
+          end_time: string | null
           id: string
           impressions: number | null
           last_synced_at: string
+          lifetime_budget: number | null
           name: string | null
           optimization_goal: string | null
           project_id: string
+          revenue: number | null
+          roas: number | null
           spend: number | null
+          start_time: string | null
           status: string | null
           targeting: Json | null
+          targeting_summary: string | null
         }
         Insert: {
           adset_id: string
+          bid_amount?: number | null
           billing_event?: string | null
           campaign_id: string
           clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
           created_at?: string
+          ctr?: number | null
           daily_budget?: number | null
+          end_time?: string | null
           id?: string
           impressions?: number | null
           last_synced_at?: string
+          lifetime_budget?: number | null
           name?: string | null
           optimization_goal?: string | null
           project_id: string
+          revenue?: number | null
+          roas?: number | null
           spend?: number | null
+          start_time?: string | null
           status?: string | null
           targeting?: Json | null
+          targeting_summary?: string | null
         }
         Update: {
           adset_id?: string
+          bid_amount?: number | null
           billing_event?: string | null
           campaign_id?: string
           clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
           created_at?: string
+          ctr?: number | null
           daily_budget?: number | null
+          end_time?: string | null
           id?: string
           impressions?: number | null
           last_synced_at?: string
+          lifetime_budget?: number | null
           name?: string | null
           optimization_goal?: string | null
           project_id?: string
+          revenue?: number | null
+          roas?: number | null
           spend?: number | null
+          start_time?: string | null
           status?: string | null
           targeting?: Json | null
+          targeting_summary?: string | null
         }
         Relationships: [
           {
@@ -1739,6 +1825,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meta_ai_recommendations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_audiences: {
+        Row: {
+          approximate_count: number | null
+          audience_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          rule: Json | null
+          source_audience_id: string | null
+          subtype: string | null
+          type: string
+        }
+        Insert: {
+          approximate_count?: number | null
+          audience_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          rule?: Json | null
+          source_audience_id?: string | null
+          subtype?: string | null
+          type: string
+        }
+        Update: {
+          approximate_count?: number | null
+          audience_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          rule?: Json | null
+          source_audience_id?: string | null
+          subtype?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_audiences_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1823,14 +1959,213 @@ export type Database = {
           },
         ]
       }
+      meta_conversions_events: {
+        Row: {
+          action_source: string | null
+          created_at: string
+          custom_data: Json | null
+          event_id: string | null
+          event_name: string
+          event_source_url: string | null
+          event_time: string
+          id: string
+          pixel_id: string
+          project_id: string
+          response: Json | null
+          sent_at: string | null
+          test_event: boolean | null
+          user_data: Json | null
+        }
+        Insert: {
+          action_source?: string | null
+          created_at?: string
+          custom_data?: Json | null
+          event_id?: string | null
+          event_name: string
+          event_source_url?: string | null
+          event_time?: string
+          id?: string
+          pixel_id: string
+          project_id: string
+          response?: Json | null
+          sent_at?: string | null
+          test_event?: boolean | null
+          user_data?: Json | null
+        }
+        Update: {
+          action_source?: string | null
+          created_at?: string
+          custom_data?: Json | null
+          event_id?: string | null
+          event_name?: string
+          event_source_url?: string | null
+          event_time?: string
+          id?: string
+          pixel_id?: string
+          project_id?: string
+          response?: Json | null
+          sent_at?: string | null
+          test_event?: boolean | null
+          user_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_conversions_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_creatives: {
+        Row: {
+          body: string | null
+          created_at: string
+          cta_type: string | null
+          id: string
+          image_hash: string | null
+          link_url: string | null
+          media_type: string
+          media_url: string
+          name: string | null
+          project_id: string
+          title: string | null
+          video_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          cta_type?: string | null
+          id?: string
+          image_hash?: string | null
+          link_url?: string | null
+          media_type: string
+          media_url: string
+          name?: string | null
+          project_id: string
+          title?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          cta_type?: string | null
+          id?: string
+          image_hash?: string | null
+          link_url?: string | null
+          media_type?: string
+          media_url?: string
+          name?: string | null
+          project_id?: string
+          title?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_creatives_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_optimization_runs: {
+        Row: {
+          actions: Json | null
+          applied_count: number | null
+          created_at: string
+          dry_run: boolean
+          id: string
+          project_id: string
+          ran_at: string
+          summary: string | null
+        }
+        Insert: {
+          actions?: Json | null
+          applied_count?: number | null
+          created_at?: string
+          dry_run?: boolean
+          id?: string
+          project_id: string
+          ran_at?: string
+          summary?: string | null
+        }
+        Update: {
+          actions?: Json | null
+          applied_count?: number | null
+          created_at?: string
+          dry_run?: boolean
+          id?: string
+          project_id?: string
+          ran_at?: string
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_optimization_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_optimization_settings: {
+        Row: {
+          auto_apply: boolean
+          created_at: string
+          cron_enabled: boolean
+          id: string
+          lookback_days: number
+          min_roas: number
+          min_spend: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_apply?: boolean
+          created_at?: string
+          cron_enabled?: boolean
+          id?: string
+          lookback_days?: number
+          min_roas?: number
+          min_spend?: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_apply?: boolean
+          created_at?: string
+          cron_enabled?: boolean
+          id?: string
+          lookback_days?: number
+          min_roas?: number
+          min_spend?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_optimization_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_pixels: {
         Row: {
           code_snippet: string | null
           created_at: string
           ga4_linked: boolean
           ga4_measurement_id: string | null
+          gtm_pushed: boolean
           id: string
           installed_at: string | null
+          lovable_injected: boolean
           name: string | null
           pixel_id: string
           project_id: string
@@ -1841,8 +2176,10 @@ export type Database = {
           created_at?: string
           ga4_linked?: boolean
           ga4_measurement_id?: string | null
+          gtm_pushed?: boolean
           id?: string
           installed_at?: string | null
+          lovable_injected?: boolean
           name?: string | null
           pixel_id: string
           project_id: string
@@ -1853,8 +2190,10 @@ export type Database = {
           created_at?: string
           ga4_linked?: boolean
           ga4_measurement_id?: string | null
+          gtm_pushed?: boolean
           id?: string
           installed_at?: string | null
+          lovable_injected?: boolean
           name?: string | null
           pixel_id?: string
           project_id?: string
@@ -1863,6 +2202,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meta_pixels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_roas_snapshots: {
+        Row: {
+          clicks: number | null
+          conversions: number | null
+          cpa: number | null
+          created_at: string
+          id: string
+          impressions: number | null
+          level: string
+          project_id: string
+          ref_id: string
+          ref_name: string | null
+          revenue: number | null
+          roas: number | null
+          snapshot_date: string
+          spend: number | null
+        }
+        Insert: {
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          created_at?: string
+          id?: string
+          impressions?: number | null
+          level: string
+          project_id: string
+          ref_id: string
+          ref_name?: string | null
+          revenue?: number | null
+          roas?: number | null
+          snapshot_date?: string
+          spend?: number | null
+        }
+        Update: {
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          created_at?: string
+          id?: string
+          impressions?: number | null
+          level?: string
+          project_id?: string
+          ref_id?: string
+          ref_name?: string | null
+          revenue?: number | null
+          roas?: number | null
+          snapshot_date?: string
+          spend?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_roas_snapshots_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
