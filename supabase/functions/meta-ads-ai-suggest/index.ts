@@ -6,7 +6,8 @@ const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Primary: Lovable AI Gateway. Fallback: OpenRouter free models when credits exhausted/rate-limited.
+// Text generation uses the same OpenRouter free-model path as article generation.
+// Lovable AI is kept only for image generation, which OpenRouter text models cannot provide here.
 const LAI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LAI_TEXT_MODEL = "google/gemini-2.5-flash";
 const LAI_TOOL_MODEL = "google/gemini-2.5-flash";
@@ -35,16 +36,8 @@ async function callOpenRouter(body: any) {
   });
 }
 
-// Try Lovable AI first; on any error fall back to OpenRouter free model.
+// Try the free OpenRouter path first; never bubble 402/429 to the client as an HTTP error.
 async function callAIWithFallback(body: any) {
-  try {
-    const r = await callLovableAI(body);
-    if (r.ok) return r;
-    const text = await r.clone().text();
-    console.warn(`[meta-ads-ai-suggest] Lovable AI ${r.status}: ${text.slice(0, 200)} — falling back to OpenRouter`);
-  } catch (e) {
-    console.warn(`[meta-ads-ai-suggest] Lovable AI threw: ${e instanceof Error ? e.message : e} — falling back`);
-  }
   const fallbackBody = { ...body, model: OR_FREE_MODEL };
   // OpenRouter free llama doesn't reliably support tool_choice; drop tools and ask for JSON.
   if (fallbackBody.tools) {
@@ -52,7 +45,55 @@ async function callAIWithFallback(body: any) {
     delete fallbackBody.tool_choice;
     fallbackBody.response_format = { type: "json_object" };
   }
-  return await callOpenRouter(fallbackBody);
+  try {
+    const r = await callOpenRouter(fallbackBody);
+    if (r.ok) return r;
+    const text = await r.clone().text();
+    console.warn(`[meta-ads-ai-suggest] OpenRouter ${r.status}: ${text.slice(0, 200)} — falling back to Lovable AI`);
+  } catch (e) {
+    console.warn(`[meta-ads-ai-suggest] OpenRouter threw: ${e instanceof Error ? e.message : e} — falling back`);
+  }
+
+  try {
+    const r = await callLovableAI(body);
+    if (r.ok) return r;
+    const text = await r.clone().text();
+    console.warn(`[meta-ads-ai-suggest] Lovable AI ${r.status}: ${text.slice(0, 200)}`);
+  } catch (e) {
+    console.warn(`[meta-ads-ai-suggest] Lovable AI threw: ${e instanceof Error ? e.message : e}`);
+  }
+
+  return null;
+}
+
+function safeTextFallback(field: string, ctx: any) {
+  if (field === "interests") return [ctx.brand, ctx.btype, "digital marketing", "entrepreneurship", "small business", "online advertising"].filter(Boolean).join(", ");
+  if (field === "headline") return `${ctx.brand} — Discover More`.slice(0, 40);
+  if (field === "primary_text") return `Discover ${ctx.brand} and get a solution built for ${ctx.audience}. Learn more today.`;
+  if (field === "description") return "Learn more today";
+  return "";
+}
+
+function safeCampaignFallback(ctx: any) {
+  return {
+    name: `${ctx.brand} Traffic Campaign`.slice(0, 60),
+    objective: ctx.objective || "OUTCOME_TRAFFIC",
+    daily_budget: 10,
+    countries: ctx.countries || "FR,BE,CH",
+    age_min: ctx.age_min || 25,
+    age_max: ctx.age_max || 65,
+    interests: safeTextFallback("interests", ctx),
+    headline: safeTextFallback("headline", ctx),
+    primary_text: safeTextFallback("primary_text", ctx),
+    description: safeTextFallback("description", ctx),
+    cta: "LEARN_MORE",
+    image_prompt: `Photorealistic social ad visual for ${ctx.brand}, ${ctx.biz}, square composition, no text overlay`,
+  };
+}
+
+function isExpectedAIError(e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /rate limit|retry shortly|credits|payment|required|too many requests/i.test(msg);
 }
 
 
