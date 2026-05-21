@@ -108,7 +108,6 @@ serve(async (req) => {
     const email = userData.user?.email;
     if (!email) throw new Error("User email not available");
 
-    const stripe = new Stripe(getStripeKey(), { apiVersion: "2025-08-27.basil" });
 
     // Find or create customer
     const existing = await stripe.customers.list({ email, limit: 1 });
