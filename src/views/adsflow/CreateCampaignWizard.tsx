@@ -210,6 +210,7 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
           adset_id: adsetFbId,
           name: adName || `${name} — Ad`,
           page_id: pageId,
+          instagram_actor_id: instagramAccount?.id,
           link_url: linkUrl,
           message: primaryText,
           headline,
