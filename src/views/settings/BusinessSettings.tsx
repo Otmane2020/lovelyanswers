@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, X, ExternalLink, Loader2, AlertTriangle, Link2, RefreshCw, CheckCircle2, Trash2, Plus } from "lucide-react";
 import { useActiveProject, useUpdateProject } from "@/hooks/useProjects";
 import { useSitePages, useParseSitemap, useSitePagesCount } from "@/hooks/useSitePages";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { toast } from "sonner";
 import {
   AlertDialog,
