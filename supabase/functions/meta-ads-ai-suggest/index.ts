@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
     if (!r?.ok) {
       const t = r ? await r.text() : "No AI provider returned a response";
       console.error("[text field] AI failed:", r?.status ?? "no-response", t);
-      return new Response(JSON.stringify({ text: safeTextFallback(field, ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI temporarily unavailable — please retry in a few seconds.", fallback: true }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const j = await r.json();
