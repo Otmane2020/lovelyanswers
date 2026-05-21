@@ -199,7 +199,7 @@ export default function Answers() {
     }
     if (!canGenerateArticle) {
       toast.error(
-        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "∞"}). Upgrade to keep generating.`,
         { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
       );
       return;
@@ -317,7 +317,7 @@ export default function Answers() {
     if (!user) return;
     if (!canGenerateArticle) {
       toast.error(
-        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "∞"}). Upgrade to keep generating.`,
         { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
       );
       return;
@@ -403,7 +403,7 @@ export default function Answers() {
     if (!user) return;
     if (!canGenerateArticle) {
       toast.error(
-        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "?"}). Upgrade to keep generating.`,
+        `Monthly article limit reached (${articlesThisMonth}/${articlesLimit ?? "∞"}). Upgrade to keep generating.`,
         { action: { label: "Upgrade", onClick: () => router.push("/pricing") } }
       );
       return;
