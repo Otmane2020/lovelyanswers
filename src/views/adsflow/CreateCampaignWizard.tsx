@@ -62,6 +62,29 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
   const [cta, setCta] = useState("SIGN_UP");
 
   const sym = accountCurrency === "USD" ? "$" : accountCurrency === "GBP" ? "£" : "€";
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+
+  async function aiSuggest(field: "interests" | "headline" | "primary_text" | "description", current?: string) {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading(field);
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field, objective, countries, current },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const text = (data?.text || "").trim();
+      if (!text) throw new Error("No suggestion returned");
+      if (field === "interests") setInterests(text);
+      else if (field === "headline") setHeadline(text.slice(0, 40));
+      else if (field === "primary_text") setPrimaryText(text);
+      else if (field === "description") setDescription(text.slice(0, 30));
+      toast.success("AI suggestion applied");
+    } catch (e: any) {
+      toast.error(`AI: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
 
   function reset() {
     setStep(1);
