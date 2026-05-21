@@ -8,7 +8,9 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // OpenRouter free models — no credits required
 const OR_TEXT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
-const OR_TOOL_MODEL = "google/gemini-2.0-flash-exp:free";
+const OR_TOOL_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+
+
 const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 async function callOpenRouter(body: any) {
