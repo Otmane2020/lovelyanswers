@@ -36,11 +36,14 @@ const siteWizardPath = (url?: string) =>
 
 export function BusinessSettings() {
   const router = useRouter();
-  const { project, isLoading } = useActiveProject();
+  const { project, projects, isLoading } = useActiveProject();
   const updateProject = useUpdateProject();
   const { data: sitePages = [] } = useSitePages();
   const { data: sitePagesCount = 0 } = useSitePagesCount();
   const parseSitemap = useParseSitemap();
+  const { sitesLimit, sitesUnlimited, hasPlan, plan } = usePlanFeatures();
+  const currentSitesCount = projects?.length ?? 0;
+  const canAddSite = hasPlan && (sitesUnlimited || (typeof sitesLimit === "number" && currentSitesCount < sitesLimit));
 
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
