@@ -71,8 +71,8 @@ serve(async (req) => {
       const match = PROMO_CODES[rawPromo];
       if (!match) {
         return new Response(
-          JSON.stringify({ error: `Invalid promo code: ${rawPromo}` }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          JSON.stringify({ error: `Invalid promo code: ${rawPromo}`, invalid_promo: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
         );
       }
       appliedPromo = { ...match, code: rawPromo };
