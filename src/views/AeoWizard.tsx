@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { trackOnboardingComplete } from "@/lib/gtag-conversions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ interface AnalyzedKeyword {
 
 export default function AeoWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const addSiteMode = searchParams.get("addSite") === "1";
   const { user } = useAuth();
   const createProject = useCreateProject();
   
@@ -44,7 +46,7 @@ export default function AeoWizard() {
   // Check if user already has a project - redirect to dashboard
   useEffect(() => {
     const checkExistingProject = async () => {
-      if (!user) return;
+      if (!user || addSiteMode) return;
       const { data: projects } = await supabase
         .from("projects")
         .select("id")
@@ -55,7 +57,7 @@ export default function AeoWizard() {
       }
     };
     checkExistingProject();
-  }, [user, router]);
+  }, [user, router, addSiteMode]);
 
   const isValidUrl = (url: string) => {
     try {
