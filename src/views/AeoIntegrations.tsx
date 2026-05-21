@@ -16,6 +16,7 @@ import { useIntegrations, useDeleteIntegration } from "@/hooks/useIntegrations";
 import { useActiveProject } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { useGoogleSearchConsole } from "@/hooks/useGoogleSearchConsole";
 import { useGoogleBusiness } from "@/hooks/useGoogleBusiness";
 import { IntegrationConfigModal } from "@/components/integrations/IntegrationConfigModal";
@@ -61,6 +62,10 @@ export default function AeoIntegrations() {
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   const { isSubscribed } = useSubscriptionContext();
+  const { features } = usePlanFeatures();
+  const STARTER_CMS = new Set(["wordpress", "shopify"]);
+  const isCmsAllowed = (id: string) =>
+    features.allCms || STARTER_CMS.has(id) || ["api", "webhook"].includes(id);
   const {
     isConnected: gmbConnected,
     locations: gmbLocations,
@@ -433,6 +438,10 @@ export default function AeoIntegrations() {
   const handleCMSClick = (platformId: string) => {
     if (!isSubscribed) {
       setShowPaywall(true);
+      return;
+    }
+    if (!isCmsAllowed(platformId)) {
+      toast.error("This CMS requires the Pro or Agency plan. Upgrade to unlock all CMS integrations.");
       return;
     }
     const existing = getConnectedIntegration(platformId);
@@ -1028,6 +1037,7 @@ export default function AeoIntegrations() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {CMS_INTEGRATIONS.map((integration) => {
               const isConnected = !!getConnectedIntegration(integration.id);
+              const allowed = isCmsAllowed(integration.id);
               return (
                 <button
                   key={integration.id}
@@ -1036,11 +1046,16 @@ export default function AeoIntegrations() {
                     isConnected
                       ? "border-green-500/50 bg-green-500/5"
                       : "border-border hover:border-primary/50 hover:bg-muted/30"
-                  }`}
+                  } ${!allowed ? "opacity-60" : ""}`}
                 >
                   {isConnected && (
                     <div className="absolute top-2 right-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </div>
+                  )}
+                  {!allowed && (
+                    <div className="absolute top-1 left-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      Pro
                     </div>
                   )}
                   <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center">
@@ -1058,13 +1073,14 @@ export default function AeoIntegrations() {
                   <p className={`text-xs mt-1 transition-opacity ${
                     isConnected ? "text-green-600 opacity-100" : "text-primary opacity-0 group-hover:opacity-100"
                   }`}>
-                    {isConnected ? "Connected" : "Configure"}
+                    {isConnected ? "Connected" : allowed ? "Configure" : "Upgrade to unlock"}
                   </p>
                 </button>
               );
             })}
           </div>
         </Card>
+
 
         {/* Publishing Settings */}
         <Card className="p-6">

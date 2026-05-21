@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { capsForPlan, normalizeLimit, type PlanFeatures } from "@/lib/stripe-products";
 
 type PlanId = "starter" | "pro" | "agency" | null;
 type Cycle = "monthly" | "annual" | null;
@@ -17,6 +18,7 @@ interface SubscriptionContextType {
   cycle: Cycle;
   sitesLimit: number | null;
   articlesLimit: number | null;
+  features: PlanFeatures;
   checkSubscription: (subscriptionId?: string) => Promise<boolean>;
   startCheckout: () => Promise<string | null>;
   openCustomerPortal: () => Promise<string | null>;
@@ -37,6 +39,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [cycle, setCycle] = useState<Cycle>(null);
   const [sitesLimit, setSitesLimit] = useState<number | null>(null);
   const [articlesLimit, setArticlesLimit] = useState<number | null>(null);
+  const [features, setFeatures] = useState<PlanFeatures>(capsForPlan(null));
 
 
   const checkSubscription = useCallback(async (subscriptionId?: string) => {
@@ -78,10 +81,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
       setCreditsTotal(data?.credits_total || 0);
-      setPlan((data?.plan as PlanId) ?? null);
+      const planVal = (data?.plan as PlanId) ?? null;
+      setPlan(planVal);
       setCycle((data?.cycle as Cycle) ?? null);
-      setSitesLimit(typeof data?.sites_limit === "number" ? data.sites_limit : null);
-      setArticlesLimit(typeof data?.articles_limit === "number" ? data.articles_limit : null);
+      setSitesLimit(normalizeLimit(data?.sites_limit));
+      setArticlesLimit(normalizeLimit(data?.articles_limit));
+      setFeatures(
+        data?.features && typeof data.features === "object"
+          ? { ...capsForPlan(planVal), ...data.features }
+          : capsForPlan(planVal)
+      );
 
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
@@ -165,6 +174,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       cycle,
       sitesLimit,
       articlesLimit,
+      features,
 
       checkSubscription,
       startCheckout,
