@@ -14,11 +14,12 @@ const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OR_FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
 async function callLovableAI(body: any) {
-  return await fetch(LAI_URL, {
+  const r = await fetch(LAI_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  return r;
 }
 
 async function callOpenRouter(body: any) {
@@ -34,15 +35,26 @@ async function callOpenRouter(body: any) {
   });
 }
 
-// Try Lovable AI first; on 402/429 fall back to OpenRouter free model.
+// Try Lovable AI first; on any error fall back to OpenRouter free model.
 async function callAIWithFallback(body: any) {
-  let r = await callLovableAI(body);
-  if (r.status === 402 || r.status === 429) {
-    const fallbackBody = { ...body, model: OR_FREE_MODEL };
-    r = await callOpenRouter(fallbackBody);
+  try {
+    const r = await callLovableAI(body);
+    if (r.ok) return r;
+    const text = await r.clone().text();
+    console.warn(`[meta-ads-ai-suggest] Lovable AI ${r.status}: ${text.slice(0, 200)} — falling back to OpenRouter`);
+  } catch (e) {
+    console.warn(`[meta-ads-ai-suggest] Lovable AI threw: ${e instanceof Error ? e.message : e} — falling back`);
   }
-  return r;
+  const fallbackBody = { ...body, model: OR_FREE_MODEL };
+  // OpenRouter free llama doesn't reliably support tool_choice; drop tools and ask for JSON.
+  if (fallbackBody.tools) {
+    delete fallbackBody.tools;
+    delete fallbackBody.tool_choice;
+    fallbackBody.response_format = { type: "json_object" };
+  }
+  return await callOpenRouter(fallbackBody);
 }
+
 
 
 
