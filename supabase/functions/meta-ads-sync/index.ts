@@ -177,7 +177,8 @@ serve(async (req) => {
       };
     });
     if (project_id && adsets.length) {
-      await supabase.from("meta_adsets").upsert(adsets, { onConflict: "project_id,adset_id" });
+      const { error: asErr } = await supabase.from("meta_adsets").upsert(adsets, { onConflict: "project_id,adset_id" });
+      if (asErr) console.error("adsets upsert error:", asErr);
     }
 
     // Ads
