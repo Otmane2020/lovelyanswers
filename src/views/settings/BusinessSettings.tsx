@@ -215,6 +215,16 @@ export function BusinessSettings() {
       toast.error("Please enter a URL");
       return;
     }
+    if (!canAddSite) {
+      if (!hasPlan) {
+        toast.error("Subscribe to a plan to add more sites");
+      } else {
+        toast.error(`Your ${plan ?? "current"} plan allows up to ${sitesLimit} site${(sitesLimit ?? 1) > 1 ? "s" : ""}. Upgrade to add more.`);
+      }
+      setShowAddUrlDialog(false);
+      router.push("/checkout?plan=pro");
+      return;
+    }
 
     localStorage.removeItem('onboarding_data');
     router.push(siteWizardPath(newUrl));
