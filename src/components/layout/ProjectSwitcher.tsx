@@ -17,6 +17,8 @@ import {
   useSetActiveProject,
 } from "@/hooks/useProjects";
 import { useRouter } from "next/navigation";
+import { useUsage } from "@/hooks/useUsage";
+import { toast } from "sonner";
 
 interface Props {
   className?: string;
@@ -34,6 +36,7 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
   const router = useRouter();
   const { project, projects = [] } = useActiveProject();
   const setActiveProject = useSetActiveProject();
+  const { canCreateProject, sitesLimit, projectsCount } = useUsage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -104,6 +107,16 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
             size="icon"
             className="h-9 w-9 shrink-0"
             onClick={() => {
+              if (!canCreateProject) {
+                setOpen(false);
+                toast.error(
+                  sitesLimit == null
+                    ? "Subscribe to add more websites."
+                    : `You've reached your ${sitesLimit}-site limit (${projectsCount}/${sitesLimit}). Upgrade your plan to add more.`,
+                );
+                router.push("/checkout?plan=pro&cycle=annual");
+                return;
+              }
               setOpen(false);
               router.push("/onboarding");
             }}
@@ -113,6 +126,7 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+
 
         <DropdownMenuSeparator />
 
