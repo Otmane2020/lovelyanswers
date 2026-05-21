@@ -213,7 +213,12 @@ serve(async (req) => {
         trial: false,
         product_id: "vip_unlimited",
         subscription_end: "2099-12-31T23:59:59.999Z",
-        credits_total: 99999
+        credits_total: 99999,
+        plan: "agency",
+        cycle: "annual",
+        sites_limit: null,
+        articles_limit: null,
+        features: AGENCY_CAPS,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
