@@ -6,21 +6,44 @@ const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Lovable AI Gateway (same as article generation — free Gemini Flash window)
+// Primary: Lovable AI Gateway. Fallback: OpenRouter free models when credits exhausted/rate-limited.
 const LAI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LAI_TEXT_MODEL = "google/gemini-2.5-flash";
 const LAI_TOOL_MODEL = "google/gemini-2.5-flash";
+const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OR_FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
 async function callLovableAI(body: any) {
   return await fetch(LAI_URL, {
     method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function callOpenRouter(body: any) {
+  return await fetch(OR_URL, {
+    method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": "https://autopilotgeo.com",
+      "X-Title": "AdsFlow",
     },
     body: JSON.stringify(body),
   });
 }
+
+// Try Lovable AI first; on 402/429 fall back to OpenRouter free model.
+async function callAIWithFallback(body: any) {
+  let r = await callLovableAI(body);
+  if (r.status === 402 || r.status === 429) {
+    const fallbackBody = { ...body, model: OR_FREE_MODEL };
+    r = await callOpenRouter(fallbackBody);
+  }
+  return r;
+}
+
 
 
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
@@ -156,9 +179,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ image_url: pub.publicUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === FULL CAMPAIGN (structured) via Lovable AI ===
+    // === FULL CAMPAIGN (structured) ===
     if (field === "full_campaign") {
-      const r = await callLovableAI({
+      const r = await callAIWithFallback({
         model: LAI_TOOL_MODEL,
         messages: [
           { role: "system", content: "You are an expert Meta Ads strategist. Build a high-performing campaign brief from the brand context." },
@@ -168,7 +191,6 @@ Deno.serve(async (req) => {
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted — top up in Settings → Workspace → Usage" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (!r.ok) {
         const t = await r.text();
         return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -180,11 +202,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === SINGLE TEXT FIELD via Lovable AI ===
+    // === SINGLE TEXT FIELD ===
     const buildPrompt = TEXT_PROMPTS[field];
     if (!buildPrompt) return new Response(JSON.stringify({ error: "unknown field" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const prompt = buildPrompt(ctx);
-    const r = await callLovableAI({
+    const r = await callAIWithFallback({
       model: LAI_TEXT_MODEL,
       messages: [
         { role: "system", content: "You are an expert Meta Ads copywriter. Output only the requested text, no preamble, no quotes, no markdown." },
@@ -192,7 +214,6 @@ Deno.serve(async (req) => {
       ],
     });
     if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted — top up in Settings → Workspace → Usage" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!r.ok) {
       const t = await r.text();
       return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -200,6 +221,7 @@ Deno.serve(async (req) => {
     const j = await r.json();
     const text = (j.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
     return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
 
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
