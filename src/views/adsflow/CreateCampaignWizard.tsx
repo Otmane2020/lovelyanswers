@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
 
 const OBJECTIVES = [
   { id: "OUTCOME_TRAFFIC", label: "Traffic", desc: "Drive visitors to your site" },
