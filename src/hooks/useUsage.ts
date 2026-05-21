@@ -12,7 +12,7 @@ import { useSubscription } from "@/hooks/useSubscription";
  */
 export function useUsage() {
   const { user } = useAuth();
-  const { sitesLimit, articlesLimit, subscribed, trial } = useSubscription();
+  const { sitesLimit, articlesLimit, subscribed, trial, isLoading: subscriptionLoading } = useSubscription();
   const hasPlan = subscribed || trial;
 
   const projectsQuery = useQuery({
@@ -58,9 +58,9 @@ export function useUsage() {
   const articlesThisMonth = articlesQuery.data ?? 0;
 
   const canCreateProject =
-    hasPlan && (sitesLimit == null || projectsCount < sitesLimit);
+    !subscriptionLoading && hasPlan && (sitesLimit == null || projectsCount < sitesLimit);
   const canGenerateArticle =
-    hasPlan && (articlesLimit == null || articlesThisMonth < articlesLimit);
+    !subscriptionLoading && hasPlan && (articlesLimit == null || articlesThisMonth < articlesLimit);
 
   return {
     projectsCount,
@@ -76,7 +76,7 @@ export function useUsage() {
       articlesLimit == null
         ? Infinity
         : Math.max(0, articlesLimit - articlesThisMonth),
-    isLoading: projectsQuery.isLoading || articlesQuery.isLoading,
+    isLoading: subscriptionLoading || projectsQuery.isLoading || articlesQuery.isLoading,
     refetch: () => {
       projectsQuery.refetch();
       articlesQuery.refetch();

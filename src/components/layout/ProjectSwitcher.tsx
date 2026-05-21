@@ -36,7 +36,7 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
   const router = useRouter();
   const { project, projects = [] } = useActiveProject();
   const setActiveProject = useSetActiveProject();
-  const { canCreateProject, sitesLimit, projectsCount } = useUsage();
+  const { canCreateProject, sitesLimit, projectsCount, isLoading: isUsageLoading } = useUsage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -107,6 +107,10 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
             size="icon"
             className="h-9 w-9 shrink-0"
             onClick={() => {
+              if (isUsageLoading) {
+                toast.info("Checking your plan access...");
+                return;
+              }
               if (!canCreateProject) {
                 setOpen(false);
                 toast.error(
@@ -118,7 +122,7 @@ export function ProjectSwitcher({ className, triggerClassName, compact }: Props)
                 return;
               }
               setOpen(false);
-              router.push("/onboarding");
+              router.push("/wizard?addSite=1");
             }}
             aria-label="Add new project"
             title="Add new project"
