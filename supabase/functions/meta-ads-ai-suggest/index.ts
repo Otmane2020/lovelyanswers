@@ -209,9 +209,18 @@ Deno.serve(async (req) => {
       }
       const j = await r.json();
       const call = j.choices?.[0]?.message?.tool_calls?.[0];
-      if (!call) return new Response(JSON.stringify({ error: "No tool call" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const args = typeof call.function.arguments === "string" ? JSON.parse(call.function.arguments) : call.function.arguments;
+      let args: any;
+      if (call) {
+        args = typeof call.function.arguments === "string" ? JSON.parse(call.function.arguments) : call.function.arguments;
+      } else {
+        // Fallback path (OpenRouter without tools): parse JSON content
+        const content = j.choices?.[0]?.message?.content || "";
+        try { args = JSON.parse(content); } catch { 
+          return new Response(JSON.stringify({ error: "No tool call" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
       return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     }
 
     // === SINGLE TEXT FIELD ===
