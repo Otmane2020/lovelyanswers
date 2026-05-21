@@ -1,94 +1,61 @@
-# Plan — Refonte pricing, funnel & landing (v2)
+## Problème
 
-## 1. Pricing — 3 tiers USD (Starter $49 / Pro $99 / Agency $199)
+Après paiement, l'utilisateur voit toujours les cadenas et les limites des 3 plans (Starter / Pro / Agency) ne sont pas respectées. Trois bugs principaux :
 
-Création des produits + prix Stripe (mensuel + annuel, devise **USD**) via les Stripe tools :
+1. **Agency = unlimited articles cassé.** `PRICE_MAP.articles = -1` est stocké tel quel et propagé dans `useUsage` : `articlesThisMonth < -1` est toujours faux → blocage permanent.
+2. **Cadenas persistent malgré l'abonnement.** Le déblocage (`articles.status='locked'`, `answers.answer='Content locked…'`) est déclenché en *fire-and-forget* dans `check-subscription` ; la requête front retourne avant que l'unlock soit terminé. Et `AeoDashboard` affiche le bloc "Subscribe to unlock" uniquement basé sur `lockedArticles.length > 0`, sans tenir compte de `subscribed`.
+3. **Aucune feature flag par plan.** Le code ne distingue pas Starter vs Pro vs Agency au-delà de `sites_limit`/`articles_limit`. Les options listées (priority generation, CMS étendus, Planning unlock, white-label, multi-client, Slack) ne sont gatées nulle part.
 
-| Plan | Mensuel | Annuel (équiv./mo) | Sites | Articles/mois |
-|---|---|---|---|---|
-| Starter | $49 | $39 ($468/an) | 1 | 10 |
-| Pro ⭐ | $99 | $79 ($948/an) | 3 | 30 |
-| Agency | $199 | $159 ($1908/an) | 10 | illimités |
+## Plan
 
-- `src/lib/stripe-products.ts` réécrit avec les 3 tiers + nouveaux `price_id` Stripe.
-- `src/views/Pricing.tsx` → 3 cartes (toggle mensuel/annuel, badge "Le plus populaire" sur Pro), features alignées sur le screenshot.
-- Tous les prix affichés en `$` (USD) partout dans l'app (landing, pricing, checkout, billing, AeoSubscription).
+### 1. Source de vérité unique des plans
+- Étendre `src/lib/stripe-products.ts` : ajouter pour chaque plan un objet `features` typé :
+  ```
+  { prioritySEO, allCms, planningUnlocked, whiteLabel, multiClient, slackSupport, competitorMonitoring }
+  ```
+- Ajouter `articlesLimit: -1` → exposer un helper `isUnlimited(limit)` et `normalizeLimit(limit) => number|null` (–1 → null).
 
-## 2. Funnel — Stripe Elements embarqué + trial 3 jours CB requise
+### 2. Backend — `supabase/functions/check-subscription`
+- Réutiliser le même mapping côté Deno (dupliqué actuellement) : conserver `PRICE_MAP` mais ajouter les `features` ; retourner dans la réponse JSON : `plan, cycle, sites_limit, articles_limit (null si illimité), features{}`.
+- **Await** `triggerUnlockIfNeeded` (au lieu de fire-and-forget) pour que la première réponse post-paiement renvoie un état déjà débloqué.
+- Conserver l'upsert dans `public.subscriptions` (sert de cache RLS-safe pour l'UI).
 
-**Flow** : Landing → "Démarrer — 3 jours gratuits" → `/checkout?plan=pro&cycle=monthly` → signup (email + password) + Stripe Payment Element inline → trial 3 jours → email J-1 (auto via webhook `trial_will_end`) → débit auto J4 → annulable à tout moment depuis `/billing`.
+### 3. Front — contexte & hooks
+- `SubscriptionContext` : ajouter `features` au state, normaliser `articles_limit === -1 → null` (= illimité).
+- Nouveau hook `usePlanFeatures()` retournant `{ plan, features, sitesLimit, articlesLimit, isUnlimited }`.
+- `useUsage` : utiliser la valeur normalisée ; conserver la sémantique `null = unlimited`.
 
-**Backend** :
-- `create-trial-subscription` (nouveau) : crée `customer` + `subscription` avec `trial_period_days: 3`, `payment_behavior: default_incomplete`, retourne `clientSecret` (SetupIntent) pour confirmer la CB sans débit.
-- `stripe-webhook` refondu : écoute `customer.subscription.created/updated/deleted`, `invoice.payment_succeeded/failed`, `customer.subscription.trial_will_end` → met à jour la table `subscriptions` + déclenche email.
-- Email "trial ending" via **Lovable Emails** (template React Email `trial-ending`, déclenché par webhook).
+### 4. Gating UI (cadenas)
+- `AeoDashboard.tsx` : conditionner tous les blocs "locked / Subscribe to unlock" sur `!subscribed && !trial`. Si abonné, masquer la bannière et déclencher `unlock-articles` une fois (idempotent).
+- `AeoGeo.tsx`, `AutoSeo.tsx`, `LocalAnswersTab.tsx`, `AeoPlanning.tsx` : remplacer `if (!isSubscribed)` brut par checks via `usePlanFeatures` selon la feature concernée (ex. Planning unlock = `features.planningUnlocked`, dispo seulement Pro/Agency).
+- `SubscriptionGate` reste pour les routes complètement payantes.
 
-**Frontend** :
-- `bun add @stripe/stripe-js @stripe/react-stripe-js`.
-- Nouveau `src/components/checkout/StripePaymentForm.tsx` (basé sur ton snippet, `PaymentElement`).
-- `src/views/Checkout.tsx` refondu : signup + Stripe Elements + résumé plan sur une seule page.
-- Clé publishable Stripe (`pk_live_...`) en dur dans le code (publique, OK).
+### 5. Enforcement des limites
+- `useUsage.canCreateProject` déjà OK, mais ajouter le check côté création de projet (wizard + `ProjectSwitcher` "+"): si `!canCreateProject` → toast + redirect `/checkout?plan=pro`.
+- `canGenerateArticle` : déjà branché dans `Answers.tsx` ; corriger le message quand `articlesLimit === null` (afficher "Unlimited" au lieu de "?").
 
-## 3. Table `subscriptions` + enforcement limites
+### 6. CMS auto-publish gating
+- `AeoIntegrations.tsx` : sur Starter, n'autoriser que WordPress + Shopify ; Pro/Agency = tous. Lire `features.allCms`.
 
-Nouvelle table :
-```
-subscriptions (id, user_id fk profiles, stripe_customer_id, stripe_subscription_id,
-  plan ['starter'|'pro'|'agency'], cycle ['monthly'|'annual'],
-  status ['trialing'|'active'|'past_due'|'canceled'],
-  trial_end, current_period_end, sites_limit, articles_limit,
-  cancel_at_period_end, created_at, updated_at)
-```
-+ RLS (user lit son row, service_role écrit via webhook) + trigger `updated_at`.
+### 7. White-label / Multi-client / Slack (Agency)
+- Ajouter de simples checks `features.whiteLabel` / `features.multiClient` qui affichent un badge "Agency only" dans les zones concernées (export, sélecteur multi-projets > 3, footer support).
 
-- `check-subscription` réécrit : lit depuis cette table, expose `plan`, `sites_limit`, `articles_limit` via `SubscriptionContext`.
-- `useProjects` : bloque nouveau projet si `count >= sites_limit` + upsell.
-- Génération d'articles : check `articles_limit` mensuel avant exécution.
-- UI dashboard : badges "X/Y sites · X/Y articles ce mois".
-- **Pas de migration** des anciens utilisateurs $29 (aucun client payant actuellement).
+### 8. Migration légère (optionnelle, déjà OK)
+- La table `subscriptions` existe déjà avec les bons champs. Pas de migration nécessaire.
 
-## 4. Landing page — 1 seul angle GEO Engine
+## Fichiers touchés
 
-`src/views/Index.tsx` réécrit :
-- **Hero** : "Tape ton domaine. On te dit si ChatGPT te recommande. Sinon on te fait apparaître en 30 jours." + input domaine + CTA → `/tools/ai-visibility-checker`.
-- **How it works** : 3 étapes (Scan → GEO Engine génère → ChatGPT te cite).
-- **Stats** : 4.5x AI visibility, 9.7x mentions, +60% trafic — gardés.
-- **Pricing teaser** 3 tiers → `/pricing`.
-- **Bonus inclus** (section discrète) : AEO Answers, Shopping, Local, Planning.
-- **FAQ + Footer**.
+- `src/lib/stripe-products.ts` (ajout features + helpers)
+- `src/contexts/SubscriptionContext.tsx` (normalisation + features)
+- `src/hooks/useSubscription.ts`, `src/hooks/useUsage.ts`
+- `src/hooks/usePlanFeatures.ts` (nouveau)
+- `src/views/AeoDashboard.tsx`, `AeoGeo.tsx`, `AutoSeo.tsx`, `AeoPlanning.tsx`, `AeoIntegrations.tsx`, `Answers.tsx`
+- `src/components/local/LocalAnswersTab.tsx`, `src/components/layout/ProjectSwitcher.tsx`
+- `supabase/functions/check-subscription/index.ts` (await unlock, features payload, -1→null)
 
-## 5. Témoignages & adresse
+## Résultat attendu
 
-- **Retirer Mike / Amanda / Ryan** partout : `Index.tsx` (`socialProofPills`), `SocialProofToast`, `TrustedByMarquee`.
-- **Remplacer par** :
-  - 3 placeholders neutres : "500+ sites actifs", "4.9★ moyenne", "+60% trafic moyen".
-  - 1 témoignage fondateur (Option 2) : **"J'ai utilisé AutoPilot GEO sur mes propres projets. Le blog drive maintenant 60 visites organiques/mois depuis Google avec zéro effort manuel." — Ben M., Fondateur, AutoPilot GEO**.
-- **Adresse Manchester** : retirée **partout** (`PublicFooter`, `/privacy`, `/terms`, schema.org JSON-LD, `support` page, emails). Remplacée par simple mention **"AutoPilot Geo Ltd"** sans adresse physique. Email de contact `support@autopilotgeo.com` conservé.
-
-## 6. Bonus — Email aux 17 utilisateurs dashboard (cette semaine)
-
-Edge function one-shot `email-active-users-feedback` qui :
-- Liste les 17 utilisateurs ayant un projet actif.
-- Envoie via Lovable Emails un mail personnalisé : *"Hey — tu as utilisé AutoPilot GEO récemment. Est-ce que t'as eu des résultats, même petits ? J'aimerais mettre ton retour sur le site en échange d'un mois gratuit."*
-- Bouton "Répondre" → ouvre mailto:support@autopilotgeo.com.
-- Lancée manuellement (pas de cron), traçabilité dans `email_send_log`.
-
-## Détails techniques
-
-- **Stripe API** : `2025-08-27.basil`. Trial sans débit = `mode: 'subscription'` + `trial_period_days: 3` + `payment_settings.save_default_payment_method: 'on_subscription'`.
-- **Email J-1** : Stripe envoie `customer.subscription.trial_will_end` ~72h avant la fin du trial. Notre webhook capte cet event et invoque `send-transactional-email` avec template `trial-ending`.
-- **Annulation** : `cancel-subscription` existante conservée (`cancel_at_period_end=true`).
-- **VIP emails** : logique conservée dans `check-subscription`, retourne désormais `plan: 'agency'` + limites max.
-- **Email infra** : utilise Lovable Emails (déjà configuré, prérequis vérifié au moment de l'implémentation).
-
-## Ordre d'exécution
-
-1. Migration DB → table `subscriptions` + RLS.
-2. Stripe : créer les 6 prices (3 plans × 2 cycles) en USD.
-3. `stripe-products.ts` + `Pricing.tsx` + suppression `$29` partout.
-4. Refonte `Checkout.tsx` + `StripePaymentForm.tsx` + `create-trial-subscription`.
-5. `stripe-webhook` refondu + email `trial-ending` (scaffold Lovable Emails si besoin).
-6. `check-subscription` lit depuis `subscriptions` + enforcement limites.
-7. Refonte `Index.tsx` (landing GEO Engine).
-8. Cleanup témoignages Mike/Amanda/Ryan + adresse Manchester.
-9. Edge function `email-active-users-feedback` (bonus).
+- Starter : 1 site, 10 articles/mois, CMS WP+Shopify seulement, planning verrouillé.
+- Pro : 3 sites, 30 articles/mois, tous CMS, planning + competitor monitoring.
+- Agency : 10 sites, articles illimités (plus de blocage `< -1`), white-label & multi-client visibles.
+- Cadenas disparaissent immédiatement après checkout (unlock awaité côté edge function + UI conditionnée sur `subscribed`).
