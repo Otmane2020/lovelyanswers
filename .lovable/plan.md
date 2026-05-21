@@ -1,73 +1,119 @@
 
-# Meta Ads — Vrai gestionnaire complet (token système enrichi)
+## Objectif
 
-On garde `META_ACCESS_TOKEN` + `META_AD_ACCOUNT_ID` mais on construit l'équivalent fonctionnel de Facebook Ads Manager : hiérarchie complète, ROAS, Conversions API serveur, audiences custom/lookalike, optimisation IA automatique, et triple méthode d'installation du pixel.
+1. **Synchroniser maintenant** le compte Meta connecté: pull account, pixels existants, campagnes, ad sets, ads, audiences custom — pour que le dashboard se remplisse avec ce qui existe déjà côté Meta.
+2. **Refaire le créateur d'Ad** pour qu'il ressemble au vrai Facebook Ads Manager (panneau Edit + Preview live), inspiré des repos cités (basil79/ads-manager, oliverames/meta-mcp-server, corals-advert, fb-billing-bookmarklet).
 
-## 1. Base de données (migration)
+---
 
-Nouvelles tables :
+## 1. Sync complet du compte existant
 
-- `meta_adsets` (existante → enrichir) : `targeting jsonb` (geo, age_min/max, genders, interests[], custom_audiences[], lookalike_audiences[]), `optimization_goal`, `billing_event`, `bid_amount`, `daily_budget`, `start_time/end_time`, métriques (spend, impressions, clicks, conversions, cpa, roas).
-- `meta_ads` (existante → enrichir) : `creative jsonb` (image_hash, video_id, title, body, cta_type, link_url), `preview_url`, métriques.
-- `meta_creatives` : `id`, `project_id`, `image_hash` ou `video_id`, `media_url` (Supabase Storage), `media_type` (image/video), `title`, `body`, `cta_type`, `link_url`.
-- `meta_audiences` : `id`, `project_id`, `audience_id`, `name`, `type` (CUSTOM, LOOKALIKE, WEBSITE), `subtype`, `approximate_count`, `source_audience_id` (pour lookalike), `rule jsonb`.
-- `meta_conversions_events` : `id`, `project_id`, `pixel_id`, `event_name` (Purchase, Lead, AddToCart, ViewContent), `event_time`, `event_id`, `user_data jsonb` (hashed email/phone/ip/ua), `custom_data jsonb` (value, currency, content_ids), `sent_at`, `response jsonb`.
-- `meta_roas_snapshots` : daily snapshot par campagne/adset (spend, revenue, roas, cpa) pour graphique 30j.
-- `meta_optimization_runs` : `id`, `project_id`, `ran_at`, `actions jsonb` (pause/budget changes appliqués), `dry_run bool`.
-- `meta_pixels` (existante) : ajouter `gtm_pushed bool`, `lovable_injected bool`.
+### a) Enrichir `meta-ads-sync` (edge function existante)
+- Ajouter pull des **Pixels** depuis `/{adAccountId}/adspixels?fields=id,name,code,last_fired_time` → upsert dans `meta_pixels` (+ générer `code_snippet` automatiquement si manquant).
+- Ajouter pull des **Custom Audiences** depuis `/{adAccountId}/customaudiences?fields=id,name,subtype,approximate_count_lower_bound,rule,description` → upsert dans `meta_audiences`.
+- Ajouter pull de la **Facebook Page** liée depuis `/{adAccountId}/promote_pages` → stocker `page_id` + `page_name` sur `meta_ad_accounts` (utilisé pour création d'ads).
+- Pull **Conversions API access token status** (si pixel a `is_capi_enabled`).
+- Pull insights niveau Ad avec **breakdown placement + age** pour Reports.
 
-Storage bucket `meta-creatives` (public) pour images/vidéos uploadées.
+### b) Bouton "Sync now" déjà présent dans `SuperAdminMetaAds.tsx`
+- Étendre le toast pour afficher: `X campaigns • Y adsets • Z ads • P pixels • A audiences`.
+- Ajouter un sous-bouton "Sync insights only" (rapide, juste re-pull les métriques 30j sans toucher la structure).
 
-## 2. Edge functions
+### c) Migration
+- Ajouter colonnes manquantes: `meta_ad_accounts.page_id`, `meta_ad_accounts.page_name`, `meta_pixels.is_capi_enabled`, `meta_pixels.last_fired_at`.
 
-| Function | Rôle |
-|---|---|
-| `meta-ads-sync` (existante → étendre) | Sync campaigns + adsets + ads + insights par niveau, snapshot ROAS quotidien |
-| `meta-adset-create` | POST `/{ad_account}/adsets` avec targeting JSON complet (geo/age/interests/CA/LAL) |
-| `meta-ad-create` | Upload créative (image: `/{ad_account}/adimages`, vidéo: `/{ad_account}/advideos`) → crée `adcreative` → crée `ad` |
-| `meta-ad-preview` | `GET /{ad_id}/previews?ad_format=DESKTOP_FEED_STANDARD` retourne HTML preview |
-| `meta-audience-create` | Custom audience (WEBSITE/CUSTOMER_FILE) via `/{ad_account}/customaudiences` |
-| `meta-audience-lookalike` | Lookalike depuis source audience (`/customaudiences` avec `subtype: LOOKALIKE`, `lookalike_spec`) |
-| `meta-interest-search` | Autocomplete `/search?type=adinterest&q=` |
-| `meta-conversions-api` | POST server-side `/{pixel_id}/events` avec hashing SHA256 (email/phone/ip), supporte event_id pour dédup avec pixel client |
-| `meta-ads-optimize` (cron quotidien) | Analyse ROAS/CPA, pause ads avec ROAS<seuil et >100$ dépensés sans conv, réalloue budget des perdants vers gagnants. Mode dry_run/auto. |
-| `meta-pixel-gtm-push` | Push tag GTM via API Tag Manager (réutilise GMB OAuth) |
-| `meta-pixel-lovable-inject` | Marque le pixel pour injection auto dans `index.html` du projet Lovable |
+---
 
-## 3. UI — `src/views/SuperAdminMetaAds.tsx` (refonte complète)
+## 2. Créateur d'Ad type Facebook Ads Manager
 
-Onglets enrichis :
+Refonte complète de `AdsTab.tsx` + nouveau composant `AdComposer.tsx` (split-screen comme Ads Manager).
 
-- **Overview** : KPIs (Spend, Revenue, ROAS global, CPA moyen, conv), graphique 30j (ligne ROAS + barres spend), top 3 campagnes / bottom 3.
-- **Campagnes** : table existante + drill-down → onglet Ad Sets de cette campagne.
-- **Ad Sets** : table par campagne + dialog création (geo multi-pays autocomplete, slider âge, recherche d'intérêts debounced via `meta-interest-search`, sélection audiences custom/lookalike, optimization_goal, bid).
-- **Ads** : grille de cards avec preview iframe Facebook, upload image/vidéo (drag-drop → bucket `meta-creatives` → hash Meta), formulaire title/body/CTA/URL, toggle status.
-- **Audiences** : liste custom/lookalike avec compteur, dialog "Create Custom" (visiteurs site 30/60/90j via pixel) et "Create Lookalike" (source + pays + % 1-10 slider).
-- **Pixel & Tracking** : 3 méthodes affichées (snippet copy / "Push to GTM" si GTM connecté / "Install on Lovable site" toggle), badge GA4, **Conversions API tester** (form pour envoyer un test Purchase event).
-- **AI Optimizer** : panneau avec "Dry run" / "Apply now", historique des runs (actions appliquées), réglage seuils ROAS min / spend min / lookback days, planificateur cron on/off.
-- **Reports** : ROAS par campagne sur 7/30/90j, export CSV.
+### Layout (inspiré basil79/ads-manager + Meta Ads Manager officiel)
 
-Composants extraits sous `src/components/admin/meta-ads/` :
-`OverviewTab.tsx`, `CampaignsTab.tsx`, `AdSetsTab.tsx`, `AdsTab.tsx`, `AudiencesTab.tsx`, `PixelTab.tsx`, `AIOptimizerTab.tsx`, `ReportsTab.tsx`, dialogs (`CreateAdSetDialog`, `CreateAdDialog`, `CreateAudienceDialog`, `CreateLookalikeDialog`, `TestConversionDialog`).
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  New Ad — [Ad Set selector ▼]              [Cancel] [Publish]│
+├──────────────────────────┬──────────────────────────────────┤
+│ LEFT — Edit panel        │ RIGHT — Live Preview              │
+│                          │                                   │
+│ Identity                 │  [Placement selector ▼]           │
+│  • Facebook Page ▼       │   Facebook Feed / Story / Reels   │
+│  • Instagram account ▼   │   Instagram Feed / Story / Reels  │
+│                          │                                   │
+│ Format                   │   ┌─────────────────────┐         │
+│  ◉ Single image/video    │   │  [Page] Sponsored   │         │
+│  ○ Carousel (2-10 cards) │   │  Primary text...    │         │
+│  ○ Collection            │   │  ┌───────────────┐  │         │
+│                          │   │  │   MEDIA       │  │         │
+│ Media (drag&drop zone)   │   │  │   16:9 / 1:1  │  │         │
+│  [Upload / library]      │   │  └───────────────┘  │         │
+│                          │   │  Headline           │         │
+│ Primary text (5 variants)│   │  Description domain │         │
+│ Headline (5 variants)    │   │  [   CTA Button  ]  │         │
+│ Description              │   └─────────────────────┘         │
+│ Website URL + UTM builder│                                   │
+│ Display link             │                                   │
+│ CTA ▼                    │                                   │
+│ Pixel + events tracked   │                                   │
+│ URL parameters           │                                   │
+└──────────────────────────┴──────────────────────────────────┘
+```
 
-## 4. Cron & automatisation
+### Composants à créer sous `src/components/admin/meta-ads/composer/`
+- `AdComposer.tsx` — shell split-screen, gère form state + submit.
+- `IdentitySection.tsx` — sélection Page FB + compte IG (chargés depuis `meta_ad_accounts.page_id` et API `/me/instagram_accounts`).
+- `FormatSection.tsx` — toggle Single / Carousel / Collection.
+- `MediaUploader.tsx` — drag&drop multi-fichier vers bucket `meta-creatives`, recadrage 1:1 / 4:5 / 9:16 / 16:9 preview, thumbnail grid pour carousel.
+- `PrimaryTextSection.tsx` — jusqu'à 5 variantes (Meta Dynamic Creative).
+- `HeadlineSection.tsx` — jusqu'à 5 variantes.
+- `DestinationSection.tsx` — URL + UTM builder (source/medium/campaign/content) + display link + deep link.
+- `CTASection.tsx` — full enum CTA Meta.
+- `TrackingSection.tsx` — pixel select + events à tracker (Purchase/Lead/AddToCart/ViewContent).
+- `AdPreview.tsx` — composant central qui rend l'aperçu pour 6 placements (Facebook Feed, FB Story, FB Reels, IG Feed, IG Story, IG Reels) avec switcher en haut. Rendu fidèle: avatar Page, nom, "Sponsorisé", texte, média responsive, headline, domaine, bouton CTA.
+- `CarouselCardsEditor.tsx` — 2-10 cards (média + headline + description + link par card).
 
-- `pg_cron` daily 03:00 UTC → `meta-ads-sync` pour tous les projets avec compte connecté.
-- `pg_cron` daily 04:00 UTC → `meta-ads-optimize` en mode `dry_run` par défaut (toggle `auto_apply` dans `meta_optimization_settings`).
+### Edge functions
+- **Refactor `meta-ad-create`** pour gérer:
+  - Format `single`: existant (image_hash / video_id).
+  - Format `carousel`: `link_data.child_attachments[]` avec `image_hash`, `name`, `description`, `link`, `call_to_action` par card.
+  - Multi-variantes texte: `asset_feed_spec` (Dynamic Creative).
+  - Instagram identity (`instagram_actor_id`).
+  - URL tags (`url_tags=utm_source=...`).
+- **Nouveau `meta-ad-preview`** qui appelle `/{adAccountId}/generatepreviews?ad_format=DESKTOP_FEED_STANDARD|MOBILE_FEED_STANDARD|INSTAGRAM_STANDARD|INSTAGRAM_STORY|FACEBOOK_STORY_MOBILE|INSTAGRAM_REELS` et renvoie l'iframe HTML pour preview officielle Meta. Fallback: rendu custom React si quota dépassé.
+- **Nouveau `meta-ig-accounts-list`** pour lister les comptes Instagram liés à la Page.
 
-## 5. Hors-scope v1
+### UX details (façon Ads Manager)
+- Sauvegarde brouillon auto dans `meta_ads` avec `status='DRAFT'` (table existante).
+- Validation inline (longueur texte, ratio image, taille vidéo).
+- Compteur caractères primary text (125 reco), headline (40), description (30).
+- Upload progress bar.
+- Preview se met à jour en live (debounce 400ms) à chaque modif.
 
-- Multi-comptes par projet (un seul `META_AD_ACCOUNT_ID` global pour l'instant).
-- Catalog/DPA (Dynamic Product Ads).
-- A/B split testing automatique des créatives.
+---
+
+## 3. Hors scope v1 (à noter)
+- Collection format complet avec catalog feed.
+- A/B test natif Meta.
+- Asset feed avancé (multi-images dynamiques par placement).
+- Édition d'une ad existante (v1 = read-only + duplicate).
+
+---
 
 ## Notes techniques
 
-- Tous les budgets/spend en **minor units** (cents) → diviser/multiplier par 100 dans l'UI.
-- Conversions API : hasher email/phone en SHA-256 lowercase trim, `action_source: "website"`, et utiliser un `event_id` partagé avec le pixel pour la déduplication.
-- Upload image : Meta exige multipart `source=@file`. On envoie depuis l'edge function en `FormData` après lecture du fichier depuis le bucket Supabase.
-- Lookalike : `lookalike_spec: { country, ratio: 0.01-0.10, type: "similarity" }`.
-- Pixel Lovable injection : ajoute le snippet dans `index.html` au build via un fichier `public/meta-pixel.html` lu par `next.config.mjs` ou via un composant `<MetaPixel projectId={pixel_id} />` monté dans `app/layout.tsx` quand `lovable_managed_pixels` contient une row pour le projet.
-- IA optimizer : Gemini 2.5 Flash (déjà en place) recevra les snapshots ROAS 14j + règles + budgets, retournera `{ actions: [{ kind: "pause_ad"|"increase_budget"|"decrease_budget", target_id, amount, reason }] }` via tool calling.
+- Toutes les fonctions edge restent sur le token système `META_ACCESS_TOKEN` + `META_AD_ACCOUNT_ID` (pas d'OAuth multi-comptes, conforme à la décision précédente).
+- Carousel: limite Meta = 2-10 cards, chaque card requiert image_hash + headline + link.
+- `generatepreviews` consomme du quota → cache 5 min la dernière preview par signature de form.
+- Bucket `meta-creatives` déjà public, OK pour upload depuis le navigateur.
+- UTM builder écrit directement dans `url_tags` (format `utm_source=facebook&utm_medium=cpc&...`).
 
-Prêt à implémenter dès validation. La migration et les ~10 edge functions seront ajoutées d'un coup, puis la refonte UI par onglets.
+---
+
+## Livrables fichiers
+- `supabase/migrations/<new>.sql` (colonnes page_id, page_name, is_capi_enabled)
+- `supabase/functions/meta-ads-sync/index.ts` (enrichi)
+- `supabase/functions/meta-ad-create/index.ts` (refonte single + carousel + dynamic creative)
+- `supabase/functions/meta-ad-preview/index.ts` (nouveau)
+- `supabase/functions/meta-ig-accounts-list/index.ts` (nouveau)
+- `src/components/admin/meta-ads/AdsTab.tsx` (utilise AdComposer)
+- `src/components/admin/meta-ads/composer/*.tsx` (10 nouveaux composants)

@@ -14,27 +14,99 @@ function revenue(insights: any) {
   return Number((insights?.action_values || []).find((a: any) => a.action_type === "purchase")?.value || 0);
 }
 
+function pixelSnippet(pixelId: string) {
+  return `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel Code -->`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const token = Deno.env.get("META_ACCESS_TOKEN");
-    const adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
+    let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!token || !adAccountId) throw new Error("Meta credentials not configured");
-    const { project_id } = await req.json().catch(() => ({ project_id: null }));
+    if (!adAccountId.startsWith("act_")) adAccountId = `act_${adAccountId}`;
+    const { project_id, insights_only = false } = await req.json().catch(() => ({}));
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Account
-    const acctRes = await fetch(`${META_API}/${adAccountId}?fields=name,currency,timezone_name,account_status,business&access_token=${token}`);
+    // Account + page
+    const acctRes = await fetch(`${META_API}/${adAccountId}?fields=name,currency,timezone_name,account_status,business,promote_pages{id,name}&access_token=${token}`);
     const acct = await acctRes.json();
     if (acct.error) throw new Error(acct.error.message);
+
+    const page = acct.promote_pages?.data?.[0];
+    let pageId = page?.id || null;
+    let pageName = page?.name || null;
+    let igActorId: string | null = null;
+
+    if (pageId) {
+      // Try to fetch the Instagram business account linked to the Page
+      const igRes = await fetch(`${META_API}/${pageId}?fields=instagram_business_account{id,username}&access_token=${token}`);
+      const igData = await igRes.json();
+      igActorId = igData?.instagram_business_account?.id || null;
+    }
 
     if (project_id) {
       await supabase.from("meta_ad_accounts").upsert({
         project_id, account_id: adAccountId, business_id: acct.business?.id,
         name: acct.name, currency: acct.currency, timezone: acct.timezone_name,
         status: String(acct.account_status),
+        page_id: pageId, page_name: pageName, instagram_actor_id: igActorId,
       }, { onConflict: "project_id,account_id" });
+    }
+
+    // Pixels
+    let pixelsCount = 0;
+    if (project_id && !insights_only) {
+      const pxRes = await fetch(`${META_API}/${adAccountId}/adspixels?fields=id,name,code,last_fired_time,is_unavailable&access_token=${token}`);
+      const pxData = await pxRes.json();
+      if (!pxData.error && pxData.data) {
+        const rows = pxData.data.map((p: any) => ({
+          project_id,
+          pixel_id: p.id,
+          name: p.name || `Pixel ${p.id}`,
+          code_snippet: p.code || pixelSnippet(p.id),
+          last_fired_at: p.last_fired_time || null,
+          is_capi_enabled: false,
+        }));
+        if (rows.length) {
+          await supabase.from("meta_pixels").upsert(rows, { onConflict: "project_id,pixel_id" });
+          pixelsCount = rows.length;
+        }
+      }
+    }
+
+    // Custom audiences
+    let audiencesCount = 0;
+    if (project_id && !insights_only) {
+      const auRes = await fetch(`${META_API}/${adAccountId}/customaudiences?fields=id,name,subtype,approximate_count_lower_bound,description,operation_status&limit=100&access_token=${token}`);
+      const auData = await auRes.json();
+      if (!auData.error && auData.data) {
+        const rows = auData.data.map((a: any) => ({
+          project_id,
+          audience_id: a.id,
+          name: a.name,
+          type: a.subtype || "CUSTOM",
+          approximate_count: a.approximate_count_lower_bound || 0,
+          rule: {},
+        }));
+        if (rows.length) {
+          await supabase.from("meta_audiences").upsert(rows, { onConflict: "project_id,audience_id" });
+          audiencesCount = rows.length;
+        }
+      }
     }
 
     // Campaigns + insights
@@ -64,7 +136,6 @@ serve(async (req) => {
     });
     if (project_id && campaigns.length) {
       await supabase.from("meta_campaigns").upsert(campaigns, { onConflict: "project_id,campaign_id" });
-      // ROAS snapshots
       const snaps = campaigns.map((c: any) => ({
         project_id, level: "campaign", ref_id: c.campaign_id, ref_name: c.name,
         snapshot_date: today, spend: c.spend, revenue: c.revenue, conversions: c.conversions,
@@ -106,7 +177,7 @@ serve(async (req) => {
     }
 
     // Ads
-    const adRes = await fetch(`${META_API}/${adAccountId}/ads?fields=id,name,adset_id,campaign_id,status,creative{id,thumbnail_url,object_story_spec},preview_shareable_link,insights.date_preset(last_30d){${insightsFields}}&limit=200&access_token=${token}`);
+    const adRes = await fetch(`${META_API}/${adAccountId}/ads?fields=id,name,adset_id,campaign_id,status,creative{id,thumbnail_url,object_story_spec,image_url,video_id},preview_shareable_link,insights.date_preset(last_30d){${insightsFields}}&limit=200&access_token=${token}`);
     const adData = await adRes.json();
     const ads = (adData.data || []).map((a: any) => {
       const ins = a.insights?.data?.[0] || {};
@@ -130,8 +201,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      account: { id: adAccountId, name: acct.name, currency: acct.currency, status: acct.account_status },
-      counts: { campaigns: campaigns.length, adsets: adsets.length, ads: ads.length },
+      account: { id: adAccountId, name: acct.name, currency: acct.currency, status: acct.account_status, page_id: pageId, page_name: pageName, instagram_actor_id: igActorId },
+      counts: { campaigns: campaigns.length, adsets: adsets.length, ads: ads.length, pixels: pixelsCount, audiences: audiencesCount },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("meta-ads-sync error:", e);

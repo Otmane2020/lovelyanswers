@@ -57,7 +57,8 @@ export default function SuperAdminMetaAds() {
       const { data, error } = await supabase.functions.invoke("meta-ads-sync", { body: { project_id: projectId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Synced ${data?.counts?.campaigns || 0} campaigns • ${data?.counts?.adsets || 0} ad sets • ${data?.counts?.ads || 0} ads`);
+      const c = data?.counts || {};
+      toast.success(`Synced ${c.campaigns || 0} campaigns • ${c.adsets || 0} ad sets • ${c.ads || 0} ads • ${c.pixels || 0} pixels • ${c.audiences || 0} audiences`);
       setRefreshKey(k => k + 1);
     } catch (e: any) {
       toast.error(`Sync failed: ${e.message}`);
@@ -112,7 +113,7 @@ export default function SuperAdminMetaAds() {
         <TabsContent value="overview" className="mt-6"><OverviewTab projectId={projectId} account={account} refreshKey={refreshKey} /></TabsContent>
         <TabsContent value="campaigns" className="mt-6"><CampaignsTab projectId={projectId} account={account} onSync={handleSync} refreshKey={refreshKey} /></TabsContent>
         <TabsContent value="adsets" className="mt-6"><AdSetsTab projectId={projectId} refreshKey={refreshKey} onChange={() => setRefreshKey(k => k+1)} /></TabsContent>
-        <TabsContent value="ads" className="mt-6"><AdsTab projectId={projectId} refreshKey={refreshKey} onChange={() => setRefreshKey(k => k+1)} /></TabsContent>
+        <TabsContent value="ads" className="mt-6"><AdsTab projectId={projectId} account={account} refreshKey={refreshKey} onChange={() => setRefreshKey(k => k+1)} /></TabsContent>
         <TabsContent value="audiences" className="mt-6"><AudiencesTab projectId={projectId} refreshKey={refreshKey} onChange={() => setRefreshKey(k => k+1)} /></TabsContent>
         <TabsContent value="pixel" className="mt-6"><PixelTab projectId={projectId} refreshKey={refreshKey} onChange={() => setRefreshKey(k => k+1)} /></TabsContent>
         <TabsContent value="optimizer" className="mt-6"><OptimizerTab projectId={projectId} refreshKey={refreshKey} /></TabsContent>

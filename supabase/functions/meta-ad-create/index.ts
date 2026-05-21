@@ -7,91 +7,152 @@ const corsHeaders = {
 };
 const META_API = "https://graph.facebook.com/v21.0";
 
+async function uploadImage(adAccountId: string, token: string, url: string) {
+  const r = await fetch(url);
+  const blob = await r.blob();
+  const fd = new FormData();
+  fd.append("source", blob, "creative.jpg");
+  fd.append("access_token", token);
+  const up = await fetch(`${META_API}/${adAccountId}/adimages`, { method: "POST", body: fd });
+  const data = await up.json();
+  if (data.error) throw new Error(`Image upload: ${data.error.message}`);
+  return Object.values(data.images || {})[0]?.["hash"] as string;
+}
+
+async function uploadVideo(adAccountId: string, token: string, url: string) {
+  const r = await fetch(url);
+  const blob = await r.blob();
+  const fd = new FormData();
+  fd.append("source", blob, "creative.mp4");
+  fd.append("access_token", token);
+  const up = await fetch(`${META_API}/${adAccountId}/advideos`, { method: "POST", body: fd });
+  const data = await up.json();
+  if (data.error) throw new Error(`Video upload: ${data.error.message}`);
+  return data.id as string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const token = Deno.env.get("META_ACCESS_TOKEN");
-    const adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
-    const pageId = Deno.env.get("META_PAGE_ID");
+    let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!token || !adAccountId) throw new Error("Meta credentials not configured");
+    if (!adAccountId.startsWith("act_")) adAccountId = `act_${adAccountId}`;
 
     const {
-      project_id, adset_id, name, page_id,
+      project_id, adset_id, name, status = "PAUSED",
+      page_id, instagram_actor_id, pixel_id,
+      format = "single", // single | carousel
+      // single
       media_url, media_type = "image",
-      title, body: msgBody, link_url, cta_type = "LEARN_MORE",
-      status = "PAUSED",
+      // common
+      primary_text, headline, description, link_url, cta_type = "LEARN_MORE",
+      // multi-variant (Dynamic Creative-style)
+      primary_text_variants = [], headline_variants = [],
+      // carousel
+      cards = [], // [{media_url, headline, description, link_url}]
+      // tracking
+      url_tags, // 'utm_source=facebook&utm_medium=cpc&utm_campaign=...'
     } = await req.json();
-    if (!adset_id || !name || !media_url || !link_url) throw new Error("adset_id, name, media_url, link_url required");
 
-    const usedPageId = page_id || pageId;
-    if (!usedPageId) throw new Error("META_PAGE_ID not set");
+    if (!adset_id || !name) throw new Error("adset_id and name required");
+    if (!page_id) throw new Error("page_id required (sync account first)");
+    if (format === "single" && (!media_url || !link_url)) throw new Error("media_url and link_url required for single ad");
+    if (format === "carousel" && cards.length < 2) throw new Error("carousel requires at least 2 cards");
 
-    // 1) Upload media
-    let image_hash: string | undefined;
-    let video_id: string | undefined;
-    const mediaRes = await fetch(media_url);
-    const mediaBlob = await mediaRes.blob();
+    const objectStorySpec: any = { page_id };
+    if (instagram_actor_id) objectStorySpec.instagram_actor_id = instagram_actor_id;
 
-    if (media_type === "image") {
-      const fd = new FormData();
-      fd.append("source", mediaBlob, "creative.jpg");
-      fd.append("access_token", token);
-      const up = await fetch(`${META_API}/${adAccountId}/adimages`, { method: "POST", body: fd });
-      const upData = await up.json();
-      if (upData.error) throw new Error(upData.error.message);
-      image_hash = Object.values(upData.images || {})[0]?.["hash"];
-    } else {
-      const fd = new FormData();
-      fd.append("source", mediaBlob, "creative.mp4");
-      fd.append("access_token", token);
-      const up = await fetch(`${META_API}/${adAccountId}/advideos`, { method: "POST", body: fd });
-      const upData = await up.json();
-      if (upData.error) throw new Error(upData.error.message);
-      video_id = upData.id;
-    }
+    let savedMediaUrl = media_url;
+    let savedMediaType = media_type;
 
-    // 2) Build creative
-    const objectStorySpec: any = { page_id: usedPageId };
-    if (image_hash) {
+    if (format === "carousel") {
+      // Upload each card image
+      const childAttachments: any[] = [];
+      for (const c of cards) {
+        const hash = await uploadImage(adAccountId, token, c.media_url);
+        childAttachments.push({
+          image_hash: hash,
+          link: c.link_url || link_url,
+          name: c.headline,
+          description: c.description,
+          call_to_action: { type: cta_type, value: { link: c.link_url || link_url } },
+        });
+      }
       objectStorySpec.link_data = {
-        image_hash, link: link_url, message: msgBody, name: title,
+        link: link_url, message: primary_text,
+        child_attachments: childAttachments,
+      };
+      savedMediaUrl = cards[0].media_url;
+      savedMediaType = "carousel";
+    } else if (media_type === "video") {
+      const video_id = await uploadVideo(adAccountId, token, media_url);
+      objectStorySpec.video_data = {
+        video_id, title: headline, message: primary_text, link_description: description,
         call_to_action: { type: cta_type, value: { link: link_url } },
       };
-    } else if (video_id) {
-      objectStorySpec.video_data = {
-        video_id, title, message: msgBody,
+    } else {
+      const image_hash = await uploadImage(adAccountId, token, media_url);
+      objectStorySpec.link_data = {
+        image_hash, link: link_url, message: primary_text,
+        name: headline, description,
         call_to_action: { type: cta_type, value: { link: link_url } },
       };
     }
-    const creativeParams = new URLSearchParams({
-      name: `${name} creative`,
-      object_story_spec: JSON.stringify(objectStorySpec),
-      access_token: token,
-    });
-    const crRes = await fetch(`${META_API}/${adAccountId}/adcreatives`, { method: "POST", body: creativeParams });
-    const crData = await crRes.json();
-    if (crData.error) throw new Error(crData.error.message);
 
-    // 3) Create ad
-    const adParams = new URLSearchParams({
+    const creativeBody: any = {
+      name: `${name} creative`,
+      object_story_spec: objectStorySpec,
+    };
+    if (url_tags) creativeBody.url_tags = url_tags;
+
+    // Asset feed for multi-variants (single format only)
+    if (format === "single" && (primary_text_variants.length > 1 || headline_variants.length > 1)) {
+      creativeBody.asset_feed_spec = {
+        bodies: (primary_text_variants.length ? primary_text_variants : [primary_text]).map((t: string) => ({ text: t })),
+        titles: (headline_variants.length ? headline_variants : [headline]).map((t: string) => ({ text: t })),
+        link_urls: [{ website_url: link_url }],
+        call_to_action_types: [cta_type],
+      };
+    }
+
+    const crParams = new URLSearchParams();
+    Object.entries(creativeBody).forEach(([k, v]) => {
+      crParams.append(k, typeof v === "string" ? v : JSON.stringify(v));
+    });
+    crParams.append("access_token", token);
+    const crRes = await fetch(`${META_API}/${adAccountId}/adcreatives`, { method: "POST", body: crParams });
+    const crData = await crRes.json();
+    if (crData.error) throw new Error(`Creative: ${crData.error.message}`);
+
+    // Tracking specs (pixel events)
+    const trackingSpecs = pixel_id ? [
+      { "action.type": ["offsite_conversion"], fb_pixel: [pixel_id] },
+    ] : undefined;
+
+    const adBody: any = {
       name, adset_id, status,
       creative: JSON.stringify({ creative_id: crData.id }),
       access_token: token,
-    });
+    };
+    if (trackingSpecs) adBody.tracking_specs = JSON.stringify(trackingSpecs);
+
+    const adParams = new URLSearchParams(adBody);
     const adRes = await fetch(`${META_API}/${adAccountId}/ads`, { method: "POST", body: adParams });
     const adData = await adRes.json();
-    if (adData.error) throw new Error(adData.error.message);
+    if (adData.error) throw new Error(`Ad: ${adData.error.message}`);
 
-    // 4) Save creative
     if (project_id) {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await supabase.from("meta_creatives").insert({
-        project_id, name, media_type, media_url, image_hash, video_id,
-        title, body: msgBody, cta_type, link_url,
+        project_id, name, media_type: savedMediaType, media_url: savedMediaUrl,
+        title: headline, body: primary_text, cta_type, link_url,
       });
     }
 
-    return new Response(JSON.stringify({ success: true, ad: adData, creative_id: crData.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, ad: adData, creative_id: crData.id }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e: any) {
     console.error("meta-ad-create error:", e);
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
