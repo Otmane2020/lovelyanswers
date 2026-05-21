@@ -22,14 +22,24 @@ const hasConfirmedPaymentMethod = (sub: any) => {
 };
 
 // Price → plan map (keep in sync with src/lib/stripe-products.ts)
-const PRICE_MAP: Record<string, { plan: "starter" | "pro" | "agency"; cycle: "monthly" | "annual"; sites: number; articles: number }> = {
-  "price_1TZI35Efti9t9nN9yj0tBl4c": { plan: "starter", cycle: "monthly", sites: 1, articles: 10 },
-  "price_1TZIB3Efti9t9nN9A4NxsNsg": { plan: "starter", cycle: "annual",  sites: 1, articles: 10 },
-  "price_1TZIBYEfti9t9nN9lG9JGwUa": { plan: "pro",     cycle: "monthly", sites: 3, articles: 30 },
-  "price_1TZIBfEfti9t9nN9ZYClUCvF": { plan: "pro",     cycle: "annual",  sites: 3, articles: 30 },
-  "price_1TZIBjEfti9t9nN9ToqTd8xu": { plan: "agency",  cycle: "monthly", sites: 10, articles: -1 },
-  "price_1TZIBnEfti9t9nN9fmZiURZR": { plan: "agency",  cycle: "annual",  sites: 10, articles: -1 },
+type PlanCaps = {
+  prioritySEO: boolean; allCms: boolean; planningUnlocked: boolean;
+  whiteLabel: boolean; multiClient: boolean; slackSupport: boolean; competitorMonitoring: boolean;
 };
+const STARTER_CAPS: PlanCaps = { prioritySEO: false, allCms: false, planningUnlocked: false, whiteLabel: false, multiClient: false, slackSupport: false, competitorMonitoring: false };
+const PRO_CAPS: PlanCaps     = { prioritySEO: true,  allCms: true,  planningUnlocked: true,  whiteLabel: false, multiClient: false, slackSupport: false, competitorMonitoring: true  };
+const AGENCY_CAPS: PlanCaps  = { prioritySEO: true,  allCms: true,  planningUnlocked: true,  whiteLabel: true,  multiClient: true,  slackSupport: true,  competitorMonitoring: true  };
+
+const PRICE_MAP: Record<string, { plan: "starter" | "pro" | "agency"; cycle: "monthly" | "annual"; sites: number; articles: number; caps: PlanCaps }> = {
+  "price_1TZI35Efti9t9nN9yj0tBl4c": { plan: "starter", cycle: "monthly", sites: 1,  articles: 10, caps: STARTER_CAPS },
+  "price_1TZIB3Efti9t9nN9A4NxsNsg": { plan: "starter", cycle: "annual",  sites: 1,  articles: 10, caps: STARTER_CAPS },
+  "price_1TZIBYEfti9t9nN9lG9JGwUa": { plan: "pro",     cycle: "monthly", sites: 3,  articles: 30, caps: PRO_CAPS     },
+  "price_1TZIBfEfti9t9nN9ZYClUCvF": { plan: "pro",     cycle: "annual",  sites: 3,  articles: 30, caps: PRO_CAPS     },
+  "price_1TZIBjEfti9t9nN9ToqTd8xu": { plan: "agency",  cycle: "monthly", sites: 10, articles: -1, caps: AGENCY_CAPS  },
+  "price_1TZIBnEfti9t9nN9fmZiURZR": { plan: "agency",  cycle: "annual",  sites: 10, articles: -1, caps: AGENCY_CAPS  },
+};
+const normalizeLimit = (n: number | null | undefined): number | null =>
+  (n == null || n < 0) ? null : n;
 
 
 // VIP emails with permanent unlimited access
@@ -65,14 +75,18 @@ async function triggerUnlockIfNeeded(supabaseClient: any, userId: string, authHe
 
   logStep("User has locked content - triggering unlock", { projectId });
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ userId, projectId }),
-  }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, projectId }),
+    });
+  } catch (e) {
+    logStep("Unlock trigger error (ignored)", { error: String(e) });
+  }
 }
 
 async function triggerGeoIfNeeded(supabaseClient: any, userId: string) {
