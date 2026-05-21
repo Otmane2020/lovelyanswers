@@ -10,6 +10,16 @@ export interface PlanPrice {
   perMonth: number;  // display per month, cents
 }
 
+export interface PlanFeatures {
+  prioritySEO: boolean;
+  allCms: boolean;               // Pro/Agency: WP, Shopify, Webflow, Wix; Starter: WP+Shopify only
+  planningUnlocked: boolean;     // Pro/Agency
+  whiteLabel: boolean;           // Agency
+  multiClient: boolean;          // Agency
+  slackSupport: boolean;         // Agency
+  competitorMonitoring: boolean; // Pro/Agency
+}
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -18,7 +28,38 @@ export interface Plan {
   sitesLimit: number;
   articlesLimit: number; // -1 = unlimited
   features: string[];
+  capabilities: PlanFeatures;
   prices: Record<BillingCycle, PlanPrice>;
+}
+
+const STARTER_CAPS: PlanFeatures = {
+  prioritySEO: false, allCms: false, planningUnlocked: false,
+  whiteLabel: false, multiClient: false, slackSupport: false, competitorMonitoring: false,
+};
+const PRO_CAPS: PlanFeatures = {
+  prioritySEO: true, allCms: true, planningUnlocked: true,
+  whiteLabel: false, multiClient: false, slackSupport: false, competitorMonitoring: true,
+};
+const AGENCY_CAPS: PlanFeatures = {
+  prioritySEO: true, allCms: true, planningUnlocked: true,
+  whiteLabel: true, multiClient: true, slackSupport: true, competitorMonitoring: true,
+};
+
+export const FREE_CAPS: PlanFeatures = STARTER_CAPS;
+
+/** -1 / null / undefined → unlimited. */
+export function isUnlimited(limit: number | null | undefined): boolean {
+  return limit == null || limit < 0;
+}
+/** Normalize a Stripe/DB numeric limit: -1 → null (= unlimited). */
+export function normalizeLimit(limit: number | null | undefined): number | null {
+  if (limit == null || limit < 0) return null;
+  return limit;
+}
+export function capsForPlan(plan: PlanId | null | undefined): PlanFeatures {
+  if (plan === "pro") return PRO_CAPS;
+  if (plan === "agency") return AGENCY_CAPS;
+  return STARTER_CAPS;
 }
 
 export const PLANS: Record<PlanId, Plan> = {
