@@ -34,8 +34,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const token = Deno.env.get("META_ACCESS_TOKEN");
-    const adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
+    let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!token || !adAccountId) throw new Error("Meta credentials not configured");
+    if (!adAccountId.startsWith("act_")) adAccountId = `act_${adAccountId}`;
     const { project_id, insights_only = false } = await req.json().catch(() => ({}));
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
