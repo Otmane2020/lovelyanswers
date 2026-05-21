@@ -31,6 +31,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+const siteWizardPath = (url?: string) =>
+  url ? `/wizard?addSite=1&url=${encodeURIComponent(url.trim())}` : "/wizard?addSite=1";
+
 export function BusinessSettings() {
   const router = useRouter();
   const { project, isLoading } = useActiveProject();
@@ -161,9 +164,8 @@ export function BusinessSettings() {
       // Clear any cached onboarding data
       localStorage.removeItem('onboarding_data');
       
-      // Redirect to onboarding with the new URL
-      const encodedUrl = encodeURIComponent(websiteUrl.trim());
-      router.push(`/onboarding?url=${encodedUrl}`);
+      // Redirect to the paid-user site wizard with the new URL
+      router.push(siteWizardPath(websiteUrl));
       
     } catch (error: unknown) {
       console.error("URL change failed:", error);
@@ -194,7 +196,7 @@ export function BusinessSettings() {
       toast.success("All data deleted. Redirecting to onboarding...");
       
       localStorage.removeItem('onboarding_data');
-      router.push("/onboarding");
+      router.push(siteWizardPath());
       
     } catch (error: unknown) {
       console.error("Delete all failed:", error);
@@ -211,8 +213,7 @@ export function BusinessSettings() {
     }
 
     localStorage.removeItem('onboarding_data');
-    const encodedUrl = encodeURIComponent(newUrl.trim());
-    router.push(`/onboarding?url=${encodedUrl}`);
+    router.push(siteWizardPath(newUrl));
   };
 
   if (isLoading) {
