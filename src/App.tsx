@@ -43,7 +43,7 @@ import ShoppingPlanning from "@/views/ShoppingPlanning";
 import ShoppingProduct from "@/views/ShoppingProduct";
 import SuperAdmin from "@/views/SuperAdmin";
 import SuperAdminAds from "@/views/SuperAdminAds";
-import SuperAdminMetaAds from "@/views/SuperAdminMetaAds";
+import { Navigate } from "react-router-dom";
 import AdsFlowDashboard from "@/views/adsflow/Dashboard";
 import AdsFlowCampaigns from "@/views/adsflow/Campaigns";
 import AdsFlowAdSets from "@/views/adsflow/AdSets";
@@ -54,6 +54,8 @@ import AdsFlowOptimizer from "@/views/adsflow/Optimizer";
 import AdsFlowCreatives from "@/views/adsflow/Creatives";
 import AdsFlowSettings from "@/views/adsflow/Settings";
 import AdsFlowBilling from "@/views/adsflow/Billing";
+import AdsFlowPixel from "@/views/adsflow/Pixel";
+import AdsFlowReports from "@/views/adsflow/Reports";
 import GoogleAnalyticsPage from "@/views/GoogleAnalyticsPage";
 import GoogleTagManager from "@/views/GoogleTagManager";
 import AeoPublicAnswer from "@/views/AeoPublicAnswer";
@@ -113,13 +115,15 @@ export default function App() {
         <Route path="/shopping/product/:productId" element={<ShoppingProduct />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/superadmin/ads" element={<SuperAdminAds />} />
-        <Route path="/superadmin/meta-ads" element={<SuperAdminMetaAds />} />
+        <Route path="/superadmin/meta-ads" element={<Navigate to="/adsflow" replace />} />
         <Route path="/adsflow" element={<AdsFlowDashboard />} />
         <Route path="/adsflow/campaigns" element={<AdsFlowCampaigns />} />
         <Route path="/adsflow/ad-sets" element={<AdsFlowAdSets />} />
         <Route path="/adsflow/ads" element={<AdsFlowAds />} />
         <Route path="/adsflow/audiences" element={<AdsFlowAudiences />} />
+        <Route path="/adsflow/pixel" element={<AdsFlowPixel />} />
         <Route path="/adsflow/analytics" element={<AdsFlowAnalytics />} />
+        <Route path="/adsflow/reports" element={<AdsFlowReports />} />
         <Route path="/adsflow/optimizer" element={<AdsFlowOptimizer />} />
         <Route path="/adsflow/creatives" element={<AdsFlowCreatives />} />
         <Route path="/adsflow/settings" element={<AdsFlowSettings />} />

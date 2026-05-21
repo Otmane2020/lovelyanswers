@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Megaphone, Layers, Image as ImageIcon, Users,
   BarChart3, Sparkles, FolderOpen, Settings, CreditCard, Bell,
-  ChevronLeft, ChevronRight, Search
+  ChevronLeft, ChevronRight, Search, Tag, FileBarChart
 } from "lucide-react";
 
 const nav = [
@@ -13,8 +13,10 @@ const nav = [
   { to: "/adsflow/ad-sets", icon: Layers, label: "Ad Sets" },
   { to: "/adsflow/ads", icon: ImageIcon, label: "Ads" },
   { to: "/adsflow/audiences", icon: Users, label: "Audiences" },
+  { to: "/adsflow/pixel", icon: Tag, label: "Pixel & Tracking" },
   { to: "/adsflow/analytics", icon: BarChart3, label: "Analytics" },
-  { to: "/adsflow/optimizer", icon: Sparkles, label: "Budget Optimizer" },
+  { to: "/adsflow/reports", icon: FileBarChart, label: "Reports" },
+  { to: "/adsflow/optimizer", icon: Sparkles, label: "AI Optimizer" },
   { to: "/adsflow/creatives", icon: FolderOpen, label: "Creative Library" },
   { to: "/adsflow/settings", icon: Settings, label: "Settings" },
   { to: "/adsflow/billing", icon: CreditCard, label: "Billing" },
