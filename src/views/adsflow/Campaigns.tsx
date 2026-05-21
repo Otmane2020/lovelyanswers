@@ -9,6 +9,7 @@ export default function AdsFlowCampaigns() {
   const data = useAdsflowData();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
   const curr = data.account?.currency || "EUR";
   const sym = curr === "USD" ? "$" : curr === "GBP" ? "£" : "€";
 
