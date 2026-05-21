@@ -81,10 +81,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
       setCreditsTotal(data?.credits_total || 0);
-      setPlan((data?.plan as PlanId) ?? null);
+      const planVal = (data?.plan as PlanId) ?? null;
+      setPlan(planVal);
       setCycle((data?.cycle as Cycle) ?? null);
-      setSitesLimit(typeof data?.sites_limit === "number" ? data.sites_limit : null);
-      setArticlesLimit(typeof data?.articles_limit === "number" ? data.articles_limit : null);
+      setSitesLimit(normalizeLimit(data?.sites_limit));
+      setArticlesLimit(normalizeLimit(data?.articles_limit));
+      setFeatures(
+        data?.features && typeof data.features === "object"
+          ? { ...capsForPlan(planVal), ...data.features }
+          : capsForPlan(planVal)
+      );
 
       
       console.log("[SubscriptionContext] State set - subscribed:", subscribed, "trial:", trial);
@@ -168,6 +174,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       cycle,
       sitesLimit,
       articlesLimit,
+      features,
 
       checkSubscription,
       startCheckout,
