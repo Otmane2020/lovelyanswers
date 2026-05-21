@@ -201,7 +201,8 @@ serve(async (req) => {
       };
     });
     if (project_id && ads.length) {
-      await supabase.from("meta_ads").upsert(ads, { onConflict: "project_id,ad_id" });
+      const { error: adErr } = await supabase.from("meta_ads").upsert(ads, { onConflict: "project_id,ad_id" });
+      if (adErr) console.error("ads upsert error:", adErr);
     }
 
     return new Response(JSON.stringify({
