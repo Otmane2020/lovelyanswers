@@ -21,17 +21,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const token = Deno.env.get("META_ACCESS_TOKEN");
-    let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
+    const adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!token || !adAccountId) throw new Error("Meta credentials not configured");
-    if (!adAccountId.startsWith("act_")) adAccountId = `act_${adAccountId}`;
 
-    const { project_id, name, ad_account_id } = await req.json();
+    const { project_id, name } = await req.json();
     if (!project_id || !name) throw new Error("project_id and name required");
-    let acct = ad_account_id || adAccountId;
-    if (!acct.startsWith("act_")) acct = `act_${acct}`;
 
     const params = new URLSearchParams({ name, access_token: token });
-    const res = await fetch(`${META_API}/${acct}/adspixels`, { method: "POST", body: params });
+    const res = await fetch(`${META_API}/${adAccountId}/adspixels`, { method: "POST", body: params });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
 

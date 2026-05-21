@@ -1,1 +1,0 @@
-ALTER TABLE public.meta_campaigns ADD COLUMN IF NOT EXISTS revenue numeric DEFAULT 0, ADD COLUMN IF NOT EXISTS cpa numeric DEFAULT 0;
