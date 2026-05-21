@@ -2177,6 +2177,7 @@ export type Database = {
           campaign_id: string
           clicks: number | null
           conversions: number | null
+          cpa: number | null
           cpc: number | null
           created_at: string
           ctr: number | null
@@ -2188,6 +2189,7 @@ export type Database = {
           name: string | null
           objective: string | null
           project_id: string
+          revenue: number | null
           roas: number | null
           spend: number | null
           start_time: string | null
@@ -2199,6 +2201,7 @@ export type Database = {
           campaign_id: string
           clicks?: number | null
           conversions?: number | null
+          cpa?: number | null
           cpc?: number | null
           created_at?: string
           ctr?: number | null
@@ -2210,6 +2213,7 @@ export type Database = {
           name?: string | null
           objective?: string | null
           project_id: string
+          revenue?: number | null
           roas?: number | null
           spend?: number | null
           start_time?: string | null
@@ -2221,6 +2225,7 @@ export type Database = {
           campaign_id?: string
           clicks?: number | null
           conversions?: number | null
+          cpa?: number | null
           cpc?: number | null
           created_at?: string
           ctr?: number | null
@@ -2232,6 +2237,7 @@ export type Database = {
           name?: string | null
           objective?: string | null
           project_id?: string
+          revenue?: number | null
           roas?: number | null
           spend?: number | null
           start_time?: string | null
