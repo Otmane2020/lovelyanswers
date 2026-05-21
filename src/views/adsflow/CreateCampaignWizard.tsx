@@ -359,13 +359,33 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                     {pages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </Field>
-                <Field label="Pixel (optional)">
-                  <select value={pixelId} onChange={e => setPixelId(e.target.value)} className={inputClass}>
-                    <option value="">None</option>
-                    {pixels.map(p => <option key={p.pixel_id} value={p.pixel_id}>{p.name}</option>)}
-                  </select>
+                <Field label="Instagram account">
+                  {instagramAccount ? (
+                    <div className="h-10 px-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-sm flex items-center gap-2">
+                      <Instagram className="h-3.5 w-3.5 text-pink-400" />
+                      <span className="truncate">@{instagramAccount.username || instagramAccount.id}</span>
+                      <span className="ml-auto text-[10px] text-emerald-300">Linked</span>
+                    </div>
+                  ) : (
+                    <div className="h-10 px-3 rounded-lg bg-[#1a1a1a] border border-amber-500/30 text-xs flex items-center gap-2 text-amber-200">
+                      <Instagram className="h-3.5 w-3.5" />
+                      No IG linked to this Page — link it in Meta Business Suite
+                    </div>
+                  )}
                 </Field>
               </div>
+              <Field label="Pixel (conversion tracking)">
+                <div className="flex gap-2">
+                  <select value={pixelId} onChange={e => setPixelId(e.target.value)} className={`${inputClass} flex-1`}>
+                    <option value="">None</option>
+                    {pixels.map(p => <option key={p.pixel_id} value={p.pixel_id}>{p.name} ({p.pixel_id})</option>)}
+                  </select>
+                  <button type="button" onClick={testPixel} disabled={!pixelId || aiLoading === "pixel"} className="shrink-0 h-10 px-3 rounded-lg text-xs font-medium bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-200 border border-emerald-500/30 flex items-center gap-1 disabled:opacity-40">
+                    {aiLoading === "pixel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />} Test
+                  </button>
+                </div>
+                {pixelId && <p className="text-[11px] text-[#9ca3af] mt-1">Sends a server-side PageView via CAPI with <code className="text-[10px]">test_event_code=TEST12345</code>.</p>}
+              </Field>
               <Field label="Ad name"><input value={adName} onChange={e => setAdName(e.target.value)} placeholder="Auto from campaign if empty" className={inputClass} /></Field>
               <Field label="Headline (max 40 chars)">
                 <div className="relative">
