@@ -2,8 +2,28 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// OpenRouter free models — no credits required
+const OR_TEXT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+const OR_TOOL_MODEL = "google/gemini-2.0-flash-exp:free";
+const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+async function callOpenRouter(body: any) {
+  const r = await fetch(OR_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://autopilotgeo.com",
+      "X-Title": "AdsFlow",
+    },
+    body: JSON.stringify(body),
+  });
+  return r;
+}
 
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
   interests: (c) => `Suggest 4-6 Meta Ads interest targets (comma-separated, no quotes, no numbering) for ${c.brand} (${c.site}). Objective: ${c.objective}. Countries: ${c.countries}. Business: ${c.biz}. Return ONLY the list.`,
