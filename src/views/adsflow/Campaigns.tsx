@@ -23,9 +23,13 @@ export default function AdsFlowCampaigns() {
   return (
     <AdsFlowLayout title="Campaigns" accountName={data.account?.name} onSync={data.sync} syncing={data.syncing}>
       <GuardGate data={data}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-3">
           <p className="text-sm text-[#9ca3af]">All campaigns from your connected Meta Ad Account.</p>
+          <button onClick={() => setWizardOpen(true)} className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white flex items-center gap-1.5 shrink-0">
+            <Plus className="h-4 w-4" /> Create Campaign
+          </button>
         </div>
+
 
         <Card className="p-3 mb-4 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-[#0f0f0f] border border-white/5 text-sm flex-1 min-w-[200px]">
