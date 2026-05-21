@@ -95,7 +95,8 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
           countries: countries.split(",").map(c => c.trim()).filter(Boolean),
           age_min: ageMin,
           age_max: ageMax,
-          interests: interests.split(",").map(i => i.trim()).filter(Boolean),
+          // interests left as free-text label only; Meta interest IDs require search
+
           optimization_goal: objective.includes("SALES") || objective.includes("LEADS") ? "OFFSITE_CONVERSIONS" : "LINK_CLICKS",
           pixel_id: pixelId || undefined,
           status: "PAUSED",
