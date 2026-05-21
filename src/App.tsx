@@ -43,6 +43,7 @@ import ShoppingPlanning from "@/views/ShoppingPlanning";
 import ShoppingProduct from "@/views/ShoppingProduct";
 import SuperAdmin from "@/views/SuperAdmin";
 import SuperAdminAds from "@/views/SuperAdminAds";
+import SuperAdminMetaAds from "@/views/SuperAdminMetaAds";
 import GoogleAnalyticsPage from "@/views/GoogleAnalyticsPage";
 import GoogleTagManager from "@/views/GoogleTagManager";
 import AeoPublicAnswer from "@/views/AeoPublicAnswer";
@@ -102,6 +103,7 @@ export default function App() {
         <Route path="/shopping/product/:productId" element={<ShoppingProduct />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/superadmin/ads" element={<SuperAdminAds />} />
+        <Route path="/superadmin/meta-ads" element={<SuperAdminMetaAds />} />
         <Route path="/google-analytics" element={<GoogleAnalyticsPage />} />
         <Route path="/google-tag-manager" element={<GoogleTagManager />} />
         <Route path="/account" element={<AeoAccount />} />
