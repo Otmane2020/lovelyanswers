@@ -1591,7 +1591,10 @@ export type Database = {
           created_at: string
           currency: string | null
           id: string
+          instagram_actor_id: string | null
           name: string | null
+          page_id: string | null
+          page_name: string | null
           project_id: string
           status: string | null
           timezone: string | null
@@ -1603,7 +1606,10 @@ export type Database = {
           created_at?: string
           currency?: string | null
           id?: string
+          instagram_actor_id?: string | null
           name?: string | null
+          page_id?: string | null
+          page_name?: string | null
           project_id: string
           status?: string | null
           timezone?: string | null
@@ -1615,7 +1621,10 @@ export type Database = {
           created_at?: string
           currency?: string | null
           id?: string
+          instagram_actor_id?: string | null
           name?: string | null
+          page_id?: string | null
+          page_name?: string | null
           project_id?: string
           status?: string | null
           timezone?: string | null
@@ -2165,6 +2174,8 @@ export type Database = {
           gtm_pushed: boolean
           id: string
           installed_at: string | null
+          is_capi_enabled: boolean
+          last_fired_at: string | null
           lovable_injected: boolean
           name: string | null
           pixel_id: string
@@ -2179,6 +2190,8 @@ export type Database = {
           gtm_pushed?: boolean
           id?: string
           installed_at?: string | null
+          is_capi_enabled?: boolean
+          last_fired_at?: string | null
           lovable_injected?: boolean
           name?: string | null
           pixel_id: string
@@ -2193,6 +2206,8 @@ export type Database = {
           gtm_pushed?: boolean
           id?: string
           installed_at?: string | null
+          is_capi_enabled?: boolean
+          last_fired_at?: string | null
           lovable_injected?: boolean
           name?: string | null
           pixel_id?: string
