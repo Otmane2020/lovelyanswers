@@ -91,14 +91,6 @@ function safeCampaignFallback(ctx: any) {
   };
 }
 
-function isExpectedAIError(e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
-  return /rate limit|retry shortly|credits|payment|required|too many requests/i.test(msg);
-}
-
-
-
-
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
   interests: (c) => `You are a Meta Ads targeting strategist. Generate a HIGHLY SPECIALIZED audience for:
 
@@ -217,17 +209,18 @@ Deno.serve(async (req) => {
       });
       if (!r.ok) {
         const t = await r.text();
-        return new Response(JSON.stringify({ error: `Image gen failed: ${t}` }), { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        console.warn(`[meta-ads-ai-suggest] Image generation ${r.status}: ${t.slice(0, 200)}`);
+        return new Response(JSON.stringify({ error: "Image generation temporarily unavailable, please retry in a moment.", fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const j = await r.json();
       const imageUrl = j.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (!imageUrl) return new Response(JSON.stringify({ error: "No image returned" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!imageUrl) return new Response(JSON.stringify({ error: "No image returned", fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       // Persist to storage bucket so Meta can fetch a stable URL
       const b64 = imageUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const path = `${project_id}/ai-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage.from("meta-creatives").upload(path, bytes, { contentType: "image/png", upsert: false });
-      if (upErr) return new Response(JSON.stringify({ error: upErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (upErr) return new Response(JSON.stringify({ error: upErr.message, fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: pub } = supabase.storage.from("meta-creatives").getPublicUrl(path);
       return new Response(JSON.stringify({ image_url: pub.publicUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
