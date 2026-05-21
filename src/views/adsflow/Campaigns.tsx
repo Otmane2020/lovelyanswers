@@ -91,6 +91,16 @@ export default function AdsFlowCampaigns() {
           </Card>
         )}
       </GuardGate>
+      <CreateCampaignWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        projectId={data.projectId}
+        accountCurrency={data.account?.currency}
+        pages={data.account?.page_id ? [{ id: data.account.page_id, name: data.account.page_name || "Page" }] : []}
+        pixels={data.pixels.map((p: any) => ({ pixel_id: p.pixel_id, name: p.name }))}
+        onCreated={() => data.sync()}
+      />
     </AdsFlowLayout>
   );
 }
+
