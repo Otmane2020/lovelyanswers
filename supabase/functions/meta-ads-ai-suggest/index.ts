@@ -6,26 +6,22 @@ const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// OpenRouter free models — no credits required
-const OR_TEXT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
-const OR_TOOL_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+// Lovable AI Gateway (same as article generation — free Gemini Flash window)
+const LAI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const LAI_TEXT_MODEL = "google/gemini-2.5-flash";
+const LAI_TOOL_MODEL = "google/gemini-2.5-flash";
 
-
-const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
-
-async function callOpenRouter(body: any) {
-  const r = await fetch(OR_URL, {
+async function callLovableAI(body: any) {
+  return await fetch(LAI_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://autopilotgeo.com",
-      "X-Title": "AdsFlow",
     },
     body: JSON.stringify(body),
   });
-  return r;
 }
+
 
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
   interests: (c) => `You are a Meta Ads targeting strategist. Generate a HIGHLY SPECIALIZED audience for:
