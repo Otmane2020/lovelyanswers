@@ -202,11 +202,12 @@ Deno.serve(async (req) => {
         tools: [FULL_CAMPAIGN_TOOL],
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
-      if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (!r.ok) {
         const t = await r.text();
-        return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        console.error("[full_campaign] AI failed:", r.status, t);
+        return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+
       const j = await r.json();
       const call = j.choices?.[0]?.message?.tool_calls?.[0];
       let args: any;
@@ -234,10 +235,12 @@ Deno.serve(async (req) => {
         { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
       ],
     });
-    if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!r.ok) {
       const t = await r.text();
-      return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("[text field] AI failed:", r.status, t);
+      return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     }
     const j = await r.json();
     const text = (j.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
