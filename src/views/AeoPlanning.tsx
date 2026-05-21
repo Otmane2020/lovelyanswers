@@ -106,7 +106,7 @@ export default function AeoPlanning() {
   // Keep published items at their actual dates. Everything else (already scheduled but unpublished + queue)
   // gets redistributed across days matching the live frequency from the AutoPublishSettings block, so the
   // calendar always mirrors what the user selects in that block.
-  const publishedItems = useMemo(
+  const publishedScheduled = useMemo(
     () => scheduledItems.filter((i) => i.status === "published"),
     [scheduledItems]
   );
@@ -119,7 +119,7 @@ export default function AeoPlanning() {
 
   const previewItems = useMemo<ScheduledItem[]>(() => {
     if (!autoPublishOn || reschedulablePool.length === 0) return [];
-    const usedDates = new Set(publishedItems.map((i) => format(i.date, "yyyy-MM-dd")));
+    const usedDates = new Set(publishedScheduled.map((i) => format(i.date, "yyyy-MM-dd")));
     const slots: Date[] = [];
     for (const day of rangeDays) {
       if (day < rangeStart) continue;
@@ -134,9 +134,10 @@ export default function AeoPlanning() {
       status: "preview" as const,
       isPreview: true,
     }));
-  }, [reschedulablePool, publishedItems, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
+  }, [reschedulablePool, publishedScheduled, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
 
-  const allItems = useMemo(() => [...publishedItems, ...previewItems], [publishedItems, previewItems]);
+  const allItems = useMemo(() => [...publishedScheduled, ...previewItems], [publishedScheduled, previewItems]);
+
 
 
   const getItemsForDate = (date: Date) => {
