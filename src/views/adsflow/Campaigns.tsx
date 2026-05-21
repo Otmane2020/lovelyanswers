@@ -64,7 +64,7 @@ export default function AdsFlowCampaigns() {
                 </thead>
                 <tbody>
                   {filtered.map(c => {
-                    const budget = Number(c.daily_budget || c.lifetime_budget || 0) / 100;
+                    const budget = Number(c.daily_budget || c.lifetime_budget || 0);
                     const status = ((c.status || "draft").toLowerCase());
                     return (
                       <tr key={c.id} className="border-t border-white/5 hover:bg-white/[0.02]">
