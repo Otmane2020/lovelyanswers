@@ -460,11 +460,34 @@ export function BusinessSettings() {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => setShowAddUrlDialog(true)}
+              onClick={() => {
+                if (!canAddSite) {
+                  if (!hasPlan) {
+                    toast.error("Subscribe to a plan to add more sites");
+                  } else {
+                    toast.error(`Your ${plan ?? "current"} plan allows up to ${sitesLimit} site${(sitesLimit ?? 1) > 1 ? "s" : ""}. Upgrade to add more.`);
+                  }
+                  router.push("/checkout?plan=pro");
+                  return;
+                }
+                setShowAddUrlDialog(true);
+              }}
               disabled={isDeleting || isResetting}
+              title={
+                !canAddSite
+                  ? (hasPlan
+                      ? `Limit reached: ${currentSitesCount}/${sitesLimit} sites on ${plan ?? "your"} plan`
+                      : "Subscribe to add more sites")
+                  : sitesUnlimited
+                    ? "Unlimited sites"
+                    : `${currentSitesCount}/${sitesLimit} sites used`
+              }
             >
               <Plus className="w-4 h-4 mr-2" />
               Add URL
+              {hasPlan && !sitesUnlimited && typeof sitesLimit === "number" && (
+                <span className="ml-2 text-xs text-muted-foreground">({currentSitesCount}/{sitesLimit})</span>
+              )}
             </Button>
             <Button 
               variant="destructive"
