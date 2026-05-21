@@ -26,11 +26,35 @@ async function callOpenRouter(body: any) {
 }
 
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
-  interests: (c) => `Suggest 4-6 Meta Ads interest targets (comma-separated, no quotes, no numbering) for ${c.brand} (${c.site}). Objective: ${c.objective}. Countries: ${c.countries}. Business: ${c.biz}. Return ONLY the list.`,
-  headline: (c) => `Write ONE Meta Ads headline (max 40 chars, no quotes, no emoji) in ${c.lang} for ${c.brand} (${c.site}). Objective: ${c.objective}. Business: ${c.biz}. Return ONLY the headline.`,
-  primary_text: (c) => `Write ONE Meta Ads primary text (90-125 chars, no quotes, can use 1 emoji max) in ${c.lang} for ${c.brand} (${c.site}). Objective: ${c.objective}. Business: ${c.biz}. Hook + benefit + CTA. Return ONLY the text.`,
+  interests: (c) => `You are a Meta Ads targeting strategist. Generate a HIGHLY SPECIALIZED audience for:
+
+Brand: ${c.brand}
+Website: ${c.site}
+Business: ${c.biz}
+Target audience profile: ${c.audience}
+Business type: ${c.btype}
+Competitors: ${c.competitors}
+Language/market: ${c.lang}
+Countries: ${c.countries}
+Age range: ${c.age_min}-${c.age_max}
+Campaign objective: ${c.objective}
+
+Pick 6-10 NICHE Meta Ads interest targets that this exact buyer persona would follow on Facebook/Instagram. Mix:
+- 2-3 direct category interests (what they buy)
+- 2-3 lifestyle/behavior interests (how they live)
+- 1-2 competitor brands or adjacent brands they follow
+- 1-2 media/influencers/publications they consume
+
+Rules:
+- Use REAL interest names that exist in Meta Ads Manager (brands, publications, public figures, hobbies).
+- No generic words like "shopping", "online", "internet".
+- Comma-separated, no numbering, no quotes, no explanation.
+Return ONLY the comma-separated list.`,
+  headline: (c) => `Write ONE Meta Ads headline (max 40 chars, no quotes, no emoji) in ${c.lang} for ${c.brand} (${c.site}). Objective: ${c.objective}. Business: ${c.biz}. Audience: ${c.audience}. Return ONLY the headline.`,
+  primary_text: (c) => `Write ONE Meta Ads primary text (90-125 chars, no quotes, can use 1 emoji max) in ${c.lang} for ${c.brand} (${c.site}). Objective: ${c.objective}. Business: ${c.biz}. Audience: ${c.audience}. Hook + benefit + CTA. Return ONLY the text.`,
   description: (c) => `Write ONE Meta Ads description line (max 30 chars, no quotes, no emoji) in ${c.lang} for ${c.brand}. Return ONLY the text.`,
 };
+
 
 const FULL_CAMPAIGN_TOOL = {
   type: "function",
@@ -63,7 +87,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { project_id, field, objective, countries, current, image_prompt } = await req.json();
+    const { project_id, field, objective, countries, current, image_prompt, age_min, age_max } = await req.json();
     if (!project_id || !field) {
       return new Response(JSON.stringify({ error: "project_id and field required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -71,18 +95,39 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: gs } = await supabase.from("generation_settings")
-      .select("brand_name, website_url, language, business_description")
-      .eq("project_id", project_id).maybeSingle();
+    const [{ data: gs }, { data: proj }] = await Promise.all([
+      supabase.from("generation_settings")
+        .select("brand_name, website_url, language, business_description, target_audiences, competitors, tone")
+        .eq("project_id", project_id).maybeSingle(),
+      supabase.from("projects")
+        .select("brand_name, website_url, language, business_description, business_type, audience, competitors")
+        .eq("id", project_id).maybeSingle(),
+    ]);
+
+    const competitorsArr = [
+      ...(gs?.competitors || []),
+      ...(proj?.competitors || []),
+    ].filter(Boolean);
+    const audienceStr = [
+      proj?.audience,
+      ...(gs?.target_audiences || []),
+    ].filter(Boolean).join(" | ") || "general consumers";
 
     const ctx = {
-      brand: gs?.brand_name || "the brand",
-      site: gs?.website_url || "",
-      lang: gs?.language || "en",
-      biz: gs?.business_description || "",
+      brand: gs?.brand_name || proj?.brand_name || "the brand",
+      site: gs?.website_url || proj?.website_url || "",
+      lang: gs?.language || proj?.language || "en",
+      biz: gs?.business_description || proj?.business_description || "",
+      btype: proj?.business_type || "",
+      audience: audienceStr,
+      competitors: competitorsArr.slice(0, 8).join(", ") || "none provided",
+      tone: gs?.tone || "professional",
       objective: objective || "OUTCOME_TRAFFIC",
       countries: countries || "global",
+      age_min: age_min ?? 25,
+      age_max: age_max ?? 65,
     };
+
 
     // === IMAGE GENERATION ===
     if (field === "image") {

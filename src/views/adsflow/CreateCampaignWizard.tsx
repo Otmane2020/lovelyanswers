@@ -70,8 +70,9 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
     setAiLoading(field);
     try {
       const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
-        body: { project_id: projectId, field, objective, countries, current },
+        body: { project_id: projectId, field, objective, countries, current, age_min: ageMin, age_max: ageMax },
       });
+
       if (error || data?.error) throw new Error(data?.error || error?.message);
       const text = (data?.text || "").trim();
       if (!text) throw new Error("No suggestion returned");
