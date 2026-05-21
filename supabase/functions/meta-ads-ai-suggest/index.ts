@@ -6,7 +6,8 @@ const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Primary: Lovable AI Gateway. Fallback: OpenRouter free models when credits exhausted/rate-limited.
+// Text generation uses the same OpenRouter free-model path as article generation.
+// Lovable AI is kept only for image generation, which OpenRouter text models cannot provide here.
 const LAI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const LAI_TEXT_MODEL = "google/gemini-2.5-flash";
 const LAI_TOOL_MODEL = "google/gemini-2.5-flash";
@@ -35,16 +36,8 @@ async function callOpenRouter(body: any) {
   });
 }
 
-// Try Lovable AI first; on any error fall back to OpenRouter free model.
+// Try the free OpenRouter path first; never bubble 402/429 to the client as an HTTP error.
 async function callAIWithFallback(body: any) {
-  try {
-    const r = await callLovableAI(body);
-    if (r.ok) return r;
-    const text = await r.clone().text();
-    console.warn(`[meta-ads-ai-suggest] Lovable AI ${r.status}: ${text.slice(0, 200)} — falling back to OpenRouter`);
-  } catch (e) {
-    console.warn(`[meta-ads-ai-suggest] Lovable AI threw: ${e instanceof Error ? e.message : e} — falling back`);
-  }
   const fallbackBody = { ...body, model: OR_FREE_MODEL };
   // OpenRouter free llama doesn't reliably support tool_choice; drop tools and ask for JSON.
   if (fallbackBody.tools) {
@@ -52,11 +45,51 @@ async function callAIWithFallback(body: any) {
     delete fallbackBody.tool_choice;
     fallbackBody.response_format = { type: "json_object" };
   }
-  return await callOpenRouter(fallbackBody);
+  try {
+    const r = await callOpenRouter(fallbackBody);
+    if (r.ok) return r;
+    const text = await r.clone().text();
+    console.warn(`[meta-ads-ai-suggest] OpenRouter ${r.status}: ${text.slice(0, 200)} — falling back to Lovable AI`);
+  } catch (e) {
+    console.warn(`[meta-ads-ai-suggest] OpenRouter threw: ${e instanceof Error ? e.message : e} — falling back`);
+  }
+
+  try {
+    const r = await callLovableAI(body);
+    if (r.ok) return r;
+    const text = await r.clone().text();
+    console.warn(`[meta-ads-ai-suggest] Lovable AI ${r.status}: ${text.slice(0, 200)}`);
+  } catch (e) {
+    console.warn(`[meta-ads-ai-suggest] Lovable AI threw: ${e instanceof Error ? e.message : e}`);
+  }
+
+  return null;
 }
 
+function safeTextFallback(field: string, ctx: any) {
+  if (field === "interests") return [ctx.brand, ctx.btype, "digital marketing", "entrepreneurship", "small business", "online advertising"].filter(Boolean).join(", ");
+  if (field === "headline") return `${ctx.brand} — Discover More`.slice(0, 40);
+  if (field === "primary_text") return `Discover ${ctx.brand} and get a solution built for ${ctx.audience}. Learn more today.`;
+  if (field === "description") return "Learn more today";
+  return "";
+}
 
-
+function safeCampaignFallback(ctx: any) {
+  return {
+    name: `${ctx.brand} Traffic Campaign`.slice(0, 60),
+    objective: ctx.objective || "OUTCOME_TRAFFIC",
+    daily_budget: 10,
+    countries: ctx.countries || "FR,BE,CH",
+    age_min: ctx.age_min || 25,
+    age_max: ctx.age_max || 65,
+    interests: safeTextFallback("interests", ctx),
+    headline: safeTextFallback("headline", ctx),
+    primary_text: safeTextFallback("primary_text", ctx),
+    description: safeTextFallback("description", ctx),
+    cta: "LEARN_MORE",
+    image_prompt: `Photorealistic social ad visual for ${ctx.brand}, ${ctx.biz}, square composition, no text overlay`,
+  };
+}
 
 const TEXT_PROMPTS: Record<string, (ctx: any) => string> = {
   interests: (c) => `You are a Meta Ads targeting strategist. Generate a HIGHLY SPECIALIZED audience for:
@@ -176,17 +209,18 @@ Deno.serve(async (req) => {
       });
       if (!r.ok) {
         const t = await r.text();
-        return new Response(JSON.stringify({ error: `Image gen failed: ${t}` }), { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        console.warn(`[meta-ads-ai-suggest] Image generation ${r.status}: ${t.slice(0, 200)}`);
+        return new Response(JSON.stringify({ error: "Image generation temporarily unavailable, please retry in a moment.", fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const j = await r.json();
       const imageUrl = j.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (!imageUrl) return new Response(JSON.stringify({ error: "No image returned" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!imageUrl) return new Response(JSON.stringify({ error: "No image returned", fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       // Persist to storage bucket so Meta can fetch a stable URL
       const b64 = imageUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const path = `${project_id}/ai-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage.from("meta-creatives").upload(path, bytes, { contentType: "image/png", upsert: false });
-      if (upErr) return new Response(JSON.stringify({ error: upErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (upErr) return new Response(JSON.stringify({ error: upErr.message, fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: pub } = supabase.storage.from("meta-creatives").getPublicUrl(path);
       return new Response(JSON.stringify({ image_url: pub.publicUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -202,10 +236,10 @@ Deno.serve(async (req) => {
         tools: [FULL_CAMPAIGN_TOOL],
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
-      if (!r.ok) {
-        const t = await r.text();
-        console.error("[full_campaign] AI failed:", r.status, t);
-        return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!r?.ok) {
+        const t = r ? await r.text() : "No AI provider returned a response";
+        console.error("[full_campaign] AI failed:", r?.status ?? "no-response", t);
+        return new Response(JSON.stringify({ plan: safeCampaignFallback(ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const j = await r.json();
@@ -216,8 +250,8 @@ Deno.serve(async (req) => {
       } else {
         // Fallback path (OpenRouter without tools): parse JSON content
         const content = j.choices?.[0]?.message?.content || "";
-        try { args = JSON.parse(content); } catch { 
-          return new Response(JSON.stringify({ error: "No tool call" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        try { args = JSON.parse(content); } catch {
+          return new Response(JSON.stringify({ plan: safeCampaignFallback(ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
       return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -235,13 +269,12 @@ Deno.serve(async (req) => {
         { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
       ],
     });
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("[text field] AI failed:", r.status, t);
-      return new Response(JSON.stringify({ error: r.status === 429 ? "AI temporarily busy, please retry in a moment." : "AI service unavailable, please retry." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!r?.ok) {
+      const t = r ? await r.text() : "No AI provider returned a response";
+      console.error("[text field] AI failed:", r?.status ?? "no-response", t);
+      return new Response(JSON.stringify({ text: safeTextFallback(field, ctx), fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    }
     const j = await r.json();
     const text = (j.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
     return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
