@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export interface Project {
   id: string;
@@ -61,6 +62,7 @@ export function useActiveProject() {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { sitesLimit: liveSitesLimit, subscribed, trial, checkSubscription } = useSubscription();
 
   return useMutation({
     mutationFn: async (projectData: {
@@ -77,16 +79,23 @@ export function useCreateProject() {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
-      // Enforce plan sites_limit (read from latest subscription row)
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("sites_limit, status")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Refresh Stripe-backed plan state first so paid/full-access users are not blocked by stale DB limits.
+      const hasLiveAccess = (await checkSubscription().catch(() => false)) || subscribed || trial;
+      let sitesLimit: number | null | undefined = hasLiveAccess ? liveSitesLimit : undefined;
 
-      const sitesLimit = (sub as any)?.sites_limit as number | null | undefined;
+      // Fallback to the latest subscription row only when live subscription state is unavailable.
+      if (sitesLimit === undefined) {
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("sites_limit, status")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        sitesLimit = (sub as any)?.sites_limit as number | null | undefined;
+      }
+
       if (typeof sitesLimit === "number") {
         const { count } = await supabase
           .from("projects")
