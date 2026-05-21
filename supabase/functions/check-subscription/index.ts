@@ -75,18 +75,15 @@ async function triggerUnlockIfNeeded(supabaseClient: any, userId: string, authHe
 
   logStep("User has locked content - triggering unlock", { projectId });
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, projectId }),
-    });
-  } catch (e) {
-    logStep("Unlock trigger error (ignored)", { error: String(e) });
-  }
+  // Fire-and-forget — unlock can take >60s and would time out check-subscription (150s limit)
+  fetch(`${supabaseUrl}/functions/v1/unlock-articles`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ userId, projectId }),
+  }).catch((e) => logStep("Unlock trigger error (ignored)", { error: String(e) }));
 }
 
 async function triggerGeoIfNeeded(supabaseClient: any, userId: string) {
