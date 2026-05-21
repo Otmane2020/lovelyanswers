@@ -44,22 +44,28 @@ async function callOpenRouter(body: any) {
 
 // Try the free OpenRouter path first; never bubble 402/429 to the client as an HTTP error.
 async function callAIWithFallback(body: any) {
-  const fallbackBody = { ...body, model: OR_FREE_MODEL };
-  // OpenRouter free llama doesn't reliably support tool_choice; drop tools and ask for JSON.
-  if (fallbackBody.tools) {
-    delete fallbackBody.tools;
-    delete fallbackBody.tool_choice;
-    fallbackBody.response_format = { type: "json_object" };
-  }
-  try {
-    const r = await callOpenRouter(fallbackBody);
-    if (r.ok) return r;
-    const text = await r.clone().text();
-    console.warn(`[meta-ads-ai-suggest] OpenRouter ${r.status}: ${text.slice(0, 200)} — falling back to Lovable AI`);
-  } catch (e) {
-    console.warn(`[meta-ads-ai-suggest] OpenRouter threw: ${e instanceof Error ? e.message : e} — falling back`);
+  const fallbackBase = { ...body };
+  // OpenRouter free models don't reliably support tool_choice; drop tools and ask for JSON.
+  const hasTools = !!fallbackBase.tools;
+  if (hasTools) {
+    delete fallbackBase.tools;
+    delete fallbackBase.tool_choice;
+    fallbackBase.response_format = { type: "json_object" };
   }
 
+  // Try each OpenRouter free model in turn.
+  for (const model of OR_FREE_MODELS) {
+    try {
+      const r = await callOpenRouter({ ...fallbackBase, model });
+      if (r.ok) return r;
+      const text = await r.clone().text();
+      console.warn(`[meta-ads-ai-suggest] OpenRouter ${model} ${r.status}: ${text.slice(0, 160)}`);
+    } catch (e) {
+      console.warn(`[meta-ads-ai-suggest] OpenRouter ${model} threw: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  // Last resort: Lovable AI (may be 402 if credits exhausted).
   try {
     const r = await callLovableAI(body);
     if (r.ok) return r;
