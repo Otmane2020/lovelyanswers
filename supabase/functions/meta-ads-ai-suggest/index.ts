@@ -160,18 +160,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ image_url: pub.publicUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === FULL CAMPAIGN (structured) via OpenRouter free ===
+    // === FULL CAMPAIGN (structured) via Lovable AI ===
     if (field === "full_campaign") {
-      const r = await callOpenRouter({
-        model: OR_TOOL_MODEL,
+      const r = await callLovableAI({
+        model: LAI_TOOL_MODEL,
         messages: [
           { role: "system", content: "You are an expert Meta Ads strategist. Build a high-performing campaign brief from the brand context." },
-          { role: "user", content: `Build a complete Meta Ads campaign for ${ctx.brand} (${ctx.site}).\nLanguage for copy: ${ctx.lang}.\nBusiness: ${ctx.biz}.\nPick the best objective, audience, budget, creative copy and image prompt.` },
+          { role: "user", content: `Build a complete Meta Ads campaign for ${ctx.brand} (${ctx.site}).\nLanguage for copy: ${ctx.lang}.\nBusiness: ${ctx.biz}.\nAudience: ${ctx.audience}.\nCompetitors: ${ctx.competitors}.\nPick the best objective, audience, budget, creative copy and image prompt.` },
         ],
         tools: [FULL_CAMPAIGN_TOOL],
         tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted — top up in Settings → Workspace → Usage" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (!r.ok) {
         const t = await r.text();
         return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -183,18 +184,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === SINGLE TEXT FIELD via OpenRouter free ===
+    // === SINGLE TEXT FIELD via Lovable AI ===
     const buildPrompt = TEXT_PROMPTS[field];
     if (!buildPrompt) return new Response(JSON.stringify({ error: "unknown field" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const prompt = buildPrompt(ctx);
-    const r = await callOpenRouter({
-      model: OR_TEXT_MODEL,
+    const r = await callLovableAI({
+      model: LAI_TEXT_MODEL,
       messages: [
         { role: "system", content: "You are an expert Meta Ads copywriter. Output only the requested text, no preamble, no quotes, no markdown." },
         { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
       ],
     });
     if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted — top up in Settings → Workspace → Usage" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!r.ok) {
       const t = await r.text();
       return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -202,6 +204,7 @@ Deno.serve(async (req) => {
     const j = await r.json();
     const text = (j.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "");
     return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
