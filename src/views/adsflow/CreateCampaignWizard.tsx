@@ -87,6 +87,79 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
     }
   }
 
+  async function aiFullCampaign() {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading("full");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field: "full_campaign" },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const p = data?.plan;
+      if (!p) throw new Error("No plan returned");
+      setName(p.name || ""); setObjective(p.objective || "OUTCOME_TRAFFIC");
+      setDailyBudget(Number(p.daily_budget) || 10);
+      setCountries(p.countries || "FR,BE,CH"); setAgeMin(p.age_min || 25); setAgeMax(p.age_max || 65);
+      setInterests(p.interests || "");
+      setHeadline((p.headline || "").slice(0, 40));
+      setPrimaryText(p.primary_text || "");
+      setDescription((p.description || "").slice(0, 30));
+      setCta(p.cta || "SIGN_UP");
+      toast.success("Campaign drafted by AI — generating image…");
+      // Auto-generate image based on the AI's image prompt
+      if (p.image_prompt) {
+        const { data: img, error: imgErr } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+          body: { project_id: projectId, field: "image", image_prompt: p.image_prompt },
+        });
+        if (!imgErr && img?.image_url) {
+          setImageUrl(img.image_url);
+          toast.success("Image generated ✨");
+        }
+      }
+      setStep(4);
+    } catch (e: any) {
+      toast.error(`AI: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function aiImage() {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading("image");
+    try {
+      const prompt = primaryText || headline || undefined;
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field: "image", image_prompt: prompt ? `Photorealistic Meta Ads visual, square 1:1, no text overlay. Context: ${prompt}` : undefined },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.image_url) { setImageUrl(data.image_url); toast.success("Image generated"); }
+    } catch (e: any) {
+      toast.error(`AI image: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function testPixel() {
+    if (!projectId || !pixelId) return toast.error("Select a pixel first");
+    setAiLoading("pixel");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-conversions-api", {
+        body: {
+          project_id: projectId, pixel_id: pixelId, event_name: "PageView",
+          event_id: `wizard_test_${Date.now()}`, test_event_code: "TEST12345",
+        },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success("Pixel responded ✓ — check Events Manager → Test Events");
+    } catch (e: any) {
+      toast.error(`Pixel test failed: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
   function reset() {
     setStep(1);
     setName(""); setObjective("OUTCOME_TRAFFIC");
