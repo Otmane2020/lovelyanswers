@@ -24,6 +24,7 @@ export function useSubscription() {
     cycle: subscription.cycle,
     sitesLimit: subscription.sitesLimit,
     articlesLimit: subscription.articlesLimit,
+    features: subscription.features,
     isLoading: subscription.isLoading,
     checkSubscription: subscription.checkSubscription,
     startCheckout,
