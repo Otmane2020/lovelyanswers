@@ -89,6 +89,10 @@ export function EmbeddedCheckoutBox({ plan, cycle, onError }: Props) {
         { body: { plan, cycle, promo_code: code } }
       );
       if (error) throw error;
+      if (data?.invalid_promo) {
+        setPromoError(data.error || "Invalid promo code");
+        return;
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.client_secret) throw new Error("Could not apply code");
       setClientSecret(data.client_secret);
