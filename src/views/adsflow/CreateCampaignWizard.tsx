@@ -253,14 +253,25 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
       <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="w-full max-w-[640px] h-full bg-[#0f0f0f] border-l border-white/5 flex flex-col animate-in slide-in-from-right duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <div>
+        <div className="flex items-start justify-between p-5 border-b border-white/5 gap-3">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold">Create Campaign</h2>
             <p className="text-xs text-[#9ca3af] mt-0.5">Publishes to Meta as paused — review in Ads Manager.</p>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={aiFullCampaign}
+              disabled={aiLoading === "full"}
+              className="h-9 px-3 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:opacity-90 text-white flex items-center gap-1.5 disabled:opacity-50"
+              title="Let AI draft the full campaign from your brand"
+            >
+              {aiLoading === "full" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              {aiLoading === "full" ? "AI drafting…" : "Auto-fill with AI"}
+            </button>
+            <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Steps */}
