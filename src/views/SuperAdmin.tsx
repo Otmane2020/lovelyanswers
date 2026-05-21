@@ -768,6 +768,11 @@ const SuperAdmin = () => {
             <ActiveArticleUsers />
           </TabsContent>
 
+          <TabsContent value="emails">
+            <AdminEmails />
+          </TabsContent>
+
+
 
 
           {/* Users Tab */}
