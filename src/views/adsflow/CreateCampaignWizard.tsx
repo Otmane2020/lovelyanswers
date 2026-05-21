@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check, Sparkles } from "lucide-react";
 
 const OBJECTIVES = [
   { id: "OUTCOME_TRAFFIC", label: "Traffic", desc: "Drive visitors to your site" },
@@ -62,6 +62,29 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
   const [cta, setCta] = useState("SIGN_UP");
 
   const sym = accountCurrency === "USD" ? "$" : accountCurrency === "GBP" ? "£" : "€";
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+
+  async function aiSuggest(field: "interests" | "headline" | "primary_text" | "description", current?: string) {
+    if (!projectId) return toast.error("No project selected");
+    setAiLoading(field);
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-ads-ai-suggest", {
+        body: { project_id: projectId, field, objective, countries, current },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const text = (data?.text || "").trim();
+      if (!text) throw new Error("No suggestion returned");
+      if (field === "interests") setInterests(text);
+      else if (field === "headline") setHeadline(text.slice(0, 40));
+      else if (field === "primary_text") setPrimaryText(text);
+      else if (field === "description") setDescription(text.slice(0, 30));
+      toast.success("AI suggestion applied");
+    } catch (e: any) {
+      toast.error(`AI: ${e.message}`);
+    } finally {
+      setAiLoading(null);
+    }
+  }
 
   function reset() {
     setStep(1);
@@ -230,8 +253,13 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                 <Field label="Age max"><input type="number" min={13} max={65} value={ageMax} onChange={e => setAgeMax(Number(e.target.value))} className={inputClass} /></Field>
               </div>
               <Field label="Interests (optional)">
-                <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="e.g. SaaS, Digital marketing, SEO" className={inputClass} />
-                <p className="text-[11px] text-[#9ca3af] mt-1">Free-text — Meta will match interest IDs server-side.</p>
+                <div className="relative">
+                  <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="e.g. SaaS, Digital marketing, SEO" className={`${inputClass} pr-28`} />
+                  <button type="button" onClick={() => aiSuggest("interests", interests)} disabled={aiLoading === "interests"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "interests" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI suggest
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#9ca3af] mt-1">Free-text — Meta will match interest IDs server-side. Click <span className="text-indigo-300">AI suggest</span> to generate from your brand.</p>
               </Field>
             </div>
           )}
@@ -253,11 +281,30 @@ export default function CreateCampaignWizard({ open, onClose, projectId, account
                 </Field>
               </div>
               <Field label="Ad name"><input value={adName} onChange={e => setAdName(e.target.value)} placeholder="Auto from campaign if empty" className={inputClass} /></Field>
-              <Field label="Headline (max 40 chars)"><input maxLength={40} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Replace your SEO agency for $29/mo" className={inputClass} /></Field>
-              <Field label="Primary text">
-                <textarea rows={4} value={primaryText} onChange={e => setPrimaryText(e.target.value)} placeholder="Tell your story…" className={`${inputClass} resize-none`} />
+              <Field label="Headline (max 40 chars)">
+                <div className="relative">
+                  <input maxLength={40} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Replace your SEO agency for $29/mo" className={`${inputClass} pr-28`} />
+                  <button type="button" onClick={() => aiSuggest("headline", headline)} disabled={aiLoading === "headline"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "headline" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI
+                  </button>
+                </div>
               </Field>
-              <Field label="Description (optional)"><input value={description} onChange={e => setDescription(e.target.value)} className={inputClass} /></Field>
+              <Field label="Primary text">
+                <div className="relative">
+                  <textarea rows={4} value={primaryText} onChange={e => setPrimaryText(e.target.value)} placeholder="Tell your story…" className={`${inputClass} resize-none pr-20`} style={{ height: "auto", minHeight: 96 }} />
+                  <button type="button" onClick={() => aiSuggest("primary_text", primaryText)} disabled={aiLoading === "primary_text"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "primary_text" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI
+                  </button>
+                </div>
+              </Field>
+              <Field label="Description (optional)">
+                <div className="relative">
+                  <input value={description} onChange={e => setDescription(e.target.value)} className={`${inputClass} pr-20`} />
+                  <button type="button" onClick={() => aiSuggest("description", description)} disabled={aiLoading === "description"} className="absolute right-1 top-1 h-8 px-2.5 rounded-md text-[11px] font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/30 flex items-center gap-1 disabled:opacity-50">
+                    {aiLoading === "description" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI
+                  </button>
+                </div>
+              </Field>
               <Field label="Destination URL"><input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://yoursite.com/landing" className={inputClass} /></Field>
               <Field label="Image URL"><input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080 recommended)" className={inputClass} /></Field>
               <Field label="Call to action">
