@@ -2,12 +2,14 @@
 import { useState, useMemo } from "react";
 import AdsFlowLayout, { Card, StatusBadge } from "./Layout";
 import { useAdsflowData, GuardGate, EmptyState } from "./useAdsflowData";
-import { Search, BarChart3 } from "lucide-react";
+import CreateCampaignWizard from "./CreateCampaignWizard";
+import { Search, BarChart3, Plus } from "lucide-react";
 
 export default function AdsFlowCampaigns() {
   const data = useAdsflowData();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
   const curr = data.account?.currency || "EUR";
   const sym = curr === "USD" ? "$" : curr === "GBP" ? "£" : "€";
 
@@ -21,9 +23,13 @@ export default function AdsFlowCampaigns() {
   return (
     <AdsFlowLayout title="Campaigns" accountName={data.account?.name} onSync={data.sync} syncing={data.syncing}>
       <GuardGate data={data}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-3">
           <p className="text-sm text-[#9ca3af]">All campaigns from your connected Meta Ad Account.</p>
+          <button onClick={() => setWizardOpen(true)} className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white flex items-center gap-1.5 shrink-0">
+            <Plus className="h-4 w-4" /> Create Campaign
+          </button>
         </div>
+
 
         <Card className="p-3 mb-4 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-[#0f0f0f] border border-white/5 text-sm flex-1 min-w-[200px]">
@@ -58,7 +64,7 @@ export default function AdsFlowCampaigns() {
                 </thead>
                 <tbody>
                   {filtered.map(c => {
-                    const budget = Number(c.daily_budget || c.lifetime_budget || 0) / 100;
+                    const budget = Number(c.daily_budget || c.lifetime_budget || 0);
                     const status = ((c.status || "draft").toLowerCase());
                     return (
                       <tr key={c.id} className="border-t border-white/5 hover:bg-white/[0.02]">
@@ -85,6 +91,16 @@ export default function AdsFlowCampaigns() {
           </Card>
         )}
       </GuardGate>
+      <CreateCampaignWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        projectId={data.projectId}
+        accountCurrency={data.account?.currency}
+        pages={data.account?.page_id ? [{ id: data.account.page_id, name: data.account.page_name || "Page" }] : []}
+        pixels={data.pixels.map((p: any) => ({ pixel_id: p.pixel_id, name: p.name }))}
+        onCreated={() => data.sync()}
+      />
     </AdsFlowLayout>
   );
 }
+

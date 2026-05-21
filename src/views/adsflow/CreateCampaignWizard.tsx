@@ -1,0 +1,323 @@
+"use client";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check } from "lucide-react";
+
+const OBJECTIVES = [
+  { id: "OUTCOME_TRAFFIC", label: "Traffic", desc: "Drive visitors to your site" },
+  { id: "OUTCOME_SALES", label: "Sales", desc: "Conversions & purchases" },
+  { id: "OUTCOME_LEADS", label: "Leads", desc: "Capture leads & sign-ups" },
+  { id: "OUTCOME_ENGAGEMENT", label: "Engagement", desc: "Likes, comments, shares" },
+  { id: "OUTCOME_AWARENESS", label: "Awareness", desc: "Reach a wide audience" },
+  { id: "OUTCOME_APP_PROMOTION", label: "App Promotion", desc: "App installs & activity" },
+];
+
+const COUNTRY_PRESETS = [
+  { id: "FR,BE,CH", label: "FR-BE-CH" },
+  { id: "US", label: "United States" },
+  { id: "GB", label: "United Kingdom" },
+  { id: "AU,NZ", label: "AU + NZ" },
+  { id: "CA", label: "Canada" },
+  { id: "DE,AT", label: "DACH" },
+];
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  projectId: string | null;
+  accountCurrency?: string;
+  pages?: { id: string; name: string }[];
+  pixels?: { pixel_id: string; name: string }[];
+  onCreated?: () => void;
+};
+
+export default function CreateCampaignWizard({ open, onClose, projectId, accountCurrency = "EUR", pages = [], pixels = [], onCreated }: Props) {
+  const [step, setStep] = useState(1);
+  const [creating, setCreating] = useState(false);
+
+  // Step 1 — campaign
+  const [name, setName] = useState("");
+  const [objective, setObjective] = useState("OUTCOME_TRAFFIC");
+
+  // Step 2 — budget & schedule
+  const [dailyBudget, setDailyBudget] = useState(10);
+  const [startDate, setStartDate] = useState("");
+
+  // Step 3 — audience
+  const [countries, setCountries] = useState("FR,BE,CH");
+  const [ageMin, setAgeMin] = useState(25);
+  const [ageMax, setAgeMax] = useState(65);
+  const [interests, setInterests] = useState("");
+
+  // Step 4 — creative
+  const [pageId, setPageId] = useState(pages[0]?.id || "");
+  const [pixelId, setPixelId] = useState(pixels[0]?.pixel_id || "");
+  const [adName, setAdName] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [primaryText, setPrimaryText] = useState("");
+  const [description, setDescription] = useState("");
+  const [linkUrl, setLinkUrl] = useState("https://");
+  const [imageUrl, setImageUrl] = useState("");
+  const [cta, setCta] = useState("SIGN_UP");
+
+  const sym = accountCurrency === "USD" ? "$" : accountCurrency === "GBP" ? "£" : "€";
+
+  function reset() {
+    setStep(1);
+    setName(""); setObjective("OUTCOME_TRAFFIC");
+    setDailyBudget(10); setStartDate("");
+    setCountries("FR,BE,CH"); setAgeMin(25); setAgeMax(65); setInterests("");
+    setAdName(""); setHeadline(""); setPrimaryText(""); setDescription("");
+    setLinkUrl("https://"); setImageUrl(""); setCta("SIGN_UP");
+  }
+
+  async function publish() {
+    if (!projectId) return toast.error("No project selected");
+    setCreating(true);
+    try {
+      // 1. Create campaign
+      toast.info("Creating campaign…");
+      const { data: c, error: e1 } = await supabase.functions.invoke("meta-ads-create-campaign", {
+        body: { name, objective, daily_budget: Math.round(dailyBudget * 100), status: "PAUSED" },
+      });
+      if (e1 || c?.error) throw new Error(e1?.message || c?.error);
+      const campaignFbId = c.campaign?.id;
+      if (!campaignFbId) throw new Error("No campaign id returned");
+
+      // 2. Create ad set
+      toast.info("Creating ad set…");
+      const { data: as, error: e2 } = await supabase.functions.invoke("meta-adset-create", {
+        body: {
+          campaign_id: campaignFbId,
+          name: `${name} — AdSet`,
+          daily_budget: Math.round(dailyBudget * 100),
+          countries: countries.split(",").map(c => c.trim()).filter(Boolean),
+          age_min: ageMin,
+          age_max: ageMax,
+          // interests left as free-text label only; Meta interest IDs require search
+
+          optimization_goal: objective.includes("SALES") || objective.includes("LEADS") ? "OFFSITE_CONVERSIONS" : "LINK_CLICKS",
+          pixel_id: pixelId || undefined,
+          status: "PAUSED",
+          start_time: startDate || undefined,
+        },
+      });
+      if (e2 || as?.error) throw new Error(e2?.message || as?.error);
+      const adsetFbId = as.adset?.id;
+
+      // 3. Create ad
+      toast.info("Creating ad…");
+      const { data: ad, error: e3 } = await supabase.functions.invoke("meta-ad-create", {
+        body: {
+          adset_id: adsetFbId,
+          name: adName || `${name} — Ad`,
+          page_id: pageId,
+          link_url: linkUrl,
+          message: primaryText,
+          headline,
+          description,
+          image_url: imageUrl,
+          cta,
+          status: "PAUSED",
+        },
+      });
+      if (e3 || ad?.error) throw new Error(e3?.message || ad?.error);
+
+      toast.success("Campaign created in Meta (paused). Sync to refresh.");
+      reset();
+      onClose();
+      onCreated?.();
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message}`);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  if (!open) return null;
+
+  const steps = [
+    { n: 1, label: "Objective", icon: Target },
+    { n: 2, label: "Budget", icon: DollarSign },
+    { n: 3, label: "Audience", icon: Users },
+    { n: 4, label: "Creative", icon: ImageIcon },
+  ];
+
+  const canNext =
+    step === 1 ? !!name && !!objective :
+    step === 2 ? dailyBudget > 0 :
+    step === 3 ? !!countries && ageMin >= 13 && ageMax <= 65 :
+    !!pageId && !!linkUrl && !!primaryText;
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="w-full max-w-[640px] h-full bg-[#0f0f0f] border-l border-white/5 flex flex-col animate-in slide-in-from-right duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-white/5">
+          <div>
+            <h2 className="text-lg font-semibold">Create Campaign</h2>
+            <p className="text-xs text-[#9ca3af] mt-0.5">Publishes to Meta as paused — review in Ads Manager.</p>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Steps */}
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-white/5">
+          {steps.map((s, i) => {
+            const Icon = s.icon;
+            const done = step > s.n;
+            const active = step === s.n;
+            return (
+              <div key={s.n} className="flex items-center gap-2 flex-1">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs ${active ? "bg-indigo-600 text-white" : done ? "bg-emerald-600 text-white" : "bg-white/5 text-[#9ca3af]"}`}>
+                  {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                </div>
+                <span className={`text-xs ${active ? "text-white" : "text-[#9ca3af]"}`}>{s.label}</span>
+                {i < steps.length - 1 && <div className="flex-1 h-px bg-white/5" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {step === 1 && (
+            <div className="space-y-4">
+              <Field label="Campaign name">
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. APG | Traffic | FR | Q2" className={inputClass} />
+              </Field>
+              <Field label="Objective">
+                <div className="grid grid-cols-2 gap-2">
+                  {OBJECTIVES.map(o => (
+                    <button key={o.id} onClick={() => setObjective(o.id)} className={`p-3 rounded-lg border text-left ${objective === o.id ? "border-indigo-500/60 bg-indigo-500/10" : "border-white/5 bg-[#1a1a1a] hover:bg-white/5"}`}>
+                      <div className="text-sm font-medium">{o.label}</div>
+                      <div className="text-[11px] text-[#9ca3af] mt-0.5">{o.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <Field label={`Daily budget (${sym})`}>
+                <input type="number" min={1} value={dailyBudget} onChange={e => setDailyBudget(Number(e.target.value))} className={inputClass} />
+                <p className="text-[11px] text-[#9ca3af] mt-1">Meta minimum: {sym}1/day. Recommended start: {sym}5–20/day.</p>
+              </Field>
+              <Field label="Start date (optional)">
+                <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} className={inputClass} />
+              </Field>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <Field label="Countries">
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {COUNTRY_PRESETS.map(p => (
+                    <button key={p.id} onClick={() => setCountries(p.id)} className={`px-2.5 py-1 rounded text-xs border ${countries === p.id ? "border-indigo-500/60 bg-indigo-500/10 text-indigo-200" : "border-white/5 bg-[#1a1a1a] text-[#9ca3af] hover:bg-white/5"}`}>{p.label}</button>
+                  ))}
+                </div>
+                <input value={countries} onChange={e => setCountries(e.target.value)} placeholder="ISO codes comma-separated (e.g. FR,BE,CH)" className={inputClass} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Age min"><input type="number" min={13} max={65} value={ageMin} onChange={e => setAgeMin(Number(e.target.value))} className={inputClass} /></Field>
+                <Field label="Age max"><input type="number" min={13} max={65} value={ageMax} onChange={e => setAgeMax(Number(e.target.value))} className={inputClass} /></Field>
+              </div>
+              <Field label="Interests (optional)">
+                <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="e.g. SaaS, Digital marketing, SEO" className={inputClass} />
+                <p className="text-[11px] text-[#9ca3af] mt-1">Free-text — Meta will match interest IDs server-side.</p>
+              </Field>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Facebook Page">
+                  <select value={pageId} onChange={e => setPageId(e.target.value)} className={inputClass}>
+                    {pages.length === 0 && <option value="">No page connected</option>}
+                    {pages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Pixel (optional)">
+                  <select value={pixelId} onChange={e => setPixelId(e.target.value)} className={inputClass}>
+                    <option value="">None</option>
+                    {pixels.map(p => <option key={p.pixel_id} value={p.pixel_id}>{p.name}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <Field label="Ad name"><input value={adName} onChange={e => setAdName(e.target.value)} placeholder="Auto from campaign if empty" className={inputClass} /></Field>
+              <Field label="Headline (max 40 chars)"><input maxLength={40} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Replace your SEO agency for $29/mo" className={inputClass} /></Field>
+              <Field label="Primary text">
+                <textarea rows={4} value={primaryText} onChange={e => setPrimaryText(e.target.value)} placeholder="Tell your story…" className={`${inputClass} resize-none`} />
+              </Field>
+              <Field label="Description (optional)"><input value={description} onChange={e => setDescription(e.target.value)} className={inputClass} /></Field>
+              <Field label="Destination URL"><input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://yoursite.com/landing" className={inputClass} /></Field>
+              <Field label="Image URL"><input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://… (1:1 1080×1080 recommended)" className={inputClass} /></Field>
+              <Field label="Call to action">
+                <select value={cta} onChange={e => setCta(e.target.value)} className={inputClass}>
+                  {["SIGN_UP", "LEARN_MORE", "SHOP_NOW", "GET_OFFER", "SUBSCRIBE", "DOWNLOAD", "CONTACT_US", "BOOK_TRAVEL"].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+
+              {/* Preview */}
+              {(headline || primaryText || imageUrl) && (
+                <div className="mt-2 p-3 rounded-lg border border-white/5 bg-[#1a1a1a]">
+                  <div className="text-[10px] uppercase tracking-wider text-[#9ca3af] mb-2">Preview</div>
+                  <div className="bg-black rounded-lg overflow-hidden border border-white/5">
+                    {imageUrl && <img src={imageUrl} alt="" className="w-full aspect-square object-cover" onError={e => (e.currentTarget.style.display = "none")} />}
+                    <div className="p-3">
+                      <div className="text-xs text-[#9ca3af] whitespace-pre-line">{primaryText || "Primary text appears here."}</div>
+                      <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase text-[#9ca3af] truncate">{linkUrl.replace(/^https?:\/\//, "")}</div>
+                          <div className="text-sm font-semibold truncate">{headline || "Headline"}</div>
+                          {description && <div className="text-xs text-[#9ca3af] truncate">{description}</div>}
+                        </div>
+                        <button className="shrink-0 h-8 px-3 rounded bg-white/10 text-xs">{cta.replace(/_/g, " ")}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-4 border-t border-white/5">
+          <button onClick={() => (step === 1 ? onClose() : setStep(s => s - 1))} className="h-9 px-4 rounded-lg text-sm bg-white/5 hover:bg-white/10 flex items-center gap-1">
+            <ChevronLeft className="h-4 w-4" /> {step === 1 ? "Cancel" : "Back"}
+          </button>
+          {step < 4 ? (
+            <button onClick={() => setStep(s => s + 1)} disabled={!canNext} className="h-9 px-4 rounded-lg text-sm bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button onClick={publish} disabled={!canNext || creating} className="h-9 px-4 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 disabled:opacity-50">
+              {creating && <Loader2 className="h-4 w-4 animate-spin" />}
+              {creating ? "Publishing…" : "Publish to Meta"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputClass = "w-full h-10 px-3 rounded-lg bg-[#1a1a1a] border border-white/5 text-sm outline-none focus:border-indigo-500/60";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-xs text-[#9ca3af] mb-1.5 block">{label}</label>
+      {children}
+    </div>
+  );
+}
