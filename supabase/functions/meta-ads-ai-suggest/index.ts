@@ -113,23 +113,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ image_url: pub.publicUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === FULL CAMPAIGN (structured) ===
+    // === FULL CAMPAIGN (structured) via OpenRouter free ===
     if (field === "full_campaign") {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: "You are an expert Meta Ads strategist. Build a high-performing campaign brief from the brand context." },
-            { role: "user", content: `Build a complete Meta Ads campaign for ${ctx.brand} (${ctx.site}).\nLanguage for copy: ${ctx.lang}.\nBusiness: ${ctx.biz}.\nPick the best objective, audience, budget, creative copy and image prompt.` },
-          ],
-          tools: [FULL_CAMPAIGN_TOOL],
-          tool_choice: { type: "function", function: { name: "build_campaign" } },
-        }),
+      const r = await callOpenRouter({
+        model: OR_TOOL_MODEL,
+        messages: [
+          { role: "system", content: "You are an expert Meta Ads strategist. Build a high-performing campaign brief from the brand context." },
+          { role: "user", content: `Build a complete Meta Ads campaign for ${ctx.brand} (${ctx.site}).\nLanguage for copy: ${ctx.lang}.\nBusiness: ${ctx.biz}.\nPick the best objective, audience, budget, creative copy and image prompt.` },
+        ],
+        tools: [FULL_CAMPAIGN_TOOL],
+        tool_choice: { type: "function", function: { name: "build_campaign" } },
       });
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (!r.ok) {
         const t = await r.text();
         return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -137,27 +132,22 @@ Deno.serve(async (req) => {
       const j = await r.json();
       const call = j.choices?.[0]?.message?.tool_calls?.[0];
       if (!call) return new Response(JSON.stringify({ error: "No tool call" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const plan = JSON.parse(call.function.arguments);
-      return new Response(JSON.stringify({ plan }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const args = typeof call.function.arguments === "string" ? JSON.parse(call.function.arguments) : call.function.arguments;
+      return new Response(JSON.stringify({ plan: args }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // === SINGLE TEXT FIELD ===
+    // === SINGLE TEXT FIELD via OpenRouter free ===
     const buildPrompt = TEXT_PROMPTS[field];
     if (!buildPrompt) return new Response(JSON.stringify({ error: "unknown field" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const prompt = buildPrompt(ctx);
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are an expert Meta Ads copywriter. Output only the requested text, no preamble, no quotes, no markdown." },
-          { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
-        ],
-      }),
+    const r = await callOpenRouter({
+      model: OR_TEXT_MODEL,
+      messages: [
+        { role: "system", content: "You are an expert Meta Ads copywriter. Output only the requested text, no preamble, no quotes, no markdown." },
+        { role: "user", content: current ? `${prompt}\n\nImprove this previous attempt: ${current}` : prompt },
+      ],
     });
     if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limit, retry shortly" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!r.ok) {
       const t = await r.text();
       return new Response(JSON.stringify({ error: `AI: ${t}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
