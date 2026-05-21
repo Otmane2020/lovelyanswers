@@ -1,61 +1,82 @@
-## Problème
+# Facebook & Instagram Ads — SuperAdmin Module
 
-Après paiement, l'utilisateur voit toujours les cadenas et les limites des 3 plans (Starter / Pro / Agency) ne sont pas respectées. Trois bugs principaux :
+Build a Meta Ads management module mirroring the existing Google Ads admin pattern at `/superadmin/ads`, with automatic Pixel creation and Google Analytics linkage.
 
-1. **Agency = unlimited articles cassé.** `PRICE_MAP.articles = -1` est stocké tel quel et propagé dans `useUsage` : `articlesThisMonth < -1` est toujours faux → blocage permanent.
-2. **Cadenas persistent malgré l'abonnement.** Le déblocage (`articles.status='locked'`, `answers.answer='Content locked…'`) est déclenché en *fire-and-forget* dans `check-subscription` ; la requête front retourne avant que l'unlock soit terminé. Et `AeoDashboard` affiche le bloc "Subscribe to unlock" uniquement basé sur `lockedArticles.length > 0`, sans tenir compte de `subscribed`.
-3. **Aucune feature flag par plan.** Le code ne distingue pas Starter vs Pro vs Agency au-delà de `sites_limit`/`articles_limit`. Les options listées (priority generation, CMS étendus, Planning unlock, white-label, multi-client, Slack) ne sont gatées nulle part.
+## 1. Secrets (Meta Marketing API)
 
-## Plan
+Request via `add_secret`:
+- `META_APP_ID`
+- `META_APP_SECRET`
+- `META_ACCESS_TOKEN` (long-lived, with `ads_management`, `ads_read`, `business_management`, `pages_show_list`)
+- `META_AD_ACCOUNT_ID` (format `act_XXXXX`)
 
-### 1. Source de vérité unique des plans
-- Étendre `src/lib/stripe-products.ts` : ajouter pour chaque plan un objet `features` typé :
-  ```
-  { prioritySEO, allCms, planningUnlocked, whiteLabel, multiClient, slackSupport, competitorMonitoring }
-  ```
-- Ajouter `articlesLimit: -1` → exposer un helper `isUnlimited(limit)` et `normalizeLimit(limit) => number|null` (–1 → null).
+## 2. Database (migration)
 
-### 2. Backend — `supabase/functions/check-subscription`
-- Réutiliser le même mapping côté Deno (dupliqué actuellement) : conserver `PRICE_MAP` mais ajouter les `features` ; retourner dans la réponse JSON : `plan, cycle, sites_limit, articles_limit (null si illimité), features{}`.
-- **Await** `triggerUnlockIfNeeded` (au lieu de fire-and-forget) pour que la première réponse post-paiement renvoie un état déjà débloqué.
-- Conserver l'upsert dans `public.subscriptions` (sert de cache RLS-safe pour l'UI).
+```sql
+-- Meta ad accounts linked per project
+create table meta_ad_accounts (
+  id uuid pk, project_id uuid fk, account_id text,
+  business_id text, currency text, name text, status text,
+  created_at, updated_at
+);
 
-### 3. Front — contexte & hooks
-- `SubscriptionContext` : ajouter `features` au state, normaliser `articles_limit === -1 → null` (= illimité).
-- Nouveau hook `usePlanFeatures()` retournant `{ plan, features, sitesLimit, articlesLimit, isUnlimited }`.
-- `useUsage` : utiliser la valeur normalisée ; conserver la sémantique `null = unlimited`.
+-- Pixels created/managed
+create table meta_pixels (
+  id uuid pk, project_id uuid fk, pixel_id text,
+  name text, code_snippet text, ga4_linked bool default false,
+  installed_at, created_at
+);
 
-### 4. Gating UI (cadenas)
-- `AeoDashboard.tsx` : conditionner tous les blocs "locked / Subscribe to unlock" sur `!subscribed && !trial`. Si abonné, masquer la bannière et déclencher `unlock-articles` une fois (idempotent).
-- `AeoGeo.tsx`, `AutoSeo.tsx`, `LocalAnswersTab.tsx`, `AeoPlanning.tsx` : remplacer `if (!isSubscribed)` brut par checks via `usePlanFeatures` selon la feature concernée (ex. Planning unlock = `features.planningUnlocked`, dispo seulement Pro/Agency).
-- `SubscriptionGate` reste pour les routes complètement payantes.
+-- Cached campaigns/adsets/ads + insights snapshots
+create table meta_campaigns (id, project_id, campaign_id, name, objective, status, daily_budget, spend, impressions, clicks, conversions, roas, ...);
+create table meta_adsets (id, project_id, campaign_id, adset_id, name, targeting jsonb, ...);
+create table meta_ads (id, project_id, adset_id, ad_id, name, creative jsonb, preview_url, ...);
+```
+RLS: admin-only (uses `is_admin()`).
 
-### 5. Enforcement des limites
-- `useUsage.canCreateProject` déjà OK, mais ajouter le check côté création de projet (wizard + `ProjectSwitcher` "+"): si `!canCreateProject` → toast + redirect `/checkout?plan=pro`.
-- `canGenerateArticle` : déjà branché dans `Answers.tsx` ; corriger le message quand `articlesLimit === null` (afficher "Unlimited" au lieu de "?").
+## 3. Edge functions
 
-### 6. CMS auto-publish gating
-- `AeoIntegrations.tsx` : sur Starter, n'autoriser que WordPress + Shopify ; Pro/Agency = tous. Lire `features.allCms`.
+- `meta-ads-sync` — pulls account, campaigns, adsets, ads + insights (last 30d) from `graph.facebook.com/v21.0`
+- `meta-ads-create-campaign` — POST campaign + adset + creative + ad in one call
+- `meta-ads-update-status` — pause/resume/delete
+- `meta-pixel-create` — creates Pixel via `/{ad_account_id}/adspixels`, stores snippet
+- `meta-pixel-link-ga4` — calls Pixel `event_source` API to attach GA4 measurement ID
+- `meta-ads-ai-recommendations` — Lovable AI Gateway (Gemini Flash) audits campaigns and suggests budget/creative changes
 
-### 7. White-label / Multi-client / Slack (Agency)
-- Ajouter de simples checks `features.whiteLabel` / `features.multiClient` qui affichent un badge "Agency only" dans les zones concernées (export, sélecteur multi-projets > 3, footer support).
+All use `verify_jwt = true` + admin check.
 
-### 8. Migration légère (optionnelle, déjà OK)
-- La table `subscriptions` existe déjà avec les bons champs. Pas de migration nécessaire.
+## 4. UI — `src/views/SuperAdminMetaAds.tsx`
 
-## Fichiers touchés
+Route: `/superadmin/meta-ads` (+ `app/superadmin/meta-ads/page.tsx`).
+Same `PageHeader` + `Tabs` pattern as `SuperAdminAds`:
 
-- `src/lib/stripe-products.ts` (ajout features + helpers)
-- `src/contexts/SubscriptionContext.tsx` (normalisation + features)
-- `src/hooks/useSubscription.ts`, `src/hooks/useUsage.ts`
-- `src/hooks/usePlanFeatures.ts` (nouveau)
-- `src/views/AeoDashboard.tsx`, `AeoGeo.tsx`, `AutoSeo.tsx`, `AeoPlanning.tsx`, `AeoIntegrations.tsx`, `Answers.tsx`
-- `src/components/local/LocalAnswersTab.tsx`, `src/components/layout/ProjectSwitcher.tsx`
-- `supabase/functions/check-subscription/index.ts` (await unlock, features payload, -1→null)
+- **Overview** — account KPIs (spend, ROAS, CPM, CTR), 30d chart
+- **Campaigns** — list + create dialog (objective, budget, audience)
+- **Ad Sets** — targeting (geo, age, interests via `/search?type=adinterest`)
+- **Ads** — creative upload, preview, status toggle
+- **Pixel & Tracking** — one-click "Create Pixel", show snippet, "Link Google Analytics" button, install-status badge
+- **AI Strategy** — recommendations panel (reuse pattern from `StrategyTab`)
+- **Reports** — historical insights
 
-## Résultat attendu
+Components in `src/components/admin/meta-ads/` mirroring `src/components/admin/ads/`.
 
-- Starter : 1 site, 10 articles/mois, CMS WP+Shopify seulement, planning verrouillé.
-- Pro : 3 sites, 30 articles/mois, tous CMS, planning + competitor monitoring.
-- Agency : 10 sites, articles illimités (plus de blocage `< -1`), white-label & multi-client visibles.
-- Cadenas disparaissent immédiatement après checkout (unlock awaité côté edge function + UI conditionnée sur `subscribed`).
+## 5. Sidebar entry
+
+Add link in `AeoSidebar` / SuperAdmin section: "Meta Ads" with `Facebook` lucide icon, admin-gated via `ADMIN_EMAILS`.
+
+## 6. Pixel injection (Lovable-managed)
+
+Since the pixel "connexion avec Lovable" was chosen: after pixel creation, the snippet is stored in `meta_pixels.code_snippet` and surfaced in **Settings → Integrations** with a copy-button + auto-injection into the project's `index.html` `<head>` for sites hosted on Lovable (managed via a new `lovable_managed_pixels` row that the SSR layer reads).
+
+## Out of scope (v1)
+- Conversions API server-side events (can be added later)
+- A/B testing automation
+- Multi-account switcher (single account per project for now)
+
+## Technical notes
+- Meta Marketing API base: `https://graph.facebook.com/v21.0`
+- All money fields are in account currency minor units (cents) — convert on display
+- Rate limit: respect `X-Business-Use-Case-Usage` header; use 60s cache on read endpoints
+- Interest targeting search is autocomplete-style (debounced)
+
+Ready to proceed once secrets are added.
