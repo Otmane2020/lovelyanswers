@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check, Sparkles } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Loader2, Target, DollarSign, Users, Image as ImageIcon, Check, Sparkles, Wand2, Instagram, Zap } from "lucide-react";
 
 const OBJECTIVES = [
   { id: "OUTCOME_TRAFFIC", label: "Traffic", desc: "Drive visitors to your site" },
@@ -29,10 +29,11 @@ type Props = {
   accountCurrency?: string;
   pages?: { id: string; name: string }[];
   pixels?: { pixel_id: string; name: string }[];
+  instagramAccount?: { id: string; username?: string } | null;
   onCreated?: () => void;
 };
 
-export default function CreateCampaignWizard({ open, onClose, projectId, accountCurrency = "EUR", pages = [], pixels = [], onCreated }: Props) {
+export default function CreateCampaignWizard({ open, onClose, projectId, accountCurrency = "EUR", pages = [], pixels = [], instagramAccount = null, onCreated }: Props) {
   const [step, setStep] = useState(1);
   const [creating, setCreating] = useState(false);
 
