@@ -235,25 +235,9 @@ export default function Index() {
         <GoogleOneTap />
         <InactivityPopup inactivityDelay={45} />
 
-        {/* AI Announcement Banner — always visible */}
-        <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md">
-          <div className="container flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 px-4 py-2 text-sm text-center">
-            <span className="font-medium">
-              🤖 Found us through{" "}
-              <span className="font-bold">{aiReferrer ?? "an AI assistant"}</span>? That's exactly what we do for your
-              business.
-            </span>
-            <Link
-              href="/checkout?plan=pro&cycle=annual"
-              className="inline-flex items-center gap-1 bg-white text-blue-700 font-semibold rounded-full px-4 py-1 text-xs hover:bg-blue-50 transition whitespace-nowrap"
-            >
-              Start free trial →
-            </Link>
-          </div>
-        </div>
 
         {/* NAV */}
-        <nav className="fixed top-10 sm:top-9 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
+        <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
 
 
           <div className="container flex h-16 items-center justify-between px-4">
@@ -271,7 +255,7 @@ export default function Index() {
                 <Link href="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link href="/checkout?plan=pro&cycle=annual">Start Free Audit →</Link>
+                <Link href="/checkout?plan=pro&cycle=annual">Start free trial →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
@@ -345,7 +329,7 @@ export default function Index() {
                   asChild
                 >
                   <Link href="/checkout?plan=pro&cycle=annual">
-                    Get your free AI score
+                    Start 3-day free trial
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -751,7 +735,7 @@ export default function Index() {
             asChild
           >
             <Link href="/checkout?plan=pro&cycle=annual">
-              Get free AI score <ArrowRight className="h-4 w-4" />
+              Start 3-day free trial <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
