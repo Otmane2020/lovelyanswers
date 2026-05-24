@@ -255,7 +255,7 @@ export default function Index() {
                 <Link href="/auth">Log in</Link>
               </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
-                <Link href="/checkout?plan=pro&cycle=annual">Start Free Audit →</Link>
+                <Link href="/checkout?plan=pro&cycle=annual">Start free trial →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
