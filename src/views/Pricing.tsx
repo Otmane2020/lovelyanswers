@@ -20,6 +20,7 @@ const pricingStructuredData = {
   "@type": "Product",
   "name": "AutoPilot GEO — AEO Platform",
   "description": "Get cited by ChatGPT, Gemini and Perplexity. 3-day free trial. Starter $49, Pro $99, Agency $199.",
+  "image": "https://autopilotgeo.com/og-pricing.png",
   "brand": { "@type": "Brand", "name": "AutoPilot GEO" },
   "offers": [
     { "@type": "Offer", "name": "Starter", "price": "49", "priceCurrency": "USD" },
@@ -27,6 +28,12 @@ const pricingStructuredData = {
     { "@type": "Offer", "name": "Agency",  "price": "199","priceCurrency": "USD" },
   ],
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "289", "bestRating": "5" }
+};
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [] as Array<{ "@type": "Question"; name: string; acceptedAnswer: { "@type": "Answer"; text: string } }>,
 };
 
 const faqs = [
