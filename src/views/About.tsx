@@ -22,7 +22,7 @@ export default function About() {
   return (
     <>
       <Helmet>
-        <title>About AutoPilot Geo - AI Answer Engine Optimization Company</title>
+        <title>About AutoPilot Geo – AEO Platform</title>
         <meta name="description" content="Learn about AutoPilot Geo, the AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
         <link rel="canonical" href="https://autopilotgeo.com/about" />
         <meta property="og:title" content="About AutoPilot Geo" />
