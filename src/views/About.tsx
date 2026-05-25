@@ -25,6 +25,10 @@ export default function About() {
         <title>About AutoPilot Geo - AI Answer Engine Optimization Company</title>
         <meta name="description" content="Learn about AutoPilot Geo, the AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
         <link rel="canonical" href="https://autopilotgeo.com/about" />
+        <meta property="og:title" content="About AutoPilot Geo" />
+        <meta property="og:description" content="The AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
+        <meta property="og:url" content="https://autopilotgeo.com/about" />
+        <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(aboutStructuredData)}</script>
       </Helmet>
 
@@ -67,7 +71,7 @@ export default function About() {
                   <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(222,47%,11%)]">
                     <item.icon className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="font-semibold mb-2 text-[hsl(222,47%,11%)]">{item.title}</h3>
+                  <h2 className="text-lg font-semibold mb-2 text-[hsl(222,47%,11%)]">{item.title}</h2>
                   <p className="text-sm text-gray-500">{item.desc}</p>
                 </div>
               ))}

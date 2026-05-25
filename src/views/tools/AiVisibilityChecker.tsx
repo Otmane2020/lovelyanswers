@@ -262,6 +262,7 @@ export default function AiVisibilityChecker() {
             <div className="flex gap-2 mb-2">
               <Input
                 type="url"
+                aria-label="Enter website URL"
                 placeholder="https://yourwebsite.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}

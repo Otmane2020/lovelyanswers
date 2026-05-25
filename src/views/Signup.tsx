@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Helmet } from "react-helmet-async";
 import { trackSignUp } from "@/lib/gtag-conversions";
 import { trackMetaLead } from "@/lib/meta-pixel";
 import { useRouter } from "next/navigation";
@@ -121,6 +122,13 @@ export default function Signup() {
   }
 
   return (
+    <>
+      <Helmet>
+        <title>Create Your Account | AutoPilot Geo</title>
+        <meta name="description" content="Create your AutoPilot Geo account to start getting cited by ChatGPT, Gemini and Perplexity in 30 days." />
+        <link rel="canonical" href="https://autopilotgeo.com/signup" />
+        <meta name="robots" content="noindex,follow" />
+      </Helmet>
     <div className="min-h-screen bg-white flex">
       {/* Left Panel */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
@@ -226,5 +234,6 @@ export default function Signup() {
         </div>
       </div>
     </div>
+    </>
   );
 }

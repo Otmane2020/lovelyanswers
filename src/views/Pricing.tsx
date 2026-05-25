@@ -20,6 +20,7 @@ const pricingStructuredData = {
   "@type": "Product",
   "name": "AutoPilot GEO — AEO Platform",
   "description": "Get cited by ChatGPT, Gemini and Perplexity. 3-day free trial. Starter $49, Pro $99, Agency $199.",
+  "image": "https://autopilotgeo.com/og-pricing.png",
   "brand": { "@type": "Brand", "name": "AutoPilot GEO" },
   "offers": [
     { "@type": "Offer", "name": "Starter", "price": "49", "priceCurrency": "USD" },
@@ -27,6 +28,12 @@ const pricingStructuredData = {
     { "@type": "Offer", "name": "Agency",  "price": "199","priceCurrency": "USD" },
   ],
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "289", "bestRating": "5" }
+};
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [] as Array<{ "@type": "Question"; name: string; acceptedAnswer: { "@type": "Answer"; text: string } }>,
 };
 
 const faqs = [
@@ -37,6 +44,12 @@ const faqs = [
   { question: "How fast do I see results?", answer: "AEO visibility (ChatGPT mentions) usually within 30 days. Google ranking improvements typically 60-90 days." },
   { question: "Can I cancel anytime?", answer: "Yes. One click in your billing page. No phone calls, no retention scripts." },
 ];
+
+faqStructuredData.mainEntity = faqs.map(f => ({
+  "@type": "Question",
+  name: f.question,
+  acceptedAnswer: { "@type": "Answer", text: f.answer },
+}));
 
 export default function Pricing() {
   const [cycle, setCycle] = useState<BillingCycle>("annual");
@@ -50,7 +63,12 @@ export default function Pricing() {
         <title>Pricing — AutoPilot GEO | $49, $99, $199 plans</title>
         <meta name="description" content="3 simple plans: Starter $49, Pro $99, Agency $199. 3-day free trial, cancel anytime. Get cited by ChatGPT, Gemini and Perplexity." />
         <link rel="canonical" href="https://autopilotgeo.com/pricing" />
+        <meta property="og:title" content="Pricing — AutoPilot GEO" />
+        <meta property="og:description" content="Starter $49, Pro $99, Agency $199. 3-day free trial. Get cited by ChatGPT, Gemini and Perplexity." />
+        <meta property="og:url" content="https://autopilotgeo.com/pricing" />
+        <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqStructuredData)}</script>
       </Helmet>
 
       <div className="min-h-screen bg-white text-gray-900">
@@ -130,7 +148,7 @@ export default function Pricing() {
                       </div>
                     )}
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                      <h2 className="text-xl font-bold text-gray-900">{plan.name}</h2>
                       <p className="mt-2 text-sm text-gray-500">{plan.tagline}</p>
                     </div>
 

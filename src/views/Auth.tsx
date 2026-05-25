@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -323,6 +324,13 @@ export default function Auth() {
   }
 
   return (
+    <>
+      <Helmet>
+        <title>Sign In | AutoPilot Geo</title>
+        <meta name="description" content="Sign in to AutoPilot Geo to manage your AI visibility, AEO content, and Google search performance." />
+        <link rel="canonical" href="https://autopilotgeo.com/auth" />
+        <meta name="robots" content="noindex,follow" />
+      </Helmet>
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Auth Form */}
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
@@ -679,5 +687,6 @@ export default function Auth() {
         </div>
       </div>
     </div>
+    </>
   );
 }
