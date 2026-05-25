@@ -103,40 +103,23 @@ export default function AeoPlanning() {
 
   const rangeDays = useMemo(() => eachDayOfInterval({ start: rangeStart, end: rangeEnd }), [rangeStart, rangeEnd]);
 
-  // Keep published items at their actual dates. Everything else (already scheduled but unpublished + queue)
-  // gets redistributed across days matching the live frequency from the AutoPublishSettings block, so the
-  // calendar always mirrors what the user selects in that block.
+  // Keep every scheduled item at its real scheduled_date. Published items stay published;
+  // everything else is shown as "preview" so the user sees the full pipeline (AEO + GEO + Local + Shopping).
+  // We intentionally do NOT redistribute by `liveFrequency` here — that previously caused GEO/Local items
+  // to be dropped because AEO answers filled all the matching weekday slots first.
   const publishedScheduled = useMemo(
     () => scheduledItems.filter((i) => i.status === "published"),
     [scheduledItems]
   );
-  const reschedulablePool = useMemo<ScheduledItem[]>(() => {
-    const pending = scheduledItems
+  const previewItems = useMemo<ScheduledItem[]>(() => {
+    if (!autoPublishOn) return [];
+    return scheduledItems
       .filter((i) => i.status !== "published")
       .map((i) => ({ ...i, status: "preview" as const, isPreview: true }));
-    return [...pending, ...queueItems];
-  }, [scheduledItems, queueItems]);
-
-  const previewItems = useMemo<ScheduledItem[]>(() => {
-    if (!autoPublishOn || reschedulablePool.length === 0) return [];
-    const usedDates = new Set(publishedScheduled.map((i) => format(i.date, "yyyy-MM-dd")));
-    const slots: Date[] = [];
-    for (const day of rangeDays) {
-      if (day < rangeStart) continue;
-      if (!matchesFrequency(day, liveFrequency)) continue;
-      if (usedDates.has(format(day, "yyyy-MM-dd"))) continue;
-      slots.push(day);
-    }
-    const limit = Math.min(slots.length, reschedulablePool.length);
-    return slots.slice(0, limit).map((date, idx) => ({
-      ...reschedulablePool[idx],
-      date,
-      status: "preview" as const,
-      isPreview: true,
-    }));
-  }, [reschedulablePool, publishedScheduled, rangeDays, rangeStart, liveFrequency, autoPublishOn]);
+  }, [scheduledItems, autoPublishOn]);
 
   const allItems = useMemo(() => [...publishedScheduled, ...previewItems], [publishedScheduled, previewItems]);
+
 
 
 
