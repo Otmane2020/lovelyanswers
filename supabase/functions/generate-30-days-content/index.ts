@@ -1060,6 +1060,18 @@ serve(async (req) => {
           score = computeScore(answerData.answer, brandName);
         }
 
+        // ── Claude review (post-generation polish) ──
+        if (answerData.answer && !titlesOnly) {
+          const reviewed = await reviewWithClaude({
+            content: answerData.answer,
+            contentType: "aeo_answer",
+            language,
+            brand: brandName,
+            question: q.question,
+          });
+          answerData.answer = reviewed.content;
+        }
+
         // Insert answer
         const { data: insertedAnswer, error: answerError } = await supabase
           .from("answers")
