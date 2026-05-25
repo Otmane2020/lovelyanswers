@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Helmet } from "react-helmet-async";
 import { trackSignUp } from "@/lib/gtag-conversions";
 import { trackMetaLead } from "@/lib/meta-pixel";
 import { useRouter } from "next/navigation";
