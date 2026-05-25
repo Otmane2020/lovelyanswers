@@ -468,6 +468,18 @@ serve(async (req) => {
           OPENROUTER_API_KEY!,
         );
 
+        // ── Claude review (post-generation polish) ──
+        if (generated.answer) {
+          const reviewed = await reviewWithClaude({
+            content: generated.answer,
+            contentType: "local_answer",
+            language,
+            brand: businessName,
+            question,
+          });
+          generated.answer = reviewed.content;
+        }
+
         const words = countWords(generated.answer);
         const score = computeLocalScore(generated.answer, businessName);
 
