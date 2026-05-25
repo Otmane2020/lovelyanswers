@@ -115,8 +115,24 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
 
       if (error) throw error;
 
+      const frequencyChanged = frequency !== savedFrequency;
+      setSavedFrequency(frequency);
       toast.success("Settings saved");
       setHasChanges(false);
+
+      if (frequencyChanged) {
+        const t = toast.loading("Replanification en cours…");
+        try {
+          await supabase.functions.invoke("daily-planning-fill", {
+            body: { projectId, days: 31, maxDaysToFill: 30 },
+          });
+          toast.success("Calendrier mis à jour", { id: t });
+          await onFrequencyChanged?.();
+        } catch (e) {
+          console.error("Refill error:", e);
+          toast.error("Replanification échouée", { id: t });
+        }
+      }
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Failed to save settings");
