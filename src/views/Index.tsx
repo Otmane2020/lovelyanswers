@@ -190,7 +190,7 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>AutoPilot Geo – Get Your Business Recommended by ChatGPT & Google</title>
+        <title>AutoPilot Geo – Get Recommended by ChatGPT & Google</title>
         <meta
           name="description"
           content="Get your business recommended by ChatGPT, Gemini, Perplexity & Google. AI-powered AEO, GEO & SEO automation. Start free. Works for any industry."
