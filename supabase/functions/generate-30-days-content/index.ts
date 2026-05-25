@@ -11,13 +11,13 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
 // Map project_settings.publish_frequency → set of valid weekday numbers (0=Sun..6=Sat).
-// "monthly" is handled separately (1st of the month).
+// "monthly" is handled separately via getDate()===1 and never consults this set.
 function getPublishDaysSet(frequency: string): Set<number> {
   switch (frequency) {
     case "daily":   return new Set([0, 1, 2, 3, 4, 5, 6]);
     case "weekly":  return new Set([1]);            // Monday
     case "2x_week": return new Set([2, 4]);         // Tue/Thu
-    case "monthly": return new Set([1, 2, 3, 4, 5]);// generator filters by getDate()===1
+    case "monthly": return new Set();               // unused — branch short-circuits on getDate()===1
     case "3x_week":
     default:        return new Set([1, 3, 5]);      // Mon/Wed/Fri
   }
