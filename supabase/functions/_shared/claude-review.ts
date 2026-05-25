@@ -11,7 +11,7 @@
  */
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
+const DEFAULT_MODEL = "claude-haiku-4-5";
 const REVIEW_TIMEOUT_MS = 45_000;
 
 export type ReviewableContentType =
