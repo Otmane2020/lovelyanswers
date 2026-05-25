@@ -361,7 +361,9 @@ export default function AeoPlanning() {
                   setLiveFrequency(s.frequency);
                   setAutoPublishOn(s.enabled);
                 }}
-                onFrequencyChanged={fetchScheduledItems}
+                onFrequencyChanged={async () => {
+                  await fetchScheduledItems();
+                }}
               />
             )}
         </PageHeader>

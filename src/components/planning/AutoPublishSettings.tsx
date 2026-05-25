@@ -123,9 +123,11 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
       if (frequencyChanged) {
         const t = toast.loading("Replanification en cours…");
         try {
-          await supabase.functions.invoke("daily-planning-fill", {
+          const { data, error: refillError } = await supabase.functions.invoke("daily-planning-fill", {
             body: { projectId, days: 31, maxDaysToFill: 30 },
           });
+          if (refillError) throw refillError;
+          if ((data as any)?.success === false) throw new Error((data as any)?.error || "Planning fill failed");
           toast.success("Calendrier mis à jour", { id: t });
           await onFrequencyChanged?.();
         } catch (e) {
@@ -169,9 +171,11 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
 
       setSavedFrequency(newFrequency);
 
-      await supabase.functions.invoke("daily-planning-fill", {
+      const { data, error: refillError } = await supabase.functions.invoke("daily-planning-fill", {
         body: { projectId, days: 31, maxDaysToFill: 30 },
       });
+      if (refillError) throw refillError;
+      if ((data as any)?.success === false) throw new Error((data as any)?.error || "Planning fill failed");
 
       toast.success("Planning updated", { id: t });
       await onFrequencyChanged?.();
