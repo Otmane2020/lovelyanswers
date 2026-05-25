@@ -365,13 +365,14 @@ serve(async (req) => {
             .gte("scheduled_date", today.toISOString())
             .lt("scheduled_date", endDate.toISOString());
 
-          const questions = await generateQuestions(brandName, description, language, apiKey, 30);
+          const questions = await generateQuestions(brandName, description, language, apiKey, expectedDays);
           let answersCreated = 0;
           let articlesCreated = 0;
 
           for (let i = 0; i < questions.length; i++) {
             const q = questions[i];
-            const scheduledDate = new Date(today.getTime() + i * 86400000);
+            if (i >= publishDates.length) break;
+            const scheduledDate = publishDates[i];
             const scheduledDateStr = scheduledDate.toISOString();
             try {
               const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
