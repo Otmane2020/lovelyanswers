@@ -71,7 +71,7 @@ export default function About() {
                   <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(222,47%,11%)]">
                     <item.icon className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="font-semibold mb-2 text-[hsl(222,47%,11%)]">{item.title}</h3>
+                  <h2 className="text-lg font-semibold mb-2 text-[hsl(222,47%,11%)]">{item.title}</h2>
                   <p className="text-sm text-gray-500">{item.desc}</p>
                 </div>
               ))}
