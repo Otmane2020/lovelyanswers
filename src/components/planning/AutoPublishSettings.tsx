@@ -233,7 +233,7 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
       {/* Frequency — default 3x/week (Mon/Wed/Fri) recommended by Google HCU */}
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
-        <Select value={frequency} onValueChange={handleChange(setFrequency)}>
+        <Select value={frequency} onValueChange={handleFrequencyChange} disabled={isSaving}>
           <SelectTrigger className="w-[120px] h-9">
             <SelectValue />
           </SelectTrigger>
