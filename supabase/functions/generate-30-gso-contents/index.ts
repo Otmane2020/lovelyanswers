@@ -523,6 +523,18 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
               });
         }
 
+        // ── Claude review (post-generation polish) ──
+        if (parsed.content) {
+          const reviewed = await reviewWithClaude({
+            content: parsed.content,
+            contentType: "geo_content",
+            language,
+            brand,
+            topic: t.topic,
+          });
+          parsed.content = reviewed.content;
+        }
+
         const score = computeGsoScore(parsed.content || "", brand);
         const slug = slugify(parsed.title || t.topic) + "-" + Date.now().toString(36);
 
