@@ -63,7 +63,12 @@ export default function Pricing() {
         <title>Pricing — AutoPilot GEO | $49, $99, $199 plans</title>
         <meta name="description" content="3 simple plans: Starter $49, Pro $99, Agency $199. 3-day free trial, cancel anytime. Get cited by ChatGPT, Gemini and Perplexity." />
         <link rel="canonical" href="https://autopilotgeo.com/pricing" />
+        <meta property="og:title" content="Pricing — AutoPilot GEO" />
+        <meta property="og:description" content="Starter $49, Pro $99, Agency $199. 3-day free trial. Get cited by ChatGPT, Gemini and Perplexity." />
+        <meta property="og:url" content="https://autopilotgeo.com/pricing" />
+        <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqStructuredData)}</script>
       </Helmet>
 
       <div className="min-h-screen bg-white text-gray-900">
