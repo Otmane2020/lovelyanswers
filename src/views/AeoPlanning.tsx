@@ -286,13 +286,28 @@ export default function AeoPlanning() {
       if (item.type === "answer") {
         await publishAnswer.mutateAsync({ answerId: item.id, projectId: project.id });
         toast.success("Answer published!");
+      } else if (item.type === "geo") {
+        const { data, error } = await supabase.functions.invoke("publish-geo-content", {
+          body: { geoContentId: item.id, projectId: project.id },
+        });
+        if (error) throw error;
+        if (data?.success === false) throw new Error(data?.error || "Publish failed");
+        toast.success("GEO content published!");
+      } else if (item.type === "article" || item.type === "local" || item.type === "shopping") {
+        // Trigger the daily publish cron for THIS project only (forceToday)
+        const { data, error } = await supabase.functions.invoke("publish-scheduled-answers", {
+          body: { forceToday: true, projectId: project.id },
+        });
+        if (error) throw error;
+        if (data?.success === false) throw new Error(data?.error || "Publish failed");
+        toast.success("Published!");
       } else {
-        toast.info("Article publishing coming soon");
+        toast.info("Nothing to publish for this item");
       }
       await fetchScheduledItems();
     } catch (error) {
       console.error("Error publishing:", error);
-      toast.error("Failed to publish");
+      toast.error(error instanceof Error ? error.message : "Failed to publish");
     } finally {
       setPublishingId(null);
     }
