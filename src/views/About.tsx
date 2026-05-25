@@ -25,6 +25,10 @@ export default function About() {
         <title>About AutoPilot Geo - AI Answer Engine Optimization Company</title>
         <meta name="description" content="Learn about AutoPilot Geo, the AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
         <link rel="canonical" href="https://autopilotgeo.com/about" />
+        <meta property="og:title" content="About AutoPilot Geo" />
+        <meta property="og:description" content="The AEO platform helping 500+ businesses get cited by ChatGPT, Gemini, and AI assistants." />
+        <meta property="og:url" content="https://autopilotgeo.com/about" />
+        <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(aboutStructuredData)}</script>
       </Helmet>
 
