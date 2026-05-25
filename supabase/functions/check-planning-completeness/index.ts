@@ -268,7 +268,39 @@ serve(async (req) => {
 
     const results: { projectId: string; name: string; status: string; answersCount: number; articlesCount: number; gsoCount: number }[] = [];
 
+    const getPublishDaysSet = (frequency: string): Set<number> => {
+      switch (frequency) {
+        case "daily":   return new Set([0, 1, 2, 3, 4, 5, 6]);
+        case "weekly":  return new Set([1]);
+        case "2x_week": return new Set([2, 4]);
+        case "monthly": return new Set([1, 2, 3, 4, 5]);
+        case "3x_week":
+        default:        return new Set([1, 3, 5]);
+      }
+    };
+
     for (const project of projects || []) {
+      // Resolve publish frequency for this project
+      const { data: psRow } = await supabase
+        .from("project_settings")
+        .select("publish_frequency")
+        .eq("project_id", project.id)
+        .maybeSingle();
+      const publishFrequency: string = (psRow as any)?.publish_frequency || "3x_week";
+      const PUBLISH_DAYS = getPublishDaysSet(publishFrequency);
+
+      // Build the list of publish dates in the next 30 days that match the frequency
+      const publishDates: Date[] = [];
+      for (let off = 0; off < 30; off++) {
+        const d = new Date(today.getTime() + off * 86400000);
+        if (publishFrequency === "monthly") {
+          if (d.getDate() === 1) publishDates.push(d);
+        } else if (PUBLISH_DAYS.has(d.getDay())) {
+          publishDates.push(d);
+        }
+      }
+      const expectedDays = publishDates.length;
+
       // Count answers in next 30 days
       const { count: answersCount } = await supabase
         .from("answers")
@@ -294,11 +326,11 @@ serve(async (req) => {
         .lt("scheduled_date", endDate.toISOString());
 
       const totalAeo = (answersCount || 0) + (articlesCount || 0);
-      const expectedAeo = 60; // 30 answers + 30 articles
+      const expectedAeo = expectedDays * 2; // 1 answer + 1 article per publish day
       const totalGso = gsoCount || 0;
-      const expectedGso = 30;
+      const expectedGso = expectedDays;
 
-      console.log(`[check-planning] Project ${project.name}: ${answersCount} answers, ${articlesCount} articles, ${totalGso} GSO (AEO: ${totalAeo}/${expectedAeo}, GSO: ${totalGso}/${expectedGso})`);
+      console.log(`[check-planning] Project ${project.name} (freq=${publishFrequency}, days=${expectedDays}): ${answersCount} answers, ${articlesCount} articles, ${totalGso} GSO (AEO: ${totalAeo}/${expectedAeo}, GSO: ${totalGso}/${expectedGso})`);
 
       const brandName = project.brand_name || project.name;
       const description = project.business_description || "";
@@ -333,13 +365,14 @@ serve(async (req) => {
             .gte("scheduled_date", today.toISOString())
             .lt("scheduled_date", endDate.toISOString());
 
-          const questions = await generateQuestions(brandName, description, language, apiKey, 30);
+          const questions = await generateQuestions(brandName, description, language, apiKey, expectedDays);
           let answersCreated = 0;
           let articlesCreated = 0;
 
           for (let i = 0; i < questions.length; i++) {
             const q = questions[i];
-            const scheduledDate = new Date(today.getTime() + i * 86400000);
+            if (i >= publishDates.length) break;
+            const scheduledDate = publishDates[i];
             const scheduledDateStr = scheduledDate.toISOString();
             try {
               const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);

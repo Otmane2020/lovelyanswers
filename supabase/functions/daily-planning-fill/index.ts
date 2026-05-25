@@ -267,8 +267,17 @@ serve(async (req) => {
       maxDaysToFill = 3,
     } = body ?? {};
 
-    // Only publish on Mon (1), Wed (3), Fri (5)
-    const PUBLISH_DAYS = new Set([1, 3, 5]);
+    // Publish-day set is computed per project below (honors project_settings.publish_frequency).
+    const getPublishDaysSet = (frequency: string): Set<number> => {
+      switch (frequency) {
+        case "daily":   return new Set([0, 1, 2, 3, 4, 5, 6]);
+        case "weekly":  return new Set([1]);
+        case "2x_week": return new Set([2, 4]);
+        case "monthly": return new Set([1, 2, 3, 4, 5]);
+        case "3x_week":
+        default:        return new Set([1, 3, 5]);
+      }
+    };
 
     console.log("[daily-planning-fill] Starting daily planning fill...", {
       projectId,
@@ -305,6 +314,16 @@ serve(async (req) => {
       const description = project.business_description || "";
       const language = project.language || "fr";
 
+      // Load per-project publish frequency
+      const { data: psRow } = await supabase
+        .from("project_settings")
+        .select("publish_frequency")
+        .eq("project_id", project.id)
+        .maybeSingle();
+      const publishFrequency: string = (psRow as any)?.publish_frequency || "3x_week";
+      const PUBLISH_DAYS = getPublishDaysSet(publishFrequency);
+      console.log(`[daily-planning-fill] Project ${project.name} frequency=${publishFrequency}`);
+
       const { data: projectKeywords } = await supabase
         .from("keywords")
         .select("keyword")
@@ -324,9 +343,13 @@ serve(async (req) => {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
         const dateStr = targetDate.toISOString().split("T")[0];
 
-        // Only generate content on Mon/Wed/Fri (3 quality posts per week)
+        // Respect project's publish_frequency
         const dayOfWeek = targetDate.getDay();
-        if (!PUBLISH_DAYS.has(dayOfWeek)) continue;
+        if (publishFrequency === "monthly") {
+          if (targetDate.getDate() !== 1) continue;
+        } else if (!PUBLISH_DAYS.has(dayOfWeek)) {
+          continue;
+        }
 
         await supabase
           .from("planning")
