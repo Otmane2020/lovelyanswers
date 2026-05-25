@@ -537,6 +537,7 @@ export type Database = {
           published_url: string | null
           question: string
           scheduled_date: string | null
+          scheduled_day: string | null
           score: number | null
           slug: string
           supporting_content: Json | null
@@ -558,6 +559,7 @@ export type Database = {
           published_url?: string | null
           question: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug: string
           supporting_content?: Json | null
@@ -579,6 +581,7 @@ export type Database = {
           published_url?: string | null
           question?: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug?: string
           supporting_content?: Json | null
@@ -616,6 +619,7 @@ export type Database = {
           meta_description: string | null
           project_id: string
           scheduled_date: string | null
+          scheduled_day: string | null
           slug: string | null
           status: string | null
           title: string
@@ -636,6 +640,7 @@ export type Database = {
           meta_description?: string | null
           project_id: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           slug?: string | null
           status?: string | null
           title: string
@@ -656,6 +661,7 @@ export type Database = {
           meta_description?: string | null
           project_id?: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           slug?: string | null
           status?: string | null
           title?: string
@@ -933,6 +939,7 @@ export type Database = {
           published_at: string | null
           published_url: string | null
           scheduled_date: string | null
+          scheduled_day: string | null
           score: number | null
           slug: string | null
           title: string | null
@@ -954,6 +961,7 @@ export type Database = {
           published_at?: string | null
           published_url?: string | null
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug?: string | null
           title?: string | null
@@ -975,6 +983,7 @@ export type Database = {
           published_at?: string | null
           published_url?: string | null
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug?: string | null
           title?: string | null
@@ -1665,6 +1674,7 @@ export type Database = {
           published_url: string | null
           question: string
           scheduled_date: string | null
+          scheduled_day: string | null
           score: number | null
           slug: string
           updated_at: string
@@ -1682,6 +1692,7 @@ export type Database = {
           published_url?: string | null
           question: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug: string
           updated_at?: string
@@ -1699,6 +1710,7 @@ export type Database = {
           published_url?: string | null
           question?: string
           scheduled_date?: string | null
+          scheduled_day?: string | null
           score?: number | null
           slug?: string
           updated_at?: string
