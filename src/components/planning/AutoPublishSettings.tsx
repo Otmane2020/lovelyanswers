@@ -146,6 +146,43 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
     setHasChanges(true);
   };
 
+  // Frequency changes apply immediately (no Save button needed)
+  const handleFrequencyChange = async (newFrequency: string) => {
+    if (newFrequency === frequency) return;
+    setFrequency(newFrequency);
+    if (!projectId) return;
+
+    setIsSaving(true);
+    const t = toast.loading("Applying new frequency…");
+    try {
+      const { error } = await supabase
+        .from("project_settings")
+        .upsert(
+          {
+            project_id: projectId,
+            publish_frequency: newFrequency,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "project_id" }
+        );
+      if (error) throw error;
+
+      setSavedFrequency(newFrequency);
+
+      await supabase.functions.invoke("daily-planning-fill", {
+        body: { projectId, days: 31, maxDaysToFill: 30 },
+      });
+
+      toast.success("Planning updated", { id: t });
+      await onFrequencyChanged?.();
+    } catch (e) {
+      console.error("Frequency change error:", e);
+      toast.error("Failed to apply frequency", { id: t });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Live-emit frequency + enabled state so the calendar can preview
   useEffect(() => {
     if (isLoading) return;
@@ -196,7 +233,7 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
       {/* Frequency — default 3x/week (Mon/Wed/Fri) recommended by Google HCU */}
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
-        <Select value={frequency} onValueChange={handleChange(setFrequency)}>
+        <Select value={frequency} onValueChange={handleFrequencyChange} disabled={isSaving}>
           <SelectTrigger className="w-[120px] h-9">
             <SelectValue />
           </SelectTrigger>
