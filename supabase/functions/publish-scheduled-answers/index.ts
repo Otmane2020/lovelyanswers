@@ -668,7 +668,7 @@ Deno.serve(async (req) => {
         }
 
         const integration = integrations[0] as Integration;
-        const { title, body } = generateLocalAnswerHTML(localAnswer as LocalAnswer, project);
+        const { title, body, excerpt } = generateLocalAnswerHTML(localAnswer as LocalAnswer, project);
 
         // Call cms-publish
         const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
@@ -679,7 +679,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             integrationId: integration.id,
-            content: { title, body, type: "local-answer", sourceId: localAnswer.id }
+            content: { title, body, excerpt, type: "local-answer", sourceId: localAnswer.id }
           })
         });
 
