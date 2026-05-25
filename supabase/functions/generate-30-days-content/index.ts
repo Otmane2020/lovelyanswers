@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -983,6 +984,19 @@ serve(async (req) => {
               apiKey
             );
 
+            // ── Claude review ──
+            if (articleData.htmlContent) {
+              const reviewed = await reviewWithClaude({
+                content: articleData.htmlContent,
+                contentType: "article",
+                language,
+                brand: brandName,
+                topic: existingAnswer.question,
+              });
+              articleData.htmlContent = reviewed.content;
+              articleData.content = reviewed.content;
+            }
+
             const score = typeof existingAnswer.score === "number"
               ? existingAnswer.score
               : computeScore(existingAnswer.answer, brandName);
@@ -1059,6 +1073,18 @@ serve(async (req) => {
           score = computeScore(answerData.answer, brandName);
         }
 
+        // ── Claude review (post-generation polish) ──
+        if (answerData.answer && !titlesOnly) {
+          const reviewed = await reviewWithClaude({
+            content: answerData.answer,
+            contentType: "aeo_answer",
+            language,
+            brand: brandName,
+            question: q.question,
+          });
+          answerData.answer = reviewed.content;
+        }
+
         // Insert answer
         const { data: insertedAnswer, error: answerError } = await supabase
           .from("answers")
@@ -1105,9 +1131,23 @@ serve(async (req) => {
             q.question, answerData.answer, answerData.bullets, answerData.faq,
             brandName, description, language, apiKey
           );
+
+          // ── Claude review (article post-generation polish) ──
+          if (articleData.htmlContent) {
+            const reviewed = await reviewWithClaude({
+              content: articleData.htmlContent,
+              contentType: "article",
+              language,
+              brand: brandName,
+              topic: q.question,
+            });
+            articleData.htmlContent = reviewed.content;
+            articleData.content = reviewed.content;
+          }
         }
 
         // Insert article
+
         const { data: insertedArticle, error: articleError } = await supabase
           .from("articles")
           .insert({

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -402,6 +403,19 @@ serve(async (req) => {
         if (!answerId) {
           const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList);
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
+
+          // ── Claude review (post-generation polish) ──
+          if (answerData.answer) {
+            const reviewed = await reviewWithClaude({
+              content: answerData.answer,
+              contentType: "aeo_answer",
+              language,
+              brand: brandName,
+              question: q.question,
+            });
+            answerData.answer = reviewed.content;
+          }
+
           const score = computeScore(answerData.answer, brandName);
 
           const { data: insertedAnswer, error: answerError } = await supabase
@@ -439,6 +453,20 @@ serve(async (req) => {
         if (!planningRow.article_id) {
           try {
             const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey);
+
+            // ── Claude review ──
+            if (articleData.htmlContent) {
+              const reviewed = await reviewWithClaude({
+                content: articleData.htmlContent,
+                contentType: "article",
+                language,
+                brand: brandName,
+                topic: answerQuestion,
+              });
+              articleData.htmlContent = reviewed.content;
+              articleData.content = reviewed.content;
+            }
+
             const score = computeScore(answerText, brandName);
 
             const { data: insertedArticle, error: articleError } = await supabase

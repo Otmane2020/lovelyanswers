@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -520,6 +521,18 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
                 audience,
                 language,
               });
+        }
+
+        // ── Claude review (post-generation polish) ──
+        if (parsed.content) {
+          const reviewed = await reviewWithClaude({
+            content: parsed.content,
+            contentType: "geo_content",
+            language,
+            brand,
+            topic: t.topic,
+          });
+          parsed.content = reviewed.content;
         }
 
         const score = computeGsoScore(parsed.content || "", brand);
