@@ -79,7 +79,9 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
-          setFrequency((data as any).publish_frequency || "3x_week");
+          const loadedFreq = (data as any).publish_frequency || "3x_week";
+          setFrequency(loadedFreq);
+          setSavedFrequency(loadedFreq);
         }
       } catch (error) {
         console.error("Error loading settings:", error);
