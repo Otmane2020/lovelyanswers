@@ -273,7 +273,7 @@ serve(async (req) => {
         case "daily":   return new Set([0, 1, 2, 3, 4, 5, 6]);
         case "weekly":  return new Set([1]);
         case "2x_week": return new Set([2, 4]);
-        case "monthly": return new Set([1, 2, 3, 4, 5]);
+        case "monthly": return new Set();           // unused — branch short-circuits on getDate()===1
         case "3x_week":
         default:        return new Set([1, 3, 5]);
       }

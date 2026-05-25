@@ -121,8 +121,10 @@ export default function AeoIntegrations() {
   ];
 
   const frequencies = [
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly (Mon)" },
+    { value: "3x_week", label: "3x/week (recommended)" },
+    { value: "2x_week", label: "2x/week" },
+    { value: "daily",   label: "Daily" },
+    { value: "weekly",  label: "Weekly (Mon)" },
     { value: "monthly", label: "Monthly (1st)" },
   ];
 
