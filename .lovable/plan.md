@@ -1,55 +1,40 @@
-# Harmonisation fréquences + nettoyage `monthly`
+# Pourquoi le calendrier ne suit pas "Daily"
 
-## Audit effectué
+## Diagnostic
 
-**Branche `monthly` — OK fonctionnellement.** Le filtre `getDate() === 1` est bien appliqué dans les 3 edge functions avant le test `PUBLISH_DAYS.has(...)` :
+Le dropdown "Daily" enregistre bien `publish_frequency = "daily"` dans `project_settings` (AutoPublishSettings.tsx l.108). Mais le calendrier de `AeoPlanning.tsx` n'est **pas** régénéré : il affiche les `scheduled_items` existants à leur `scheduled_date` d'origine (commentaire l.107-109 : "We intentionally do NOT redistribute by liveFrequency").
 
-- `generate-30-days-content/index.ts:877` — `if (publishFrequency === "monthly") { if (d.getDate() === 1) ... } else if (PUBLISH_DAYS.has(...))`
-- `daily-planning-fill/index.ts:348` — `if (publishFrequency === "monthly") { if (targetDate.getDate() !== 1) continue; } else if (!PUBLISH_DAYS.has(...))`
-- `check-planning-completeness/index.ts:296` — idem
+Conséquence : les contenus ont été créés quand la fréquence était `3x_week` → ils restent calés Lundi/Mercredi/Vendredi. Passer à `daily` ne remplit pas Mardi/Jeudi/Samedi/Dimanche tant que le cron `daily-planning-fill` n'a pas tourné (et même là, il ne fait que **+3 jours/jour** via `maxDaysToFill = 3`).
 
-Donc `monthly` ne publie bien que le 1er du mois. Le `Set([1,2,3,4,5])` retourné par `getPublishDaysSet("monthly")` est **du code mort** (jamais consulté pour monthly) — confusing mais inoffensif. À nettoyer.
+C'est pour ça que :
+- L'UI dit "Daily"
+- Le calendrier garde l'ancien pattern 3x/semaine
+- Les jours manquants restent vides pendant plusieurs jours
 
-**Incohérence UI confirmée** :
-- `src/components/planning/AutoPublishSettings.tsx` : 5 valeurs (`3x_week`, `2x_week`, `daily`, `weekly`, `monthly`)
-- `src/views/AeoIntegrations.tsx` : 3 valeurs (`daily`, `weekly`, `monthly`) — manque `3x_week` et `2x_week`
+## Correction proposée
 
-Conséquence : un user qui passe par `AeoIntegrations` ne peut pas choisir 3x/sem ni 2x/sem ; et s'il a déjà `3x_week` en base (le défaut), le `<Select>` affiche un libellé vide.
+**1. Déclencher un refill immédiat quand la fréquence change**
 
-## Changements
+Dans `AutoPublishSettings.handleSave()`, après l'upsert réussi, si `publish_frequency` a changé :
+- Invoquer `daily-planning-fill` via `supabase.functions.invoke("daily-planning-fill", { body: { projectId, days: 31, maxDaysToFill: 30 }})`
+- Afficher un toast "Replanification en cours…" puis "Calendrier mis à jour" au retour
+- Rafraîchir les données du planning (refetch)
 
-### 1. Harmoniser les fréquences dans `AeoIntegrations.tsx`
+**2. Lever le plafond `maxDaysToFill` pour les invocations manuelles**
 
-Aligner la liste sur `AutoPublishSettings.tsx` (mêmes 5 valeurs, même ordre, même libellé recommandé) :
+`daily-planning-fill` accepte déjà `maxDaysToFill` en paramètre (l.190 du fichier). Le cron continue avec 3, mais l'appel manuel depuis l'UI passe 30 pour combler immédiatement.
 
-```ts
-const frequencies = [
-  { value: "3x_week", label: "3x/week (recommended)" },
-  { value: "2x_week", label: "2x/week" },
-  { value: "daily",   label: "Daily" },
-  { value: "weekly",  label: "Weekly (Mon)" },
-  { value: "monthly", label: "Monthly (1st)" },
-];
-```
+**3. Garde-fou côté backend**
 
-### 2. Nettoyer le helper `monthly` dans les 3 edge functions
+Dans `daily-planning-fill`, garder le comportement actuel : la fonction respecte déjà `publish_frequency` par projet (l.215-220) et fait `getDate() === 1` pour `monthly`. Aucune modification backend nécessaire.
 
-Remplacer `case "monthly": return new Set([1,2,3,4,5]);` par `case "monthly": return new Set();` (set vide) et mettre à jour le commentaire. Sémantique : pour `monthly`, le check `PUBLISH_DAYS.has(...)` n'est jamais atteint (la branche `if (frequency === "monthly")` court-circuite). Le set vide rend l'intention explicite et évite de croire qu'on publie lun-ven.
+## Fichiers touchés
 
-Fichiers : `generate-30-days-content/index.ts`, `daily-planning-fill/index.ts`, `check-planning-completeness/index.ts`.
-
-### 3. Aucun changement DB
-
-Les 20 projets existants sont en `daily` — non impacté.
-
-## Validation
-
-- Sélectionner `3x_week` puis `2x_week` dans la page Integrations → la valeur persiste et s'affiche correctement après reload.
-- Trigger manuel de `daily-planning-fill` sur un projet en `monthly` (sandbox) → confirme qu'aucun slot n'est créé sauf si on est le 1er.
-- Logs edge function : `frequency=monthly → days=` (set vide attendu après nettoyage).
+- `src/components/planning/AutoPublishSettings.tsx` — détecter changement de `frequency`, invoquer la fonction après save, gérer le toast + callback de refresh
+- `src/views/AeoPlanning.tsx` — exposer un callback `onFrequencyChanged` qui refetch les items du planning
 
 ## Hors scope
 
-- Pas de migration DB.
-- Pas de changement du comportement de `monthly` (déjà correct).
-- Pas de touche aux 3 crons eux-mêmes (`pg_cron`).
+- Pas de suppression des items déjà planifiés sur les anciens jours (ils restent valides)
+- Pas de modification du cron `daily-planning-fill` (toujours +3 jours/jour)
+- Pas de changement de la logique de filtrage `monthly` (déjà correcte)

@@ -12,15 +12,17 @@ import { Button } from "@/components/ui/button";
 interface AutoPublishSettingsProps {
   projectId: string;
   onSettingsChange?: (s: { frequency: string; enabled: boolean }) => void;
+  onFrequencyChanged?: () => void | Promise<void>;
 }
 
-export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublishSettingsProps) {
+export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyChanged }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
   const [frequency, setFrequency] = useState("3x_week");
+  const [savedFrequency, setSavedFrequency] = useState("3x_week");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -77,7 +79,9 @@ export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublish
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
-          setFrequency((data as any).publish_frequency || "3x_week");
+          const loadedFreq = (data as any).publish_frequency || "3x_week";
+          setFrequency(loadedFreq);
+          setSavedFrequency(loadedFreq);
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -111,8 +115,24 @@ export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublish
 
       if (error) throw error;
 
+      const frequencyChanged = frequency !== savedFrequency;
+      setSavedFrequency(frequency);
       toast.success("Settings saved");
       setHasChanges(false);
+
+      if (frequencyChanged) {
+        const t = toast.loading("Replanification en cours…");
+        try {
+          await supabase.functions.invoke("daily-planning-fill", {
+            body: { projectId, days: 31, maxDaysToFill: 30 },
+          });
+          toast.success("Calendrier mis à jour", { id: t });
+          await onFrequencyChanged?.();
+        } catch (e) {
+          console.error("Refill error:", e);
+          toast.error("Replanification échouée", { id: t });
+        }
+      }
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Failed to save settings");
