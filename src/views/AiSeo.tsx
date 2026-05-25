@@ -146,10 +146,10 @@ export default function AiSeo() {
   return (
     <>
       <Helmet>
-        <title>AI SEO Services – Get Found by ChatGPT, Gemini & Google | AutoPilot Geo</title>
+        <title>AI SEO Services – Get Found by ChatGPT & Google</title>
         <meta
           name="description"
-          content="AI SEO services that get your brand recommended by ChatGPT, Gemini, Perplexity and Google. Automated content, keyword research, and AI visibility monitoring. Start free."
+          content="AI SEO services to get your brand recommended by ChatGPT, Gemini, Perplexity & Google. Automated content and visibility monitoring."
         />
         <link rel="canonical" href="https://autopilotgeo.com/ai-seo" />
         <meta property="og:title" content="AI SEO Services – Get Found by AI Search Engines" />
