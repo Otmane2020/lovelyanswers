@@ -81,7 +81,7 @@ export default function AeoPlanning() {
   const [selectedDayItems, setSelectedDayItems] = useState<ScheduledItem[]>([]);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
-  const hasRunFill = useRef(false);
+  const hasRunFill = useRef<string | null>(null);
 
   const rangeStart = useMemo(() => {
     const d = new Date();
@@ -181,9 +181,11 @@ export default function AeoPlanning() {
         });
       }
       setScheduledItems(items);
+      return items.length;
     } catch (error) {
       console.error("Error fetching scheduled items:", error);
       toast.error("Failed to load scheduled items");
+      return 0;
     } finally {
       setIsLoading(false);
     }
@@ -239,6 +241,41 @@ export default function AeoPlanning() {
   useEffect(() => {
     fetchScheduledItems();
     fetchQueue();
+  }, [project?.id]);
+
+  useEffect(() => {
+    const ensurePlanningIsFilled = async () => {
+      if (!project?.id || hasRunFill.current === project.id) return;
+
+      const scheduledCount = await fetchScheduledItems();
+      if ((scheduledCount ?? 0) > 0) {
+        hasRunFill.current = project.id;
+        return;
+      }
+
+      hasRunFill.current = project.id;
+      const t = toast.loading("Calendar is empty, generating planning…");
+
+      try {
+        const { data, error } = await supabase.functions.invoke("daily-planning-fill", {
+          body: { projectId: project.id, days: 31, maxDaysToFill: 30 },
+        });
+
+        if (error) throw error;
+        if (data?.success === false) {
+          throw new Error(data.error || "Planning fill failed");
+        }
+
+        await fetchScheduledItems();
+        await fetchQueue();
+        toast.success("Calendar updated", { id: t });
+      } catch (error) {
+        console.error("Initial planning fill error:", error);
+        toast.error("Failed to generate planning", { id: t });
+      }
+    };
+
+    ensurePlanningIsFilled();
   }, [project?.id]);
 
 
