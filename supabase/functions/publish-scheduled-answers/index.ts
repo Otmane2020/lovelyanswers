@@ -110,10 +110,34 @@ function shouldPublishToday(frequency: string | null): boolean {
   }
 }
 
+// Strip HTML to get a clean plain-text excerpt
+function plainExcerpt(html: string, max = 160): string {
+  const text = (html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1).trimEnd() + "…";
+}
+
+// HTML escape for safe interpolation in attributes/text
+function esc(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function generateAnswerHTML(
   answer: Answer,
   project: Project
-): { title: string; body: string } {
+): { title: string; body: string; excerpt: string } {
   const { question, answer: answerText, supporting_content } = answer;
   const brandName = project.brand_name || project.name;
   const websiteUrl = project.website_url;
@@ -125,8 +149,6 @@ function generateAnswerHTML(
     question: item.question || item.q || "",
     answer: item.answer || item.a || ""
   })).filter(item => item.question && item.answer);
-
-  const currentYear = new Date().getFullYear();
 
   const qaJsonLd = {
     "@context": "https://schema.org",
@@ -141,11 +163,7 @@ function generateAnswerHTML(
         "@type": "Answer",
         "text": answerText,
         "dateCreated": new Date().toISOString(),
-        "author": {
-          "@type": "Organization",
-          "name": brandName,
-          "url": websiteUrl
-        }
+        "author": { "@type": "Organization", "name": brandName, "url": websiteUrl }
       }
     }
   };
@@ -156,149 +174,33 @@ function generateAnswerHTML(
     "mainEntity": faq.map(item => ({
       "@type": "Question",
       "name": item.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": item.answer
-      }
+      "acceptedAnswer": { "@type": "Answer", "text": item.answer }
     }))
   } : null;
 
-  const bulletsList = bullets.length > 0 
-    ? `<section class="aeo-key-points" style="margin: 24px 0; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
-        <h2 style="font-size: 18px; margin-bottom: 16px; color: #1a1a1a; font-weight: 600;">${language === 'fr' ? '🎯 Points Clés' : '🎯 Key Points'}</h2>
-        <ul style="padding-left: 20px; margin: 0;">
-          ${bullets.map(b => `<li style="margin-bottom: 10px; line-height: 1.6;">${b}</li>`).join('')}
-        </ul>
-       </section>` 
-    : '';
+  const keyPointsTitle = language === "fr" ? "Points clés" : "Key takeaways";
+  const faqTitle = language === "fr" ? "Questions fréquentes" : "Frequently asked questions";
 
-  const faqSection = faq.length > 0 
-    ? `<section class="aeo-faq" style="margin: 24px 0;">
-        <h2 style="font-size: 18px; margin-bottom: 16px; color: #1a1a1a; font-weight: 600;">${language === 'fr' ? '❓ Questions Fréquentes' : '❓ FAQ'}</h2>
-        ${faq.map(item => `
-          <details style="margin-bottom: 12px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background: #fff;">
-            <summary style="cursor: pointer; font-weight: 500; color: #333;">${item.question}</summary>
-            <p style="margin-top: 12px; color: #555; line-height: 1.6;">${item.answer}</p>
-          </details>
-        `).join('')}
-       </section>` 
-    : '';
+  const bulletsBlock = bullets.length > 0
+    ? `<h2>${keyPointsTitle}</h2>\n<ul>\n${bullets.map(b => `  <li>${esc(b)}</li>`).join("\n")}\n</ul>`
+    : "";
 
-  const body = `
-<article class="aeo-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: #1a1a1a;">
-  <script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>
-  ${faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : ''}
-  
-  <h1 style="font-size: 28px; margin-bottom: 24px; color: #0a0a0a; font-weight: 700; line-height: 1.3;">${question}</h1>
-  
-  <div class="aeo-answer-box" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-left: 4px solid #667eea; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
-    <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #2d2d2d;">${answerText}</p>
-  </div>
-  
-  ${bulletsList}
-  ${faqSection}
-  
-  <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea; text-decoration: none; font-weight: 500;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
-    <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
-  </footer>
-</article>`;
+  const faqBlock = faq.length > 0
+    ? `<h2>${faqTitle}</h2>\n${faq.map(item => `<h3>${esc(item.question)}</h3>\n<p>${esc(item.answer)}</p>`).join("\n")}`
+    : "";
 
-  return { title: question, body };
-}
+  // Magazine layout: clean semantic HTML, NO H1 (title rendered by CMS),
+  // NO inline styles, NO wrapping <article>. Lead paragraph as <blockquote>
+  // for the pull-quote effect that themes pick up.
+  const body = [
+    `<script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>`,
+    faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : "",
+    `<blockquote>${esc(answerText)}</blockquote>`,
+    bulletsBlock,
+    faqBlock,
+  ].filter(Boolean).join("\n\n");
 
-function generateArticleHTML(
-  article: Article,
-  project: Project
-): { title: string; body: string } {
-  const brandName = project.brand_name || project.name;
-  const websiteUrl = project.website_url;
-  const language = project.language || "fr";
-  const currentYear = new Date().getFullYear();
-
-  // Use existing HTML content if available
-  if (article.html_content) {
-    return {
-      title: article.title,
-      body: `
-<article class="aeo-blog-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
-  <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
-  ${article.html_content}
-  <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
-    <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
-  </footer>
-</article>`
-    };
-  }
-
-  // Fallback to content
-  const content = article.content || "";
-  const htmlContent = content
-    .replace(/### (.*)/g, '<h3>$1</h3>')
-    .replace(/## (.*)/g, '<h2>$1</h2>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n\n/g, '</p><p>');
-
-  return {
-    title: article.title,
-    body: `
-<article class="aeo-blog-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
-  <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
-  <div class="article-content"><p>${htmlContent}</p></div>
-  <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p>Source: <a href="${websiteUrl}" style="color: #667eea;">${brandName}</a> • ${currentYear}</p>
-  </footer>
-</article>`
-  };
-}
-
-function generateLocalAnswerHTML(
-  localAnswer: LocalAnswer,
-  project: Project
-): { title: string; body: string } {
-  const { question, answer, business_name } = localAnswer;
-  const brandName = project.brand_name || project.name;
-  const websiteUrl = project.website_url;
-  const language = project.language || "fr";
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": business_name,
-    "url": websiteUrl,
-    "mainEntity": {
-      "@type": "Question",
-      "name": question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": answer
-      }
-    }
-  };
-
-  const body = `
-<article class="local-aeo-article" style="max-width: 800px; margin: 0 auto; padding: 32px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7;">
-  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
-  
-  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-    <span style="background: linear-gradient(135deg, #f97316, #ef4444); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Local AEO</span>
-    <span style="color: #666; font-size: 14px;">${business_name}</span>
-  </div>
-  
-  <h1 style="font-size: 28px; margin-bottom: 24px; color: #0a0a0a; font-weight: 700; line-height: 1.3;">${question}</h1>
-  
-  <div class="local-answer-box" style="background: linear-gradient(135deg, #f9731615 0%, #ef444415 100%); border-left: 4px solid #f97316; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
-    <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #2d2d2d;">${answer}</p>
-  </div>
-  
-  <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #f97316; text-decoration: none; font-weight: 500;" target="_blank">AutoPilot Geo</a> – Local AEO for AI Search</p>
-    <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
-  </footer>
-</article>`;
-
-  return { title: question, body };
+  return { title: question, body, excerpt: plainExcerpt(answerText) };
 }
 
 Deno.serve(async (req) => {
