@@ -508,7 +508,7 @@ Deno.serve(async (req) => {
         }
 
         const integration = integrations[0] as Integration;
-        const { title, body } = generateAnswerHTML(answer, project);
+        const { title, body, excerpt } = generateAnswerHTML(answer, project);
 
         // Call cms-publish
         const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             integrationId: integration.id,
-            content: { title, body, type: "answer", sourceId: answer.id }
+            content: { title, body, excerpt, type: "answer", sourceId: answer.id }
           })
         });
 
