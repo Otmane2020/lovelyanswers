@@ -872,7 +872,7 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
             is_public: false,
             intent: intent,
             difficulty: score >= 80 ? 'easy' : score >= 65 ? 'medium' : 'hard',
-            high_citation: isHighCitation(score, generated.answer), // Use new High Citation check
+            high_citation: isHighCitation(score, finalAnswer), // Use new High Citation check
             supporting_content: {
               bullets: generated.bullets,
               faq: generated.faq
