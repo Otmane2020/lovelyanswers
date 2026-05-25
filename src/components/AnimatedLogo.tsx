@@ -42,7 +42,8 @@ export function AnimatedLogo({ size = "md", variant = "full", theme = "auto", cl
   const uid = theme; // unique suffix per theme variant
 
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width={width} height={height} className={className}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width={width} height={height} className={className} role="img" aria-label="AutoPilot Geo">
+      <title>AutoPilot Geo</title>
       <defs>
         <linearGradient id={`orbitGrad-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style={{ stopColor: "#0099cc" }} />
