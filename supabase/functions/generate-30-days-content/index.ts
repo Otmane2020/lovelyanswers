@@ -984,6 +984,19 @@ serve(async (req) => {
               apiKey
             );
 
+            // ── Claude review ──
+            if (articleData.htmlContent) {
+              const reviewed = await reviewWithClaude({
+                content: articleData.htmlContent,
+                contentType: "article",
+                language,
+                brand: brandName,
+                topic: existingAnswer.question,
+              });
+              articleData.htmlContent = reviewed.content;
+              articleData.content = reviewed.content;
+            }
+
             const score = typeof existingAnswer.score === "number"
               ? existingAnswer.score
               : computeScore(existingAnswer.answer, brandName);
