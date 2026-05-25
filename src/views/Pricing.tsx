@@ -45,6 +45,12 @@ const faqs = [
   { question: "Can I cancel anytime?", answer: "Yes. One click in your billing page. No phone calls, no retention scripts." },
 ];
 
+faqStructuredData.mainEntity = faqs.map(f => ({
+  "@type": "Question",
+  name: f.question,
+  acceptedAnswer: { "@type": "Answer", text: f.answer },
+}));
+
 export default function Pricing() {
   const [cycle, setCycle] = useState<BillingCycle>("annual");
   useEffect(() => { document.documentElement.classList.remove("dark"); trackPricingView(); trackMetaPricingView(); }, []);
