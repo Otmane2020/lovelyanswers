@@ -79,7 +79,7 @@ export default function GeoEngineLanding() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
       <Helmet>
-        <title>GEO Engine — One article. Five channels. Zero manual effort.</title>
+        <title>GEO Engine — One article. Five AI channels.</title>
         <meta
           name="description"
           content="GEO Engine writes one article per day and publishes it across Google, ChatGPT, Gemini, Perplexity and Shopping — automatically."
