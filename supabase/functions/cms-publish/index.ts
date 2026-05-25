@@ -14,7 +14,9 @@ interface PublishRequest {
   content?: {
     title: string;
     body: string;
-    type: "answer" | "article";
+    excerpt?: string;
+    slug?: string;
+    type: "answer" | "article" | "local-answer";
     sourceId: string;
   };
   // Legacy support
@@ -406,6 +408,8 @@ async function publishToWordPress(
       body: JSON.stringify({
         title: content.title,
         content: content.body,
+        excerpt: (content as any).excerpt || undefined,
+        slug: (content as any).slug || undefined,
         status: "publish",
       }),
     });
