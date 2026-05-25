@@ -438,32 +438,44 @@ Deno.serve(async (req) => {
 
     const projectIds = projectsToPublish.map(ps => ps.project_id);
 
-    // IMPORTANT: Use planning_days as the canonical schedule source (fixed calendar)
-    // This prevents future items being published early because of drift in answers/articles.scheduled_date.
-    let planningQuery = supabase
-      .from("planning_days")
-      .select("project_id, scheduled_date, answer_id, article_id")
-      .in("project_id", projectIds);
+    // IMPORTANT: Read schedule from BOTH `planning_days` (legacy) and `planning`
+    // (used by daily-planning-fill). They share the same shape (project_id +
+    // date + answer_id + article_id), only the date column name differs.
+    const [
+      { data: planningDaysRows, error: planningDaysError },
+      { data: planningRows2, error: planningError2 },
+    ] = await Promise.all([
+      supabase
+        .from("planning_days")
+        .select("project_id, scheduled_date, answer_id, article_id")
+        .in("project_id", projectIds)
+        .eq("scheduled_date", todayStr),
+      supabase
+        .from("planning")
+        .select("project_id, day, answer_id, article_id")
+        .in("project_id", projectIds)
+        .eq("day", todayStr),
+    ]);
 
-    if (targetDate) {
-      // Exact day publishing (retroactive)
-      planningQuery = planningQuery.eq("scheduled_date", todayStr);
-    } else if (forceToday) {
-      // Manual trigger from UI: publish ONLY today
-      planningQuery = planningQuery.eq("scheduled_date", todayStr);
-    } else {
-      // Normal cron: publish ONLY today's content (no catch-up of old items)
-      planningQuery = planningQuery.eq("scheduled_date", todayStr);
+    if (planningDaysError) {
+      console.error("[publish-scheduled] ❌ Error fetching planning_days:", planningDaysError);
+    }
+    if (planningError2) {
+      console.error("[publish-scheduled] ❌ Error fetching planning:", planningError2);
     }
 
-    const { data: planningRows, error: planningError } = await planningQuery;
+    const planningRows = [
+      ...(planningDaysRows || []),
+      ...(planningRows2 || []).map((r: any) => ({
+        project_id: r.project_id,
+        scheduled_date: r.day,
+        answer_id: r.answer_id,
+        article_id: r.article_id,
+      })),
+    ];
 
-    if (planningError) {
-      console.error("[publish-scheduled] ❌ Error fetching planning_days:", planningError);
-    }
-
-    const answerIds = [...new Set((planningRows || []).map((r: any) => r.answer_id).filter(Boolean))];
-    const articleIds = [...new Set((planningRows || []).map((r: any) => r.article_id).filter(Boolean))];
+    const answerIds = [...new Set(planningRows.map((r: any) => r.answer_id).filter(Boolean))];
+    const articleIds = [...new Set(planningRows.map((r: any) => r.article_id).filter(Boolean))];
 
     // Fetch answers/articles by IDs only (no scheduled_date filtering here)
     // Also fetch local_answers directly by scheduled_date (they don't use planning_days)
