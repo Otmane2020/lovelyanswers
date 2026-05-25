@@ -148,7 +148,7 @@ export default function Pricing() {
                       </div>
                     )}
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                      <h2 className="text-xl font-bold text-gray-900">{plan.name}</h2>
                       <p className="mt-2 text-sm text-gray-500">{plan.tagline}</p>
                     </div>
 
