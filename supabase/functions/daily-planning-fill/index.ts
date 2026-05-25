@@ -453,6 +453,20 @@ serve(async (req) => {
         if (!planningRow.article_id) {
           try {
             const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey);
+
+            // ── Claude review ──
+            if (articleData.htmlContent) {
+              const reviewed = await reviewWithClaude({
+                content: articleData.htmlContent,
+                contentType: "article",
+                language,
+                brand: brandName,
+                topic: answerQuestion,
+              });
+              articleData.htmlContent = reviewed.content;
+              articleData.content = reviewed.content;
+            }
+
             const score = computeScore(answerText, brandName);
 
             const { data: insertedArticle, error: articleError } = await supabase
