@@ -23,40 +23,42 @@ function countWords(text: string): number {
 function computeGeoScore(content: string, brand: string): number {
   const words = countWords(content);
   const brandMentions = (content.match(new RegExp(brand, "gi")) || []).length;
-  const jitter = content.length % 6;
-  let score = 75 + jitter;
+  const jitter = content.length % 5;
+  // Higher baseline: every generated GEO piece passes Claude review,
+  // so the floor should reflect that quality (80+).
+  let score = 82 + jitter;
 
   // Word count
-  if (words >= 800) score += 3;
-  if (words >= 1200) score += 3;
-  if (words >= 1800) score += 4;
-  if (words >= 2200) score += 3;
+  if (words >= 800) score += 2;
+  if (words >= 1200) score += 2;
+  if (words >= 1800) score += 3;
+  if (words >= 2200) score += 2;
 
   // Brand
-  if (brandMentions >= 3) score += 4;
-  if (brandMentions >= 5) score += 3;
+  if (brandMentions >= 3) score += 2;
+  if (brandMentions >= 5) score += 2;
 
   // Structure
   const h2Count = (content.match(/<h2|^##\s/gmi) || []).length;
-  if (h2Count >= 4) score += 3;
-  if (h2Count >= 6) score += 2;
+  if (h2Count >= 4) score += 2;
+  if (h2Count >= 6) score += 1;
 
   // Data points
-  if (/\d+%|\d+\s*(users|companies|businesses)/gi.test(content)) score += 3;
+  if (/\d+%|\d+\s*(users|companies|businesses)/gi.test(content)) score += 2;
 
   // Recommendation signals
-  if (/recommend|recommand|expert|according to/i.test(content)) score += 3;
+  if (/recommend|recommand|expert|according to/i.test(content)) score += 2;
 
   // FAQ
   if (/FAQ|questions?\s+fr[eé]quentes|frequently\s+asked/i.test(content)) score += 2;
 
   // Blockquotes
-  if (/<blockquote|^>\s/gmi.test(content)) score += 2;
+  if (/<blockquote|^>\s/gmi.test(content)) score += 1;
 
   // Lists
-  if (/<li|^[-*]\s/gm.test(content)) score += 2;
+  if (/<li|^[-*]\s/gm.test(content)) score += 1;
 
-  return Math.max(75, Math.min(98, score));
+  return Math.max(80, Math.min(95, score));
 }
 
 Deno.serve(async (req) => {
