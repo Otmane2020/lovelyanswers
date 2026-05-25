@@ -846,14 +846,26 @@ serve(async (req) => {
     const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
     console.log(`[generate-30-days] Found ${keywordList.length} unused keywords for question generation`);
 
-    // Only schedule on Mon(1), Wed(3), Fri(5) — 3 quality posts per week
-    const PUBLISH_DAYS = new Set([1, 3, 5]);
-    
+    // Honor project_settings.publish_frequency (daily / 3x_week / 2x_week / weekly / monthly).
+    const { data: psRow } = await supabase
+      .from("project_settings")
+      .select("publish_frequency")
+      .eq("project_id", projectId)
+      .maybeSingle();
+    const publishFrequency: string = (psRow as any)?.publish_frequency || "3x_week";
+    const PUBLISH_DAYS = getPublishDaysSet(publishFrequency);
+    console.log(`[generate-30-days] publish_frequency=${publishFrequency} → days=${[...PUBLISH_DAYS].join(",")}`);
+
     // Build list of valid publish dates from startDate
     const publishDates: Date[] = [];
-    for (let offset = 0; publishDates.length < days && offset < days * 3; offset++) {
+    const maxLookahead = Math.max(days * 4, 60);
+    for (let offset = 0; publishDates.length < days && offset < maxLookahead; offset++) {
       const d = new Date(startDate.getTime() + offset * 86400000);
-      if (PUBLISH_DAYS.has(d.getDay())) publishDates.push(d);
+      if (publishFrequency === "monthly") {
+        if (d.getDate() === 1) publishDates.push(d);
+      } else if (PUBLISH_DAYS.has(d.getDay())) {
+        publishDates.push(d);
+      }
     }
 
     // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
