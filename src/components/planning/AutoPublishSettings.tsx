@@ -12,15 +12,17 @@ import { Button } from "@/components/ui/button";
 interface AutoPublishSettingsProps {
   projectId: string;
   onSettingsChange?: (s: { frequency: string; enabled: boolean }) => void;
+  onFrequencyChanged?: () => void | Promise<void>;
 }
 
-export function AutoPublishSettings({ projectId, onSettingsChange }: AutoPublishSettingsProps) {
+export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyChanged }: AutoPublishSettingsProps) {
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
   const [frequency, setFrequency] = useState("3x_week");
+  const [savedFrequency, setSavedFrequency] = useState("3x_week");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
