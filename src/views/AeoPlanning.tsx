@@ -324,6 +324,7 @@ export default function AeoPlanning() {
                   setLiveFrequency(s.frequency);
                   setAutoPublishOn(s.enabled);
                 }}
+                onFrequencyChanged={fetchScheduledItems}
               />
             )}
         </PageHeader>
