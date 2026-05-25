@@ -14,7 +14,9 @@ interface PublishRequest {
   content?: {
     title: string;
     body: string;
-    type: "answer" | "article";
+    excerpt?: string;
+    slug?: string;
+    type: "answer" | "article" | "local-answer";
     sourceId: string;
   };
   // Legacy support
