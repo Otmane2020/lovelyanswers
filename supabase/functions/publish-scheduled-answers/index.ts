@@ -585,7 +585,7 @@ Deno.serve(async (req) => {
         }
 
         const integration = integrations[0] as Integration;
-        const { title, body } = generateArticleHTML(article, project);
+        const { title, body, excerpt } = generateArticleHTML(article, project);
 
         // Call cms-publish with slug included
         const articleSlug = (article as any).slug || article.title
@@ -597,7 +597,7 @@ Deno.serve(async (req) => {
           .replace(/-+/g, "-")
           .replace(/^-|-$/g, "")
           .substring(0, 80);
-          
+
         const publishResponse = await fetch(`${supabaseUrl}/functions/v1/cms-publish`, {
           method: "POST",
           headers: {
@@ -606,7 +606,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             integrationId: integration.id,
-            content: { title, body, type: "article", sourceId: article.id, slug: articleSlug }
+            content: { title, body, excerpt, type: "article", sourceId: article.id, slug: articleSlug }
           })
         });
 
