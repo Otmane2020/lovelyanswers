@@ -403,6 +403,19 @@ serve(async (req) => {
         if (!answerId) {
           const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList);
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
+
+          // ── Claude review (post-generation polish) ──
+          if (answerData.answer) {
+            const reviewed = await reviewWithClaude({
+              content: answerData.answer,
+              contentType: "aeo_answer",
+              language,
+              brand: brandName,
+              question: q.question,
+            });
+            answerData.answer = reviewed.content;
+          }
+
           const score = computeScore(answerData.answer, brandName);
 
           const { data: insertedAnswer, error: answerError } = await supabase
