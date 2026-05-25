@@ -203,6 +203,53 @@ function generateAnswerHTML(
   return { title: question, body, excerpt: plainExcerpt(answerText) };
 }
 
+function generateArticleHTML(
+  article: Article,
+  _project: Project
+): { title: string; body: string; excerpt: string } {
+  // Use existing HTML content when available; otherwise convert markdown-ish to HTML
+  let html = article.html_content?.trim() || "";
+  if (!html) {
+    const content = article.content || "";
+    html = content
+      .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .split(/\n{2,}/)
+      .map(p => p.startsWith("<") ? p : `<p>${p.trim()}</p>`)
+      .join("\n");
+  }
+  // Strip any H1 the model might have included — title is rendered by the CMS.
+  html = html.replace(/<h1[\s\S]*?<\/h1>/gi, "").trim();
+  return { title: article.title, body: html, excerpt: plainExcerpt(html) };
+}
+
+function generateLocalAnswerHTML(
+  localAnswer: LocalAnswer,
+  project: Project
+): { title: string; body: string; excerpt: string } {
+  const { question, answer, business_name } = localAnswer;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": business_name,
+    "url": project.website_url,
+    "mainEntity": {
+      "@type": "Question",
+      "name": question,
+      "acceptedAnswer": { "@type": "Answer", "text": answer }
+    }
+  };
+  const body = [
+    `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`,
+    `<p><strong>${esc(business_name)}</strong></p>`,
+    `<blockquote>${esc(answer)}</blockquote>`,
+  ].join("\n\n");
+  return { title: question, body, excerpt: plainExcerpt(answer) };
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
