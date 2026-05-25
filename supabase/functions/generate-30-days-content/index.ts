@@ -1118,9 +1118,23 @@ serve(async (req) => {
             q.question, answerData.answer, answerData.bullets, answerData.faq,
             brandName, description, language, apiKey
           );
+
+          // ── Claude review (article post-generation polish) ──
+          if (articleData.htmlContent) {
+            const reviewed = await reviewWithClaude({
+              content: articleData.htmlContent,
+              contentType: "article",
+              language,
+              brand: brandName,
+              topic: q.question,
+            });
+            articleData.htmlContent = reviewed.content;
+            articleData.content = reviewed.content;
+          }
         }
 
         // Insert article
+
         const { data: insertedArticle, error: articleError } = await supabase
           .from("articles")
           .insert({
