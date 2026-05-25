@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -847,21 +848,31 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
           console.log(`[generate-aeo-answers] ❌ Score too low (${score}), skipping: "${questionText.substring(0, 50)}..."`);
           continue;
         }
-        
+
+        // Claude editorial review
+        const reviewed = await reviewWithClaude({
+          content: generated.answer,
+          contentType: "aeo_answer",
+          brand: businessContext.brandName,
+          question: questionText,
+          language,
+        });
+        const finalAnswer = reviewed.content;
+
         // Insert into database
         const { data: inserted, error: insertError } = await supabase
           .from("answers")
           .insert({
             project_id: projectId,
             question: questionText,
-            answer: generated.answer,
+            answer: finalAnswer,
             slug: generateSlug(questionText),
             platforms: platforms,
             score: score,
             is_public: false,
             intent: intent,
             difficulty: score >= 80 ? 'easy' : score >= 65 ? 'medium' : 'hard',
-            high_citation: isHighCitation(score, generated.answer), // Use new High Citation check
+            high_citation: isHighCitation(score, finalAnswer), // Use new High Citation check
             supporting_content: {
               bullets: generated.bullets,
               faq: generated.faq

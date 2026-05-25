@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -186,14 +187,23 @@ Return ONLY the answer text in markdown. No JSON. No quotes around it. 250-400 w
     }
 
     const aiData = await aiResponse.json();
-    const answer = aiData.choices?.[0]?.message?.content || "";
+    const rawAnswer = aiData.choices?.[0]?.message?.content || "";
+
+    const reviewed = await reviewWithClaude({
+      content: rawAnswer.trim(),
+      contentType: "local_answer",
+      brand: businessName,
+      question,
+      topic: location,
+    });
 
     return new Response(
       JSON.stringify({
-        answer: answer.trim(),
+        answer: reviewed.content.trim(),
         question,
         businessName,
         location,
+        reviewed: reviewed.reviewed,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

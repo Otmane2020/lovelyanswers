@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reviewWithClaude } from "../_shared/claude-review.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -312,7 +313,19 @@ Output JSON:
     }
 
     const slug = slugify(parsed.title || topic);
-    const content = parsed.content || "";
+    let content = parsed.content || "";
+
+    // Claude review pass
+    const reviewed = await reviewWithClaude({
+      content,
+      contentType: "geo_content",
+      brand,
+      topic,
+      language: body.language,
+    });
+    content = reviewed.content;
+    parsed.content = content;
+
     const score = computeGeoScore(content, brand);
 
     // Schedule on next available date
