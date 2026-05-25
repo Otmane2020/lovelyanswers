@@ -267,8 +267,17 @@ serve(async (req) => {
       maxDaysToFill = 3,
     } = body ?? {};
 
-    // Only publish on Mon (1), Wed (3), Fri (5)
-    const PUBLISH_DAYS = new Set([1, 3, 5]);
+    // Publish-day set is computed per project below (honors project_settings.publish_frequency).
+    const getPublishDaysSet = (frequency: string): Set<number> => {
+      switch (frequency) {
+        case "daily":   return new Set([0, 1, 2, 3, 4, 5, 6]);
+        case "weekly":  return new Set([1]);
+        case "2x_week": return new Set([2, 4]);
+        case "monthly": return new Set([1, 2, 3, 4, 5]);
+        case "3x_week":
+        default:        return new Set([1, 3, 5]);
+      }
+    };
 
     console.log("[daily-planning-fill] Starting daily planning fill...", {
       projectId,
