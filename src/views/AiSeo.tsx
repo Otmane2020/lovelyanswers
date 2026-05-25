@@ -281,7 +281,7 @@ export default function AiSeo() {
                   { name: "Perplexity", logo: perplexityLogo },
                   { name: "Claude", logo: claudeLogo },
                 ].map((p) => (
-                  <img key={p.name} src={p.logo as unknown as string} alt={p.name} className="h-7 w-7 rounded-lg opacity-50 hover:opacity-80 transition-opacity" />
+                  <img key={p.name} src={p.logo as unknown as string} alt={`${p.name} AI logo`} className="h-7 w-7 rounded-lg opacity-50 hover:opacity-80 transition-opacity" />
                 ))}
               </motion.div>
             </div>
