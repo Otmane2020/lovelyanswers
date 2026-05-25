@@ -408,6 +408,8 @@ async function publishToWordPress(
       body: JSON.stringify({
         title: content.title,
         content: content.body,
+        excerpt: (content as any).excerpt || undefined,
+        slug: (content as any).slug || undefined,
         status: "publish",
       }),
     });
