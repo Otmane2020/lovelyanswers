@@ -848,14 +848,24 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
           console.log(`[generate-aeo-answers] ❌ Score too low (${score}), skipping: "${questionText.substring(0, 50)}..."`);
           continue;
         }
-        
+
+        // Claude editorial review
+        const reviewed = await reviewWithClaude({
+          content: generated.answer,
+          contentType: "aeo_answer",
+          brand: businessContext.brandName,
+          question: questionText,
+          language,
+        });
+        const finalAnswer = reviewed.content;
+
         // Insert into database
         const { data: inserted, error: insertError } = await supabase
           .from("answers")
           .insert({
             project_id: projectId,
             question: questionText,
-            answer: generated.answer,
+            answer: finalAnswer,
             slug: generateSlug(questionText),
             platforms: platforms,
             score: score,
