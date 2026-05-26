@@ -893,29 +893,38 @@ async function publishToLovable(
         }
         
         const data = await response.json().catch(() => ({}));
-        console.log(`[Lovable] Published to external Lovable project with slug: ${articleSlug}`);
-        
-        // Build the public URL using siteUrl if available, otherwise try to extract from data or fallback
-        let publicUrl = data.url;
-        if (!publicUrl && config.siteUrl) {
-          // Use the configured site URL
-          const baseUrl = config.siteUrl.replace(/\/+$/, ''); // Remove trailing slashes
-          publicUrl = `${baseUrl}/blog/${articleSlug}`;
-        } else if (!publicUrl && sourceId) {
-          // Try to get website_url from the project
+        console.log(`[Lovable] Published to external Lovable project with slug: ${articleSlug}`, JSON.stringify(data).slice(0, 300));
+
+        // ALWAYS prefer the project's own website_url over whatever the receiving
+        // endpoint returns (some receivers return a wrong/stale lovable.app domain).
+        // Priority: config.siteUrl > project.website_url > data.article?.url || data.url > fallback
+        let publicUrl: string | undefined;
+
+        if (config.siteUrl) {
+          publicUrl = `${config.siteUrl.replace(/\/+$/, '')}/blog/${articleSlug}`;
+        } else if (sourceId) {
           const { data: answerProject } = await supabase
             .from("answers")
             .select("projects(website_url)")
             .eq("id", sourceId)
             .single();
-          const projectUrl = (answerProject?.projects as any)?.website_url;
+          let projectUrl = (answerProject?.projects as any)?.website_url;
+          if (!projectUrl) {
+            const { data: articleProject } = await supabase
+              .from("articles")
+              .select("projects(website_url)")
+              .eq("id", sourceId)
+              .single();
+            projectUrl = (articleProject?.projects as any)?.website_url;
+          }
           if (projectUrl) {
             publicUrl = `${projectUrl.replace(/\/+$/, '')}/blog/${articleSlug}`;
-          } else {
-            publicUrl = `/blog/${articleSlug}`;
           }
-        } else if (!publicUrl) {
-          publicUrl = `/blog/${articleSlug}`;
+        }
+
+        // Last-resort fallbacks: response payload, then relative path
+        if (!publicUrl) {
+          publicUrl = data.article?.url || data.url || `/blog/${articleSlug}`;
         }
         
         return {
