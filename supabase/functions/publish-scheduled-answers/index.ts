@@ -530,13 +530,13 @@ Deno.serve(async (req) => {
             .from("answers")
             .update({
               is_public: true,
-              published_url: publishResult.url || null,
+              published_url: publishResult.publishedUrl || null,
               published_at: new Date().toISOString()
             })
             .eq("id", answer.id);
 
-          console.log(`[publish-scheduled] ✅ Answer published: ${publishResult.url || answer.id}`);
-          results.push({ id: answer.id, type: "answer", success: true, url: publishResult.url });
+          console.log(`[publish-scheduled] ✅ Answer published: ${publishResult.publishedUrl || answer.id}`);
+          results.push({ id: answer.id, type: "answer", success: true, url: publishResult.publishedUrl });
         } else {
           console.error(`[publish-scheduled] ❌ Failed to publish answer: ${publishResult.error}`);
           results.push({ id: answer.id, type: "answer", success: false, error: publishResult.error });
@@ -618,8 +618,8 @@ Deno.serve(async (req) => {
             .update({ status: "published" })
             .eq("id", article.id);
 
-          console.log(`[publish-scheduled] ✅ Article published: ${publishResult.url || article.id}`);
-          results.push({ id: article.id, type: "article", success: true, url: publishResult.url });
+          console.log(`[publish-scheduled] ✅ Article published: ${publishResult.publishedUrl || article.id}`);
+          results.push({ id: article.id, type: "article", success: true, url: publishResult.publishedUrl });
         } else {
           console.error(`[publish-scheduled] ❌ Failed to publish article: ${publishResult.error}`);
           results.push({ id: article.id, type: "article", success: false, error: publishResult.error });
@@ -690,13 +690,13 @@ Deno.serve(async (req) => {
             .from("local_answers")
             .update({
               is_public: true,
-              published_url: publishResult.url || null,
+              published_url: publishResult.publishedUrl || null,
               published_at: new Date().toISOString()
             })
             .eq("id", localAnswer.id);
 
-          console.log(`[publish-scheduled] ✅ Local answer published: ${publishResult.url || localAnswer.id}`);
-          results.push({ id: localAnswer.id, type: "local-answer", success: true, url: publishResult.url });
+          console.log(`[publish-scheduled] ✅ Local answer published: ${publishResult.publishedUrl || localAnswer.id}`);
+          results.push({ id: localAnswer.id, type: "local-answer", success: true, url: publishResult.publishedUrl });
         } else {
           console.error(`[publish-scheduled] ❌ Failed to publish local answer: ${publishResult.error}`);
           results.push({ id: localAnswer.id, type: "local-answer", success: false, error: publishResult.error });
