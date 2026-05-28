@@ -139,7 +139,7 @@ Output ONLY valid JSON:
           Authorization: "Bearer " + openRouterKey,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: "Respond with valid JSON only." },
             { role: "user", content: suggestPrompt },
@@ -280,7 +280,7 @@ Output JSON:
         Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: geoSystemPrompt },
           { role: "user", content: prompt },
