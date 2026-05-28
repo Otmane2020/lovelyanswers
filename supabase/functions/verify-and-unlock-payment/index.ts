@@ -18,6 +18,7 @@ const VIP_USERS = new Set([
   "floresclarissausa@gmail.com",
   "lea2002023@gmail.com",
   "oben.rockman@gmail.com",
+  "support@ranki.ai",
 ]);
 
 Deno.serve(async (req) => {
