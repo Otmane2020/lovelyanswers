@@ -134,6 +134,7 @@ const VIP_EMAILS = [
   "clipmotion.ai@gmail.com",
   "floresclarissausa@gmail.com",
   "lea2002023@gmail.com",
+  "support@ranki.ai",
 ];
 
 serve(async (req) => {
