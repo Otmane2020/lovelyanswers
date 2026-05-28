@@ -370,12 +370,12 @@ Return ONLY valid JSON:
 
   const parsed = safeParseJSON<{ answer: string; bullets: string[] }>(raw);
 
-  // Fallback si trop court
+  // NO FALLBACK - reject too-short AI output instead of padding it
   const words = countWords(parsed.answer || "");
   if (words < 80) {
-    console.warn(`[generate-30-local] Short answer (${words} words) for: "${question}"`);
-    parsed.answer = `## ${question}\n\n${parsed.answer}\n\n*Pour plus d'informations, contactez directement ${businessName}.*`;
+    throw new Error(`AI returned too-short answer (${words} words) for "${question}" — refusing to publish placeholder content`);
   }
+
 
   return parsed;
 }
