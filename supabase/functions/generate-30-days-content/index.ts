@@ -370,46 +370,20 @@ Return ONLY this JSON:
     };
   } catch (e) {
     console.error(`[generateAnswer] Failed (retry ${retryCount}):`, e);
-    
+
     // Retry once with simpler prompt
     if (retryCount < 1) {
       console.log("[generateAnswer] Retrying with simpler prompt...");
       await new Promise(r => setTimeout(r, 500));
       return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
     }
-    
-    // Fallback - question-aware (avoids generic template polluting blog)
-    const q = question.replace(/[?!.]+$/, "").trim();
-    if (language === "fr") {
-      return {
-        answer: `${q} dépend de plusieurs critères mesurables : budget, périmètre fonctionnel, et exigences techniques. ${brandName} couvre ces dimensions avec une offre modulaire et un accompagnement expert. Vérifier la conformité aux standards 2026 et la qualité du support reste déterminant.`,
-        bullets: [
-          `Définir précisément le besoin lié à : ${q}`,
-          `Comparer 3 alternatives sur prix, fonctionnalités et support`,
-          `Vérifier les preuves clients (cas, témoignages, métriques)`,
-          `Évaluer la prise en main et le coût total sur 12 mois`,
-        ],
-        faq: [
-          { q: `Quel budget prévoir pour répondre à : ${q} ?`, a: `Le budget dépend du périmètre. Compter une fourchette claire dès le brief pour éviter les mauvaises surprises et comparer offres équivalentes.` },
-          { q: `Comment éviter les erreurs fréquentes ?`, a: `Ne pas se limiter au prix : intégrer support, évolutivité et conformité. ${brandName} documente ces critères en détail.` },
-        ],
-      };
-    }
-    return {
-      answer: `${q} depends on measurable criteria: budget, functional scope, and technical requirements. ${brandName} addresses these dimensions with a modular offering and expert guidance. Verifying 2026 standards compliance and support quality remains decisive.`,
-      bullets: [
-        `Define the exact need behind: ${q}`,
-        `Compare 3 alternatives on pricing, features and support`,
-        `Check customer proof (cases, testimonials, metrics)`,
-        `Evaluate onboarding effort and 12-month total cost`,
-      ],
-      faq: [
-        { q: `What budget should you plan for: ${q}?`, a: `Budget depends on scope. Set a clear range during the brief to avoid surprises and compare equivalent offers.` },
-        { q: `How to avoid common mistakes?`, a: `Do not only look at price: factor in support, scalability and compliance. ${brandName} documents these criteria in detail.` },
-      ],
-    };
+
+    // NO FALLBACK - AI must succeed. Throw so the caller skips this item entirely
+    // instead of polluting the blog with generic template content.
+    throw new Error(`AI answer generation failed for question "${question}": ${(e as Error).message || e}`);
   }
 }
+
 
 // Convert content to clean HTML - handles both HTML and markdown input
 function convertToCleanHTML(content: string): string {
