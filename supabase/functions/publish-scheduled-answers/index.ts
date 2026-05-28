@@ -180,24 +180,49 @@ function generateAnswerHTML(
 
   const keyPointsTitle = language === "fr" ? "Points clés" : "Key takeaways";
   const faqTitle = language === "fr" ? "Questions fréquentes" : "Frequently asked questions";
+  const inDepthTitle = language === "fr" ? "Analyse détaillée" : "In-depth analysis";
+  const conclusionTitle = language === "fr" ? "À retenir" : "Bottom line";
 
-  const bulletsBlock = bullets.length > 0
-    ? `<h2>${keyPointsTitle}</h2>\n<ul>\n${bullets.map(b => `  <li>${esc(b)}</li>`).join("\n")}\n</ul>`
+  // Split answer into intro (1st sentence) + rest for magazine layout
+  const sentences = answerText.match(/[^.!?]+[.!?]+/g) || [answerText];
+  const leadSentence = (sentences[0] || answerText).trim();
+  const restOfAnswer = sentences.slice(1).join(" ").trim();
+
+  // aeo-answer pull paragraph (citable)
+  const aeoAnswerBlock = `<p class="aeo-answer"><strong>${esc(leadSentence)}</strong>${restOfAnswer ? " " + esc(restOfAnswer) : ""}</p>`;
+
+  // aeo-summary takeaways box
+  const summaryBlock = bullets.length > 0
+    ? `<div class="aeo-summary">\n<p><strong>${keyPointsTitle}:</strong></p>\n<ul>\n${bullets.map(b => `  <li>${esc(b)}</li>`).join("\n")}\n</ul>\n</div>`
     : "";
 
+  // Editorial H2 sections — promote each bullet to a section heading with a short paragraph
+  const sectionsBlock = bullets.length > 0
+    ? `<h2>${inDepthTitle}</h2>\n` + bullets.map((b, i) => {
+        const text = String(b || "").trim();
+        // Use bullet sentence as H3 lead, then expand with the bullet as paragraph
+        const heading = text.replace(/^[-•*]\s*/, "").split(/[.:]/)[0].slice(0, 80) || `${language === "fr" ? "Point" : "Point"} ${i + 1}`;
+        return `<h3>${esc(heading)}</h3>\n<p>${esc(text)}</p>`;
+      }).join("\n\n")
+    : "";
+
+  // FAQ accordion using <details> (rendered as expandable by ArticleTemplate/.editorial-prose)
   const faqBlock = faq.length > 0
-    ? `<h2>${faqTitle}</h2>\n${faq.map(item => `<h3>${esc(item.question)}</h3>\n<p>${esc(item.answer)}</p>`).join("\n")}`
+    ? `<h2>${faqTitle}</h2>\n${faq.map(item => `<details class="faq-item"><summary>${esc(item.question)}</summary><p>${esc(item.answer)}</p></details>`).join("\n")}`
     : "";
 
-  // Magazine layout: clean semantic HTML, NO H1 (title rendered by CMS),
-  // NO inline styles, NO wrapping <article>. Lead paragraph as <blockquote>
-  // for the pull-quote effect that themes pick up.
+  // Conclusion pull-quote
+  const conclusionBlock = `<h2>${conclusionTitle}</h2>\n<blockquote>${esc(leadSentence)}</blockquote>`;
+
+  // Magazine layout: aeo-answer → aeo-summary → in-depth sections → FAQ → conclusion
   const body = [
     `<script type="application/ld+json">${JSON.stringify(qaJsonLd)}</script>`,
     faqJsonLd ? `<script type="application/ld+json">${JSON.stringify(faqJsonLd)}</script>` : "",
-    `<blockquote>${esc(answerText)}</blockquote>`,
-    bulletsBlock,
+    aeoAnswerBlock,
+    summaryBlock,
+    sectionsBlock,
     faqBlock,
+    conclusionBlock,
   ].filter(Boolean).join("\n\n");
 
   return { title: question, body, excerpt: plainExcerpt(answerText) };
