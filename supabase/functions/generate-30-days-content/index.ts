@@ -224,7 +224,7 @@ Return ONLY this JSON (no markdown, no code block):
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-2.5-flash",
         temperature: 0.7,
         messages: [
           { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
@@ -367,7 +367,7 @@ Return ONLY this JSON:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-2.5-flash",
         temperature: 0.5,
         max_tokens: 2000,
         messages: [
@@ -611,7 +611,7 @@ Return ONLY this JSON (pure HTML in content):
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: "google/gemini-2.5-flash",
         temperature: 0.55,
         max_tokens: 6000,
         messages: [
