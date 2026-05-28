@@ -357,16 +357,17 @@ Output ONLY valid JSON array:
         throw new Error("No topics array found in response");
       }
     } catch (e) {
-      console.error("[generate-30-gso] Failed to parse topics, using deterministic fallback:", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
-      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate });
+      // NO FALLBACK - if the AI cannot return valid topics, abort the whole run
+      console.error("[generate-30-gso] Failed to parse topics — aborting (no fallback):", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
+      throw new Error(`AI topic generation failed: ${String(e)}`);
     }
 
     // Filter out duplicate topics
     topics = topics.filter(t => !existingTopics.has(t.topic?.toLowerCase()));
     if (topics.length === 0) {
-      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate })
-        .filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+      throw new Error("All AI-generated topics were duplicates — nothing new to publish");
     }
+
 
     console.log("[generate-30-gso] Got " + topics.length + " unique topics, generating content...");
 
@@ -505,23 +506,11 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
           const cleaned2 = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
           parsed = JSON.parse(cleaned2);
         } catch {
-          parsed = rawContent.trim()
-            ? {
-                title: brand + " - " + t.topic,
-                meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
-                content: rawContent,
-              }
-            : buildFallbackContent({
-                topic: t.topic,
-                type: t.type,
-                keywords: t.keywords || [],
-                brand,
-                website,
-                businessType,
-                audience,
-                language,
-              });
+          // NO FALLBACK - skip this item instead of inserting raw or templated content
+          console.error("[generate-30-gso] JSON parse failed for topic, skipping:", t.topic);
+          continue;
         }
+
 
         // ── Claude review (post-generation polish) ──
         if (parsed.content) {

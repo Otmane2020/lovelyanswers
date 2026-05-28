@@ -342,17 +342,11 @@ serve(async (req) => {
           .trim();
         articleData = JSON.parse(cleaned);
       } catch (_parseErr) {
-        console.error("[generate-articles] JSON parse failed for \"" + keyword + "\", using fallback");
-        articleData = {
-          title: keyword + " - Complete Guide 2026",
-          content: rawContent,
-          metaDescription: "Everything you need to know about " + keyword + " - by " + brand + ".",
-          headings: [],
-          internalLinks: [],
-          faqs: [],
-          jsonLdSchema: null,
-        };
+        // NO FALLBACK - skip this keyword instead of publishing raw/unstructured content
+        console.error("[generate-articles] JSON parse failed for \"" + keyword + "\" — skipping (no fallback)");
+        continue;
       }
+
 
       let content = articleData.content || rawContent;
 

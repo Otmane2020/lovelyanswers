@@ -742,22 +742,18 @@ Reply in JSON:
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";
   
-  return safeParseJSON<{ content: string; meta_description: string; keywords: string[] }>(
-    content, 
-    { content, meta_description: "", keywords: [] }
-  );
-}
-
-// Safe JSON parsing with fallback
-function safeParseJSON<T>(raw: string, fallback: T): T {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return fallback;
+  // NO FALLBACK - require strict JSON from the AI
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) {
+    throw new Error("AI did not return valid JSON for article");
+  }
   try {
-    return JSON.parse(match[0]);
-  } catch {
-    return fallback;
+    return JSON.parse(match[0]) as { content: string; meta_description: string; keywords: string[] };
+  } catch (e) {
+    throw new Error(`AI returned malformed JSON for article: ${(e as Error).message}`);
   }
 }
+
 
 // Generate slug for articles
 function generateArticleSlug(text: string): string {
