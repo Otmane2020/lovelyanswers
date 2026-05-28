@@ -357,16 +357,17 @@ Output ONLY valid JSON array:
         throw new Error("No topics array found in response");
       }
     } catch (e) {
-      console.error("[generate-30-gso] Failed to parse topics, using deterministic fallback:", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
-      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate });
+      // NO FALLBACK - if the AI cannot return valid topics, abort the whole run
+      console.error("[generate-30-gso] Failed to parse topics — aborting (no fallback):", topicsRaw.slice(0, 1000), "error:", String(e), "details:", topicsErr || "none");
+      throw new Error(`AI topic generation failed: ${String(e)}`);
     }
 
     // Filter out duplicate topics
     topics = topics.filter(t => !existingTopics.has(t.topic?.toLowerCase()));
     if (topics.length === 0) {
-      topics = buildFallbackTopics({ brand, businessType, audience, keywords: keywordItems, language, count: toGenerate })
-        .filter(t => !existingTopics.has(t.topic?.toLowerCase()));
+      throw new Error("All AI-generated topics were duplicates — nothing new to publish");
     }
+
 
     console.log("[generate-30-gso] Got " + topics.length + " unique topics, generating content...");
 
