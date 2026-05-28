@@ -650,18 +650,10 @@ Return ONLY this JSON (pure HTML in content):
       return generateArticle(question, answer, bullets, faq, brandName, description, language, apiKey, retryCount + 1);
     }
     
-    // Fallback - create article from answer
-    console.log("[generateArticle] Using fallback article from answer");
-    const fallbackTitle = question.replace("?", "").trim();
-    const fallbackContent = `${answer}\n\n${bullets.map(b => `• ${b}`).join('\n')}`;
-    
-    return {
-      title: fallbackTitle,
-      content: fallbackContent,
-      htmlContent: `<p>${answer}</p><ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>`,
-      metaDescription: answer.substring(0, 155),
-      wordCount: fallbackContent.split(/\s+/).length,
-    };
+    // NO FALLBACK - if AI fails to write the magazine-format article, throw.
+    // We never publish stitched-together placeholders.
+    throw new Error(`AI article generation failed for "${question}": ${(e as Error).message || e}`);
+
   }
 }
 
