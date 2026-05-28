@@ -269,31 +269,11 @@ Return ONLY this JSON (no markdown, no code block):
     return validQuestions;
   } catch (e) {
     console.error("[generateQuestions] Failed:", e);
-    // Fallback questions
-    const fallback: { question: string; intent: IntentType }[] = [];
-    const templates = language === "fr" 
-      ? [
-          { q: `Comment choisir ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`, i: "criteria" as IntentType },
-          { q: `Quel budget prévoir pour ${brandName.toLowerCase()} de qualité ?`, i: "price" as IntentType },
-          { q: `Quelles erreurs éviter avec ${brandName.toLowerCase()} ?`, i: "howto" as IntentType },
-          { q: `Pourquoi choisir ${brandName.toLowerCase()} plutôt que les alternatives ?`, i: "why" as IntentType },
-          { q: `Quels critères vérifier avant d'acheter ${brandName.toLowerCase()} ?`, i: "criteria" as IntentType },
-        ]
-      : [
-          { q: `How to choose ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`, i: "criteria" as IntentType },
-          { q: `What budget for quality ${brandName.toLowerCase()}?`, i: "price" as IntentType },
-          { q: `What mistakes to avoid with ${brandName.toLowerCase()}?`, i: "howto" as IntentType },
-          { q: `Why choose ${brandName.toLowerCase()} over alternatives?`, i: "why" as IntentType },
-          { q: `What criteria to check before buying ${brandName.toLowerCase()}?`, i: "criteria" as IntentType },
-        ];
-    
-    for (let i = 0; i < count; i++) {
-      const t = templates[i % templates.length];
-      fallback.push({ question: t.q, intent: t.i });
-    }
-    return fallback;
+    // NO FALLBACK - AI must succeed to produce real content for Google & AI assistants
+    throw new Error(`AI question generation failed: ${(e as Error).message || e}`);
   }
 }
+
 
 // Generate answer - AEO-OPTIMIZED prompt for LLM citation
 async function generateAnswer(
