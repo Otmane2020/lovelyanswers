@@ -165,6 +165,80 @@
       }
     }
     </script>
+
+    <!-- WebSite + SearchAction (sitelinks search box in Google) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AutoPilot Geo",
+      "url": "https://autopilotgeo.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://autopilotgeo.com/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- FAQPage (boosts citation in ChatGPT, Perplexity, Google AI Overviews) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I get my brand recommended by ChatGPT?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ChatGPT recommends brands it sees consistently cited across the open web with clear, structured answers. AutoPilot Geo automates this by auditing your current AI visibility, generating citation-ready Q&A content, and auto-publishing it to your CMS so AI engines keep encountering your brand."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Answer Engine Optimization (AEO)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AEO is the practice of structuring content so AI assistants like ChatGPT, Perplexity, Gemini and Google AI Overviews quote it as the answer. It relies on clear questions, concise factual answers, FAQ schema, and consistent brand mentions across trusted sources."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is AEO different from SEO?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SEO targets ranked links on Google. AEO targets the cited answer in AI chat interfaces. AEO content is shorter, more direct, uses FAQ and HowTo schema, and is written to be quoted verbatim by an LLM rather than clicked."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does AutoPilot Geo cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AutoPilot Geo starts at $29/month for the All-in-One plan, which includes 30 SEO articles, 30 AEO answers, GEO content, local AEO pages, and auto-publishing to WordPress, Shopify, Wix and more. A free AI visibility audit is available without a credit card."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which AI search engines does AutoPilot Geo optimize for?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AutoPilot Geo optimizes content for ChatGPT, Perplexity, Google Gemini, Google AI Overviews, Microsoft Copilot, and Claude, in addition to traditional Google organic search."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long does it take to see results?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most AutoPilot Geo customers see brand mentions in AI answers within 4 to 8 weeks of continuous publishing, and an average +60% organic traffic increase within 3 months."
+          }
+        }
+      ]
+    }
+    </script>
+
     
   
   
