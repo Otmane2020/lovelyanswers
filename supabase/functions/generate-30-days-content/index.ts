@@ -243,7 +243,7 @@ async function generateQuestions(
   brandName: string,
   description: string,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   count: number = 5,
   keywords: string[] = []
 ): Promise<{ question: string; intent: IntentType }[]> {
@@ -279,35 +279,18 @@ Return ONLY this JSON (no markdown, no code block):
 {"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
-          { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
+    ], ai, {
+      temperature: 0.7,
+      max_tokens: 8192,
+      response_format: { type: "json_object" },
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenRouter ${res.status}: ${errText.slice(0, 300)}`);
-    }
+    console.log(`[generateQuestions] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    const finishReason = json?.choices?.[0]?.finish_reason;
-    console.log(`[generateQuestions] finish_reason=${finishReason}, content length=${content.length}`);
-
-    if (!content) throw new Error(`Empty AI response (finish_reason=${finishReason}, raw=${JSON.stringify(json).slice(0, 300)})`);
+    if (!content) throw new Error(`Empty AI response from ${provider} (finish_reason=${finishReason})`);
 
     let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     const jsonStart = cleaned.search(/[\{\[]/);
@@ -317,7 +300,7 @@ Return ONLY this JSON (no markdown, no code block):
     }
     cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
 
-    const parsed = safeParseJSON(cleaned);
+    const parsed = safeParseJSON<any>(cleaned);
     
     // Post-process questions
     const validQuestions = (parsed.questions || [])
