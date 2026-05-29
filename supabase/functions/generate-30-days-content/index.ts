@@ -12,6 +12,10 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 type AIConfig = { lovableKey?: string | null; openrouterKey?: string | null };
 
+function isAiCreditsError(message: string): boolean {
+  return /\b402\b|payment_required|insufficient credits|not enough credits/i.test(message);
+}
+
 async function callAI(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   ai: AIConfig,
@@ -1275,9 +1279,17 @@ serve(async (req) => {
     );
   } catch (e: any) {
     console.error("[generate-30-days] Error:", e);
+    const message = e?.message || String(e);
+    const creditsError = isAiCreditsError(message);
     return new Response(
-      JSON.stringify({ success: false, error: e.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        code: creditsError ? "AI_CREDITS_EXHAUSTED" : "GENERATION_FAILED",
+        error: creditsError
+          ? "AI credits are exhausted. No content was generated. Add AI credits or update an available provider key, then retry."
+          : message,
+      }),
+      { status: creditsError ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
