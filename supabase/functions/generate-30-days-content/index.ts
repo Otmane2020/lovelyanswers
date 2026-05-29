@@ -10,6 +10,101 @@ const corsHeaders = {
 type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
+type AIConfig = { lovableKey?: string | null; openrouterKey?: string | null };
+
+async function callAI(
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
+  ai: AIConfig,
+  opts: { temperature?: number; max_tokens?: number; response_format?: { type: "json_object" } } = {}
+): Promise<{ content: string; provider: string; finishReason?: string }> {
+  const temperature = opts.temperature ?? 0.5;
+  const max_tokens = opts.max_tokens ?? 4000;
+  const body = {
+    model: "google/gemini-3-flash-preview",
+    messages,
+    temperature,
+    max_tokens,
+    ...(opts.response_format ? { response_format: opts.response_format } : {}),
+  };
+
+  const errors: string[] = [];
+  if (ai.lovableKey) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": ai.lovableKey,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.choices?.[0]?.message?.content ?? "";
+      if (res.ok && content) {
+        return { content, provider: "Lovable AI", finishReason: data?.choices?.[0]?.finish_reason };
+      }
+      errors.push(`Lovable AI ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`Lovable AI error: ${(e as Error).message || e}`);
+    }
+  }
+
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey) {
+    try {
+      const system = messages.find((m) => m.role === "system")?.content || "";
+      const anthropicMessages = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5",
+          max_tokens,
+          temperature,
+          system: `${system}\nReturn only valid JSON that matches the requested schema.`,
+          messages: anthropicMessages,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.content?.find((part: any) => part?.type === "text")?.text ?? "";
+      if (res.ok && content) {
+        return { content, provider: "Anthropic", finishReason: data?.stop_reason };
+      }
+      errors.push(`Anthropic ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`Anthropic error: ${(e as Error).message || e}`);
+    }
+  }
+
+  if (ai.openrouterKey) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ai.openrouterKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...body, model: "google/gemini-2.5-flash" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.choices?.[0]?.message?.content ?? "";
+      if (res.ok && content) {
+        return { content, provider: "OpenRouter", finishReason: data?.choices?.[0]?.finish_reason };
+      }
+      errors.push(`OpenRouter ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`OpenRouter error: ${(e as Error).message || e}`);
+    }
+  }
+
+  throw new Error(errors.length ? errors.join(" | ") : "No AI provider configured");
+}
 
 // Map project_settings.publish_frequency → set of valid weekday numbers (0=Sun..6=Sat).
 // "monthly" is handled separately via getDate()===1 and never consults this set.
@@ -181,7 +276,7 @@ async function generateQuestions(
   brandName: string,
   description: string,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   count: number = 5,
   keywords: string[] = []
 ): Promise<{ question: string; intent: IntentType }[]> {
@@ -217,35 +312,18 @@ Return ONLY this JSON (no markdown, no code block):
 {"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
-          { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
+    ], ai, {
+      temperature: 0.7,
+      max_tokens: 8192,
+      response_format: { type: "json_object" },
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenRouter ${res.status}: ${errText.slice(0, 300)}`);
-    }
+    console.log(`[generateQuestions] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    const finishReason = json?.choices?.[0]?.finish_reason;
-    console.log(`[generateQuestions] finish_reason=${finishReason}, content length=${content.length}`);
-
-    if (!content) throw new Error(`Empty AI response (finish_reason=${finishReason}, raw=${JSON.stringify(json).slice(0, 300)})`);
+    if (!content) throw new Error(`Empty AI response from ${provider} (finish_reason=${finishReason})`);
 
     let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     const jsonStart = cleaned.search(/[\{\[]/);
@@ -255,7 +333,7 @@ Return ONLY this JSON (no markdown, no code block):
     }
     cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
 
-    const parsed = safeParseJSON(cleaned);
+    const parsed = safeParseJSON<any>(cleaned);
     
     // Post-process questions
     const validQuestions = (parsed.questions || [])
@@ -298,7 +376,7 @@ async function generateAnswer(
   description: string,
   intent: IntentType,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   retryCount: number = 0
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
 
@@ -356,28 +434,21 @@ Return ONLY this JSON:
 {"answer":"rich 4-5 sentence response...","bullets":["Criterion 1 with precise data","Criterion 2 with concrete example","Criterion 3 mistake to avoid","Criterion 4 expert tip"],"faq":[{"q":"precise related question?","a":"30-50 word factual answer"},{"q":"alternative or comparison question?","a":"30-50 word answer"},{"q":"question about mistakes?","a":"30-50 word practical answer"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.5,
-        max_tokens: 2000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: prompt },
+    ], ai, {
+      temperature: 0.5,
+      max_tokens: 3000,
+      response_format: { type: "json_object" },
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON found");
+    console.log(`[generateAnswer] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
+    const cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error(`No JSON found in ${provider} response. finish_reason=${finishReason}, preview=${content.slice(0, 200)}`);
 
-    const parsed = safeParseJSON(match[0]);
+    const parsed = safeParseJSON<any>(match[0]);
 
     return {
       answer: parsed.answer || `${brandName} propose des solutions adaptées à ce besoin.`,
@@ -391,7 +462,7 @@ Return ONLY this JSON:
     if (retryCount < 1) {
       console.log("[generateAnswer] Retrying with simpler prompt...");
       await new Promise(r => setTimeout(r, 500));
-      return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
+      return generateAnswer(question, brandName, description, intent, language, ai, retryCount + 1);
     }
 
     // NO FALLBACK - AI must succeed. Throw so the caller skips this item entirely
@@ -515,7 +586,7 @@ async function generateArticle(
   brandName: string,
   description: string,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   retryCount: number = 0
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const currentYear = new Date().getFullYear();
@@ -598,24 +669,16 @@ Return ONLY this JSON (pure HTML in content):
 {"title":"Clear title with question in ${currentYear}","content":"<p class=\\"aeo-answer\\"><strong>Direct answer...</strong>...</p><div class=\\"aeo-summary\\">...</div><h2>Section 1</h2><p>...</p><blockquote>...</blockquote><h2>Section 2</h2><p>...</p><ol><li>...</li></ol><hr><h2>Section 3</h2>...<h2>Common Mistakes</h2><ul><li>...</li></ul><h2>Conclusion</h2><p>...</p>","metaDescription":"150-160 char description with key answer and number"}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.55,
-        max_tokens: 6000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: prompt },
+    ], ai, {
+      temperature: 0.55,
+      max_tokens: 8000,
+      response_format: { type: "json_object" },
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
+    console.log(`[generateArticle] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
 
     // Try to extract JSON from code blocks first
     let jsonStr = "";
@@ -663,7 +726,7 @@ Return ONLY this JSON (pure HTML in content):
     if (retryCount < 1) {
       console.log("[generateArticle] Retrying with ultra-simple prompt...");
       await new Promise(r => setTimeout(r, 500));
-      return generateArticle(question, answer, bullets, faq, brandName, description, language, apiKey, retryCount + 1);
+      return generateArticle(question, answer, bullets, faq, brandName, description, language, ai, retryCount + 1);
     }
     
     // NO FALLBACK - if AI fails to write the magazine-format article, throw.
@@ -685,8 +748,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
+    const ai: AIConfig = {
+      lovableKey: Deno.env.get("LOVABLE_API_KEY"),
+      openrouterKey: Deno.env.get("OPENROUTER_API_KEY"),
+    };
+    if (!ai.lovableKey && !ai.openrouterKey) throw new Error("No AI provider configured");
 
     const auth = req.headers.get("authorization");
     if (!auth) throw new Error("Missing auth header");
@@ -871,7 +937,7 @@ serve(async (req) => {
     // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
     const totalQuestions = publishDates.length * questionsPerDay;
     console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per publish day for ${publishDates.length} publish days)...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
+    const questions = await generateQuestions(brandName, description, language, ai, totalQuestions, keywordList);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
@@ -967,7 +1033,7 @@ serve(async (req) => {
               brandName,
               description,
               language,
-              apiKey
+              ai
             );
 
             // ── Claude review ──
@@ -1055,7 +1121,7 @@ serve(async (req) => {
           };
           score = 0;
         } else {
-          answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
+          answerData = await generateAnswer(q.question, brandName, description, q.intent, language, ai);
           score = computeScore(answerData.answer, brandName);
         }
 
@@ -1115,7 +1181,7 @@ serve(async (req) => {
         } else {
           articleData = await generateArticle(
             q.question, answerData.answer, answerData.bullets, answerData.faq,
-            brandName, description, language, apiKey
+            brandName, description, language, ai
           );
 
           // ── Claude review (article post-generation polish) ──
