@@ -112,13 +112,35 @@ export default function AeoGeo() {
   };
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const in30 = new Date(today);
   in30.setDate(today.getDate() + 30);
-  const rangeLabel = `du ${formatDM(today)} au ${formatDM(in30)}`;
+  const rangeLabel = `${formatDM(today)} → ${formatDM(in30)}`;
 
-  const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
-  const mentions = contents.filter(c => c.content_type === "mentions");
-  const comparisons = contents.filter(c => c.content_type === "comparison");
+  // Keep only items scheduled within [today, today+30] and dedupe by normalized title/topic
+  const visibleContents = (() => {
+    const seen = new Set<string>();
+    const out: GeoContent[] = [];
+    const sorted = [...contents].sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
+    for (const c of sorted) {
+      if (!c.scheduled_date) continue;
+      const iso = c.scheduled_date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const d = iso
+        ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]))
+        : new Date(c.scheduled_date);
+      if (isNaN(d.getTime())) continue;
+      if (d < today || d > in30) continue;
+      const key = (c.title || c.topic || "").toLowerCase().trim().replace(/\s+/g, " ").slice(0, 80);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  })();
+
+  const articles = visibleContents.filter(c => c.content_type === "article" || c.content_type === "pillar");
+  const mentions = visibleContents.filter(c => c.content_type === "mentions");
+  const comparisons = visibleContents.filter(c => c.content_type === "comparison");
 
   const handlePreview = (item: GeoContent) => {
     if (!isSubscribed) {
