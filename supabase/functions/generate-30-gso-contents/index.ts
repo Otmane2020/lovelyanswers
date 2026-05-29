@@ -270,12 +270,16 @@ Deno.serve(async (req) => {
 
     const { data: existingContents } = await supabase
       .from("geo_contents")
-      .select("id, scheduled_date, topic")
+      .select("id, scheduled_date, topic, content, html_content")
       .eq("project_id", projectId)
       .gte("scheduled_date", now.toISOString())
       .lte("scheduled_date", in30.toISOString());
 
-    const existingCount = (existingContents || []).length;
+    const completeExistingContents = (existingContents || []).filter((item: any) => {
+      const body = `${item.html_content || item.content || ""}`.trim();
+      return body.length > 0;
+    });
+    const existingCount = completeExistingContents.length;
     console.log("[generate-30-gso] Existing scheduled GEO contents: " + existingCount);
 
     if (existingCount >= 30) {
@@ -298,7 +302,7 @@ Deno.serve(async (req) => {
     const kwList = keywordItems.join(", ");
 
     // Get existing topics to avoid duplicates
-    const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
+    const existingTopics = new Set(completeExistingContents.map((c: any) => c.topic?.toLowerCase()));
 
     const currentYear = new Date().getFullYear();
 
@@ -374,7 +378,7 @@ Output ONLY valid JSON array:
     const created: { id: string; title: string; type: string; scheduled_date: string }[] = [];
     const today = new Date();
 
-    const existingDates = new Set((existingContents || []).map((c: any) => {
+    const existingDates = new Set(completeExistingContents.map((c: any) => {
       const d = new Date(c.scheduled_date);
       return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     }));
