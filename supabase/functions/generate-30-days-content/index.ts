@@ -553,7 +553,7 @@ async function generateArticle(
   brandName: string,
   description: string,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   retryCount: number = 0
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const currentYear = new Date().getFullYear();
@@ -636,24 +636,16 @@ Return ONLY this JSON (pure HTML in content):
 {"title":"Clear title with question in ${currentYear}","content":"<p class=\\"aeo-answer\\"><strong>Direct answer...</strong>...</p><div class=\\"aeo-summary\\">...</div><h2>Section 1</h2><p>...</p><blockquote>...</blockquote><h2>Section 2</h2><p>...</p><ol><li>...</li></ol><hr><h2>Section 3</h2>...<h2>Common Mistakes</h2><ul><li>...</li></ul><h2>Conclusion</h2><p>...</p>","metaDescription":"150-160 char description with key answer and number"}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.55,
-        max_tokens: 6000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: prompt },
+    ], ai, {
+      temperature: 0.55,
+      max_tokens: 8000,
+      response_format: { type: "json_object" },
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
+    console.log(`[generateArticle] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
 
     // Try to extract JSON from code blocks first
     let jsonStr = "";
@@ -701,7 +693,7 @@ Return ONLY this JSON (pure HTML in content):
     if (retryCount < 1) {
       console.log("[generateArticle] Retrying with ultra-simple prompt...");
       await new Promise(r => setTimeout(r, 500));
-      return generateArticle(question, answer, bullets, faq, brandName, description, language, apiKey, retryCount + 1);
+      return generateArticle(question, answer, bullets, faq, brandName, description, language, ai, retryCount + 1);
     }
     
     // NO FALLBACK - if AI fails to write the magazine-format article, throw.
