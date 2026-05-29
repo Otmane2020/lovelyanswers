@@ -343,7 +343,7 @@ async function generateAnswer(
   description: string,
   intent: IntentType,
   language: string,
-  apiKey: string,
+  ai: AIConfig,
   retryCount: number = 0
 ): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
 
@@ -401,28 +401,21 @@ Return ONLY this JSON:
 {"answer":"rich 4-5 sentence response...","bullets":["Criterion 1 with precise data","Criterion 2 with concrete example","Criterion 3 mistake to avoid","Criterion 4 expert tip"],"faq":[{"q":"precise related question?","a":"30-50 word factual answer"},{"q":"alternative or comparison question?","a":"30-50 word answer"},{"q":"question about mistakes?","a":"30-50 word practical answer"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.5,
-        max_tokens: 2000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const { content, provider, finishReason } = await callAI([
+      { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
+      { role: "user", content: prompt },
+    ], ai, {
+      temperature: 0.5,
+      max_tokens: 3000,
+      response_format: { type: "json_object" },
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON found");
+    console.log(`[generateAnswer] provider=${provider}, finish_reason=${finishReason}, content length=${content.length}`);
+    const cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error(`No JSON found in ${provider} response. finish_reason=${finishReason}, preview=${content.slice(0, 200)}`);
 
-    const parsed = safeParseJSON(match[0]);
+    const parsed = safeParseJSON<any>(match[0]);
 
     return {
       answer: parsed.answer || `${brandName} propose des solutions adaptées à ce besoin.`,
@@ -436,7 +429,7 @@ Return ONLY this JSON:
     if (retryCount < 1) {
       console.log("[generateAnswer] Retrying with simpler prompt...");
       await new Promise(r => setTimeout(r, 500));
-      return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
+      return generateAnswer(question, brandName, description, intent, language, ai, retryCount + 1);
     }
 
     // NO FALLBACK - AI must succeed. Throw so the caller skips this item entirely
