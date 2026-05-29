@@ -226,20 +226,36 @@ Return ONLY this JSON (no markdown, no code block):
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.7,
+        max_tokens: 8192,
+        response_format: { type: "json_object" },
         messages: [
+          { role: "system", content: "You output ONLY valid JSON. No markdown, no code blocks, no prose." },
           { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
         ],
       }),
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`OpenRouter ${res.status}: ${errText.slice(0, 300)}`);
+    }
+
     const json = await res.json();
     const content = json?.choices?.[0]?.message?.content ?? "";
-    
-    // Extract JSON from response
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON found");
-    
-    const parsed = safeParseJSON(match[0]);
+    const finishReason = json?.choices?.[0]?.finish_reason;
+    console.log(`[generateQuestions] finish_reason=${finishReason}, content length=${content.length}`);
+
+    if (!content) throw new Error(`Empty AI response (finish_reason=${finishReason}, raw=${JSON.stringify(json).slice(0, 300)})`);
+
+    let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const jsonStart = cleaned.search(/[\{\[]/);
+    const jsonEnd = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error(`No JSON in response. finish_reason=${finishReason}, preview=${content.slice(0, 200)}`);
+    }
+    cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+    const parsed = safeParseJSON(cleaned);
     
     // Post-process questions
     const validQuestions = (parsed.questions || [])
