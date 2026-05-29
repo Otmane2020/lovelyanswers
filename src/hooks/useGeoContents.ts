@@ -40,7 +40,10 @@ export function useGeoContents() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as GeoContent[];
+      return ((data || []) as GeoContent[]).filter((item) => {
+        const content = `${item.html_content || item.content || ""}`.trim();
+        return content.length > 0;
+      });
     },
     enabled: !!project,
   });
