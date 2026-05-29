@@ -249,7 +249,7 @@ export default function AeoGeo() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="p-2 sm:p-3 text-center">
-            <p className="text-lg sm:text-2xl font-bold">{contents.length}</p>
+            <p className="text-lg sm:text-2xl font-bold">{visibleContents.length}</p>
             <p className="text-[10px] sm:text-xs text-muted-foreground">Total GEO</p>
           </Card>
           <Card className="p-2 sm:p-3 text-center">
