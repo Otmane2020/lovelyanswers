@@ -515,17 +515,24 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
           continue;
         }
 
+        if (!parsed.content || !parsed.content.trim()) {
+          console.error("[generate-30-gso] Empty AI content for topic, skipping:", t.topic);
+          continue;
+        }
+
 
         // ── Claude review (post-generation polish) ──
-        if (parsed.content) {
-          const reviewed = await reviewWithClaude({
-            content: parsed.content,
-            contentType: "geo_content",
-            language,
-            brand,
-            topic: t.topic,
-          });
-          parsed.content = reviewed.content;
+        const reviewed = await reviewWithClaude({
+          content: parsed.content,
+          contentType: "geo_content",
+          language,
+          brand,
+          topic: t.topic,
+        });
+        parsed.content = reviewed.content;
+        if (!parsed.content || !parsed.content.trim()) {
+          console.error("[generate-30-gso] Empty reviewed content for topic, skipping:", t.topic);
+          continue;
         }
 
         const score = computeGsoScore(parsed.content || "", brand);
