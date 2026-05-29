@@ -49,6 +49,39 @@ async function callAI(
     }
   }
 
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey) {
+    try {
+      const system = messages.find((m) => m.role === "system")?.content || "";
+      const anthropicMessages = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }));
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5",
+          max_tokens,
+          temperature,
+          system: `${system}\nReturn only valid JSON that matches the requested schema.`,
+          messages: anthropicMessages,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.content?.find((part: any) => part?.type === "text")?.text ?? "";
+      if (res.ok && content) {
+        return { content, provider: "Anthropic", finishReason: data?.stop_reason };
+      }
+      errors.push(`Anthropic ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`Anthropic error: ${(e as Error).message || e}`);
+    }
+  }
+
   if (ai.openrouterKey) {
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
