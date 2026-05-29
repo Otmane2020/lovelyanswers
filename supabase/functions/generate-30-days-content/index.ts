@@ -715,8 +715,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
+    const ai: AIConfig = {
+      lovableKey: Deno.env.get("LOVABLE_API_KEY"),
+      openrouterKey: Deno.env.get("OPENROUTER_API_KEY"),
+    };
+    if (!ai.lovableKey && !ai.openrouterKey) throw new Error("No AI provider configured");
 
     const auth = req.headers.get("authorization");
     if (!auth) throw new Error("Missing auth header");
@@ -901,7 +904,7 @@ serve(async (req) => {
     // Generate questions — 3 posts per week (Mon/Wed/Fri), so ~13 posts per 30 days
     const totalQuestions = publishDates.length * questionsPerDay;
     console.log(`[generate-30-days] Generating ${totalQuestions} questions (${questionsPerDay} per publish day for ${publishDates.length} publish days)...`);
-    const questions = await generateQuestions(brandName, description, language, apiKey, totalQuestions, keywordList);
+    const questions = await generateQuestions(brandName, description, language, ai, totalQuestions, keywordList);
     console.log(`[generate-30-days] Generated ${questions.length} questions`);
 
     const answersCreated: any[] = [];
@@ -997,7 +1000,7 @@ serve(async (req) => {
               brandName,
               description,
               language,
-              apiKey
+              ai
             );
 
             // ── Claude review ──
@@ -1085,7 +1088,7 @@ serve(async (req) => {
           };
           score = 0;
         } else {
-          answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
+          answerData = await generateAnswer(q.question, brandName, description, q.intent, language, ai);
           score = computeScore(answerData.answer, brandName);
         }
 
@@ -1145,7 +1148,7 @@ serve(async (req) => {
         } else {
           articleData = await generateArticle(
             q.question, answerData.answer, answerData.bullets, answerData.faq,
-            brandName, description, language, apiKey
+            brandName, description, language, ai
           );
 
           // ── Claude review (article post-generation polish) ──
