@@ -10,6 +10,68 @@ const corsHeaders = {
 type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
+type AIConfig = { lovableKey?: string | null; openrouterKey?: string | null };
+
+async function callAI(
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
+  ai: AIConfig,
+  opts: { temperature?: number; max_tokens?: number; response_format?: { type: "json_object" } } = {}
+): Promise<{ content: string; provider: string; finishReason?: string }> {
+  const temperature = opts.temperature ?? 0.5;
+  const max_tokens = opts.max_tokens ?? 4000;
+  const body = {
+    model: "google/gemini-3-flash-preview",
+    messages,
+    temperature,
+    max_tokens,
+    ...(opts.response_format ? { response_format: opts.response_format } : {}),
+  };
+
+  const errors: string[] = [];
+  if (ai.lovableKey) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": ai.lovableKey,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.choices?.[0]?.message?.content ?? "";
+      if (res.ok && content) {
+        return { content, provider: "Lovable AI", finishReason: data?.choices?.[0]?.finish_reason };
+      }
+      errors.push(`Lovable AI ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`Lovable AI error: ${(e as Error).message || e}`);
+    }
+  }
+
+  if (ai.openrouterKey) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ai.openrouterKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...body, model: "google/gemini-2.5-flash" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const content = data?.choices?.[0]?.message?.content ?? "";
+      if (res.ok && content) {
+        return { content, provider: "OpenRouter", finishReason: data?.choices?.[0]?.finish_reason };
+      }
+      errors.push(`OpenRouter ${res.status}: ${JSON.stringify(data?.error || data).slice(0, 300)}`);
+    } catch (e) {
+      errors.push(`OpenRouter error: ${(e as Error).message || e}`);
+    }
+  }
+
+  throw new Error(errors.length ? errors.join(" | ") : "No AI provider configured");
+}
 
 // Map project_settings.publish_frequency → set of valid weekday numbers (0=Sun..6=Sat).
 // "monthly" is handled separately via getDate()===1 and never consults this set.
