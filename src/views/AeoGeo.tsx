@@ -95,6 +95,27 @@ export default function AeoGeo() {
     }
   };
 
+  // Format DD/MM stably (no timezone shift on date-only strings)
+  const formatDM = (input: string | Date) => {
+    let d: Date;
+    if (input instanceof Date) {
+      d = new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
+    } else {
+      const iso = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      d = iso
+        ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]))
+        : new Date(input);
+    }
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}`;
+  };
+
+  const today = new Date();
+  const in30 = new Date(today);
+  in30.setDate(today.getDate() + 30);
+  const rangeLabel = `du ${formatDM(today)} au ${formatDM(in30)}`;
+
   const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
   const mentions = contents.filter(c => c.content_type === "mentions");
   const comparisons = contents.filter(c => c.content_type === "comparison");
@@ -139,7 +160,7 @@ export default function AeoGeo() {
               </p>
             )}
             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-              {item.brand} · {new Date(item.created_at).toLocaleDateString()}
+              {item.brand} · {formatDM(item.scheduled_date || item.created_at)}
             </p>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <Badge variant="outline" className={cn("text-[10px] sm:text-xs", getTypeColor(item.content_type))}>
@@ -151,7 +172,7 @@ export default function AeoGeo() {
               {!item.is_public && item.scheduled_date && (
                 <Badge variant="secondary" className="text-[10px] sm:text-xs gap-1">
                   <Clock className="h-3 w-3" />
-                  {new Date(item.scheduled_date).toLocaleDateString()}
+                  {formatDM(item.scheduled_date)}
                 </Badge>
               )}
             </div>
@@ -253,6 +274,11 @@ export default function AeoGeo() {
                 Comparisons ({comparisons.length})
               </TabsTrigger>
             </TabsList>
+          </div>
+
+          <div className="mt-3 sm:mt-4 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Planning sur 30 jours — <strong className="text-foreground">{rangeLabel}</strong></span>
           </div>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
