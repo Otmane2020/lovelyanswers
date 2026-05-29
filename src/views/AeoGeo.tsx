@@ -95,6 +95,27 @@ export default function AeoGeo() {
     }
   };
 
+  // Format DD/MM stably (no timezone shift on date-only strings)
+  const formatDM = (input: string | Date) => {
+    let d: Date;
+    if (input instanceof Date) {
+      d = new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
+    } else {
+      const iso = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      d = iso
+        ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]))
+        : new Date(input);
+    }
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}`;
+  };
+
+  const today = new Date();
+  const in30 = new Date(today);
+  in30.setDate(today.getDate() + 30);
+  const rangeLabel = `du ${formatDM(today)} au ${formatDM(in30)}`;
+
   const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
   const mentions = contents.filter(c => c.content_type === "mentions");
   const comparisons = contents.filter(c => c.content_type === "comparison");
