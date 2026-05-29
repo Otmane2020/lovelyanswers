@@ -112,13 +112,35 @@ export default function AeoGeo() {
   };
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const in30 = new Date(today);
   in30.setDate(today.getDate() + 30);
-  const rangeLabel = `du ${formatDM(today)} au ${formatDM(in30)}`;
+  const rangeLabel = `${formatDM(today)} → ${formatDM(in30)}`;
 
-  const articles = contents.filter(c => c.content_type === "article" || c.content_type === "pillar");
-  const mentions = contents.filter(c => c.content_type === "mentions");
-  const comparisons = contents.filter(c => c.content_type === "comparison");
+  // Keep only items scheduled within [today, today+30] and dedupe by normalized title/topic
+  const visibleContents = (() => {
+    const seen = new Set<string>();
+    const out: GeoContent[] = [];
+    const sorted = [...contents].sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
+    for (const c of sorted) {
+      if (!c.scheduled_date) continue;
+      const iso = c.scheduled_date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const d = iso
+        ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]))
+        : new Date(c.scheduled_date);
+      if (isNaN(d.getTime())) continue;
+      if (d < today || d > in30) continue;
+      const key = (c.title || c.topic || "").toLowerCase().trim().replace(/\s+/g, " ").slice(0, 80);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  })();
+
+  const articles = visibleContents.filter(c => c.content_type === "article" || c.content_type === "pillar");
+  const mentions = visibleContents.filter(c => c.content_type === "mentions");
+  const comparisons = visibleContents.filter(c => c.content_type === "comparison");
 
   const handlePreview = (item: GeoContent) => {
     if (!isSubscribed) {
@@ -227,7 +249,7 @@ export default function AeoGeo() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="p-2 sm:p-3 text-center">
-            <p className="text-lg sm:text-2xl font-bold">{contents.length}</p>
+            <p className="text-lg sm:text-2xl font-bold">{visibleContents.length}</p>
             <p className="text-[10px] sm:text-xs text-muted-foreground">Total GEO</p>
           </Card>
           <Card className="p-2 sm:p-3 text-center">
@@ -262,7 +284,7 @@ export default function AeoGeo() {
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="w-max sm:w-auto">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
-                All ({contents.length})
+                All ({visibleContents.length})
               </TabsTrigger>
               <TabsTrigger value="article" className="text-xs sm:text-sm">
                 Articles ({articles.length})
@@ -278,17 +300,17 @@ export default function AeoGeo() {
 
           <div className="mt-3 sm:mt-4 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>Planning sur 30 jours — <strong className="text-foreground">{rangeLabel}</strong></span>
+            <span>30-day planning — <strong className="text-foreground">{rangeLabel}</strong></span>
           </div>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
-            {renderContentList(contents, "No GEO content yet")}
+            {renderContentList(visibleContents, "No GEO content yet")}
           </TabsContent>
 
           {["article", "mentions", "comparison"].map(type => (
             <TabsContent key={type} value={type} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
               {renderContentList(
-                contents.filter(c => c.content_type === type),
+                visibleContents.filter(c => type === "article" ? (c.content_type === "article" || c.content_type === "pillar") : c.content_type === type),
                 `No ${getTypeLabel(type)} content yet`
               )}
             </TabsContent>
