@@ -284,7 +284,7 @@ export default function AeoGeo() {
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="w-max sm:w-auto">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
-                All ({contents.length})
+                All ({visibleContents.length})
               </TabsTrigger>
               <TabsTrigger value="article" className="text-xs sm:text-sm">
                 Articles ({articles.length})
@@ -300,17 +300,17 @@ export default function AeoGeo() {
 
           <div className="mt-3 sm:mt-4 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>Planning sur 30 jours — <strong className="text-foreground">{rangeLabel}</strong></span>
+            <span>30-day planning — <strong className="text-foreground">{rangeLabel}</strong></span>
           </div>
 
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
-            {renderContentList(contents, "No GEO content yet")}
+            {renderContentList(visibleContents, "No GEO content yet")}
           </TabsContent>
 
           {["article", "mentions", "comparison"].map(type => (
             <TabsContent key={type} value={type} className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
               {renderContentList(
-                contents.filter(c => c.content_type === type),
+                visibleContents.filter(c => type === "article" ? (c.content_type === "article" || c.content_type === "pillar") : c.content_type === type),
                 `No ${getTypeLabel(type)} content yet`
               )}
             </TabsContent>
