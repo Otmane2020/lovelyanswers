@@ -160,7 +160,7 @@ export default function AeoGeo() {
               </p>
             )}
             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-              {item.brand} · {new Date(item.created_at).toLocaleDateString()}
+              {item.brand} · {formatDM(item.scheduled_date || item.created_at)}
             </p>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <Badge variant="outline" className={cn("text-[10px] sm:text-xs", getTypeColor(item.content_type))}>
@@ -172,7 +172,7 @@ export default function AeoGeo() {
               {!item.is_public && item.scheduled_date && (
                 <Badge variant="secondary" className="text-[10px] sm:text-xs gap-1">
                   <Clock className="h-3 w-3" />
-                  {new Date(item.scheduled_date).toLocaleDateString()}
+                  {formatDM(item.scheduled_date)}
                 </Badge>
               )}
             </div>
