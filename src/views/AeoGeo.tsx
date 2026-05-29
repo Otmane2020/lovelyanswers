@@ -276,6 +276,11 @@ export default function AeoGeo() {
             </TabsList>
           </div>
 
+          <div className="mt-3 sm:mt-4 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Planning sur 30 jours — <strong className="text-foreground">{rangeLabel}</strong></span>
+          </div>
+
           <TabsContent value="all" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
             {renderContentList(contents, "No GEO content yet")}
           </TabsContent>
