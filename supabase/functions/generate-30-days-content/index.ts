@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { reviewWithClaude } from "../_shared/claude-review.ts";
+import { normalizeEditorialBody } from "../_shared/normalize-editorial.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1063,8 +1064,8 @@ serve(async (req) => {
                 project_id: projectId,
                 linked_answer_id: existingAnswer.id,
                 title: articleData.title,
-                content: articleData.content,
-                html_content: articleData.htmlContent,
+                content: normalizeEditorialBody(articleData.content),
+                html_content: normalizeEditorialBody(articleData.htmlContent),
                 meta_description: articleData.metaDescription,
                 word_count: articleData.wordCount,
                 slug: generateSlug(articleData.title),
@@ -1210,8 +1211,8 @@ serve(async (req) => {
             project_id: projectId,
             linked_answer_id: insertedAnswer.id,
             title: articleData.title,
-            content: articleData.content || null,
-            html_content: articleData.htmlContent || null,
+            content: normalizeEditorialBody(articleData.content) || null,
+            html_content: normalizeEditorialBody(articleData.htmlContent) || null,
             meta_description: articleData.metaDescription || null,
             word_count: articleData.wordCount,
             slug: generateSlug(articleData.title),

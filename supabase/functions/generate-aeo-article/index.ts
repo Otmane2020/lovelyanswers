@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeEditorialBody } from "../_shared/normalize-editorial.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -936,8 +937,8 @@ serve(async (req) => {
         project_id: answer.project_id,
         title: answer.question,
         slug: generateArticleSlug(answer.question),
-        content: articleContent.content,
-        html_content: fullHtml,
+        content: normalizeEditorialBody(articleContent.content),
+        html_content: normalizeEditorialBody(fullHtml),
         meta_description: articleContent.meta_description,
         keywords: articleContent.keywords,
         status: "draft",

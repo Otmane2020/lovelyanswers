@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeEditorialBody } from "../_shared/normalize-editorial.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -263,7 +264,7 @@ Respond in JSON:
   await supabase
     .from("articles")
     .update({
-      content: newContent,
+      content: normalizeEditorialBody(newContent),
       meta_description: parsed.metaDescription || article.meta_description,
       word_count: newWordCount,
       aeo_score: newScore,
