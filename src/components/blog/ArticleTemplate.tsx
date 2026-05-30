@@ -74,13 +74,16 @@ function normalizeContent(raw: string): string {
   if (!raw) return "";
   let html = raw.trim();
 
-  // 0. Strip ALL inline `style=""` and `class=""` attributes — generated
-  //    articles ship with hard-coded max-width/padding/colors that break
-  //    the editorial theme and mobile responsiveness.
+  // 0. Strip inline `style=""` attributes and keep only editorial classes — generated
+  //    articles may ship with hard-coded max-width/padding/colors that break
+  //    the responsive magazine theme, but the semantic classes drive that theme.
   html = html.replace(/\sstyle\s*=\s*"[^"]*"/gi, "");
   html = html.replace(/\sstyle\s*=\s*'[^']*'/gi, "");
-  html = html.replace(/\sclass\s*=\s*"[^"]*"/gi, "");
-  html = html.replace(/\sclass\s*=\s*'[^']*'/gi, "");
+  const allowedClasses = new Set(["lead", "key-answer", "key-answer-label", "comparison-table", "checklist", "warning-box", "tip-box", "stats-row", "stat-card", "stat-number", "stat-label", "faq-item", "faq-question", "faq-answer"]);
+  html = html.replace(/\sclass\s*=\s*(["'])([^"']*)\1/gi, (_, quote, value) => {
+    const kept = String(value).split(/\s+/).filter((cls) => allowedClasses.has(cls));
+    return kept.length ? ` class=${quote}${kept.join(" ")}${quote}` : "";
+  });
 
   // 0.b Unwrap outer <article> / <section> / fixed-width <div> wrappers
   html = html.replace(/<\/?article[^>]*>/gi, "");
