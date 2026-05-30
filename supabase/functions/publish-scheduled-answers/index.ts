@@ -263,8 +263,8 @@ function generateArticleHTML(
       .map(p => p.startsWith("<") ? p : `<p>${p.trim()}</p>`)
       .join("\n");
   }
-  // Strip any H1 the model might have included — title is rendered by the CMS.
-  html = html.replace(/<h1[\s\S]*?<\/h1>/gi, "").trim();
+  // Normalize generated/markdown-ish content into the editorial magazine body.
+  html = normalizeEditorialHtml(html);
   return { title: article.title, body: html, excerpt: plainExcerpt(html) };
 }
 
