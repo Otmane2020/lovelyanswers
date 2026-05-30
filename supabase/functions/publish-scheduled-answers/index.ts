@@ -27,6 +27,7 @@ interface Article {
   html_content: string | null;
   scheduled_date: string;
   linked_answer_id: string | null;
+  slug?: string | null;
 }
 
 interface LocalAnswer {
@@ -271,6 +272,11 @@ function generateLocalAnswerHTML(
     `<blockquote>${esc(answer)}</blockquote>`,
   ].join("\n\n");
   return { title: question, body, excerpt: plainExcerpt(answer) };
+}
+
+function buildPublicBlogUrl(baseUrl: string | null | undefined, slug: string | null | undefined) {
+  if (!baseUrl || !slug) return null;
+  return `${baseUrl.replace(/\/+$/, "")}/blog/${slug}`;
 }
 
 
@@ -599,13 +605,20 @@ Deno.serve(async (req) => {
 
         if (!integrations || integrations.length === 0) {
           // Just mark as published without CMS
+          const fallbackUrl = buildPublicBlogUrl(project.website_url, article.slug);
           await supabase
             .from("articles")
             .update({ status: "published" })
             .eq("id", article.id);
+          if (article.linked_answer_id) {
+            await supabase
+              .from("answers")
+              .update({ is_public: true, published_url: fallbackUrl, published_at: new Date().toISOString() })
+              .eq("id", article.linked_answer_id);
+          }
           
-          console.log(`[publish-scheduled] ✅ Article marked as published (no CMS): ${article.id}`);
-          results.push({ id: article.id, type: "article", success: true, url: "internal" });
+          console.log(`[publish-scheduled] ✅ Article marked as published (no CMS): ${fallbackUrl || article.id}`);
+          results.push({ id: article.id, type: "article", success: true, url: fallbackUrl || "internal" });
           continue;
         }
 
@@ -638,13 +651,24 @@ Deno.serve(async (req) => {
         const publishResult = await publishResponse.json();
 
         if (publishResult.success) {
+          const publishedUrl = publishResult.publishedUrl || buildPublicBlogUrl(project.website_url, articleSlug);
           await supabase
             .from("articles")
             .update({ status: "published" })
             .eq("id", article.id);
+          if (article.linked_answer_id) {
+            await supabase
+              .from("answers")
+              .update({
+                is_public: true,
+                published_url: publishedUrl || null,
+                published_at: new Date().toISOString()
+              })
+              .eq("id", article.linked_answer_id);
+          }
 
-          console.log(`[publish-scheduled] ✅ Article published: ${publishResult.publishedUrl || article.id}`);
-          results.push({ id: article.id, type: "article", success: true, url: publishResult.publishedUrl });
+          console.log(`[publish-scheduled] ✅ Article published: ${publishedUrl || article.id}`);
+          results.push({ id: article.id, type: "article", success: true, url: publishedUrl || undefined });
         } else {
           console.error(`[publish-scheduled] ❌ Failed to publish article: ${publishResult.error}`);
           results.push({ id: article.id, type: "article", success: false, error: publishResult.error });
