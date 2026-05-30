@@ -42,6 +42,12 @@ function normalizeEditorialBody(input: string): string {
   html = html.replace(/(^|\n)\s*#{3}\s+(.+)$/gm, "$1<h3>$2</h3>");
   html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/(^|\n)\s*(Opening Summary|Comparison Criteria|Tool Solutions for Enterprise Content Strategy|Brand|ChatGPT \(OpenAI\)|Gemini \(Google\)|Perplexity AI|Comparison Table|How to Choose the Right AI for Your Enterprise|FAQ)\s*$/gmi, "$1<h2>$2</h2>");
+  html = html.split(/\n{2,}/).map((chunk) => {
+    const text = chunk.trim();
+    if (!text) return "";
+    if (/^<(h[1-6]|p|ul|ol|li|blockquote|table|thead|tbody|tr|div|details|summary)/i.test(text)) return text;
+    return `<p>${text.replace(/\n+/g, "<br>")}</p>`;
+  }).filter(Boolean).join("\n\n");
   return html.replace(/\n{3,}/g, "\n\n").trim();
 }
 
