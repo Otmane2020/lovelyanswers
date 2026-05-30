@@ -126,6 +126,30 @@ function plainExcerpt(html: string, max = 160): string {
   return text.slice(0, max - 1).trimEnd() + "…";
 }
 
+function normalizeEditorialHtml(input: string): string {
+  let html = (input || "").trim();
+  if (!html) return "";
+  html = html.replace(/<!doctype[^>]*>/gi, "");
+  html = html.replace(/<\/?(?:html|head|body)[^>]*>/gi, "");
+  html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+  html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+  html = html.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "");
+  html = html.replace(/<\/?(?:article|section)[^>]*>/gi, "");
+  html = html.replace(/\sstyle\s*=\s*"[^"]*"/gi, "");
+  html = html.replace(/\sstyle\s*=\s*'[^']*'/gi, "");
+  html = html.replace(/(^|\n)\s*#{2}\s+(.+)$/gm, "$1<h2>$2</h2>");
+  html = html.replace(/(^|\n)\s*#{3}\s+(.+)$/gm, "$1<h3>$2</h3>");
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/(^|\n)\s*(Opening Summary|Comparison Criteria|Tool Solutions for Enterprise Content Strategy|Brand|ChatGPT \(OpenAI\)|Gemini \(Google\)|Perplexity AI|Comparison Table|How to Choose the Right AI for Your Enterprise|FAQ)\s*$/gmi, "$1<h2>$2</h2>");
+  html = html.split(/\n{2,}/).map((chunk) => {
+    const text = chunk.trim();
+    if (!text) return "";
+    if (/^<(h[1-6]|p|ul|ol|li|blockquote|table|thead|tbody|tr|div|details|summary)/i.test(text)) return text;
+    return `<p>${text.replace(/\n+/g, "<br>")}</p>`;
+  }).filter(Boolean).join("\n\n");
+  return html.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 // HTML escape for safe interpolation in attributes/text
 function esc(s: string): string {
   return String(s ?? "")
@@ -245,8 +269,8 @@ function generateArticleHTML(
       .map(p => p.startsWith("<") ? p : `<p>${p.trim()}</p>`)
       .join("\n");
   }
-  // Strip any H1 the model might have included — title is rendered by the CMS.
-  html = html.replace(/<h1[\s\S]*?<\/h1>/gi, "").trim();
+  // Normalize generated/markdown-ish content into the editorial magazine body.
+  html = normalizeEditorialHtml(html);
   return { title: article.title, body: html, excerpt: plainExcerpt(html) };
 }
 
