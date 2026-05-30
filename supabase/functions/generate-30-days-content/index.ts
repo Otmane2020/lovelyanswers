@@ -223,39 +223,39 @@ function escapeRegex(str: string): string {
 }
 
 function computeScore(answer: string, brand: string): number {
-  // Content-derived jitter (0-8) for natural variation without pure randomness
-  const jitter = answer.length % 9;
-  const baseScore = 78 + jitter;
-  let score = baseScore;
+  const jitter = answer.length % 12; // 0-11 variation
+  let score = 52 + jitter; // base 52-63
   const currentYear = new Date().getFullYear();
 
-  // BONUSES - can increase score up to 98
-  if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) {
-    score += 8; // Temporal context
-  }
+  // Temporal context
+  if (answer.includes(String(currentYear)) || answer.includes(String(currentYear + 1))) score += 5;
 
-  if (/\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|années?)/i.test(answer)) score += 6;
-  else if (/\d+/.test(answer)) score += 3;
+  // Data points / numbers
+  if (/\d+\s*(€|\$|%|euros?|dollars?|mois|jours?|ans?|années?)/i.test(answer)) score += 4;
+  else if (/\d+/.test(answer)) score += 2;
 
-  if (/crit[eè]re|choisir|éviter|erreur|condition|attention|important/i.test(answer)) score += 5;
-  if (/[:\-•]|\d\.\s/.test(answer)) score += 4;
+  // Criteria / actionable signals
+  if (/crit[eè]re|choisir|éviter|erreur|condition|attention|important/i.test(answer)) score += 4;
+  if (/[:\-•]|\d\.\s/.test(answer)) score += 3;
 
+  // Word count
   const wordCount = answer.split(/\s+/).length;
   if (wordCount >= 80 && wordCount <= 150) score += 3;
+  if (wordCount < 40) score -= 8;
+  else if (wordCount < 60) score -= 4;
 
-  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 2;
+  // Brand mention
+  if (new RegExp(escapeRegex(brand), "i").test(answer)) score += 3;
 
-  // Bonus for structured content
+  // Comparison / structured content
   if (/contrairement|par rapport|différen|versus|tandis que/i.test(answer)) score += 3;
 
-  // MINOR PENALTIES - never drop below 75
-  // Soft penalty for generic definitions (but still keep above 75)
-  if (/^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i.test(answer)) {
-    score = Math.max(75, score - 3); // Minor penalty, never below 75
-  }
+  // Penalty for generic definitions
+  if (/^(un|une|le|la|les|l')\s+\w+\s+(est|sont|désigne)/i.test(answer)) score -= 6;
+  if (!/[.!?]/.test(answer)) score -= 6;
+  if (!/[:\-•]|\d\.\s/.test(answer) && wordCount > 30) score -= 3;
 
-  // Ensure score stays in valid range: minimum 75, maximum 98
-  return Math.min(98, Math.max(75, score));
+  return Math.min(100, Math.max(45, score));
 }
 
 function ensureQuestionMark(text: string): string {
