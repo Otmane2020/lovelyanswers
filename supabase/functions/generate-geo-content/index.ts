@@ -358,7 +358,7 @@ Output JSON:
         website: website || null,
         title: parsed.title || brand + " - " + topic,
         meta_description: parsed.meta_description || null,
-        content: parsed.content || rawContent,
+        content: normalizeEditorialBody(parsed.content || rawContent),
         content_type: type,
         score,
         slug,
