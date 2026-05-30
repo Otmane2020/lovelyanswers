@@ -51,8 +51,9 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (integration) {
-        // Push to CMS via cms-publish function
+        // Push to CMS via cms-publish function — MUST pass integrationId + content.body
         try {
+          const body = content.html_content || content.content || "";
           const cmsRes = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/cms-publish`,
             {
@@ -62,31 +63,38 @@ Deno.serve(async (req) => {
                 Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
               },
               body: JSON.stringify({
+                integrationId: integration.id,
                 projectId: content.project_id,
-                title: content.title,
-                content: content.content,
-                slug: content.slug,
-                metaDescription: content.meta_description,
-                contentType: "geo",
+                content: {
+                  title: content.title,
+                  body,
+                  excerpt: content.meta_description,
+                  slug: content.slug,
+                  type: "article",
+                  sourceId: content.id,
+                },
               }),
             }
           );
 
           const cmsData = await cmsRes.json();
+          console.log(`[publish-geo-content] cms-publish response for ${content.id}:`, JSON.stringify(cmsData).slice(0, 300));
 
-          if (cmsData?.url) {
+          if (cmsData?.success && cmsData?.publishedUrl) {
             await supabase
               .from("geo_contents")
               .update({
                 published_at: new Date().toISOString(),
                 is_public: true,
-                published_url: cmsData.url,
+                published_url: cmsData.publishedUrl,
               })
               .eq("id", content.id);
 
             published++;
-            console.log(`Published GEO content ${content.id} to CMS: ${cmsData.url}`);
+            console.log(`Published GEO content ${content.id} to CMS: ${cmsData.publishedUrl}`);
             continue;
+          } else {
+            console.error(`[publish-geo-content] CMS publish failed for ${content.id}:`, cmsData?.error || cmsData?.message);
           }
         } catch (cmsErr) {
           console.error(`CMS publish failed for ${content.id}:`, cmsErr);
