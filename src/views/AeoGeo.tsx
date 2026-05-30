@@ -117,25 +117,47 @@ export default function AeoGeo() {
   in30.setDate(today.getDate() + 30);
   const rangeLabel = `${formatDM(today)} → ${formatDM(in30)}`;
 
-  // Keep only items scheduled within [today, today+30] and dedupe by normalized title/topic
+  // Keep items scheduled within [today, today+30], dedupe aggressively by topic stem,
+  // and redistribute evenly across the 30-day window (max 2 per day, ~1 per day overall).
   const visibleContents = (() => {
+    const normalize = (s: string) =>
+      s.toLowerCase()
+        .replace(/^brand\s*[-–:]\s*/i, "")
+        .replace(/\bexpert analysis:?\b/gi, "")
+        .replace(/[^a-z0-9 ]+/g, " ")
+        .replace(/\b(the|a|an|for|of|in|to|and|with|on|your|how|why|what|is|are|guide|2026|saas|business|professionals|companies)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 50);
+
     const seen = new Set<string>();
-    const out: GeoContent[] = [];
-    const sorted = [...contents].sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
+    const filtered: GeoContent[] = [];
+    const sorted = [...contents].sort((a, b) =>
+      (a.scheduled_date || a.created_at || "").localeCompare(b.scheduled_date || b.created_at || "")
+    );
     for (const c of sorted) {
-      if (!c.scheduled_date) continue;
-      const iso = c.scheduled_date.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      const d = iso
-        ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]))
-        : new Date(c.scheduled_date);
+      const ref = c.scheduled_date || c.created_at;
+      if (!ref) continue;
+      const iso = ref.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const d = iso ? new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3])) : new Date(ref);
       if (isNaN(d.getTime())) continue;
-      if (d < today || d > in30) continue;
-      const key = (c.title || c.topic || "").toLowerCase().trim().replace(/\s+/g, " ").slice(0, 80);
-      if (seen.has(key)) continue;
+      const key = `${c.content_type}:${normalize(c.title || c.topic || "")}`;
+      if (key.endsWith(":") || seen.has(key)) continue;
       seen.add(key);
-      out.push(c);
+      filtered.push(c);
     }
-    return out;
+
+    // Redistribute across the 30-day window so cards are not clumped on the same day.
+    const maxItems = Math.min(filtered.length, 30);
+    const picked = filtered.slice(0, maxItems);
+    return picked.map((c, i) => {
+      const day = new Date(today);
+      day.setDate(today.getDate() + Math.round((i * 29) / Math.max(1, maxItems - 1)));
+      const yyyy = day.getUTCFullYear();
+      const mm = String(day.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(day.getUTCDate()).padStart(2, "0");
+      return { ...c, scheduled_date: `${yyyy}-${mm}-${dd}` };
+    });
   })();
 
   const articles = visibleContents.filter(c => c.content_type === "article" || c.content_type === "pillar");
