@@ -264,7 +264,7 @@ Respond in JSON:
   await supabase
     .from("articles")
     .update({
-      content: newContent,
+      content: normalizeEditorialBody(newContent),
       meta_description: parsed.metaDescription || article.meta_description,
       word_count: newWordCount,
       aeo_score: newScore,
