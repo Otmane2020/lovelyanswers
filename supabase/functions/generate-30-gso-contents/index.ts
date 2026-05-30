@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { reviewWithClaude } from "../_shared/claude-review.ts";
-import { normalizeEditorialBody } from "../_shared/normalize-editorial.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -558,8 +557,8 @@ Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars",
             website: website || null,
             title: parsed.title,
             meta_description: parsed.meta_description || null,
-            content: normalizeEditorialBody(parsed.content),
-            html_content: normalizeEditorialBody(parsed.content),
+            content: parsed.content,
+            html_content: parsed.content,
             content_type: t.type,
             score,
             slug,
