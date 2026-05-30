@@ -108,12 +108,15 @@ Deno.serve(async (req) => {
               .eq("id", content.id);
 
             published++;
+            if (!firstPublishedUrl) firstPublishedUrl = cmsData.publishedUrl;
             console.log(`Published GEO content ${content.id} to CMS: ${cmsData.publishedUrl}`);
             continue;
           } else {
-            console.error(`[publish-geo-content] CMS publish failed for ${content.id}:`, cmsData?.error || cmsData?.message);
+            lastError = cmsData?.error || cmsData?.message || "CMS publish returned no URL";
+            console.error(`[publish-geo-content] CMS publish failed for ${content.id}:`, lastError);
           }
-        } catch (cmsErr) {
+        } catch (cmsErr: any) {
+          lastError = cmsErr?.message || String(cmsErr);
           console.error(`CMS publish failed for ${content.id}:`, cmsErr);
         }
       }
@@ -134,13 +137,19 @@ Deno.serve(async (req) => {
     console.log(`Published ${published} GEO contents`);
 
     return new Response(
-      JSON.stringify({ success: true, published, total: contents?.length || 0 }),
+      JSON.stringify({
+        success: published > 0,
+        published,
+        total: contents?.length || 0,
+        publishedUrl: firstPublishedUrl,
+        error: published === 0 ? lastError : null,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Publish GEO error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ success: false, error: err.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
