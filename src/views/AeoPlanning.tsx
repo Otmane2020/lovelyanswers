@@ -249,6 +249,17 @@ export default function AeoPlanning() {
     }
   };
 
+  const markItemPublished = (itemId: string, publishedUrl?: string | null) => {
+    const publishedAt = new Date().toISOString();
+    const applyUpdate = (items: ScheduledItem[]) => items.map((entry) =>
+      entry.id === itemId
+        ? { ...entry, status: "published" as const, publishedUrl: publishedUrl || entry.publishedUrl, publishedAt, isPreview: false }
+        : entry
+    );
+    setScheduledItems(applyUpdate);
+    setSelectedDayItems(applyUpdate);
+  };
+
   useEffect(() => {
     fetchScheduledItems();
     fetchQueue();
@@ -304,6 +315,7 @@ export default function AeoPlanning() {
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
         const url = data?.publishedUrl;
+        markItemPublished(item.id, url);
         if (url) {
           toast.success("GEO content published!", {
             action: { label: "Check live →", onClick: () => window.open(url, "_blank") },
@@ -320,6 +332,7 @@ export default function AeoPlanning() {
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
         const result = data?.results?.find((r: any) => r.id === item.id && r.success) || data?.results?.find((r: any) => r.success);
+        markItemPublished(item.id, result?.url && result.url !== "internal" ? result.url : null);
         if (result?.url && result.url !== "internal") {
           toast.success("Published!", {
             action: { label: "Check live →", onClick: () => window.open(result.url, "_blank") },
