@@ -143,7 +143,7 @@ export default function AeoPlanning() {
 
 
   const fetchScheduledItems = async () => {
-    if (!project?.id) return;
+    if (!project?.id) return [];
     setIsLoading(true);
     try {
       const { data: answers } = await supabase.from("answers").select("id, question, scheduled_date, published_url, published_at, answer, score, high_citation, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
@@ -196,11 +196,11 @@ export default function AeoPlanning() {
       }
 
       setScheduledItems(items);
-      return items.length;
+      return items;
     } catch (error) {
       console.error("Error fetching scheduled items:", error);
       toast.error("Failed to load scheduled items");
-      return 0;
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -273,8 +273,8 @@ export default function AeoPlanning() {
     const ensurePlanningIsFilled = async () => {
       if (!project?.id || hasRunFill.current === project.id) return;
 
-      const scheduledCount = await fetchScheduledItems();
-      if ((scheduledCount ?? 0) > 0) {
+      const scheduledItems = await fetchScheduledItems();
+      if (scheduledItems.length > 0) {
         hasRunFill.current = project.id;
         return;
       }
