@@ -151,10 +151,12 @@ export default function AeoPlanning() {
       const { data: localAnswers } = await supabase.from("local_answers").select("id, question, scheduled_date, published_url, published_at, answer, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: geoContents } = await supabase.from("geo_contents").select("id, title, topic, scheduled_date, published_url, published_at, content, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const items: ScheduledItem[] = [];
+      const pickDate = (published_at: string | null | undefined, scheduled_date: string) =>
+        new Date(published_at || scheduled_date);
       if (answers) {
         answers.forEach((a) => {
           if (a.scheduled_date) {
-            items.push({ id: a.id, title: a.question, type: "answer", origin: "AEO", date: new Date(a.scheduled_date), status: getPublishStatus(a), publishedUrl: a.published_url || undefined, publishedAt: a.published_at, answer: a.answer || undefined, score: a.score, highCitation: a.high_citation, createdAt: a.created_at });
+            items.push({ id: a.id, title: a.question, type: "answer", origin: "AEO", date: pickDate(a.published_at, a.scheduled_date), status: getPublishStatus(a), publishedUrl: a.published_url || undefined, publishedAt: a.published_at, answer: a.answer || undefined, score: a.score, highCitation: a.high_citation, createdAt: a.created_at });
           }
         });
       }
@@ -162,21 +164,22 @@ export default function AeoPlanning() {
         articles.forEach((art: any) => {
           if (art.scheduled_date) {
             const publishedUrl = getArticlePublishedUrl(art, project.website_url);
-            items.push({ id: art.id, title: art.title, type: "article", origin: "Auto SEO", date: new Date(art.scheduled_date), status: art.status === "published" ? "published" : "scheduled", publishedUrl, publishedAt: art.answers?.published_at || null, aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
+            const publishedAt = art.answers?.published_at || null;
+            items.push({ id: art.id, title: art.title, type: "article", origin: "Auto SEO", date: pickDate(publishedAt, art.scheduled_date), status: art.status === "published" ? "published" : "scheduled", publishedUrl, publishedAt, aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
           }
         });
       }
       if (localAnswers) {
         localAnswers.forEach((la) => {
           if (la.scheduled_date) {
-            items.push({ id: la.id, title: la.question, type: "local", origin: "Local AEO", date: new Date(la.scheduled_date), status: getPublishStatus(la), publishedUrl: la.published_url || undefined, publishedAt: la.published_at, answer: la.answer || undefined, score: la.score, createdAt: la.created_at });
+            items.push({ id: la.id, title: la.question, type: "local", origin: "Local AEO", date: pickDate(la.published_at, la.scheduled_date), status: getPublishStatus(la), publishedUrl: la.published_url || undefined, publishedAt: la.published_at, answer: la.answer || undefined, score: la.score, createdAt: la.created_at });
           }
         });
       }
       if (geoContents) {
         geoContents.forEach((geo: any) => {
           if (geo.scheduled_date) {
-            items.push({ id: geo.id, title: geo.title || geo.topic, type: "geo", origin: "GEO", date: new Date(geo.scheduled_date), status: getPublishStatus(geo), publishedUrl: geo.published_url || undefined, publishedAt: geo.published_at, answer: geo.content || undefined, score: geo.score, createdAt: geo.created_at });
+            items.push({ id: geo.id, title: geo.title || geo.topic, type: "geo", origin: "GEO", date: pickDate(geo.published_at, geo.scheduled_date), status: getPublishStatus(geo), publishedUrl: geo.published_url || undefined, publishedAt: geo.published_at, answer: geo.content || undefined, score: geo.score, createdAt: geo.created_at });
           }
         });
       }
@@ -187,10 +190,11 @@ export default function AeoPlanning() {
           if (sp.scheduled_date) {
             const product = sp.shopping_products;
             const title = product?.ai_title || product?.title || "Product";
-            items.push({ id: sp.id, title, type: "shopping", origin: "Shopping", date: new Date(sp.scheduled_date), status: sp.published ? "published" : "scheduled", publishedAt: sp.published_at, score: product?.ai_score, createdAt: sp.scheduled_date });
+            items.push({ id: sp.id, title, type: "shopping", origin: "Shopping", date: pickDate(sp.published_at, sp.scheduled_date), status: sp.published ? "published" : "scheduled", publishedAt: sp.published_at, score: product?.ai_score, createdAt: sp.scheduled_date });
           }
         });
       }
+
       setScheduledItems(items);
       return items.length;
     } catch (error) {
