@@ -42,6 +42,16 @@ function getPublishStatus(input: { published_url?: string | null; published_at?:
   return input.published_url || input.published_at ? "published" : "scheduled";
 }
 
+function getArticlePublishedUrl(article: any, projectWebsiteUrl?: string | null) {
+  const linkedUrl = article.answers?.published_url;
+  if (linkedUrl) return linkedUrl;
+  if (article.status === "published" && article.slug) {
+    const baseUrl = projectWebsiteUrl || window.location.origin;
+    return `${baseUrl.replace(/\/+$/, "")}/blog/${article.slug}`;
+  }
+  return undefined;
+}
+
 // Mirrors backend `shouldPublishToday` in publish-scheduled-answers
 function matchesFrequency(date: Date, frequency: string): boolean {
   const dow = date.getDay();
@@ -137,7 +147,7 @@ export default function AeoPlanning() {
     setIsLoading(true);
     try {
       const { data: answers } = await supabase.from("answers").select("id, question, scheduled_date, published_url, published_at, answer, score, high_citation, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
-      const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, aeo_score, word_count, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
+      const { data: articles } = await supabase.from("articles").select("id, title, scheduled_date, status, slug, aeo_score, word_count, created_at, answers:linked_answer_id(published_url, published_at)").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: localAnswers } = await supabase.from("local_answers").select("id, question, scheduled_date, published_url, published_at, answer, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const { data: geoContents } = await supabase.from("geo_contents").select("id, title, topic, scheduled_date, published_url, published_at, content, score, created_at").eq("project_id", project.id).not("scheduled_date", "is", null);
       const items: ScheduledItem[] = [];
@@ -149,9 +159,10 @@ export default function AeoPlanning() {
         });
       }
       if (articles) {
-        articles.forEach((art) => {
+        articles.forEach((art: any) => {
           if (art.scheduled_date) {
-            items.push({ id: art.id, title: art.title, type: "article", origin: "Auto SEO", date: new Date(art.scheduled_date), status: "scheduled", aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
+            const publishedUrl = getArticlePublishedUrl(art, project.website_url);
+            items.push({ id: art.id, title: art.title, type: "article", origin: "Auto SEO", date: new Date(art.scheduled_date), status: art.status === "published" ? "published" : "scheduled", publishedUrl, publishedAt: art.answers?.published_at || null, aeoScore: art.aeo_score, wordCount: art.word_count, createdAt: art.created_at });
           }
         });
       }
@@ -238,6 +249,17 @@ export default function AeoPlanning() {
     }
   };
 
+  const markItemPublished = (itemId: string, publishedUrl?: string | null) => {
+    const publishedAt = new Date().toISOString();
+    const applyUpdate = (items: ScheduledItem[]) => items.map((entry) =>
+      entry.id === itemId
+        ? { ...entry, status: "published" as const, publishedUrl: publishedUrl || entry.publishedUrl, publishedAt, isPreview: false }
+        : entry
+    );
+    setScheduledItems(applyUpdate);
+    setSelectedDayItems(applyUpdate);
+  };
+
   useEffect(() => {
     fetchScheduledItems();
     fetchQueue();
@@ -293,6 +315,7 @@ export default function AeoPlanning() {
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
         const url = data?.publishedUrl;
+        markItemPublished(item.id, url);
         if (url) {
           toast.success("GEO content published!", {
             action: { label: "Check live →", onClick: () => window.open(url, "_blank") },
@@ -302,13 +325,22 @@ export default function AeoPlanning() {
           toast.success("GEO content published!");
         }
       } else if (item.type === "article" || item.type === "local" || item.type === "shopping") {
-        // Trigger the daily publish cron for THIS project only (forceToday)
+        const targetDate = format(item.date, "yyyy-MM-dd");
         const { data, error } = await supabase.functions.invoke("publish-scheduled-answers", {
-          body: { forceToday: true, projectId: project.id },
+          body: { forceToday: true, projectId: project.id, targetDate },
         });
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
-        toast.success("Published!");
+        const result = data?.results?.find((r: any) => r.id === item.id && r.success) || data?.results?.find((r: any) => r.success);
+        markItemPublished(item.id, result?.url && result.url !== "internal" ? result.url : null);
+        if (result?.url && result.url !== "internal") {
+          toast.success("Published!", {
+            action: { label: "Check live →", onClick: () => window.open(result.url, "_blank") },
+            duration: 10000,
+          });
+        } else {
+          toast.success("Published!");
+        }
       } else {
         toast.info("Nothing to publish for this item");
       }
