@@ -292,7 +292,15 @@ export default function AeoPlanning() {
         });
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
-        toast.success("GEO content published!");
+        const url = data?.publishedUrl;
+        if (url) {
+          toast.success("GEO content published!", {
+            action: { label: "Check live →", onClick: () => window.open(url, "_blank") },
+            duration: 10000,
+          });
+        } else {
+          toast.success("GEO content published!");
+        }
       } else if (item.type === "article" || item.type === "local" || item.type === "shopping") {
         // Trigger the daily publish cron for THIS project only (forceToday)
         const { data, error } = await supabase.functions.invoke("publish-scheduled-answers", {
