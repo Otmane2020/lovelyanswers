@@ -387,7 +387,7 @@ serve(async (req) => {
         .insert({
           project_id: projectId,
           title: articleData.title || keyword + " - Complete Guide",
-          content,
+          content: normalizeEditorialBody(content),
           status,
           word_count: wordCount,
           meta_description: articleData.metaDescription || null,
