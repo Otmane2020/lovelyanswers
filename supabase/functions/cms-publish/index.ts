@@ -894,16 +894,18 @@ async function publishToLovable(
             .substring(0, 80); // Limit length
         }
         
+        const normalizedBody = normalizeEditorialBody(content.body);
         const response = await fetch(config.endpoint, {
           method: "POST",
           headers,
           body: JSON.stringify({
             title: content.title,
-            body: content.body,
+            body: normalizedBody,
             slug: articleSlug,
             sourceId: sourceId,
             publishedAt: new Date().toISOString(),
             source: "AutoPilot Geo",
+            renderMode: "magazine",
           }),
         });
         
@@ -1057,18 +1059,7 @@ async function publishToLovable(
       console.log(`[Lovable] Stripped full HTML document wrapper`);
     }
     
-    // Remove <h1> tags (title is rendered separately by ArticleTemplate)
-    cleanBody = cleanBody.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '').trim();
-    
-    // Remove header/footer/meta elements that ArticleTemplate provides
-    cleanBody = cleanBody.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
-    cleanBody = cleanBody.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-    cleanBody = cleanBody.replace(/<meta[^>]*>/gi, '');
-    cleanBody = cleanBody.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    cleanBody = cleanBody.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    
-    // Clean up excessive whitespace
-    cleanBody = cleanBody.replace(/\n{3,}/g, '\n\n').trim();
+    cleanBody = normalizeEditorialBody(cleanBody);
     
     // === CRITICAL: Insert into published_articles so the blog page can find it ===
     const metaDescription = cleanBody
