@@ -357,11 +357,7 @@ export default function AeoPlanning() {
       } else {
         toast.info("Nothing to publish for this item");
       }
-      const refreshedItems = await fetchScheduledItems();
-      const refreshedSelectedDate = selectedDate;
-      if (refreshedItems && refreshedSelectedDate) {
-        setSelectedDayItems(refreshedItems.filter((entry) => format(entry.date, "yyyy-MM-dd") === format(refreshedSelectedDate, "yyyy-MM-dd")));
-      }
+      await fetchScheduledItems();
     } catch (error) {
       console.error("Error publishing:", error);
       toast.error(error instanceof Error ? error.message : "Failed to publish");
