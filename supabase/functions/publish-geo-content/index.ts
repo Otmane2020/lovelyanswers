@@ -16,27 +16,44 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Optional single-id mode (from manual "Publish" button)
+    let geoContentId: string | undefined;
+    let forcedProjectId: string | undefined;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        geoContentId = body?.geoContentId;
+        forcedProjectId = body?.projectId;
+      } catch { /* no body, batch mode */ }
+    }
+
     const today = new Date().toISOString();
 
-    // Fetch GEO contents scheduled for today or earlier, not yet published
-    const { data: contents, error } = await supabase
+    let query = supabase
       .from("geo_contents")
-      .select("*, projects!geo_contents_project_id_fkey(id, brand_name, website_url, user_id)")
-      .lte("scheduled_date", today)
-      .is("published_at", null)
-      .limit(10);
+      .select("*, projects!geo_contents_project_id_fkey(id, brand_name, website_url, user_id)");
+
+    if (geoContentId) {
+      query = query.eq("id", geoContentId).limit(1);
+    } else {
+      query = query.lte("scheduled_date", today).is("published_at", null).limit(10);
+    }
+
+    const { data: contents, error } = await query;
 
     if (error) {
       console.error("Fetch error:", error);
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Found ${contents?.length || 0} GEO contents to publish`);
+    console.log(`Found ${contents?.length || 0} GEO contents to publish (single=${!!geoContentId})`);
 
     let published = 0;
+    let firstPublishedUrl: string | null = null;
+    let lastError: string | null = null;
 
     for (const content of contents || []) {
       const project = content.projects;
