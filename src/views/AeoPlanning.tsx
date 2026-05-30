@@ -310,8 +310,17 @@ export default function AeoPlanning() {
     setPublishingId(item.id);
     try {
       if (item.type === "answer") {
-        await publishAnswer.mutateAsync({ answerId: item.id, projectId: project.id });
-        toast.success("Answer published!");
+        const publishResult = await publishAnswer.mutateAsync({ answerId: item.id, projectId: project.id });
+        const url = publishResult?.publishedUrl || publishResult?.results?.find((r: any) => r.success && r.url)?.url;
+        markItemPublished(item.id, url || null);
+        if (url) {
+          toast.success("Answer published!", {
+            action: { label: "Check live →", onClick: () => window.open(url, "_blank") },
+            duration: 10000,
+          });
+        } else {
+          toast.success("Answer published!");
+        }
       } else if (item.type === "geo") {
         const { data, error } = await supabase.functions.invoke("publish-geo-content", {
           body: { geoContentId: item.id, projectId: project.id },
@@ -348,7 +357,11 @@ export default function AeoPlanning() {
       } else {
         toast.info("Nothing to publish for this item");
       }
-      await fetchScheduledItems();
+      const refreshedItems = await fetchScheduledItems();
+      const refreshedSelectedDate = selectedDate;
+      if (refreshedItems && refreshedSelectedDate) {
+        setSelectedDayItems(refreshedItems.filter((entry) => format(entry.date, "yyyy-MM-dd") === format(refreshedSelectedDate, "yyyy-MM-dd")));
+      }
     } catch (error) {
       console.error("Error publishing:", error);
       toast.error(error instanceof Error ? error.message : "Failed to publish");
