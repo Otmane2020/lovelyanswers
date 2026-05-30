@@ -5,6 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function buildPublicBlogUrl(baseUrl: string | null | undefined, slug: string | null | undefined) {
+  if (!baseUrl || !slug) return null;
+  return `${baseUrl.replace(/\/+$/, "")}/blog/${slug}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -94,22 +99,24 @@ Deno.serve(async (req) => {
             }
           );
 
-          const cmsData = await cmsRes.json();
+          const cmsData = await cmsRes.json().catch(() => ({}));
           console.log(`[publish-geo-content] cms-publish response for ${content.id}:`, JSON.stringify(cmsData).slice(0, 300));
 
-          if (cmsData?.success && cmsData?.publishedUrl) {
-            await supabase
+          if (cmsRes.ok && cmsData?.success) {
+            const publishedUrl = cmsData.publishedUrl || cmsData.url || buildPublicBlogUrl(project.website_url, content.slug);
+            const { error: updateError } = await supabase
               .from("geo_contents")
               .update({
                 published_at: new Date().toISOString(),
                 is_public: true,
-                published_url: cmsData.publishedUrl,
+                published_url: publishedUrl,
               })
               .eq("id", content.id);
+            if (updateError) throw updateError;
 
             published++;
-            if (!firstPublishedUrl) firstPublishedUrl = cmsData.publishedUrl;
-            console.log(`Published GEO content ${content.id} to CMS: ${cmsData.publishedUrl}`);
+            if (!firstPublishedUrl) firstPublishedUrl = publishedUrl;
+            console.log(`Published GEO content ${content.id} to CMS: ${publishedUrl || content.id}`);
             continue;
           } else {
             lastError = cmsData?.error || cmsData?.message || "CMS publish returned no URL";
@@ -122,16 +129,20 @@ Deno.serve(async (req) => {
       }
 
       // Fallback: mark as published internally (no CMS)
-      await supabase
+      const fallbackUrl = buildPublicBlogUrl(project.website_url, content.slug);
+      const { error: fallbackUpdateError } = await supabase
         .from("geo_contents")
         .update({
           published_at: new Date().toISOString(),
           is_public: true,
+          published_url: fallbackUrl,
         })
         .eq("id", content.id);
+      if (fallbackUpdateError) throw fallbackUpdateError;
 
       published++;
-      console.log(`Published GEO content ${content.id} internally`);
+      if (!firstPublishedUrl) firstPublishedUrl = fallbackUrl;
+      console.log(`Published GEO content ${content.id} internally: ${fallbackUrl || content.id}`);
     }
 
     console.log(`Published ${published} GEO contents`);
