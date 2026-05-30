@@ -313,13 +313,21 @@ export default function AeoPlanning() {
           toast.success("GEO content published!");
         }
       } else if (item.type === "article" || item.type === "local" || item.type === "shopping") {
-        // Trigger the daily publish cron for THIS project only (forceToday)
+        const targetDate = format(item.date, "yyyy-MM-dd");
         const { data, error } = await supabase.functions.invoke("publish-scheduled-answers", {
-          body: { forceToday: true, projectId: project.id },
+          body: { forceToday: true, projectId: project.id, targetDate },
         });
         if (error) throw error;
         if (data?.success === false) throw new Error(data?.error || "Publish failed");
-        toast.success("Published!");
+        const result = data?.results?.find((r: any) => r.id === item.id && r.success) || data?.results?.find((r: any) => r.success);
+        if (result?.url && result.url !== "internal") {
+          toast.success("Published!", {
+            action: { label: "Check live →", onClick: () => window.open(result.url, "_blank") },
+            duration: 10000,
+          });
+        } else {
+          toast.success("Published!");
+        }
       } else {
         toast.info("Nothing to publish for this item");
       }
