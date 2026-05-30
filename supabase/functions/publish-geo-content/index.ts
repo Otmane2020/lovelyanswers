@@ -76,6 +76,11 @@ Deno.serve(async (req) => {
         // Push to CMS via cms-publish function — MUST pass integrationId + content.body
         try {
           const body = content.html_content || content.content || "";
+          if (!body.trim()) {
+            lastError = "GEO content has no body to publish";
+            console.error(`[publish-geo-content] ${lastError} for ${content.id}`);
+            continue;
+          }
           const cmsRes = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/cms-publish`,
             {
@@ -121,14 +126,16 @@ Deno.serve(async (req) => {
           } else {
             lastError = cmsData?.error || cmsData?.message || "CMS publish returned no URL";
             console.error(`[publish-geo-content] CMS publish failed for ${content.id}:`, lastError);
+            continue;
           }
         } catch (cmsErr: any) {
           lastError = cmsErr?.message || String(cmsErr);
           console.error(`CMS publish failed for ${content.id}:`, cmsErr);
+          continue;
         }
       }
 
-      // Fallback: mark as published internally (no CMS)
+      // Fallback only when no CMS is connected: mark as published internally.
       const fallbackUrl = buildPublicBlogUrl(project.website_url, content.slug);
       const { error: fallbackUpdateError } = await supabase
         .from("geo_contents")
