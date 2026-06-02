@@ -138,40 +138,51 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
 
     const basicAuth = btoa(`${username}:${password}`);
 
-    // Test with /wp-json/wp/v2/users/me - requires authentication
-    const response = await fetch(`${siteUrl}/wp-json/wp/v2/users/me`, {
-      headers: {
-        Authorization: `Basic ${basicAuth}`,
-        "Content-Type": "application/json",
-      },
-    });
+    // Try pretty permalinks first, then fall back to plain (?rest_route=)
+    const tryEndpoints = [
+      `${siteUrl}/wp-json/wp/v2/users/me`,
+      `${siteUrl}/?rest_route=/wp/v2/users/me`,
+    ];
 
-    if (response.ok) {
+    let response: Response | null = null;
+    for (const url of tryEndpoints) {
+      response = await fetch(url, {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.status !== 404) break;
+    }
+
+    if (response && response.ok) {
       const user = await response.json();
-      return { 
-        success: true, 
-        message: `Connected as "${user.name || user.slug}"! Ready to publish.` 
+      return {
+        success: true,
+        message: `Connected as "${user.name || user.slug}"! Ready to publish.`,
       };
     }
 
-    if (response.status === 401) {
-      return { 
-        success: false, 
-        message: "Invalid credentials. Check your username and Application Password in Users → Profile → Application Passwords." 
+    if (response && response.status === 401) {
+      return {
+        success: false,
+        message: "Invalid credentials. Check your username and Application Password in Users → Profile → Application Passwords.",
       };
     }
 
-    if (response.status === 404) {
-      // Try to check if REST API is available
-      const apiCheck = await fetch(`${siteUrl}/wp-json/`);
-      if (!apiCheck.ok) {
+    if (response && response.status === 404) {
+      // Check both REST API discovery endpoints
+      const discovery = await fetch(`${siteUrl}/wp-json/`);
+      const discoveryPlain = await fetch(`${siteUrl}/?rest_route=/`);
+      if (!discovery.ok && !discoveryPlain.ok) {
         return {
           success: false,
-          message: `No WordPress REST API found at ${siteUrl}/wp-json/. This URL doesn't seem to be a WordPress site. Make sure you entered the URL of your WordPress install (not your SaaS/landing page), and that permalinks are enabled (Settings → Permalinks → any option other than "Plain").`,
+          message: `No WordPress REST API found at ${siteUrl}. Make sure this URL points to a real WordPress install.`,
         };
       }
       return { success: false, message: "Authentication endpoint not found. Check your WordPress version (REST API requires 4.7+)." };
     }
+
 
 
     const errorText = await response.text().catch(() => response.statusText);
