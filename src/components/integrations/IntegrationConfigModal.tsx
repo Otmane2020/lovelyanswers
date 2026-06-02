@@ -610,7 +610,8 @@ After implementation, give me the Edge Function URL (format: https://xxx.supabas
               placeholder={field.placeholder}
               value={formData[field.key] || ""}
               onChange={(e) => handleFieldChange(field.key, e.target.value)}
-              className="text-sm h-11 px-3"
+              className="text-sm h-11 px-3 text-foreground bg-background placeholder:text-muted-foreground"
+              autoComplete="off"
             />
             {field.helpText && (
               <p className="text-[10px] text-muted-foreground leading-tight">{field.helpText}</p>
