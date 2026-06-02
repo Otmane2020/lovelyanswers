@@ -1270,18 +1270,27 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[generate-30-days] Completed: ${answersCreated.length} answers, ${articlesCreated.length} articles`);
+        console.log(`[generate-30-days] Completed: ${answersCreated.length} answers, ${articlesCreated.length} articles`);
+      } catch (bgErr: any) {
+        console.error("[generate-30-days] Background error:", bgErr?.message || bgErr);
+      }
+    })();
+
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge runtime
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(backgroundWork);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        answers_created: answersCreated.length,
-        articles_created: articlesCreated.length,
-        days_processed: days,
+        status: "processing",
+        message: "Generation started in background. Poll your planning/answers/articles to track progress.",
+        days_requested: days,
         start_offset: startOffset,
-        next_offset: startOffset + days,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e: any) {
     console.error("[generate-30-days] Error:", e);
@@ -1299,3 +1308,4 @@ serve(async (req) => {
     );
   }
 });
+
