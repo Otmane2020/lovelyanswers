@@ -789,6 +789,12 @@ serve(async (req) => {
 
     if (!projectId) throw new Error("Missing projectId");
 
+    // Long-running work runs in background to avoid 150s edge timeout.
+    // Client should poll planning/answers/articles tables for progress.
+    const backgroundWork = (async () => {
+      try {
+
+
     // Get project - service role bypasses user_id check
     let project: any = null;
     if (isServiceRole) {
