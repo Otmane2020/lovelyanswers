@@ -165,10 +165,14 @@ async function testWordPress(config: Record<string, string>): Promise<{ success:
       // Try to check if REST API is available
       const apiCheck = await fetch(`${siteUrl}/wp-json/`);
       if (!apiCheck.ok) {
-        return { success: false, message: "WordPress REST API not found. Ensure permalinks are enabled." };
+        return {
+          success: false,
+          message: `No WordPress REST API found at ${siteUrl}/wp-json/. This URL doesn't seem to be a WordPress site. Make sure you entered the URL of your WordPress install (not your SaaS/landing page), and that permalinks are enabled (Settings → Permalinks → any option other than "Plain").`,
+        };
       }
-      return { success: false, message: "Authentication endpoint not found. Check your WordPress version." };
+      return { success: false, message: "Authentication endpoint not found. Check your WordPress version (REST API requires 4.7+)." };
     }
+
 
     const errorText = await response.text().catch(() => response.statusText);
     return { success: false, message: `WordPress error (${response.status}): ${errorText.slice(0, 100)}` };
