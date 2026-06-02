@@ -426,20 +426,33 @@ async function publishToWordPress(
     
     console.log(`[WordPress] Using Basic Auth for user: ${username}`);
     
-    const response = await fetch(`${siteUrl}/wp-json/wp/v2/posts`, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: content.title,
-        content: content.body,
-        excerpt: (content as any).excerpt || undefined,
-        slug: (content as any).slug || undefined,
-        status: "publish",
-      }),
+    const postBody = JSON.stringify({
+      title: content.title,
+      content: content.body,
+      excerpt: (content as any).excerpt || undefined,
+      slug: (content as any).slug || undefined,
+      status: "publish",
     });
+    const postHeaders = {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    };
+
+    // Try pretty permalinks first, then fall back to plain (?rest_route=)
+    let response = await fetch(`${siteUrl}/wp-json/wp/v2/posts`, {
+      method: "POST",
+      headers: postHeaders,
+      body: postBody,
+    });
+    if (response.status === 404) {
+      console.log(`[WordPress] /wp-json 404, falling back to ?rest_route=`);
+      response = await fetch(`${siteUrl}/?rest_route=/wp/v2/posts`, {
+        method: "POST",
+        headers: postHeaders,
+        body: postBody,
+      });
+    }
+
 
     if (!response.ok) {
       const status = response.status;
