@@ -38,9 +38,34 @@ function normalizeEditorialBody(input: string): string {
   html = html.replace(/<meta[^>]*>/gi, "");
   html = html.replace(/\sstyle\s*=\s*"[^"]*"/gi, "");
   html = html.replace(/\sstyle\s*=\s*'[^']*'/gi, "");
+
+  // Repair stray/unclosed heading tags by normalizing through markdown markers
+  html = html.replace(/<\s*h([2-6])[^>]*>([\s\S]*?)<\s*\/\s*h\1\s*>/gi,
+    (_m, lvl, inner) => `\n\n${"#".repeat(Number(lvl))} ${String(inner).trim()}\n\n`);
+  html = html.replace(/<\s*h([2-6])[^>]*>/gi, (_m, lvl) => `\n\n${"#".repeat(Number(lvl))} `);
+  html = html.replace(/<\s*\/\s*h[2-6]\s*>/gi, "\n\n");
+
+  // Inline markdown headings (AI often returns a single-line blob with `## ...  next sentence`)
+  html = html.replace(/\s+(#{2,6})\s+([^\n]+?)(?=\s{2,}|\s+#{2,6}\s+|\n|$)/g,
+    (_m, hashes, txt) => `\n\n${hashes} ${txt.trim()}\n\n`);
+  // Line-start headings
   html = html.replace(/(^|\n)\s*#{2}\s+(.+)$/gm, "$1<h2>$2</h2>");
   html = html.replace(/(^|\n)\s*#{3}\s+(.+)$/gm, "$1<h3>$2</h3>");
+  html = html.replace(/(^|\n)\s*#{4}\s+(.+)$/gm, "$1<h4>$2</h4>");
+
   html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+
+  // Bullet lists from inline "* " patterns → ul
+  html = html.replace(/\s+\*\s{2,}/g, "\n* ");
+  html = html.replace(/(?<=[.:])\s+\*\s+(?=\*\*|[A-Z])/g, "\n* ");
+  html = html.replace(/(?:(?:^|\n)\*\s+[^\n]+){2,}/g, (block) => {
+    const items = block.trim().split(/\n\*\s+/).filter(Boolean).map((s) => s.replace(/^\*\s+/, ""));
+    return "\n\n<ul>" + items.map((i) => `<li>${i.trim()}</li>`).join("") + "</ul>\n\n";
+  });
+
+  // Paragraph break on double-space after sentence end
+  html = html.replace(/([.!?])\s{2,}(?=[A-Z"*<])/g, "$1\n\n");
+
   html = html.replace(/(^|\n)\s*(Opening Summary|Comparison Criteria|Tool Solutions for Enterprise Content Strategy|Brand|ChatGPT \(OpenAI\)|Gemini \(Google\)|Perplexity AI|Comparison Table|How to Choose the Right AI for Your Enterprise|FAQ)\s*$/gmi, "$1<h2>$2</h2>");
   html = html.split(/\n{2,}/).map((chunk) => {
     const text = chunk.trim();
