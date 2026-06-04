@@ -41,9 +41,9 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
 
   // Recommended: 3x/week (Mon/Wed/Fri) — best balance of quality vs volume
   const frequencies = [
-  { value: "3x_week", label: "3x/week ✓" },
+  { value: "daily", label: "Daily ✓" },
+  { value: "3x_week", label: "3x/week" },
   { value: "2x_week", label: "2x/week" },
-  { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" }];
 
