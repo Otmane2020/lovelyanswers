@@ -21,8 +21,8 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
-  const [frequency, setFrequency] = useState("3x_week");
-  const [savedFrequency, setSavedFrequency] = useState("3x_week");
+  const [frequency, setFrequency] = useState("daily");
+  const [savedFrequency, setSavedFrequency] = useState("daily");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -41,9 +41,9 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
 
   // Recommended: 3x/week (Mon/Wed/Fri) — best balance of quality vs volume
   const frequencies = [
-  { value: "3x_week", label: "3x/week ✓" },
+  { value: "daily", label: "Daily ✓" },
+  { value: "3x_week", label: "3x/week" },
   { value: "2x_week", label: "2x/week" },
-  { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" }];
 
@@ -79,7 +79,7 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
           setPublishHour(hour12.toString().padStart(2, "0"));
           setPublishPeriod(period);
           setTimezone((data as any).timezone || "Europe/Paris");
-          const loadedFreq = (data as any).publish_frequency || "3x_week";
+          const loadedFreq = (data as any).publish_frequency || "daily";
           setFrequency(loadedFreq);
           setSavedFrequency(loadedFreq);
         }

@@ -59,10 +59,14 @@ export default function AeoGeo() {
       const res = await supabase.functions.invoke("generate-30-gso-contents", {
         body: { projectId: project.id },
       });
-      if (res.error) throw new Error(res.error.message);
+      if (res.error) {
+        console.error("[generate-30-gso-contents] edge error:", res.error);
+        throw new Error("GENERATION_FAILED");
+      }
       toast.success("GEO 30-day planning started!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to fill planning");
+      console.error("[handleFill30]", err);
+      toast.error("Content is being prepared. Please try again in a moment.");
     } finally {
       setIsFilling(false);
     }
