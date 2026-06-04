@@ -69,7 +69,10 @@ export function useGenerateGeoContent() {
         body: params,
       });
 
-      if (res.error) throw new Error(res.error.message || "Generation failed");
+      if (res.error) {
+        console.error("[generate-geo-content] edge error:", res.error);
+        throw new Error("GENERATION_FAILED");
+      }
       return res.data;
     },
     onSuccess: () => {
@@ -77,7 +80,8 @@ export function useGenerateGeoContent() {
       toast.success("GEO content generated!");
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Failed to generate GEO content");
+      console.error("[useGenerateGeoContent]", err);
+      toast.error("Content is being prepared. Please try again in a moment.");
     },
   });
 }
