@@ -57,6 +57,11 @@ export default function AeoGeo() {
   const handleFill30 = async () => {
     if (!project || isFilling) return;
     setIsFilling(true);
+    startGeneration("Auto-filling GEO 30-day planning… (30–60s)");
+    setGenerationProgress(10);
+    const interval = setInterval(() => {
+      setGenerationProgress((p) => (p < 90 ? p + 2 : p));
+    }, 1000);
     try {
       const res = await supabase.functions.invoke("generate-30-gso-contents", {
         body: { projectId: project.id },
@@ -70,6 +75,8 @@ export default function AeoGeo() {
       console.error("[handleFill30]", err);
       toast.error("Content is being prepared. Please try again in a moment.");
     } finally {
+      clearInterval(interval);
+      stopGeneration();
       setIsFilling(false);
     }
   };
