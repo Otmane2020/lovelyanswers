@@ -17,6 +17,7 @@ interface AutoPublishSettingsProps {
 }
 
 export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyChanged }: AutoPublishSettingsProps) {
+  const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(true);
   const [humanReviewEnabled, setHumanReviewEnabled] = useState(false);
   const [publishHour, setPublishHour] = useState("08");
