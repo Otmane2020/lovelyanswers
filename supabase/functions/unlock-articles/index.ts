@@ -11,71 +11,59 @@ const logStep = (step: string, details?: any) => {
   console.log(`[UNLOCK-ARTICLES] ${step}${detailsStr}`);
 };
 
-const OPENROUTER_FALLBACK_MODELS = (Deno.env.get("OPENROUTER_FALLBACK_MODELS") ||
-  "google/gemini-2.0-flash-001,openai/gpt-4o-mini")
+// OpenRouter FREE models only — Lovable AI is intentionally NOT used here
+const OPENROUTER_FREE_MODELS = (Deno.env.get("OPENROUTER_FREE_MODELS") ||
+  [
+    "deepseek/deepseek-chat-v3.1:free",
+    "deepseek/deepseek-r1:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemini-2.0-flash-exp:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "z-ai/glm-4.5-air:free",
+    "mistralai/mistral-small-3.2-24b-instruct:free",
+    "openai/gpt-oss-20b:free",
+    "qwen/qwen3-coder:free",
+  ].join(","))
   .split(",")
-  .map((model) => model.trim())
+  .map((m) => m.trim())
   .filter(Boolean);
 
-async function tryLovable(messages: any[], maxTokens: number, temperature: number): Promise<string | null> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY") || "";
-  if (!lovableKey) return null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, temperature, max_tokens: maxTokens }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || "";
-        return content.trim().length > 40 ? content.trim() : null;
-      }
-      if (response.status === 429) {
-        const delay = 800 * Math.pow(2, attempt) + Math.random() * 400;
-        logStep("Lovable AI 429 backoff", { attempt, delay });
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      logStep("Lovable AI failed", { status: response.status });
-      return null;
-    } catch (error) {
-      logStep("Lovable AI error", { error: String(error) });
-      return null;
-    }
-  }
-  return null;
-}
-
 async function completeWithFallback(messages: any[], maxTokens: number, temperature: number, openrouterKey: string) {
-  // 1) Lovable AI Gateway first (reliable, free tier with retry on 429)
-  const lovableResult = await tryLovable(messages, maxTokens, temperature);
-  if (lovableResult) return lovableResult;
+  if (!openrouterKey) throw new Error("OPENROUTER_API_KEY not configured");
 
-  // 2) OpenRouter paid fallback — free models are deprecated, skip them
-  if (openrouterKey) {
-    for (const model of OPENROUTER_FALLBACK_MODELS) {
+  for (const model of OPENROUTER_FREE_MODELS) {
+    // Retry transient 429 once per model with short backoff
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: { "Authorization": `Bearer ${openrouterKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({ model, messages, temperature, max_tokens: maxTokens }),
         });
-        if (!response.ok) {
-          logStep("OpenRouter model failed", { model, status: response.status });
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || "";
+          if (content.trim().length > 40) return content.trim();
+          logStep("OpenRouter empty content", { model });
+          break;
+        }
+        if (response.status === 429 && attempt === 0) {
+          const delay = 1000 + Math.random() * 600;
+          logStep("OpenRouter 429 backoff", { model, delay });
+          await new Promise((r) => setTimeout(r, delay));
           continue;
         }
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || "";
-        if (content.trim().length > 40) return content.trim();
+        logStep("OpenRouter model failed", { model, status: response.status });
+        break;
       } catch (error) {
         logStep("OpenRouter model error", { model, error: String(error) });
+        break;
       }
     }
   }
 
-  throw new Error("All AI providers failed");
+  throw new Error("All OpenRouter free models failed");
 }
 
 function fallbackAnswer(question: string, projectContext: any) {
