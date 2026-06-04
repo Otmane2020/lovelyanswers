@@ -272,7 +272,11 @@ export default function AeoDashboard() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {subscribed ? (
-                    <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                    article.status === "locked" ? (
+                      <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+                    ) : (
+                      <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                    )
                   ) : (
                     <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   )}

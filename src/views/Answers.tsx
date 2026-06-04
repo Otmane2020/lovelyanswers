@@ -584,9 +584,15 @@ export default function Answers() {
              <GlassCard key={answer.id} hover className="p-4 sm:p-6 cursor-pointer" onClick={() => handleViewAnswer(answer)}>
                 <div className="flex items-start gap-4">
                   {(!isSubscribed && index !== 0) || isAnswerLocked(answer) ? (
-                    <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center text-muted-foreground shrink-0" title="Locked — content not generated yet">
-                      <Lock className="w-4 h-4" />
-                    </div>
+                    isSubscribed ? (
+                      <div className="w-12 h-12 rounded-full border-2 border-primary/30 bg-primary/5 flex items-center justify-center text-primary shrink-0" title="Preparing content…">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full border-2 border-muted flex items-center justify-center text-muted-foreground shrink-0" title="Locked — subscribe to unlock">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                    )
                   ) : (
                     <ScoreRing score={answer.score ?? 0} size="sm" />
                   )}

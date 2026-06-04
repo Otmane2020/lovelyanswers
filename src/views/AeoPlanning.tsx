@@ -83,7 +83,7 @@ export default function AeoPlanning() {
   const [monthViewMode, setMonthViewMode] = useState<"calendar" | "list">("calendar");
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [queueItems, setQueueItems] = useState<ScheduledItem[]>([]);
-  const [liveFrequency, setLiveFrequency] = useState<string>("3x_week");
+  const [liveFrequency, setLiveFrequency] = useState<string>("daily");
   const [autoPublishOn, setAutoPublishOn] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
@@ -273,14 +273,20 @@ export default function AeoPlanning() {
     const ensurePlanningIsFilled = async () => {
       if (!project?.id || hasRunFill.current === project.id) return;
 
-      const scheduledItems = await fetchScheduledItems();
-      if (scheduledItems.length > 0) {
+      const items = await fetchScheduledItems();
+      if (items.length > 0) {
         hasRunFill.current = project.id;
         return;
       }
 
       hasRunFill.current = project.id;
-      const t = toast.loading("Calendar is empty, generating planning…");
+      startGeneration("Auto-filling 30-day planning… (30–60s)");
+      setGenerationProgress(10);
+
+      // Slow visual progress so user knows the app is alive
+      const interval = setInterval(() => {
+        setGenerationProgress((p) => (p < 90 ? p + 2 : p));
+      }, 1000);
 
       try {
         const { data, error } = await supabase.functions.invoke("daily-planning-fill", {
@@ -294,10 +300,14 @@ export default function AeoPlanning() {
 
         await fetchScheduledItems();
         await fetchQueue();
-        toast.success("Calendar updated", { id: t });
+        setGenerationMessage("Calendar updated");
+        toast.success("Calendar updated");
       } catch (error) {
         console.error("Initial planning fill error:", error);
-        toast.error("Failed to generate planning", { id: t });
+        toast.error("Content is being prepared. Please try again in a moment.");
+      } finally {
+        clearInterval(interval);
+        stopGeneration();
       }
     };
 

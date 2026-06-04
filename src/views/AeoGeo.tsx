@@ -18,6 +18,7 @@ import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoC
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useGeneration } from "@/contexts/GenerationContext";
 import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 export default function AeoGeo() {
@@ -31,6 +32,7 @@ export default function AeoGeo() {
   const [isFilling, setIsFilling] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+  const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
   const hasTriggeredRef = useRef(false);
 
   // Auto-trigger 30-day fill on page open if fewer than 30 scheduled contents
@@ -55,6 +57,11 @@ export default function AeoGeo() {
   const handleFill30 = async () => {
     if (!project || isFilling) return;
     setIsFilling(true);
+    startGeneration("Auto-filling GEO 30-day planning… (30–60s)");
+    setGenerationProgress(10);
+    const interval = setInterval(() => {
+      setGenerationProgress((p) => (p < 90 ? p + 2 : p));
+    }, 1000);
     try {
       const res = await supabase.functions.invoke("generate-30-gso-contents", {
         body: { projectId: project.id },
@@ -68,6 +75,8 @@ export default function AeoGeo() {
       console.error("[handleFill30]", err);
       toast.error("Content is being prepared. Please try again in a moment.");
     } finally {
+      clearInterval(interval);
+      stopGeneration();
       setIsFilling(false);
     }
   };
