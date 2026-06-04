@@ -21,8 +21,8 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
   const [publishHour, setPublishHour] = useState("08");
   const [publishPeriod, setPublishPeriod] = useState<"AM" | "PM">("AM");
   const [timezone, setTimezone] = useState("Europe/Paris");
-  const [frequency, setFrequency] = useState("3x_week");
-  const [savedFrequency, setSavedFrequency] = useState("3x_week");
+  const [frequency, setFrequency] = useState("daily");
+  const [savedFrequency, setSavedFrequency] = useState("daily");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
