@@ -20,44 +20,44 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-// AI call with multi-provider fallback (Lovable AI -> OpenRouter free models)
+// AI call with Lovable AI primary (retry on 429) + OpenRouter paid fallback
 async function callAIWithFallback(messages: any[], opts: { temperature?: number; max_tokens?: number } = {}): Promise<{ content: string; status: number; error?: string }> {
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
   const temperature = opts.temperature ?? 0.7;
   const max_tokens = opts.max_tokens ?? 8000;
 
-  // 1) Try Lovable AI
+  // 1) Lovable AI with retry on 429
   if (lovableKey) {
-    try {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + lovableKey },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, temperature, max_tokens }),
-      });
-      const data = await r.json().catch(() => ({}));
-      const content = data?.choices?.[0]?.message?.content || "";
-      if (r.ok && content) return { content, status: r.status };
-      console.log("[AI fallback] Lovable failed status:", r.status, "err:", JSON.stringify(data?.error || {}).slice(0, 200));
-    } catch (e) {
-      console.log("[AI fallback] Lovable threw:", String(e));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + lovableKey },
+          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, temperature, max_tokens }),
+        });
+        const data = await r.json().catch(() => ({}));
+        const content = data?.choices?.[0]?.message?.content || "";
+        if (r.ok && content) return { content, status: r.status };
+        if (r.status === 429) {
+          const delay = 800 * Math.pow(2, attempt) + Math.random() * 400;
+          console.log("[AI fallback] Lovable 429 backoff attempt=" + attempt + " delay=" + delay);
+          await new Promise((res) => setTimeout(res, delay));
+          continue;
+        }
+        console.log("[AI fallback] Lovable failed status:", r.status, "err:", JSON.stringify(data?.error || {}).slice(0, 200));
+        break;
+      } catch (e) {
+        console.log("[AI fallback] Lovable threw:", String(e));
+        break;
+      }
     }
   }
 
-  // 2) OpenRouter free models
+  // 2) OpenRouter paid fallback (free models are deprecated — skipped)
   if (openrouterKey) {
-    const freeModels = [
-      // Currently available free models on OpenRouter (2026)
-      "meta-llama/llama-3.2-3b-instruct:free",
-      "meta-llama/llama-3.1-8b-instruct:free",
-      "google/gemma-2-9b-it:free",
-      "mistralai/mistral-7b-instruct:free",
-      "qwen/qwen-2-7b-instruct:free",
-      // Paid fallback (very cheap) — last resort to ensure success
-      "google/gemini-flash-1.5",
-      "openai/gpt-4o-mini",
-    ];
-    for (const model of freeModels) {
+    const fallbackModels = ["google/gemini-2.0-flash-001", "openai/gpt-4o-mini"];
+    for (const model of fallbackModels) {
       try {
         const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
