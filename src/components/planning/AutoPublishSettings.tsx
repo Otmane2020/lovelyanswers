@@ -157,7 +157,12 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
     if (!projectId) return;
 
     setIsSaving(true);
-    const t = toast.loading("Applying new frequency…");
+    startGeneration(`Applying ${newFrequency.replace("_", " ")} schedule… (30–60s)`);
+    setGenerationProgress(10);
+    const interval = setInterval(() => {
+      setGenerationProgress((p) => (p < 90 ? p + 2 : p));
+    }, 1000);
+
     try {
       const { error } = await supabase
         .from("project_settings")
@@ -179,12 +184,14 @@ export function AutoPublishSettings({ projectId, onSettingsChange, onFrequencyCh
       if (refillError) throw refillError;
       if ((data as any)?.success === false) throw new Error((data as any)?.error || "Planning fill failed");
 
-      toast.success("Planning updated", { id: t });
+      toast.success("Planning updated");
       await onFrequencyChanged?.();
     } catch (e) {
       console.error("Frequency change error:", e);
-      toast.error("Failed to apply frequency", { id: t });
+      toast.error("Content is being prepared. Please try again in a moment.");
     } finally {
+      clearInterval(interval);
+      stopGeneration();
       setIsSaving(false);
     }
   };
