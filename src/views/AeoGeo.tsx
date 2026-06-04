@@ -18,6 +18,7 @@ import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoC
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
 import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
+import { useGeneration } from "@/contexts/GenerationContext";
 import { ContentUpgradeDialog } from "@/components/aeo/ContentUpgradeDialog";
 
 export default function AeoGeo() {
