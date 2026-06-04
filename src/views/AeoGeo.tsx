@@ -32,6 +32,7 @@ export default function AeoGeo() {
   const [isFilling, setIsFilling] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { isSubscribed } = useSubscriptionContext();
+  const { startGeneration, stopGeneration, setGenerationProgress } = useGeneration();
   const hasTriggeredRef = useRef(false);
 
   // Auto-trigger 30-day fill on page open if fewer than 30 scheduled contents
