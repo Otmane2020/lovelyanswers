@@ -153,9 +153,36 @@ export default function Blog() {
           </div>
         </section>
 
+        {/* Featured Guide */}
+        <section className="bg-white pt-12">
+          <div className="container">
+            <div className="max-w-4xl mx-auto rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <Badge className="mb-3 bg-violet-100 text-violet-700 border-violet-200">Featured Guide</Badge>
+                <h2 className="text-xl md:text-2xl font-bold text-[hsl(222,47%,11%)] mb-2">
+                  <Link href="/blog/aeo-vs-geo" className="hover:text-violet-700 transition-colors">
+                    AEO vs GEO: What Is the Difference Between Answer Engine and Generative Engine Optimization?
+                  </Link>
+                </h2>
+                <p className="text-gray-500 text-sm max-w-xl">
+                  A side-by-side comparison of answer engine optimization and generative engine optimization, with tactics for ranking in voice assistants and AI search summaries.
+                </p>
+              </div>
+              <Link
+                href="/blog/aeo-vs-geo"
+                className="inline-flex items-center gap-2 text-violet-700 font-semibold text-sm shrink-0 hover:gap-3 transition-all"
+                aria-label="Read the AEO vs GEO comparison guide"
+              >
+                Read the AEO vs GEO guide <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Articles Grid - White */}
         <section className="py-16 bg-white">
           <div className="container">
+
             {isLoading ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
