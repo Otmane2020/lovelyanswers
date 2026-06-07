@@ -819,7 +819,7 @@ export default function Index() {
             asChild
           >
             <Link href="/checkout?plan=pro&cycle=annual">
-              Start 3-day free trial <ArrowRight className="h-4 w-4" />
+              Start GEO free trial <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
