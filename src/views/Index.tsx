@@ -728,9 +728,20 @@ export default function Index() {
                   </AccordionItem>
                 ))}
               </Accordion>
+              <p className="text-center text-sm text-gray-500 mt-8">
+                New to the space?{" "}
+                <Link
+                  href="/blog/aeo-vs-geo"
+                  className="text-violet-600 font-medium hover:underline"
+                >
+                  Read our guide: AEO vs GEO — what is the difference between answer engine and generative engine optimization
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </section>
+
 
         {/* Dark CTA */}
         <section className="relative overflow-hidden bg-gray-900 py-20 md:py-32">
