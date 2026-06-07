@@ -361,7 +361,7 @@ export default function Index() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.45 }}
-                className="text-sm text-gray-400 mb-12"
+                className="text-sm text-gray-600 mb-12"
               >
                 3-day free trial · <span className="text-gray-600 font-medium">Card required</span> · Cancel anytime
               </motion.p>
@@ -409,7 +409,7 @@ export default function Index() {
                       <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <X className="h-3 w-3 text-red-500" />
                       </div>
-                      <span className="text-sm text-gray-500 leading-snug">{item}</span>
+                      <span className="text-sm text-gray-700 leading-snug">{item}</span>
                     </div>
                   ))}
                 </div>
@@ -441,14 +441,14 @@ export default function Index() {
                       {stat.value}
                       <span className="text-blue-500 text-lg">{stat.suffix}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1.5">{stat.label}</p>
+                    <p className="text-xs text-gray-600 mt-1.5">{stat.label}</p>
                   </div>
                 ))}
               </motion.div>
 
               {/* Platform pills */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-                <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">Optimizes your presence on</p>
+                <p className="text-xs text-gray-600 uppercase tracking-widest mb-3">Optimizes your presence on</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {aiPlatforms.map((p) => (
                     <div
@@ -546,7 +546,7 @@ export default function Index() {
         {/* AI Platform Logos */}
         <section className="py-10 md:py-14 border-b border-gray-100 bg-white">
           <div className="container px-4">
-            <p className="text-center text-sm text-gray-400 mb-6 uppercase tracking-widest">
+            <p className="text-center text-sm text-gray-600 mb-6 uppercase tracking-widest">
               Optimize your presence across all major AI platforms
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
@@ -574,7 +574,7 @@ export default function Index() {
               >
                 Generative search is the <span className="text-blue-600 font-extrabold">new growth channel</span>
               </h2>
-              <p className="text-gray-500 text-lg max-w-xl mx-auto">
+              <p className="text-gray-700 text-lg max-w-xl mx-auto">
                 Businesses cited by AI engines get more trust, more clicks, more customers. GEO is how you get there.
               </p>
             </div>
@@ -599,7 +599,7 @@ export default function Index() {
                   >
                     {stat.value}
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
+                  <p className="text-sm text-gray-700 mt-2">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -616,7 +616,7 @@ export default function Index() {
               >
                 Understand how generative AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
               </h2>
-              <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              <p className="text-gray-700 text-lg max-w-2xl mx-auto">
                 Monitor and optimize your brand's presence across every major generative AI engine.
               </p>
             </div>
@@ -634,7 +634,7 @@ export default function Index() {
                     {card.icon}
                   </div>
                   <h3 className="font-semibold text-lg text-gray-900 mb-2">{card.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{card.description}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{card.description}</p>
                   <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 p-3 h-28 flex items-end gap-1">
                     {Array.from({ length: 8 }).map((_, j) => (
                       <div
@@ -663,7 +663,7 @@ export default function Index() {
               >
                 Turn generative AI into a <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
-              <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              <p className="text-gray-700 text-lg max-w-2xl mx-auto">
                 Track, optimize, and grow your citations in AI-powered search results.
               </p>
             </div>
@@ -686,7 +686,7 @@ export default function Index() {
                   <div className="p-5">
                     <span className="text-[10px] font-bold tracking-widest text-blue-500 uppercase">{feature.tag}</span>
                     <h3 className="font-semibold text-gray-900 mt-1 mb-2">{feature.title}</h3>
-                    <p className="text-sm text-gray-500">{feature.description}</p>
+                    <p className="text-sm text-gray-700">{feature.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -698,7 +698,7 @@ export default function Index() {
                     {f.icon}
                   </div>
                   <h4 className="font-semibold text-sm text-gray-900 mb-1">{f.title}</h4>
-                  <p className="text-xs text-gray-400">{f.description}</p>
+                  <p className="text-xs text-gray-600">{f.description}</p>
                 </div>
               ))}
             </div>
@@ -724,11 +724,11 @@ export default function Index() {
                     <AccordionTrigger className="text-left font-medium text-gray-900 py-4 hover:no-underline text-sm md:text-base">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-gray-500 text-sm pb-4">{faq.answer}</AccordionContent>
+                    <AccordionContent className="text-gray-700 text-sm pb-4">{faq.answer}</AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
-              <p className="text-center text-sm text-gray-500 mt-8">
+              <p className="text-center text-sm text-gray-700 mt-8">
                 New to the space?{" "}
                 <Link
                   href="/blog/aeo-vs-geo"
@@ -815,7 +815,7 @@ export default function Index() {
                 Start your GEO free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
+            <p className="text-gray-300 text-sm mt-4">Card required · Cancel anytime</p>
 
           </div>
         </section>
