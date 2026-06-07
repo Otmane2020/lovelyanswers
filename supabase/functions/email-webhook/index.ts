@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/svix@1.24.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +21,30 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const payload = await req.json();
+    // SECURITY: verify Svix signature so attackers cannot inject fake emails.
+    const rawBody = await req.text();
+    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("[email-webhook] RESEND_WEBHOOK_SECRET not configured — refusing request");
+      return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const wh = new Webhook(webhookSecret);
+      wh.verify(rawBody, {
+        "svix-id": req.headers.get("svix-id") ?? "",
+        "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
+        "svix-signature": req.headers.get("svix-signature") ?? "",
+      });
+    } catch (err) {
+      console.error("[email-webhook] Signature verification failed:", (err as Error).message);
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const payload = JSON.parse(rawBody);
     console.log("[email-webhook] Received:", JSON.stringify(payload).slice(0, 500));
 
     const eventType = payload.type;

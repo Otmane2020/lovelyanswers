@@ -50,15 +50,34 @@ serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
+  // SECURITY: never accept events without a verified signature.
+  // Forged Stripe events can grant/revoke subscriptions.
+  if (!webhookSecret) {
+    console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET is not configured — refusing request");
+    return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (!signature) {
+    return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = await req.text();
 
     let event: Stripe.Event;
-    if (signature && webhookSecret) {
+    try {
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } else {
-      logStep("WARNING: No webhook signature verification — dev mode");
-      event = JSON.parse(body) as Stripe.Event;
+    } catch (err) {
+      console.error("[stripe-webhook] Signature verification failed:", (err as Error).message);
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     logStep("Event received", { type: event.type, id: event.id });
