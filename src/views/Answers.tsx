@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useAnswers, useToggleAnswerPublic } from "@/hooks/useAnswers";
 import { usePublishAnswer } from "@/hooks/usePublishAnswer";
 import { useActiveProject } from "@/hooks/useProjects";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -879,7 +880,7 @@ export default function Answers() {
             {viewingArticle?.html_content ?
             <div
               className="prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: viewingArticle.html_content }} /> :
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(viewingArticle.html_content) }} /> :
 
             viewingArticle?.content ?
             <div className="whitespace-pre-wrap text-sm">{viewingArticle.content}</div> :
