@@ -199,7 +199,9 @@ export default function ArticleTemplate({
     headline: title,
     description: excerpt,
     datePublished: publishedAt,
+    dateModified: publishedAt,
     url: `${brandUrl}/blog/${slug}`,
+    mainEntityOfPage: `${brandUrl}/blog/${slug}`,
     publisher: {
       "@type": "Organization",
       name: brand,
@@ -213,18 +215,67 @@ export default function ArticleTemplate({
     },
   };
 
+  const breadcrumbStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: brandUrl },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${brandUrl}/blog` },
+      { "@type": "ListItem", position: 3, name: title, item: `${brandUrl}/blog/${slug}` },
+    ],
+  };
+
+  // Extract FAQ items from body markup using `faq-item` / `faq-question` / `faq-answer` classes
+  const faqStructuredData = useMemo(() => {
+    const items: { q: string; a: string }[] = [];
+    const re = /<div[^>]*class="[^"]*faq-item[^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?=<div[^>]*class="[^"]*faq-item|<h2|<\/article|$)/gi;
+    let m;
+    while ((m = re.exec(normalizedHtml)) !== null) {
+      const block = m[1];
+      const qMatch = block.match(/<div[^>]*class="[^"]*faq-question[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+      const aMatch = block.match(/<div[^>]*class="[^"]*faq-answer[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+      if (qMatch && aMatch) {
+        items.push({
+          q: qMatch[1].replace(/<[^>]*>/g, "").trim(),
+          a: aMatch[1].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+        });
+      }
+    }
+    if (!items.length) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: items.map((i) => ({
+        "@type": "Question",
+        name: i.q,
+        acceptedAnswer: { "@type": "Answer", text: i.a },
+      })),
+    };
+  }, [normalizedHtml]);
+
   return (
     <>
       <Helmet>
         <title>{title} | {brand}</title>
         <meta name="description" content={excerpt} />
+        <meta property="og:site_name" content={brand} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={excerpt} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={`${brandUrl}/blog/${slug}`} />
+        <meta property="og:image" content={`${brandUrl}/favicon.png`} />
+        {publishedAt && <meta property="article:published_time" content={publishedAt} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={excerpt} />
+        <meta name="twitter:image" content={`${brandUrl}/favicon.png`} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${brandUrl}/blog/${slug}`} />
         <script type="application/ld+json">{JSON.stringify(articleStructuredData)}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbStructuredData)}</script>
+        {faqStructuredData && (
+          <script type="application/ld+json">{JSON.stringify(faqStructuredData)}</script>
+        )}
       </Helmet>
 
       <div className="min-h-screen bg-background">
