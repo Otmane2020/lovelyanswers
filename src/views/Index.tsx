@@ -29,6 +29,11 @@ import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { InactivityPopup } from "@/components/InactivityPopup";
 import { SocialProofToast } from "@/components/nudges/SocialProofToast";
 import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
+import demoVideo from "@/assets/demo.mp4.asset.json";
+import ugcDesktop from "@/assets/ugc-desktop.mp4.asset.json";
+import ugcMobile from "@/assets/ugc-mobile.mp4.asset.json";
+
+
 
 
 const aiPlatforms = [
@@ -456,8 +461,82 @@ export default function Index() {
           <style>{`@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
         </section>
 
+        {/* Product Demo Video */}
+        <section className="py-16 md:py-24 bg-white">
+          <div className="container px-4 max-w-5xl">
+            <div className="text-center mb-10">
+              <span className="inline-block text-xs font-semibold uppercase tracking-widest text-indigo-600 mb-3">
+                Product demo
+              </span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
+                See AutoPilot GEO in action
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                One platform writes, optimizes and publishes — across Google, ChatGPT, Gemini, Perplexity and Shopping.
+              </p>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-black">
+              <video
+                src={demoVideo.url}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* UGC / Ads video */}
+        <section className="py-16 md:py-24" style={{ background: "linear-gradient(180deg,#0a0a1a 0%,#141432 50%,#1e1e5a 100%)" }}>
+          <div className="container px-4">
+            <div className="text-center mb-10">
+              <span className="inline-block text-xs font-semibold uppercase tracking-widest text-emerald-300 mb-3">
+                Real creators · Real results
+              </span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-4" style={{ letterSpacing: "-0.02em" }}>
+                Why founders switch to AutoPilot GEO
+              </h2>
+              <p className="text-lg text-white/70 max-w-2xl mx-auto">
+                Hear it straight from the people using it every day.
+              </p>
+            </div>
+
+            {/* Desktop video (16:9) */}
+            <div className="hidden md:block max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-[0_30px_80px_-20px_rgba(79,70,229,.5)] bg-black">
+              <video
+                src={ugcDesktop.url}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+              />
+            </div>
+
+            {/* Mobile reel (9:16) */}
+            <div className="md:hidden max-w-xs mx-auto rounded-2xl overflow-hidden shadow-[0_30px_80px_-20px_rgba(79,70,229,.5)] bg-black">
+              <video
+                src={ugcMobile.url}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+              />
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link href="/checkout?plan=pro&cycle=annual">
+                <Button size="lg" className="bg-white text-gray-900 hover:bg-white/90 h-12 px-6">
+                  Start free trial <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <ShoppingVisibilitySection />
         <TrafficGrowthSection />
+
 
         {/* AI Platform Logos */}
         <section className="py-10 md:py-14 border-b border-gray-100 bg-white">
