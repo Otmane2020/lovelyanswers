@@ -471,13 +471,13 @@ export default function Index() {
           <div className="container px-4 max-w-5xl">
             <div className="text-center mb-10">
               <span className="inline-block text-xs font-semibold uppercase tracking-widest text-indigo-600 mb-3">
-                Product demo
+                GEO Engine demo
               </span>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
-                See AutoPilot GEO in action
+                See the GEO Engine in action
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                One platform writes, optimizes and publishes — across Google, ChatGPT, Gemini, Perplexity and Shopping.
+                One platform optimizes your brand for generative AI — across ChatGPT, Gemini, Perplexity, Google AI Overviews and Shopping.
               </p>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-black">
@@ -572,18 +572,18 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                AI search is the new <span className="text-blue-600 font-extrabold">growth channel</span>
+                Generative search is the <span className="text-blue-600 font-extrabold">new growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-xl mx-auto">
-                Businesses that show up in AI answers get more clicks, more trust, more customers.
+                Businesses cited by AI engines get more trust, more clicks, more customers. GEO is how you get there.
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {[
-                { value: "4.5x", label: "More AI visibility" },
-                { value: "9.7x", label: "More brand mentions" },
-                { value: "60%", label: "Traffic increase avg" },
-                { value: "1.5bn", label: "AI searches monthly" },
+                { value: "4.5x", label: "More AI citations" },
+                { value: "9.7x", label: "More AI brand mentions" },
+                { value: "60%", label: "GEO traffic increase avg" },
+                { value: "1.5bn", label: "Generative queries monthly" },
               ].map((stat, i) => (
                 <motion.div
                   key={i}
@@ -614,10 +614,10 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                Understand how AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
+                Understand how generative AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Monitor and optimize your brand's presence across every major AI platform.
+                Monitor and optimize your brand's presence across every major generative AI engine.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -661,10 +661,10 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                Turn AI search into a <span className="text-blue-600 font-extrabold">growth channel</span>
+                Turn generative AI into a <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Track, optimize, and grow your presence in AI-powered search results.
+                Track, optimize, and grow your citations in AI-powered search results.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
