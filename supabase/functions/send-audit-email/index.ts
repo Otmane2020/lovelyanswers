@@ -14,12 +14,14 @@ serve(async (req) => {
 
   try {
     const { url, email } = await req.json();
-    
-    if (!url || !email) {
-      return new Response(
-        JSON.stringify({ error: "URL and email are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+    // Input validation
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!url || typeof url !== "string" || url.length > 2048) {
+      return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!email || typeof email !== "string" || email.length > 254 || !EMAIL_RE.test(email)) {
+      return new Response(JSON.stringify({ error: "Invalid email address" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     console.log(`[send-audit-email] Starting audit for ${url}, sending to ${email}`);
@@ -39,13 +41,29 @@ serve(async (req) => {
     }
 
     let domain: string;
+    let parsedUrl: URL;
     try {
-      domain = new URL(cleanUrl).hostname.replace("www.", "");
+      parsedUrl = new URL(cleanUrl);
+      domain = parsedUrl.hostname.replace("www.", "");
     } catch {
       return new Response(
         JSON.stringify({ error: "Invalid URL format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // SSRF guard: only allow http/https public hostnames; block private/loopback/metadata
+    if (!/^https?:$/.test(parsedUrl.protocol)) {
+      return new Response(JSON.stringify({ error: "Only http(s) URLs are allowed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const host = parsedUrl.hostname.toLowerCase();
+    const blockedHostPatterns = [
+      /^localhost$/i, /\.localhost$/i, /^127\./, /^10\./, /^192\.168\./,
+      /^172\.(1[6-9]|2\d|3[0-1])\./, /^169\.254\./, /^0\./, /^::1$/, /^fc/, /^fd/,
+      /^metadata\.google\.internal$/i,
+    ];
+    if (blockedHostPatterns.some((re) => re.test(host)) || host === "169.254.169.254") {
+      return new Response(JSON.stringify({ error: "Private/internal hosts are not allowed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     console.log(`[send-audit-email] Scraping ${cleanUrl}...`);
