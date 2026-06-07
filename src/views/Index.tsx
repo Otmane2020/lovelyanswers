@@ -308,7 +308,7 @@ export default function Index() {
               >
                 The #1 GEO platform.
                 <br />
-                <span className="text-blue-600">Get cited by AI.</span>
+                <span className="text-blue-600">Grow your Traffic ..</span>
                 <br />
                 Win generative search.
               </h1>
