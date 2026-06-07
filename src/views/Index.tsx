@@ -748,7 +748,7 @@ export default function Index() {
                   Buyers ask AI which brand to choose.
                 </h2>
                 <p className="text-gray-400 text-lg mb-8">
-                  Make sure it's yours. Get discovered in ChatGPT, Gemini, Perplexity and Google today.
+                  Make sure it's yours. Get cited by ChatGPT, Gemini, Perplexity and Google AI Overviews today.
                 </p>
                 <Button
                   size="lg"
@@ -757,7 +757,7 @@ export default function Index() {
                   asChild
                 >
                   <Link href="/checkout?plan=pro&cycle=annual">
-                    Start for free <ArrowRight className="h-4 w-4" />
+                    Start GEO free trial <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -775,8 +775,8 @@ export default function Index() {
                   <div className="flex justify-start">
                     <div className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm max-w-[90%]">
                       Based on recent data, I'd recommend{" "}
-                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized
-                      content and have strong results for small businesses.
+                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in Generative Engine
+                      Optimization and consistently rank in AI search results for small businesses.
                     </div>
                   </div>
                 </div>
@@ -789,10 +789,10 @@ export default function Index() {
         <section className="bg-gray-900 py-14 md:py-20 border-t border-white/5">
           <div className="container px-4 text-center">
             <h2 className="text-2xl md:text-4xl font-bold text-white mb-4" style={{ letterSpacing: "-0.02em" }}>
-              Be visible, today.
+              Own generative search.
             </h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              Start your free trial and get your brand recommended by AI search engines.
+              Start your GEO free trial and get your brand cited by AI search engines.
             </p>
             <Button
               size="lg"
@@ -801,7 +801,7 @@ export default function Index() {
               asChild
             >
               <Link href="/checkout?plan=pro&cycle=annual">
-                Start your 3-day free trial <ArrowRight className="h-4 w-4" />
+                Start your GEO free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
