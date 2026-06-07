@@ -1,5 +1,6 @@
 "use client";
 import { useMemo } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import Link from "next/link";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ export default function ArticleTemplate({
     () => metaDescription || extractExcerpt(normalizedHtml),
     [metaDescription, normalizedHtml]
   );
-  const processedHtml = useMemo(() => injectHeadingIds(normalizedHtml), [normalizedHtml]);
+  const processedHtml = useMemo(() => sanitizeHtml(injectHeadingIds(normalizedHtml)), [normalizedHtml]);
 
   const formattedDate = publishedAt
     ? new Date(publishedAt).toLocaleDateString("en-US", {

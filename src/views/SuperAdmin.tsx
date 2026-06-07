@@ -1448,7 +1448,12 @@ const SuperAdmin = () => {
             <TabsContent value="preview" className="flex-1 mt-2">
               <ScrollArea className="h-[40vh] border rounded-md p-4 bg-white">
                 {selectedEmail?.body_html ? (
-                  <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} />
+                  <iframe
+                    title="Email preview"
+                    sandbox=""
+                    className="w-full h-full min-h-[35vh] border-0 bg-white"
+                    srcDoc={selectedEmail.body_html}
+                  />
                 ) : (
                   <p className="text-sm whitespace-pre-wrap">{selectedEmail?.body_text || "(vide)"}</p>
                 )}
