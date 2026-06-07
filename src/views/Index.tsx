@@ -52,110 +52,114 @@ const socialProofPills = [
 
 
 const beforeItems = [
-  "AI never mentions your brand",
-  "Competitors get cited instead",
-  "Content takes weeks to write",
-  "Stuck on page 3 of Google",
+  "Your brand never appears in ChatGPT answers",
+  "Competitors get cited by Gemini & Perplexity",
+  "Zero presence in AI search results",
+  "Traffic flat while AI search grows 40%/year",
 ];
 
 const afterItems = [
-  "ChatGPT recommends your brand",
-  "1 article/day across 5 channels, auto",
-  "Auto-published to your CMS",
-  "+60% avg traffic in 3 months",
+  "ChatGPT, Gemini & Perplexity cite your brand",
+  "GEO-optimized content auto-generated daily",
+  "Rank in AI Overviews and answer boxes",
+  "+60% avg traffic from generative search",
 ];
 
 const heroStats = [
-  { value: "4.5", suffix: "x", label: "More AI visibility" },
-  { value: "9.7", suffix: "x", label: "More brand mentions" },
-  { value: "60", suffix: "%", label: "Traffic increase avg" },
+  { value: "4.5", suffix: "x", label: "More AI citations" },
+  { value: "9.7", suffix: "x", label: "More brand mentions in AI" },
+  { value: "60", suffix: "%", label: "GEO traffic increase avg" },
   { value: "$49", suffix: "/mo", label: "From" },
 ];
 
 const featureCards = [
   {
     icon: <Eye className="h-5 w-5" />,
-    title: "AI Visibility Score",
-    description: "See exactly how AI platforms talk about your brand and where you rank against competitors.",
+    title: "GEO Visibility Score",
+    description: "See exactly how visible your brand is across ChatGPT, Gemini, Perplexity and Claude — and how you rank against competitors.",
   },
   {
     icon: <BarChart3 className="h-5 w-5" />,
-    title: "Brand Mention Tracking",
-    description: "Monitor every time AI recommends your business or your competitors in real-time.",
+    title: "AI Citation Tracking",
+    description: "Monitor every time AI engines recommend your business — or your competitors — in real-time generative search results.",
   },
   {
     icon: <Target className="h-5 w-5" />,
-    title: "Content Optimization",
-    description: "Get actionable insights to optimize your content for AI citation and recommendation.",
+    title: "GEO Content Optimization",
+    description: "Get actionable insights to optimize your content for AI citation, entity recognition and generative engine ranking.",
   },
 ];
 
 const showcaseFeatures = [
   {
-    tag: "MONITOR YOUR AI PRESENCE",
-    title: "Track your visibility across all AI platforms",
-    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention your brand.",
+    tag: "MONITOR YOUR GEO PRESENCE",
+    title: "Track your visibility across all generative AI engines",
+    description: "Real-time monitoring of how ChatGPT, Gemini, Perplexity and Claude mention and cite your brand in AI search answers.",
   },
   {
-    tag: "OPTIMIZE YOUR CONTENT",
-    title: "AI-powered content that gets you cited",
-    description: "Generate expert articles designed to be recommended by AI search engines.",
+    tag: "OPTIMIZE FOR AI CITATION",
+    title: "GEO content that AI search engines cite",
+    description: "Generate structured, authoritative content specifically designed to be recommended by generative AI search engines.",
   },
   {
-    tag: "GROW ON AUTOPILOT",
-    title: "Automated publishing & SEO",
-    description: "1 article per day, auto-published to your CMS with full SEO optimization.",
+    tag: "SCALE ON AUTOPILOT",
+    title: "Automated GEO publishing & optimization",
+    description: "1 GEO-optimized piece per day, auto-published to your CMS with full generative engine optimization.",
   },
 ];
 
 // Testimonials removed — replaced by neutral stat pills in hero.
 
-
 const bottomFeatures = [
   {
     icon: <Search className="h-5 w-5" />,
-    title: "Keyword Research",
-    description: "AI-powered keyword discovery based on your competitors and market.",
+    title: "GEO Keyword Research",
+    description: "AI-powered keyword discovery targeting generative search queries and conversational intent.",
   },
   {
     icon: <FileText className="h-5 w-5" />,
-    title: "Content Generation",
-    description: "Expert-level articles optimized for both Google and AI engines.",
+    title: "GEO Content Generation",
+    description: "Expert-level articles optimized for both Google AI Overviews and standalone generative engines.",
   },
   {
     icon: <Globe className="h-5 w-5" />,
     title: "Auto-Publishing",
-    description: "Direct integration with WordPress, Shopify, Wix, and more.",
+    description: "Direct integration with WordPress, Shopify, Wix, and more — with GEO markup included.",
   },
   {
     icon: <TrendingUp className="h-5 w-5" />,
-    title: "Performance Analytics",
-    description: "Track your growth across Google Search Console and AI platforms.",
+    title: "GEO Analytics",
+    description: "Track your growth across Google Search Console, AI platform mentions and generative search visibility.",
   },
 ];
 
 const faqs = [
   {
-    question: "How does AI search optimization work?",
+    question: "What is Generative Engine Optimization (GEO)?",
     answer:
-      "We create expert content that AI platforms like ChatGPT, Gemini, and Perplexity use as sources when answering user questions. This gets your brand recommended directly by AI.",
+      "GEO is the practice of optimizing your content and online presence so that generative AI engines like ChatGPT, Gemini, Perplexity and Claude recommend your brand in their answers. It goes beyond traditional SEO to target how AI understands, cites and presents your business.",
+  },
+  {
+    question: "How is GEO different from SEO?",
+    answer:
+      "SEO targets traditional search engine ranking (Google blue links). GEO targets AI-powered answers — the responses ChatGPT, Gemini and Perplexity generate when users ask about products or services in your industry. You need both.",
   },
   {
     question: "Can I really cancel anytime?",
     answer: "Yes, 1-click cancellation. No questions asked, no hidden fees.",
   },
   {
-    question: "Do I need technical skills?",
-    answer: "No, we handle everything. Just enter your website URL and we do the rest.",
+    question: "Do I need technical skills for GEO?",
+    answer: "No, we handle everything. Just enter your website URL and our GEO engine analyzes your brand, competitors and generative search landscape automatically.",
   },
   {
-    question: "Will this work for my industry?",
-    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services.",
+    question: "Will GEO work for my industry?",
+    answer: "Yes, proven in 50+ industries including healthcare, legal, e-commerce, SaaS, and local services. Any business that customers might ask AI about benefits from GEO.",
   },
   {
-    question: "Is the content actually good?",
+    question: "Is the GEO content actually good?",
     answer:
-      "Every article: 1,500+ words, expert-level, with sources and infographics. Google cares about quality, not who wrote it.",
+      "Every piece: 1,500+ words, expert-level, structured for AI citation with sources and entity markup. Generative engines care about authority and clarity — we optimize for both.",
   },
 ];
 
@@ -302,11 +306,11 @@ export default function Index() {
                 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-5 leading-[1.08]"
                 style={{ letterSpacing: "-0.03em" }}
               >
-                One article written.
+                The #1 GEO platform.
                 <br />
-                <span className="text-blue-600">Five channels</span> covered.
+                <span className="text-blue-600">Get cited by AI.</span>
                 <br />
-                Zero manual effort.
+                Win generative search.
               </h1>
 
               <motion.p
@@ -315,9 +319,10 @@ export default function Index() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-lg md:text-xl text-gray-700 max-w-xl mx-auto mb-9 leading-relaxed"
               >
-                One daily piece of content, automatically optimized for{" "}
-                <span className="font-semibold text-gray-700">Google · ChatGPT · Gemini · Perplexity · Shopping</span>.
-                Hundreds of businesses found us the same way you did — through AI. Now AI recommends them too.
+                AutoPilot GEO is the first platform built purely for{" "}
+                <span className="font-semibold text-gray-700">Generative Engine Optimization</span>. We create, optimize and
+                publish content that ChatGPT, Gemini, Perplexity and Google AI Overviews cite —
+                so customers find you when they ask AI.
               </motion.p>
 
 
@@ -334,7 +339,7 @@ export default function Index() {
                   asChild
                 >
                   <Link href="/checkout?plan=pro&cycle=annual">
-                    Start 3-day free trial
+                    Start GEO free trial
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -348,7 +353,7 @@ export default function Index() {
                     el?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
-                  See how it works
+                  See GEO in action
                 </Button>
               </motion.div>
 
@@ -466,13 +471,13 @@ export default function Index() {
           <div className="container px-4 max-w-5xl">
             <div className="text-center mb-10">
               <span className="inline-block text-xs font-semibold uppercase tracking-widest text-indigo-600 mb-3">
-                Product demo
+                GEO Engine demo
               </span>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4" style={{ letterSpacing: "-0.02em" }}>
-                See AutoPilot GEO in action
+                See the GEO Engine in action
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                One platform writes, optimizes and publishes — across Google, ChatGPT, Gemini, Perplexity and Shopping.
+                One platform optimizes your brand for generative AI — across ChatGPT, Gemini, Perplexity, Google AI Overviews and Shopping.
               </p>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-black">
@@ -567,18 +572,18 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                AI search is the new <span className="text-blue-600 font-extrabold">growth channel</span>
+                Generative search is the <span className="text-blue-600 font-extrabold">new growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-xl mx-auto">
-                Businesses that show up in AI answers get more clicks, more trust, more customers.
+                Businesses cited by AI engines get more trust, more clicks, more customers. GEO is how you get there.
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {[
-                { value: "4.5x", label: "More AI visibility" },
-                { value: "9.7x", label: "More brand mentions" },
-                { value: "60%", label: "Traffic increase avg" },
-                { value: "1.5bn", label: "AI searches monthly" },
+                { value: "4.5x", label: "More AI citations" },
+                { value: "9.7x", label: "More AI brand mentions" },
+                { value: "60%", label: "GEO traffic increase avg" },
+                { value: "1.5bn", label: "Generative queries monthly" },
               ].map((stat, i) => (
                 <motion.div
                   key={i}
@@ -609,10 +614,10 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                Understand how AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
+                Understand how generative AI talks about <span className="text-blue-600 font-extrabold">your brand</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Monitor and optimize your brand's presence across every major AI platform.
+                Monitor and optimize your brand's presence across every major generative AI engine.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -656,10 +661,10 @@ export default function Index() {
                 className="text-3xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                Turn AI search into a <span className="text-blue-600 font-extrabold">growth channel</span>
+                Turn generative AI into a <span className="text-blue-600 font-extrabold">growth channel</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Track, optimize, and grow your presence in AI-powered search results.
+                Track, optimize, and grow your citations in AI-powered search results.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
@@ -743,7 +748,7 @@ export default function Index() {
                   Buyers ask AI which brand to choose.
                 </h2>
                 <p className="text-gray-400 text-lg mb-8">
-                  Make sure it's yours. Get discovered in ChatGPT, Gemini, Perplexity and Google today.
+                  Make sure it's yours. Get cited by ChatGPT, Gemini, Perplexity and Google AI Overviews today.
                 </p>
                 <Button
                   size="lg"
@@ -752,7 +757,7 @@ export default function Index() {
                   asChild
                 >
                   <Link href="/checkout?plan=pro&cycle=annual">
-                    Start for free <ArrowRight className="h-4 w-4" />
+                    Start GEO free trial <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -770,8 +775,8 @@ export default function Index() {
                   <div className="flex justify-start">
                     <div className="px-4 py-2.5 rounded-xl bg-white/5 text-gray-300 text-sm max-w-[90%]">
                       Based on recent data, I'd recommend{" "}
-                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in AI-optimized
-                      content and have strong results for small businesses.
+                      <span className="text-white font-semibold">your-brand.com</span> — they specialize in Generative Engine
+                      Optimization and consistently rank in AI search results for small businesses.
                     </div>
                   </div>
                 </div>
@@ -784,10 +789,10 @@ export default function Index() {
         <section className="bg-gray-900 py-14 md:py-20 border-t border-white/5">
           <div className="container px-4 text-center">
             <h2 className="text-2xl md:text-4xl font-bold text-white mb-4" style={{ letterSpacing: "-0.02em" }}>
-              Be visible, today.
+              Own generative search.
             </h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              Start your free trial and get your brand recommended by AI search engines.
+              Start your GEO free trial and get your brand cited by AI search engines.
             </p>
             <Button
               size="lg"
@@ -796,7 +801,7 @@ export default function Index() {
               asChild
             >
               <Link href="/checkout?plan=pro&cycle=annual">
-                Start your 3-day free trial <ArrowRight className="h-4 w-4" />
+                Start your GEO free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
@@ -814,7 +819,7 @@ export default function Index() {
             asChild
           >
             <Link href="/checkout?plan=pro&cycle=annual">
-              Start 3-day free trial <ArrowRight className="h-4 w-4" />
+              Start GEO free trial <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
