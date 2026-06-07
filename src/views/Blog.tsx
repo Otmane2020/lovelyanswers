@@ -204,9 +204,6 @@ export default function Blog() {
                         </CardContent>
                       </Card>
                     </Link>
-                        </CardContent>
-                      </Card>
-                    </Link>
                   ))}
                 </div>
               </>
