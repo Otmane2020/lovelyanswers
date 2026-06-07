@@ -13,6 +13,24 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // SECURITY: require either a valid user JWT (manual trigger from the dashboard)
+    // or the service-role key (scheduled cron). Reject everything else so attackers
+    // cannot drain AI credits by triggering mass generation across all projects.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const isServiceRole = token === serviceRoleKey;
+    if (!isServiceRole) {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+      const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claims?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get projectId from body (manual trigger) or process all projects (cron)
