@@ -176,7 +176,7 @@ export default function Blog() {
                 </div>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {filteredAnswers.map((answer) => (
-                    <Link key={answer.id} href={`/blog/${answer.slug}`}>
+                    <Link key={answer.id} href={`/blog/${answer.slug}`} aria-label={`Read article: ${answer.question}`}>
                       <Card className="h-full hover:shadow-lg transition-shadow group cursor-pointer border-gray-200">
                         <CardHeader>
                           <div className="flex items-start justify-between gap-2">
@@ -198,9 +198,12 @@ export default function Blog() {
                               {format(new Date(answer.published_at), "MMM d, yyyy")}
                             </div>
                             <div className="flex items-center gap-1 text-violet-600 group-hover:translate-x-1 transition-transform">
-                              Read more <ArrowRight className="h-3 w-3" />
+                              <span>Read {truncateText(answer.question, 32)}</span> <ArrowRight className="h-3 w-3" aria-hidden="true" />
                             </div>
                           </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                         </CardContent>
                       </Card>
                     </Link>
