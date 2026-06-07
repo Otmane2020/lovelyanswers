@@ -815,7 +815,7 @@ export default function Index() {
                 Start your GEO free trial <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <p className="text-gray-500 text-sm mt-4">Card required · Cancel anytime</p>
+            <p className="text-gray-300 text-sm mt-4">Card required · Cancel anytime</p>
 
           </div>
         </section>
