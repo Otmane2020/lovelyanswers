@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProject } from "@/hooks/useProjects";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useGeoContents, useDeleteGeoContent, GeoContent } from "@/hooks/useGeoContents";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { cn } from "@/lib/utils";
@@ -386,7 +387,7 @@ export default function AeoGeo() {
             {viewingItem?.html_content || viewingItem?.content ? (
               <article
                 className="editorial-prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: (() => {
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml((() => {
                   let raw = viewingItem.html_content || viewingItem.content || "";
                   // If the content is a JSON string, extract the "content" field
                   const trimmed = raw.trim();
@@ -407,7 +408,7 @@ export default function AeoGeo() {
                     .replace(/```\s*$/gi, "")
                     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
                     .trim();
-                })() }}
+                })()) }}
               />
             ) : (
               <p className="text-muted-foreground text-center py-8">No content available</p>
