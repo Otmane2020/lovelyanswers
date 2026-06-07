@@ -313,7 +313,7 @@ export default function Index() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-9 leading-relaxed"
+                className="text-lg md:text-xl text-gray-700 max-w-xl mx-auto mb-9 leading-relaxed"
               >
                 One daily piece of content, automatically optimized for{" "}
                 <span className="font-semibold text-gray-700">Google · ChatGPT · Gemini · Perplexity · Shopping</span>.
