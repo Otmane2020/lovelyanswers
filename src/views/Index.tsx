@@ -199,16 +199,16 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup />
       <Helmet>
-        <title>GEO – Generative Engine Optimization Platform | AutoPilot GEO</title>
+        <title>GEO Platform for ChatGPT, Gemini & Perplexity | AutoPilot</title>
         <meta
           name="description"
-          content="AutoPilot GEO — the #1 Generative Engine Optimization platform. Get cited by ChatGPT, Gemini, Perplexity, Claude & Google AI Overviews. Automated GEO content, AEO answers & AI SEO. Start free."
+          content="Get cited by ChatGPT, Gemini, Perplexity & Google AI Overviews. Automated GEO content, AEO answers and AI SEO — start free."
         />
         <link rel="canonical" href="https://autopilotgeo.com/" />
-        <meta property="og:title" content="GEO – Generative Engine Optimization Platform | AutoPilot GEO" />
+        <meta property="og:title" content="GEO Platform for ChatGPT, Gemini & Perplexity | AutoPilot" />
         <meta
           property="og:description"
-          content="Generative Engine Optimization (GEO) for ChatGPT, Gemini, Perplexity & Google AI. Automate the content AI search engines cite — not your competitors."
+          content="Get cited by ChatGPT, Gemini, Perplexity & Google AI Overviews. Automated GEO content, AEO answers and AI SEO — start free."
         />
         <meta property="og:url" content="https://autopilotgeo.com/" />
         <meta property="og:type" content="website" />
