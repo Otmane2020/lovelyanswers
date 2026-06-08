@@ -165,10 +165,15 @@ const faqs = [
 ];
 
 export default function Index() {
-  
+
   const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+
+  const demoTracking = useVideoTracking("demo");
+  const ugcDesktopTracking = useVideoTracking("ugc_desktop");
+  const ugcMobileTracking = useVideoTracking("ugc_mobile");
+
 
   useEffect(() => {
     if (!authLoading && user) router.replace("/dashboard");
