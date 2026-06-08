@@ -493,6 +493,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...demoTracking}
               />
             </div>
           </div>
