@@ -17,7 +17,7 @@ import {
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
   Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone,
-  Brain, Key, Target, TrendingUp, Lightbulb, Tag
+  Brain, Key, Target, TrendingUp, Lightbulb, Tag, Play
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
