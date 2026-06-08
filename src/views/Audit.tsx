@@ -311,6 +311,7 @@ export default function Audit() {
       <Helmet>
         <title>Free AEO & SEO Audit | AutoPilot Geo</title>
         <meta name="description" content="Get a free comprehensive SEO and AEO audit for your website. Find out how to rank on ChatGPT, Gemini, and Google." />
+        <link rel="canonical" href="https://autopilotgeo.com/seo-audit" />
       </Helmet>
 
       <div className="min-h-screen bg-white">
