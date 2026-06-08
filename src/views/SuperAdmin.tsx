@@ -30,6 +30,7 @@ import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { AdminEmails } from "@/components/admin/AdminEmails";
+import { VideoAnalytics } from "@/components/admin/VideoAnalytics";
 
 interface SupportTicket {
   id: string;
