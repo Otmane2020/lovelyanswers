@@ -32,6 +32,7 @@ import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 import demoVideo from "@/assets/demo.mp4.asset.json";
 import ugcDesktop from "@/assets/ugc-desktop.mp4.asset.json";
 import ugcMobile from "@/assets/ugc-mobile.mp4.asset.json";
+import { useVideoTracking } from "@/hooks/useVideoTracking";
 
 
 
@@ -164,10 +165,15 @@ const faqs = [
 ];
 
 export default function Index() {
-  
+
   const [aiReferrer, setAiReferrer] = useState<string | null>(null);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+
+  const demoTracking = useVideoTracking("demo");
+  const ugcDesktopTracking = useVideoTracking("ugc_desktop");
+  const ugcMobileTracking = useVideoTracking("ugc_mobile");
+
 
   useEffect(() => {
     if (!authLoading && user) router.replace("/dashboard");
@@ -487,6 +493,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...demoTracking}
               />
             </div>
           </div>
@@ -515,6 +522,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...ugcDesktopTracking}
               />
             </div>
 
@@ -526,6 +534,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...ugcMobileTracking}
               />
             </div>
 

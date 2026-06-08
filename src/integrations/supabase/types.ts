@@ -1396,6 +1396,39 @@ export type Database = {
         }
         Relationships: []
       }
+      homepage_video_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          path: string | null
+          referrer: string | null
+          session_id: string
+          user_agent: string | null
+          video_key: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          path?: string | null
+          referrer?: string | null
+          session_id: string
+          user_agent?: string | null
+          video_key: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          path?: string | null
+          referrer?: string | null
+          session_id?: string
+          user_agent?: string | null
+          video_key?: string
+        }
+        Relationships: []
+      }
       inbox_emails: {
         Row: {
           body_html: string | null

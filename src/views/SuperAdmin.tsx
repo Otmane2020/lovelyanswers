@@ -17,7 +17,7 @@ import {
   MessageCircle, Send, Users, CreditCard, UserX, Shield, 
   LogOut, Clock, CheckCircle, AlertCircle, Mail, BarChart3,
   Plus, Trash2, Globe, Building, Phone, RefreshCw, Rocket, Megaphone,
-  Brain, Key, Target, TrendingUp, Lightbulb, Tag
+  Brain, Key, Target, TrendingUp, Lightbulb, Tag, Play
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { AdminEmails } from "@/components/admin/AdminEmails";
+import { VideoAnalytics } from "@/components/admin/VideoAnalytics";
 
 interface SupportTicket {
   id: string;
@@ -743,6 +744,10 @@ const SuperAdmin = () => {
               <Mail className="h-4 w-4" />
               Emails
             </TabsTrigger>
+            <TabsTrigger value="videos" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Play className="h-4 w-4" />
+              Vidéos accueil
+            </TabsTrigger>
             <Separator className="my-2" />
             <Button
               variant="ghost"
@@ -770,6 +775,10 @@ const SuperAdmin = () => {
 
           <TabsContent value="emails">
             <AdminEmails />
+          </TabsContent>
+
+          <TabsContent value="videos">
+            <VideoAnalytics />
           </TabsContent>
 
 
