@@ -744,6 +744,10 @@ const SuperAdmin = () => {
               <Mail className="h-4 w-4" />
               Emails
             </TabsTrigger>
+            <TabsTrigger value="videos" className="justify-start gap-2 px-3 py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg">
+              <Play className="h-4 w-4" />
+              Vidéos accueil
+            </TabsTrigger>
             <Separator className="my-2" />
             <Button
               variant="ghost"
