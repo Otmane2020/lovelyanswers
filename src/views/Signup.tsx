@@ -158,30 +158,30 @@ export default function Signup() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-400">Or</span></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-600">Or</span></div>
             </div>
 
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-gray-600">Full name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-600" />
                   <Input id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10 h-12 border-gray-200" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-gray-600">
-                  Phone <span className="text-gray-400 font-normal text-xs">(optional — get a welcome AI call)</span>
+                  Phone <span className="text-gray-600 font-normal text-xs">(optional — get a welcome AI call)</span>
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-600" />
                   <Input id="phone" type="tel" placeholder="+1 234 567 8900" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10 h-12 border-gray-200" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-600">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-600" />
                   <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: undefined })); }} className={`pl-10 h-12 border-gray-200 ${errors.email ? "border-red-500" : ""}`} required />
                 </div>
                 {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
@@ -189,9 +189,9 @@ export default function Signup() {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-600">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-600" />
                   <Input id="password" type={showPassword ? "text" : "password"} placeholder="Min. 6 characters" value={password} onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: undefined })); }} className={`pl-10 pr-10 h-12 border-gray-200 ${errors.password ? "border-red-500" : ""}`} required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-600 hover:text-gray-600">
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
@@ -203,7 +203,7 @@ export default function Signup() {
               </Button>
             </form>
 
-            <p className="text-xs text-center text-gray-400">
+            <p className="text-xs text-center text-gray-600">
               By signing up, you agree to our <Link href="/terms" className="underline hover:text-gray-600">Terms</Link> and <Link href="/privacy" className="underline hover:text-gray-600">Privacy Policy</Link>.
             </p>
           </motion.div>
