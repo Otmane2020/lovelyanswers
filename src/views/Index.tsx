@@ -492,6 +492,8 @@ export default function Index() {
                 controls
                 playsInline
                 preload="metadata"
+                width={1920}
+                height={1080}
                 className="w-full h-auto block"
                 {...demoTracking}
               />
@@ -521,6 +523,8 @@ export default function Index() {
                 controls
                 playsInline
                 preload="metadata"
+                width={1920}
+                height={1080}
                 className="w-full h-auto block"
                 {...ugcDesktopTracking}
               />
@@ -533,6 +537,8 @@ export default function Index() {
                 controls
                 playsInline
                 preload="metadata"
+                width={1080}
+                height={1920}
                 className="w-full h-auto block"
                 {...ugcMobileTracking}
               />
