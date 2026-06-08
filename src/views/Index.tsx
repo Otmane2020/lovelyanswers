@@ -32,6 +32,7 @@ import { ExitIntentPopup } from "@/components/nudges/ExitIntentPopup";
 import demoVideo from "@/assets/demo.mp4.asset.json";
 import ugcDesktop from "@/assets/ugc-desktop.mp4.asset.json";
 import ugcMobile from "@/assets/ugc-mobile.mp4.asset.json";
+import { useVideoTracking } from "@/hooks/useVideoTracking";
 
 
 
