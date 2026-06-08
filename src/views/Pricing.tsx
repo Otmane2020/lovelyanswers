@@ -155,12 +155,12 @@ export default function Pricing() {
                     <div className="mt-6">
                       <div className="flex items-baseline gap-1">
                         <span className="text-5xl font-bold text-gray-900">{formatUSD(price.perMonth)}</span>
-                        <span className="text-gray-400 text-sm">/mo</span>
+                        <span className="text-gray-600 text-sm">/mo</span>
                       </div>
                       {cycle === "annual" ? (
-                        <p className="mt-1 text-xs text-gray-400">Billed {formatUSD(price.amount)} /year</p>
+                        <p className="mt-1 text-xs text-gray-600">Billed {formatUSD(price.amount)} /year</p>
                       ) : (
-                        <p className="mt-1 text-xs text-gray-400">Billed monthly · Cancel anytime</p>
+                        <p className="mt-1 text-xs text-gray-600">Billed monthly · Cancel anytime</p>
                       )}
                     </div>
 
