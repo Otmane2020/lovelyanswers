@@ -56,6 +56,22 @@
     <priority>0.4</priority>
   </url>
 
+  <!-- Signup -->
+  <url>
+    <loc>https://autopilotgeo.com/signup</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Onboarding -->
+  <url>
+    <loc>https://autopilotgeo.com/onboarding</loc>
+    <lastmod>2026-06-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
   <url>
     <loc>https://autopilotgeo.com/blog/googles-ai-vs-generative-chatbots-optimization-strategies-by-2026</loc>
     <lastmod>2026-05-25</lastmod>
