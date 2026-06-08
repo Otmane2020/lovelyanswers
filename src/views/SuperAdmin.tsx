@@ -777,6 +777,10 @@ const SuperAdmin = () => {
             <AdminEmails />
           </TabsContent>
 
+          <TabsContent value="videos">
+            <VideoAnalytics />
+          </TabsContent>
+
 
 
 
