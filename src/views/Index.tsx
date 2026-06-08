@@ -522,6 +522,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...ugcDesktopTracking}
               />
             </div>
 
@@ -533,6 +534,7 @@ export default function Index() {
                 playsInline
                 preload="metadata"
                 className="w-full h-auto block"
+                {...ugcMobileTracking}
               />
             </div>
 
