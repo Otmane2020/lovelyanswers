@@ -47,6 +47,7 @@ import GoogleAnalyticsPage from "@/views/GoogleAnalyticsPage";
 import GoogleTagManager from "@/views/GoogleTagManager";
 import AeoPublicAnswer from "@/views/AeoPublicAnswer";
 import LocalAeoArticle from "@/views/LocalAeoArticle";
+import GeoSuccessMetrics from "@/views/GeoSuccessMetrics";
 import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
 import AeoWizard from "@/views/AeoWizard";
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/dashboard" element={gated(<Dashboard />)} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/measuring-geo-success" element={<GeoSuccessMetrics />} />
         <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
         <Route path="/settings" element={gated(<AeoSettings />)} />
         <Route path="/answers" element={gated(<Answers />)} />
