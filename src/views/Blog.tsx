@@ -153,9 +153,9 @@ export default function Blog() {
           </div>
         </section>
 
-        {/* Featured Guide */}
+        {/* Featured Guides */}
         <section className="bg-white pt-12">
-          <div className="container">
+          <div className="container space-y-6">
             <div className="max-w-4xl mx-auto rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <Badge className="mb-3 bg-violet-100 text-violet-700 border-violet-200">Featured Guide</Badge>
@@ -174,6 +174,27 @@ export default function Blog() {
                 aria-label="Read the AEO vs GEO comparison guide"
               >
                 Read the AEO vs GEO guide <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="max-w-4xl mx-auto rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <Badge className="mb-3 bg-emerald-100 text-emerald-700 border-emerald-200">Featured Guide</Badge>
+                <h2 className="text-xl md:text-2xl font-bold text-[hsl(222,47%,11%)] mb-2">
+                  <Link href="/blog/measuring-geo-success" className="hover:text-emerald-700 transition-colors">
+                    How to Measure the Success of Generative Engine Optimization Campaigns
+                  </Link>
+                </h2>
+                <p className="text-gray-700 text-sm max-w-xl">
+                  A complete framework for tracking AI citation share, brand sentiment in LLM responses, and conversion attribution from generative search.
+                </p>
+              </div>
+              <Link
+                href="/blog/measuring-geo-success"
+                className="inline-flex items-center gap-2 text-emerald-700 font-semibold text-sm shrink-0 hover:gap-3 transition-all"
+                aria-label="Read the GEO success metrics guide"
+              >
+                Read the GEO metrics guide <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
