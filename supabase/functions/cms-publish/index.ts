@@ -500,6 +500,7 @@ serve(async (req) => {
         publishedId: publishResult.publishedId,
         message: publishResult.message,
         publishedAt: new Date().toISOString(),
+        duplicate: duplicateResult,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
