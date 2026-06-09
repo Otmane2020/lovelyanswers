@@ -444,6 +444,52 @@ serve(async (req) => {
       }
     }
 
+    // ───────── ranki.ai: duplicate publish in the opposite language ─────────
+    let duplicateResult: { success: boolean; publishedUrl?: string; lang?: string; message?: string } | null = null;
+    if (
+      publishResult.success &&
+      !requestData._duplicateLang &&
+      projectWebsiteUrl &&
+      projectWebsiteUrl.toLowerCase().includes(RANKI_DOMAIN_MATCH)
+    ) {
+      const sourceLang = (projectLanguage || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+      const targetLang: "fr" | "en" = sourceLang === "fr" ? "en" : "fr";
+      console.log(`[cms-publish] ranki.ai detected — duplicating publish ${sourceLang} → ${targetLang}`);
+      try {
+        const translated = await translateContent(content.title, content.body, targetLang);
+        if (translated) {
+          const dupContent: { title: string; body: string; excerpt?: string; slug?: string } = {
+            title: translated.title,
+            body: translated.body,
+            excerpt: content.excerpt,
+            slug: content.slug ? `${content.slug}-${targetLang}` : undefined,
+          };
+          let dupPublish: { success: boolean; publishedUrl?: string; publishedId?: string; message?: string };
+          switch (platform) {
+            case "wordpress": dupPublish = await publishToWordPress(dupContent, config); break;
+            case "webflow":   dupPublish = await publishToWebflow(dupContent, config); break;
+            case "shopify":   dupPublish = await publishToShopify(dupContent, config); break;
+            case "wix":       dupPublish = await publishToWix(dupContent, config); break;
+            case "webhook":
+            case "framer":
+            case "snapps":    dupPublish = await publishToWebhook(dupContent, config); break;
+            case "api":       dupPublish = await publishToCustomApi(dupContent, config); break;
+            case "duda":      dupPublish = await publishToDuda(dupContent, config); break;
+            case "bigcommerce": dupPublish = await publishToBigCommerce(dupContent, config); break;
+            case "lovable":   dupPublish = await publishToLovable(dupContent, config, requestData.content?.sourceId); break;
+            default:          dupPublish = { success: false, message: `Duplicate skipped (unsupported platform ${platform})` };
+          }
+          duplicateResult = { ...dupPublish, lang: targetLang };
+          console.log(`[cms-publish] Duplicate (${targetLang}) result:`, dupPublish);
+        } else {
+          duplicateResult = { success: false, lang: targetLang, message: "Translation failed" };
+        }
+      } catch (dupErr) {
+        console.error("[cms-publish] Duplicate publish error (non-blocking):", dupErr);
+        duplicateResult = { success: false, lang: targetLang, message: dupErr instanceof Error ? dupErr.message : "Unknown error" };
+      }
+    }
+
     console.log(`[cms-publish] Result: ${JSON.stringify(publishResult)}`);
 
     return new Response(
