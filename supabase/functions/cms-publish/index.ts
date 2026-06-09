@@ -298,11 +298,16 @@ serve(async (req) => {
 
       platform = integration.platform;
       config = integration.config as Record<string, string>;
+      const proj = integration.projects as { user_id: string; website_url: string | null; language: string | null };
+      projectWebsiteUrl = proj?.website_url || null;
+      projectLanguage = proj?.language || null;
 
       if (requestData.content) {
         content = {
           title: requestData.content.title,
           body: requestData.content.body,
+          excerpt: requestData.content.excerpt,
+          slug: requestData.content.slug,
         };
       } else {
         throw new Error("Content is required");
