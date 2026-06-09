@@ -22,6 +22,52 @@ interface PublishRequest {
   // Legacy support
   platform?: string;
   credentials?: Record<string, string>;
+  // Internal: marks a recursive duplicate-language publish to prevent loops
+  _duplicateLang?: "fr" | "en";
+}
+
+// ───────── ranki.ai dual-language duplicate publishing ─────────
+// For projects whose website_url contains "ranki.ai", every publish is
+// duplicated in the opposite language (FR ↔ EN) via OpenRouter.
+const RANKI_DOMAIN_MATCH = "ranki.ai";
+
+async function translateContent(
+  title: string,
+  body: string,
+  targetLang: "fr" | "en"
+): Promise<{ title: string; body: string } | null> {
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!apiKey) {
+    console.error("[cms-publish] OPENROUTER_API_KEY missing — cannot translate");
+    return null;
+  }
+  const langName = targetLang === "fr" ? "French" : "English";
+  const sys = `You are a professional SEO translator. Translate the given blog post to natural, fluent ${langName}. PRESERVE all HTML tags exactly. Do NOT add commentary. Return strict JSON: {"title":"...","body":"..."}.`;
+  const user = `Translate to ${langName}.\n\nTITLE:\n${title}\n\nBODY (HTML):\n${body}`;
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.0-flash-exp:free",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+    const json = await res.json();
+    const content = json?.choices?.[0]?.message?.content ?? "";
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in translation response");
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.title || !parsed.body) throw new Error("Incomplete translation payload");
+    return { title: String(parsed.title), body: String(parsed.body) };
+  } catch (e) {
+    console.error("[cms-publish] Translation failed:", e);
+    return null;
+  }
 }
 
 function normalizeEditorialBody(input: string): string {
@@ -216,16 +262,18 @@ serve(async (req) => {
     
     let platform: string;
     let config: Record<string, string>;
-    let content: { title: string; body: string };
+    let content: { title: string; body: string; excerpt?: string; slug?: string };
+    let projectWebsiteUrl: string | null = null;
+    let projectLanguage: string | null = null;
 
     // New flow: use integrationId to get stored config
     if (requestData.integrationId) {
       console.log(`[cms-publish] Using integration ${requestData.integrationId}`);
-      
-      // SECURITY: Fetch integration WITH project user_id for ownership verification
+
+      // SECURITY: Fetch integration WITH project user_id + website_url + language
       const { data: integration, error: intError } = await supabase
         .from("integrations")
-        .select("*, projects!inner(user_id)")
+        .select("*, projects!inner(user_id, website_url, language)")
         .eq("id", requestData.integrationId)
         .single();
 
@@ -250,11 +298,16 @@ serve(async (req) => {
 
       platform = integration.platform;
       config = integration.config as Record<string, string>;
+      const proj = integration.projects as { user_id: string; website_url: string | null; language: string | null };
+      projectWebsiteUrl = proj?.website_url || null;
+      projectLanguage = proj?.language || null;
 
       if (requestData.content) {
         content = {
           title: requestData.content.title,
           body: requestData.content.body,
+          excerpt: requestData.content.excerpt,
+          slug: requestData.content.slug,
         };
       } else {
         throw new Error("Content is required");
@@ -391,6 +444,52 @@ serve(async (req) => {
       }
     }
 
+    // ───────── ranki.ai: duplicate publish in the opposite language ─────────
+    let duplicateResult: { success: boolean; publishedUrl?: string; lang?: string; message?: string } | null = null;
+    if (
+      publishResult.success &&
+      !requestData._duplicateLang &&
+      projectWebsiteUrl &&
+      projectWebsiteUrl.toLowerCase().includes(RANKI_DOMAIN_MATCH)
+    ) {
+      const sourceLang = (projectLanguage || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+      const targetLang: "fr" | "en" = sourceLang === "fr" ? "en" : "fr";
+      console.log(`[cms-publish] ranki.ai detected — duplicating publish ${sourceLang} → ${targetLang}`);
+      try {
+        const translated = await translateContent(content.title, content.body, targetLang);
+        if (translated) {
+          const dupContent: { title: string; body: string; excerpt?: string; slug?: string } = {
+            title: translated.title,
+            body: translated.body,
+            excerpt: content.excerpt,
+            slug: content.slug ? `${content.slug}-${targetLang}` : undefined,
+          };
+          let dupPublish: { success: boolean; publishedUrl?: string; publishedId?: string; message?: string };
+          switch (platform) {
+            case "wordpress": dupPublish = await publishToWordPress(dupContent, config); break;
+            case "webflow":   dupPublish = await publishToWebflow(dupContent, config); break;
+            case "shopify":   dupPublish = await publishToShopify(dupContent, config); break;
+            case "wix":       dupPublish = await publishToWix(dupContent, config); break;
+            case "webhook":
+            case "framer":
+            case "snapps":    dupPublish = await publishToWebhook(dupContent, config); break;
+            case "api":       dupPublish = await publishToCustomApi(dupContent, config); break;
+            case "duda":      dupPublish = await publishToDuda(dupContent, config); break;
+            case "bigcommerce": dupPublish = await publishToBigCommerce(dupContent, config); break;
+            case "lovable":   dupPublish = await publishToLovable(dupContent, config, requestData.content?.sourceId); break;
+            default:          dupPublish = { success: false, message: `Duplicate skipped (unsupported platform ${platform})` };
+          }
+          duplicateResult = { ...dupPublish, lang: targetLang };
+          console.log(`[cms-publish] Duplicate (${targetLang}) result:`, dupPublish);
+        } else {
+          duplicateResult = { success: false, lang: targetLang, message: "Translation failed" };
+        }
+      } catch (dupErr) {
+        console.error("[cms-publish] Duplicate publish error (non-blocking):", dupErr);
+        duplicateResult = { success: false, lang: targetLang, message: dupErr instanceof Error ? dupErr.message : "Unknown error" };
+      }
+    }
+
     console.log(`[cms-publish] Result: ${JSON.stringify(publishResult)}`);
 
     return new Response(
@@ -401,6 +500,7 @@ serve(async (req) => {
         publishedId: publishResult.publishedId,
         message: publishResult.message,
         publishedAt: new Date().toISOString(),
+        duplicate: duplicateResult,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
