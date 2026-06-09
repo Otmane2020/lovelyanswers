@@ -262,16 +262,18 @@ serve(async (req) => {
     
     let platform: string;
     let config: Record<string, string>;
-    let content: { title: string; body: string };
+    let content: { title: string; body: string; excerpt?: string; slug?: string };
+    let projectWebsiteUrl: string | null = null;
+    let projectLanguage: string | null = null;
 
     // New flow: use integrationId to get stored config
     if (requestData.integrationId) {
       console.log(`[cms-publish] Using integration ${requestData.integrationId}`);
-      
-      // SECURITY: Fetch integration WITH project user_id for ownership verification
+
+      // SECURITY: Fetch integration WITH project user_id + website_url + language
       const { data: integration, error: intError } = await supabase
         .from("integrations")
-        .select("*, projects!inner(user_id)")
+        .select("*, projects!inner(user_id, website_url, language)")
         .eq("id", requestData.integrationId)
         .single();
 
