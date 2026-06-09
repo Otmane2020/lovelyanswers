@@ -22,6 +22,52 @@ interface PublishRequest {
   // Legacy support
   platform?: string;
   credentials?: Record<string, string>;
+  // Internal: marks a recursive duplicate-language publish to prevent loops
+  _duplicateLang?: "fr" | "en";
+}
+
+// ───────── ranki.ai dual-language duplicate publishing ─────────
+// For projects whose website_url contains "ranki.ai", every publish is
+// duplicated in the opposite language (FR ↔ EN) via OpenRouter.
+const RANKI_DOMAIN_MATCH = "ranki.ai";
+
+async function translateContent(
+  title: string,
+  body: string,
+  targetLang: "fr" | "en"
+): Promise<{ title: string; body: string } | null> {
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!apiKey) {
+    console.error("[cms-publish] OPENROUTER_API_KEY missing — cannot translate");
+    return null;
+  }
+  const langName = targetLang === "fr" ? "French" : "English";
+  const sys = `You are a professional SEO translator. Translate the given blog post to natural, fluent ${langName}. PRESERVE all HTML tags exactly. Do NOT add commentary. Return strict JSON: {"title":"...","body":"..."}.`;
+  const user = `Translate to ${langName}.\n\nTITLE:\n${title}\n\nBODY (HTML):\n${body}`;
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.0-flash-exp:free",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+    const json = await res.json();
+    const content = json?.choices?.[0]?.message?.content ?? "";
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in translation response");
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.title || !parsed.body) throw new Error("Incomplete translation payload");
+    return { title: String(parsed.title), body: String(parsed.body) };
+  } catch (e) {
+    console.error("[cms-publish] Translation failed:", e);
+    return null;
+  }
 }
 
 function normalizeEditorialBody(input: string): string {
