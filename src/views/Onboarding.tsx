@@ -1309,8 +1309,13 @@ export default function Onboarding() {
                   </>
                 ) : currentStep === 7 ? (
                   <>
+                    <ArrowRight className="w-5 h-5 mr-2" />
+                    See Your First Article
+                  </>
+                ) : currentStep === 8 ? (
+                  <>
                     <Zap className="w-5 h-5 mr-2" />
-                    Start Getting Recommended
+                    Activate My Plan
                   </>
                 ) : (
                   <>
