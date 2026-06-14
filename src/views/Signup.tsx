@@ -39,26 +39,15 @@ export default function Signup() {
 
   useEffect(() => {
     if (!user) return;
-    const checkSubAndRedirect = async () => {
-      // Check active subscription/trial first — if none, force checkout
-      try {
-        const { data: sub } = await supabase.functions.invoke("check-subscription");
-        if (!sub?.subscribed && !sub?.trial) {
-          console.log("[SIGNUP] No active subscription/trial → /checkout");
-          window.location.replace("/checkout?plan=pro&cycle=annual");
-          return;
-        }
-      } catch (e) {
-        console.error("[SIGNUP] check-subscription failed", e);
-        window.location.replace("/checkout?plan=pro&cycle=annual");
-        return;
-      }
+    const routeAfterSignup = async () => {
+      // If user already has a project, they've completed onboarding → dashboard.
+      // Otherwise send them through the audit/preview/checkout funnel.
       const { data } = await supabase.from("projects").select("id").eq("user_id", user.id).limit(1);
-      const target = data && data.length > 0 ? "/dashboard" : "/wizard";
-      console.log("[SIGNUP] Has subscription → redirecting to", target);
+      const target = data && data.length > 0 ? "/dashboard" : "/onboarding";
+      console.log("[SIGNUP] Redirecting to", target);
       window.location.replace(target);
     };
-    checkSubAndRedirect();
+    routeAfterSignup();
   }, [user]);
 
   const validateForm = () => {
@@ -102,7 +91,7 @@ export default function Signup() {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      window.location.replace("/checkout?plan=pro&cycle=annual");
+      window.location.replace("/onboarding");
     }
   };
 
