@@ -1255,11 +1255,12 @@ export default function Onboarding() {
                 currentStep === 1 ? 1 :
                 currentStep === 5 ? 2 :
                 currentStep === 3 ? 3 :
-                currentStep === 7 ? 4 :
+                currentStep === 7 ? 3 :
+                currentStep === 8 ? 4 :
                 currentStep === 6 ? 5 : currentStep
               }
               totalSteps={5}
-              labels={["URL", "Analyse", "Email", "Résultats", "Plan"]}
+              labels={["Site", "Audit", "Insights", "Preview", "Activate"]}
             />
             {currentStep === 6 ? (
               <Button
