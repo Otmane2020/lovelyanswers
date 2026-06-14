@@ -385,8 +385,14 @@ export default function Onboarding() {
       analyzeWebsite(data.websiteUrl);
       
     } else if (currentStep === 5) {
-      // From partial results → email gate
-      setCurrentStep(3);
+      // From partial results → email gate (anonymous) OR skip to pain page (authed).
+      if (data.email && isValidEmail(data.email)) {
+        // Authed flow: email is already known, jump straight to pain page.
+        await trackCompleted();
+        setCurrentStep(7);
+      } else {
+        setCurrentStep(3);
+      }
       
     } else if (currentStep === 3) {
       if (!isValidEmail(data.email)) {
@@ -425,7 +431,11 @@ export default function Onboarding() {
       setCurrentStep(7);
       
     } else if (currentStep === 7) {
-      // From pain page → pricing
+      // From pain page → article preview teaser
+      setCurrentStep(8);
+
+    } else if (currentStep === 8) {
+      // From article preview → pricing/checkout
       setCurrentStep(6);
     }
   };
