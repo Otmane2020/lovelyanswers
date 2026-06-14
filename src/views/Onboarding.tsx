@@ -155,14 +155,21 @@ export default function Onboarding() {
   }, []);
 
   // Check for existing user/project (non-blocking — page shows immediately)
+  // ALSO prefill email when the user is already authenticated (post-signup flow).
   useEffect(() => {
     const checkExistingProject = async () => {
       const urlFromParam = searchParams.get('url');
-      if (urlFromParam) return;
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Prefill email from the authenticated session so the email gate can be skipped.
+        if (user.email) {
+          setData(prev => prev.email ? prev : { ...prev, email: user.email as string });
+        }
+
+        if (urlFromParam) return;
 
         const { data: projects } = await supabase
           .from("projects")
