@@ -26,6 +26,7 @@ import { enUS } from "date-fns/locale";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import { OnboardingTracking } from "@/components/admin/OnboardingTracking";
 import { AdminUsersList } from "@/components/admin/AdminUsersList";
+import { AdminNotificationsManager } from "@/components/admin/AdminNotificationsManager";
 import { ActiveArticleUsers } from "@/components/admin/ActiveArticleUsers";
 import { GoogleAdsManager } from "@/components/admin/GoogleAdsManager";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -785,7 +786,8 @@ const SuperAdmin = () => {
 
 
           {/* Users Tab */}
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-6">
+            <AdminNotificationsManager />
             <AdminUsersList />
           </TabsContent>
 
