@@ -17,6 +17,7 @@ import {
 import chatgptIcon from "@/assets/chatgpt-icon.png";
 import geminiLogo from "@/assets/gemini-logo.png";
 import { PageHeader } from "@/components/PageHeader";
+import { AdminNotificationBanner } from "@/components/AdminNotificationBanner";
 import perplexityLogo from "@/assets/perplexity-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import shopifyLogo from "@/assets/shopify-logo-new.png";
@@ -269,6 +270,9 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Progress bar is now in DashboardLayout - global and persistent */}
+
+        <AdminNotificationBanner />
+
 
         <PageHeader
           icon={Sparkles}
