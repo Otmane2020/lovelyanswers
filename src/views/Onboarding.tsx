@@ -435,8 +435,32 @@ export default function Onboarding() {
       setCurrentStep(8);
 
     } else if (currentStep === 8) {
-      // From article preview → pricing/checkout
-      setCurrentStep(6);
+      // From article preview → /checkout (real pricing page)
+      const onboardingPayload = {
+        websiteUrl: data.websiteUrl,
+        language: data.language,
+        businessDescription: data.businessDescription,
+        email: data.email,
+        keywords: data.keywords,
+        competitors: data.competitors.map(c => c.domain),
+      };
+      localStorage.setItem('onboarding_data', JSON.stringify(onboardingPayload));
+      if (data.email) localStorage.setItem('onboarding_email', data.email);
+      try {
+        await trackCheckoutStarted(data.email);
+        await updateSession({
+          brand_name: data.brandName,
+          business_description: data.businessDescription,
+          cms: data.cms,
+          competitors: data.competitors.map(c => c.domain),
+          keywords: data.keywords,
+          audiences: data.audiences,
+          traffic_potential: data.trafficPotential,
+        });
+      } catch (e) {
+        console.warn('[ONBOARDING] tracking failed', e);
+      }
+      router.push('/checkout?plan=pro&cycle=annual');
     }
   };
 
