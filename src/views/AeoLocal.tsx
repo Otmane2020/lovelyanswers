@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useSearchParams, useRouter } from "next/navigation";
+
 
 export default function AeoLocal() {
   const { business, isLoading, isInitialLoading, selectBusiness, clearBusiness } = useLocalBusiness();
