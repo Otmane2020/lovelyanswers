@@ -23,62 +23,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 export default function AeoLocal() {
   const { business, isLoading, isInitialLoading, selectBusiness, clearBusiness } = useLocalBusiness();
   const { project } = useActiveProject();
-  const { isConnected, connectGMB, disconnectGMB, isLoading: gmbLoading } = useGoogleBusiness();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "/local";
-  const [isExchanging, setIsExchanging] = useState(false);
-
-  // Handle GMB OAuth callback
-  useEffect(() => {
-    const code = searchParams.get("code");
-    const stateParam = searchParams.get("state");
-
-    if (code && stateParam && project?.id && !isExchanging) {
-      handleGmbCallback(code, stateParam);
-    }
-  }, [searchParams, project?.id]);
-
-  const handleGmbCallback = async (code: string, stateParam: string) => {
-    setIsExchanging(true);
-    try {
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(atob(stateParam));
-      } catch {}
-
-      if (parsed.type !== "gmb") {
-        setIsExchanging(false);
-        return;
-      }
-
-      const redirectUri = `${window.location.origin}/local`;
-
-      const { data, error } = await supabase.functions.invoke("gmb-oauth-token", {
-        body: {
-          code,
-          redirectUri,
-          projectId: project?.id || parsed.projectId,
-        },
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to connect");
-
-      toast.success("Google My Business connected!");
-
-      // Clean URL params
-      router.push(pathname);
-      // Reload to reflect connection
-      window.location.reload();
-    } catch (err: any) {
-      console.error("GMB callback error:", err);
-      toast.error(err.message || "Failed to connect Google My Business");
-      router.push(pathname);
-    } finally {
-      setIsExchanging(false);
-    }
-  };
+  const { isConnected, disconnectGMB, isLoading: gmbLoading } = useGoogleBusiness();
 
   const handleConnectGMB = async () => {
     try {
@@ -88,9 +33,12 @@ export default function AeoLocal() {
         return;
       }
 
+      // GMB OAuth is whitelisted on /integrations only — remember to come back here
+      try { sessionStorage.setItem("gmb_return_to", "/local"); } catch {}
+
       const { data, error } = await supabase.functions.invoke("gmb-oauth-url", {
         body: {
-          redirectUri: `${window.location.origin}/local`,
+          redirectUri: `${window.location.origin}/integrations`,
           projectId: project?.id,
         },
       });
@@ -106,19 +54,6 @@ export default function AeoLocal() {
     }
   };
 
-  if (isExchanging) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="font-medium">Connecting Google My Business...</p>
-            <p className="text-sm text-muted-foreground">Please wait while we finalize the connection</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
