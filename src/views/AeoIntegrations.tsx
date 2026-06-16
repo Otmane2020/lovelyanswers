@@ -248,7 +248,14 @@ export default function AeoIntegrations() {
           }
 
           toast.success("Google My Business connecté avec succès!");
-          window.location.reload();
+          let returnTo: string | null = null;
+          try { returnTo = sessionStorage.getItem("gmb_return_to"); sessionStorage.removeItem("gmb_return_to"); } catch {}
+          if (returnTo && returnTo !== "/integrations") {
+            window.location.href = returnTo;
+          } else {
+            window.location.reload();
+          }
+
         } catch (error: any) {
           console.error("GMB OAuth callback error:", error);
           toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
