@@ -155,21 +155,14 @@ export default function Onboarding() {
   }, []);
 
   // Check for existing user/project (non-blocking — page shows immediately)
-  // ALSO prefill email when the user is already authenticated (post-signup flow).
   useEffect(() => {
     const checkExistingProject = async () => {
       const urlFromParam = searchParams.get('url');
+      if (urlFromParam) return;
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        // Prefill email from the authenticated session so the email gate can be skipped.
-        if (user.email) {
-          setData(prev => prev.email ? prev : { ...prev, email: user.email as string });
-        }
-
-        if (urlFromParam) return;
 
         const { data: projects } = await supabase
           .from("projects")
@@ -385,14 +378,8 @@ export default function Onboarding() {
       analyzeWebsite(data.websiteUrl);
       
     } else if (currentStep === 5) {
-      // From partial results → email gate (anonymous) OR skip to pain page (authed).
-      if (data.email && isValidEmail(data.email)) {
-        // Authed flow: email is already known, jump straight to pain page.
-        await trackCompleted();
-        setCurrentStep(7);
-      } else {
-        setCurrentStep(3);
-      }
+      // From partial results → email gate
+      setCurrentStep(3);
       
     } else if (currentStep === 3) {
       if (!isValidEmail(data.email)) {
@@ -431,36 +418,8 @@ export default function Onboarding() {
       setCurrentStep(7);
       
     } else if (currentStep === 7) {
-      // From pain page → article preview teaser
-      setCurrentStep(8);
-
-    } else if (currentStep === 8) {
-      // From article preview → /checkout (real pricing page)
-      const onboardingPayload = {
-        websiteUrl: data.websiteUrl,
-        language: data.language,
-        businessDescription: data.businessDescription,
-        email: data.email,
-        keywords: data.keywords,
-        competitors: data.competitors.map(c => c.domain),
-      };
-      localStorage.setItem('onboarding_data', JSON.stringify(onboardingPayload));
-      if (data.email) localStorage.setItem('onboarding_email', data.email);
-      try {
-        await trackCheckoutStarted(data.email);
-        await updateSession({
-          brand_name: data.brandName,
-          business_description: data.businessDescription,
-          cms: data.cms,
-          competitors: data.competitors.map(c => c.domain),
-          keywords: data.keywords,
-          audiences: data.audiences,
-          traffic_potential: data.trafficPotential,
-        });
-      } catch (e) {
-        console.warn('[ONBOARDING] tracking failed', e);
-      }
-      router.push('/checkout?plan=pro&cycle=annual');
+      // From pain page → pricing
+      setCurrentStep(6);
     }
   };
 
@@ -1167,104 +1126,6 @@ export default function Onboarding() {
                 </div>
               </motion.div>
             )}
-
-            {/* Step 8: Article Preview Teaser — gives a taste before payment */}
-            {currentStep === 8 && (
-              <motion.div
-                key="step8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-5"
-              >
-                <div className="text-center space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-primary">Article preview</span>
-                  </div>
-                  <h1 className="text-2xl font-bold tracking-tight">
-                    Here's what Lovely will publish for you
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    A real article draft based on your top keyword — published 3×/week on autopilot
-                  </p>
-                </div>
-
-                {/* Article card mock */}
-                {(() => {
-                  const topKeyword = data.keywords[0]?.keyword || `${data.brandName} guide`;
-                  const title = `${topKeyword.charAt(0).toUpperCase() + topKeyword.slice(1)}: The Complete 2026 Guide`;
-                  const intro = `Looking for clear, expert answers about ${topKeyword}? ${data.brandName} breaks down everything you need to know — what it is, how it works, and the exact steps to get results fast. This guide is built to be cited by ChatGPT, Gemini and Perplexity, so customers find you the moment they ask.`;
-                  const subheads = [
-                    `What is ${topKeyword}?`,
-                    `Why ${data.brandName} is the smart choice`,
-                    `Step-by-step: how to get started`,
-                    `FAQ — answered for AI search`,
-                  ];
-                  return (
-                    <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-sm">
-                      {/* "Browser bar" */}
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/40">
-                        <div className="flex gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                          <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                        </div>
-                        <div className="flex-1 ml-2 text-xs text-muted-foreground truncate">
-                          {getDomainFromUrl(data.websiteUrl)}/blog/{topKeyword.toLowerCase().replace(/\s+/g, "-").slice(0, 40)}
-                        </div>
-                      </div>
-                      {/* Article body */}
-                      <div className="p-5 space-y-3">
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">AI-optimized</span>
-                          <span>•</span>
-                          <span>5 min read</span>
-                          <span>•</span>
-                          <span>FAQ schema</span>
-                        </div>
-                        <h2 className="text-lg font-bold leading-tight text-foreground">{title}</h2>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{intro}</p>
-                        <div className="space-y-2 pt-2">
-                          {subheads.map((s, i) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold text-foreground">{s}</p>
-                                <div className="mt-1 space-y-1">
-                                  <div className="h-2 w-full bg-muted rounded" />
-                                  <div className="h-2 w-5/6 bg-muted rounded" />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Cadence promise */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 rounded-xl bg-card border border-border text-center">
-                    <p className="text-lg font-bold text-primary">30</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">articles/mo</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-card border border-border text-center">
-                    <p className="text-lg font-bold text-primary">Auto</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">published</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-card border border-border text-center">
-                    <p className="text-lg font-bold text-primary">0 min</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">your time</p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Activate your plan to unlock the full article + 29 more this month.
-                </p>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </div>
@@ -1279,12 +1140,11 @@ export default function Onboarding() {
                 currentStep === 1 ? 1 :
                 currentStep === 5 ? 2 :
                 currentStep === 3 ? 3 :
-                currentStep === 7 ? 3 :
-                currentStep === 8 ? 4 :
+                currentStep === 7 ? 4 :
                 currentStep === 6 ? 5 : currentStep
               }
               totalSteps={5}
-              labels={["Site", "Audit", "Insights", "Preview", "Activate"]}
+              labels={["URL", "Analyse", "Email", "Résultats", "Plan"]}
             />
             {currentStep === 6 ? (
               <Button
@@ -1333,13 +1193,8 @@ export default function Onboarding() {
                   </>
                 ) : currentStep === 7 ? (
                   <>
-                    <ArrowRight className="w-5 h-5 mr-2" />
-                    See Your First Article
-                  </>
-                ) : currentStep === 8 ? (
-                  <>
                     <Zap className="w-5 h-5 mr-2" />
-                    Activate My Plan
+                    Start Getting Recommended
                   </>
                 ) : (
                   <>
