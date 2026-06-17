@@ -71,8 +71,8 @@ serve(async (req) => {
       const errorText = await tokenResponse.text();
       console.error("GMB token exchange error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to exchange code for tokens", details: errorText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Failed to exchange code for tokens", details: errorText }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -178,8 +178,8 @@ serve(async (req) => {
     console.error("Error in gmb-oauth-token:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
