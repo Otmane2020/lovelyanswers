@@ -71,8 +71,8 @@ serve(async (req) => {
       const errorText = await tokenResponse.text();
       console.error("GMB token exchange error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to exchange code for tokens", details: errorText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Failed to exchange code for tokens", details: errorText }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
