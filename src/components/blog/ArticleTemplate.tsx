@@ -94,19 +94,28 @@ function normalizeContent(raw: string): string {
   html = html.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "").trim();
 
   // 2. Auto-close orphan headings: if <hN> appears without a matching </hN>
-  //    before the next block-level tag or markdown heading, close it.
+  //    before the next block-level tag, extract just the heading sentence
+  //    and wrap the rest as a paragraph.
   html = html.replace(
     /<h([1-3])([^>]*)>([\s\S]*?)(?=<h[1-3][\s>]|<\/?(?:p|div|ul|ol|section|article|blockquote)[\s>]|$)/gi,
     (full, lvl, attrs, inner) => {
-      // Already properly closed? leave it.
       const closeRe = new RegExp(`</h${lvl}>`, "i");
       if (closeRe.test(inner)) return full;
-      // Heading text = everything up to first sentence-ending boundary
-      // (double space, line break, or markdown heading marker).
-      const m = inner.match(/^([\s\S]*?)(\s{2,}|\n|##\s|$)/);
-      const head = (m ? m[1] : inner).trim();
-      const rest = inner.slice((m ? m[1].length : inner.length));
-      return `<h${lvl}${attrs}>${head}</h${lvl}>${rest}`;
+      const stripped = inner.replace(/<[^>]*>/g, "").trim();
+      if (!stripped) return full;
+      // Heuristic: first sentence (ends with . ? ! or ?) within 140 chars,
+      // else first 80 chars at a word boundary.
+      let headText = "";
+      const sentenceMatch = stripped.match(/^(.{5,140}?[.?!])(?:\s|$)/);
+      if (sentenceMatch) {
+        headText = sentenceMatch[1].replace(/[.?!]+$/, "").trim();
+      } else {
+        const slice = stripped.slice(0, 80);
+        headText = slice.replace(/\s\S*$/, "").trim() || slice.trim();
+      }
+      const restText = stripped.slice(headText.length).replace(/^[.?!\s]+/, "").trim();
+      const restHtml = restText ? `<p>${restText}</p>` : "";
+      return `<h${lvl}${attrs}>${headText}</h${lvl}>${restHtml}`;
     }
   );
 
