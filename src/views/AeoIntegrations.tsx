@@ -244,7 +244,8 @@ export default function AeoIntegrations() {
 
           if (error) throw error;
           if (!data?.success) {
-            throw new Error(data?.error || "Failed to connect");
+            const msg = [data?.error, data?.details].filter(Boolean).join(" — ");
+            throw new Error(msg || "Failed to connect");
           }
 
           toast.success("Google My Business connecté avec succès!");
