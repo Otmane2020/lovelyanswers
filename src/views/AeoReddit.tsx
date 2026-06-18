@@ -1,4 +1,5 @@
 "use client";
+import { Helmet } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
