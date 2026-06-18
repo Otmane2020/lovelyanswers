@@ -147,11 +147,12 @@ serve(async (req) => {
 
     // Fetch locations from ALL accounts
     const allLocations: any[] = [];
+    const READ_MASK = "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata";
 
     for (const account of accounts) {
       try {
         const locationsResponse = await fetch(
-          `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`,
+          `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=${encodeURIComponent(READ_MASK)}&pageSize=100`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
@@ -160,8 +161,15 @@ serve(async (req) => {
         if (locationsResponse.ok) {
           const locationsData = await locationsResponse.json();
           if (locationsData.locations) {
-            allLocations.push(...locationsData.locations);
+            for (const loc of locationsData.locations) {
+              // Build full resource path required by v4 Posts API
+              loc.__fullName = `${account.name}/${loc.name}`;
+              allLocations.push(loc);
+            }
           }
+        } else {
+          const errTxt = await locationsResponse.text();
+          console.error(`GMB locations error for ${account.name} (${locationsResponse.status}):`, errTxt);
         }
       } catch (err) {
         console.error(`Error fetching locations for ${account.name}:`, err);
@@ -170,21 +178,22 @@ serve(async (req) => {
 
     if (allLocations.length === 0) {
       return new Response(
-        JSON.stringify({ business: null, locations: [], error: "No business location found" }),
+        JSON.stringify({ business: null, locations: [], error: "No business location found. Verify the connected Google account manages a Business Profile and that the GMB API is enabled." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Format ALL locations
+    // Format ALL locations (id = full accounts/.../locations/... path)
     const locations = allLocations.map((location) => ({
-      id: location.name,
+      id: location.__fullName,
       name: location.title || location.locationName,
-      address: formatAddress(location.address),
+      address: formatAddress(location.storefrontAddress || location.address),
       phone: location.phoneNumbers?.primaryPhone || "",
       website: location.websiteUri || "",
       rating: location.metadata?.rating || 0,
       reviewCount: location.metadata?.reviewCount || 0,
     }));
+
 
     // Return first location as "business" for backward compat, plus all locations
     const selectedIds: string[] = integration.config.selected_locations || [];
