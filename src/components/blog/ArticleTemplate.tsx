@@ -75,9 +75,7 @@ function normalizeContent(raw: string): string {
   if (!raw) return "";
   let html = raw.trim();
 
-  // 0. Strip inline `style=""` attributes and keep only editorial classes — generated
-  //    articles may ship with hard-coded max-width/padding/colors that break
-  //    the responsive magazine theme, but the semantic classes drive that theme.
+  // 0. Strip inline `style=""` and most class attributes
   html = html.replace(/\sstyle\s*=\s*"[^"]*"/gi, "");
   html = html.replace(/\sstyle\s*=\s*'[^']*'/gi, "");
   const allowedClasses = new Set(["lead", "key-answer", "key-answer-label", "comparison-table", "checklist", "warning-box", "tip-box", "stats-row", "stat-card", "stat-number", "stat-label", "faq-item", "faq-question", "faq-answer"]);
@@ -86,50 +84,58 @@ function normalizeContent(raw: string): string {
     return kept.length ? ` class=${quote}${kept.join(" ")}${quote}` : "";
   });
 
-  // 0.b Unwrap outer <article> / <section> / fixed-width <div> wrappers
+  // 0.b Unwrap outer wrappers
   html = html.replace(/<\/?article[^>]*>/gi, "");
   html = html.replace(/<\/?section[^>]*>/gi, "");
 
-  // 1. Drop the H1 (title is shown in the hero)
+  // 1. Drop H1 (rendered in the hero)
   html = html.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "").trim();
+  html = html.replace(/<h1[^>]*>/gi, "");
 
-  // 2. Auto-close orphan headings: if <hN> appears without a matching </hN>
-  //    before the next block-level tag, extract just the heading sentence
-  //    and wrap the rest as a paragraph.
+  // 1.b CRITICAL: generated articles often produce one giant unstructured paragraph
+  // mixing raw <h2>/<h3> openings AND inline markdown (##, ### , *   ).
+  // Force these patterns to become block boundaries before further parsing.
+  html = html.replace(/\s*<h([23])([^>]*)>/gi, "\n\n<h$1$2>");
+  html = html.replace(/([^\n])\s{2,}(#{2,3}\s+)/g, "$1\n\n$2");
+  html = html.replace(/([^\n])\s{2,}(\*\s{2,}\*\*)/g, "$1\n\n$2");
+  html = html.replace(/([^\n])\s{2,}(\*\s+(?=\S))/g, "$1\n\n* ");
+
+  // 2. Auto-close orphan headings: extract first sentence as heading text,
+  //    push the remainder into a paragraph.
   html = html.replace(
-    /<h([1-3])([^>]*)>([\s\S]*?)(?=<h[1-3][\s>]|<\/?(?:p|div|ul|ol|section|article|blockquote)[\s>]|$)/gi,
+    /<h([1-6])([^>]*)>([\s\S]*?)(?=<h[1-6][\s>]|<\/?(?:p|div|ul|ol|section|article|blockquote)[\s>]|$)/gi,
     (full, lvl, attrs, inner) => {
       const closeRe = new RegExp(`</h${lvl}>`, "i");
       if (closeRe.test(inner)) return full;
       const stripped = inner.replace(/<[^>]*>/g, "").trim();
-      if (!stripped) return full;
-      // Heuristic: first sentence (ends with . ? ! or ?) within 140 chars,
-      // else first 80 chars at a word boundary.
+      if (!stripped) return `<h${lvl}${attrs}></h${lvl}>`;
       let headText = "";
-      const sentenceMatch = stripped.match(/^(.{5,140}?[.?!])(?:\s|$)/);
+      const sentenceMatch = stripped.match(/^(.{5,140}?[.?!:])(?:\s|$)/);
       if (sentenceMatch) {
-        headText = sentenceMatch[1].replace(/[.?!]+$/, "").trim();
+        headText = sentenceMatch[1].replace(/[.?!:]+$/, "").trim();
       } else {
-        const slice = stripped.slice(0, 80);
+        const slice = stripped.slice(0, 90);
         headText = slice.replace(/\s\S*$/, "").trim() || slice.trim();
       }
-      const restText = stripped.slice(headText.length).replace(/^[.?!\s]+/, "").trim();
-      const restHtml = restText ? `<p>${restText}</p>` : "";
+      const restText = stripped.slice(headText.length).replace(/^[.?!:\s]+/, "").trim();
+      const restHtml = restText ? `\n\n${restText}` : "";
       return `<h${lvl}${attrs}>${headText}</h${lvl}>${restHtml}`;
     }
   );
 
-  // 3. Markdown → HTML (lightweight, only if markdown markers are present).
+  // 2.b Unwrap <p>...</p> that now contain block elements
+  html = html.replace(/<p>([\s\S]*?)<\/p>/gi, (m, inner) => {
+    if (/<(h[1-6]|ul|ol|li|blockquote|table)\b/i.test(inner)) return inner;
+    return m;
+  });
+
+  // 3. Markdown → HTML
   const looksMarkdown = /(^|\n)\s*(#{2,3} |[*\-] |\d+\.\s)/.test(html) || /\*\*[^*]+\*\*/.test(html);
   if (looksMarkdown) {
-    // Headings
     html = html.replace(/^\s*###\s+(.+)$/gm, "<h3>$1</h3>");
     html = html.replace(/^\s*##\s+(.+)$/gm, "<h2>$1</h2>");
-    // Bold / italic
     html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
-    // Links [text](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-    // Lists: group consecutive bullet lines
     html = html.replace(/(?:^|\n)((?:\s*[*\-]\s+.+\n?)+)/g, (_, block) => {
       const items = block
         .trim()
@@ -140,7 +146,6 @@ function normalizeContent(raw: string): string {
         .join("");
       return `\n<ul>${items}</ul>\n`;
     });
-    // Wrap loose text lines in <p> if not already in a block tag
     html = html
       .split(/\n{2,}/)
       .map((chunk) => {
@@ -152,7 +157,7 @@ function normalizeContent(raw: string): string {
       .join("\n");
   }
 
-  // 4. Tidy: collapse <p></p> wrapping a heading (common when AI mixes both)
+  // 4. Tidy
   html = html.replace(/<p>\s*(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)\s*<\/p>/gi, "$1");
   html = html.replace(/<p>\s*<\/p>/gi, "");
 
