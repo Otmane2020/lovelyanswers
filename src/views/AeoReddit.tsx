@@ -185,6 +185,14 @@ export default function AeoReddit() {
 
   return (
     <DashboardLayout>
+      <Helmet>
+        <title>Reddit Engagement — AutoPilot Geo</title>
+        <meta name="description" content="Find high-value Reddit threads and generate human-like replies that drive qualified traffic to your brand." />
+        <meta property="og:title" content="Reddit Engagement — AutoPilot Geo" />
+        <meta property="og:description" content="Find high-value Reddit threads and generate human-like replies that drive qualified traffic to your brand." />
+        <link rel="canonical" href="https://autopilotgeo.com/reddit" />
+        <meta property="og:url" content="https://autopilotgeo.com/reddit" />
+      </Helmet>
       <SubscriptionGate title="Unlock Reddit Engagement" description="Find high-value Reddit threads and generate human-like replies that drive traffic to your brand.">
       <div className="max-w-4xl mx-auto space-y-6">
         <PageHeader
