@@ -107,13 +107,15 @@ serve(async (req) => {
           if (account) {
             accountName = account.accountName || account.name;
             const locationsRes = await fetch(
-              `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations`,
+              `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title&pageSize=10`,
               { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
             );
             if (locationsRes.ok) {
               const locationsData = await locationsRes.json();
-              locationName = locationsData.locations?.[0]?.name || null;
+              const first = locationsData.locations?.[0];
+              locationName = first ? `${account.name}/${first.name}` : null;
             }
+
           }
         }
       } catch (e) {
