@@ -126,6 +126,21 @@ serve(async (req) => {
       },
       { onConflict: "shop" }
     );
+    // Fire-and-forget: import Shopify products + connect the integration
+    try {
+      const importUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/shopify-import-products`;
+      fetch(importUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ shop, userId }),
+      }).catch((e) => console.error("[shopify-oauth-callback] import trigger error:", e));
+    } catch (e) {
+      console.error("[shopify-oauth-callback] import trigger failed:", e);
+    }
+
 
     // Generate a magic link so the merchant lands signed-in on /checkout
     const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({

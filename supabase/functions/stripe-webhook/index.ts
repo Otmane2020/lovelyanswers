@@ -306,6 +306,34 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     } catch (unlockErr) {
       logStep("Error in auto-unlock process", { error: String(unlockErr) });
     }
+
+    // SHOPIFY: if user came via Shopify OAuth, kick off product import + AI generation
+    try {
+      const { data: install } = await supabaseAdmin
+        .from("shopify_installs")
+        .select("shop")
+        .eq("user_id", profile.id)
+        .maybeSingle();
+      if (install?.shop) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const auth = { "Content-Type": "application/json", "Authorization": `Bearer ${serviceRoleKey}` };
+        // 1) Import products (idempotent) + mark integration connected
+        const impRes = await fetch(`${supabaseUrl}/functions/v1/shopify-import-products`, {
+          method: "POST", headers: auth, body: JSON.stringify({ shop: install.shop, userId: profile.id }),
+        });
+        const impJson = await impRes.json().catch(() => ({}));
+        logStep("Shopify import triggered", impJson);
+        // 2) Generate AI for imported products + fill 30-day planning
+        if (impJson?.projectId) {
+          fetch(`${supabaseUrl}/functions/v1/auto-generate-shopping`, {
+            method: "POST", headers: auth, body: JSON.stringify({ projectId: impJson.projectId }),
+          }).catch((e) => logStep("auto-generate-shopping trigger error", { error: String(e) }));
+        }
+      }
+    } catch (shopErr) {
+      logStep("Shopify post-payment automation error", { error: String(shopErr) });
+    }
   }
 }
 
