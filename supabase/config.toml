@@ -233,3 +233,10 @@ verify_jwt = false
 
 [functions.prerender]
 verify_jwt = false
+
+[functions.shopify-oauth-install]
+verify_jwt = false
+
+[functions.shopify-oauth-callback]
+verify_jwt = false
+
