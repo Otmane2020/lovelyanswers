@@ -138,18 +138,22 @@ serve(async (req) => {
       inserted = rows.length;
     }
 
-    // Upsert shopping_feeds row
-    await supabase.from("shopping_feeds").upsert(
-      {
-        project_id: projectId,
-        feed_url: `https://${shop}`,
-        feed_type: "shopify",
-        last_synced_at: new Date().toISOString(),
-        product_count: allProducts.length,
-        status: "active",
-      },
-      { onConflict: "project_id" }
-    ).select();
+    // Upsert shopping_feeds row (no unique constraint → manual check)
+    const { data: existingFeed } = await supabase
+      .from("shopping_feeds").select("id").eq("project_id", projectId).eq("feed_type", "shopify").maybeSingle();
+    const feedPayload = {
+      project_id: projectId,
+      feed_url: `https://${shop}`,
+      feed_type: "shopify",
+      last_synced_at: new Date().toISOString(),
+      product_count: allProducts.length,
+      status: "active",
+    };
+    if (existingFeed?.id) {
+      await supabase.from("shopping_feeds").update(feedPayload).eq("id", existingFeed.id);
+    } else {
+      await supabase.from("shopping_feeds").insert(feedPayload);
+    }
 
     // Mark shopify integration as connected
     const { data: intg } = await supabase
