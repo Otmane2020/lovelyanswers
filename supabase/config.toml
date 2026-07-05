@@ -240,3 +240,6 @@ verify_jwt = false
 [functions.shopify-oauth-callback]
 verify_jwt = false
 
+[functions.shopify-import-products]
+verify_jwt = false
+
