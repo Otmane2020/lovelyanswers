@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadShopifyContext, shopifyContextPrompt } from "../_shared/shopifyContext.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,7 +57,10 @@ serve(async (req) => {
       .eq("id", projectId)
       .single();
 
-    const lang = language || project?.language || "fr";
+    // Load Shopify context (language + shop info + product URLs) if this project came from Shopify
+    const shopifyCtx = await loadShopifyContext(supabaseUrl, serviceRoleKey, projectId);
+    const lang = language || shopifyCtx.language || project?.language || "fr";
+    const shopifyBlock = shopifyContextPrompt(shopifyCtx, 25);
     const currentYear = new Date().getFullYear();
 
     // Get products to process
@@ -88,10 +92,12 @@ CRITICAL RULES:
 - The ai_description must contain ONE strong positioning sentence with specific use case and dimensions/context
 - Sound like a trusted product expert giving buying advice, not a salesperson
 
-Brand context: ${project?.brand_name || "Unknown"} - ${project?.business_description || "E-commerce store"}
+Brand context: ${project?.brand_name || shopifyCtx.shop?.name || "Unknown"} - ${project?.business_description || "E-commerce store"}
 Website: ${project?.website_url || ""}
 Industry: ${project?.business_type || "E-commerce"}
 Target Audience: ${project?.audience || "Online shoppers"}
+
+${shopifyBlock}
 
 Strategy: Strong signal > long content. 3 ultra-targeted Q&A = better AI citation than 7 diluted Q&A.
 
@@ -160,6 +166,8 @@ Image: ${product.image_url || "N/A"}`;
               },
             }],
             tool_choice: { type: "function", function: { name: "optimize_product" } },
+            max_tokens: 8192,
+            temperature: 0.7,
           }),
         });
 
@@ -178,7 +186,29 @@ Image: ${product.image_url || "N/A"}`;
           continue;
         }
 
-        const optimized = JSON.parse(toolCall.function.arguments);
+        // Robust JSON parse: strip markdown, fix trailing commas, remove control chars
+        const rawArgs: string = toolCall.function.arguments || "";
+        let optimized: any = null;
+        const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+        optimized = tryParse(rawArgs);
+        if (!optimized) {
+          let cleaned = rawArgs
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .replace(/,\s*([}\]])/g, "$1")
+            // strip low control chars except \n \t
+            .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+          // try to slice from first { to last }
+          const first = cleaned.indexOf("{");
+          const last = cleaned.lastIndexOf("}");
+          if (first !== -1 && last > first) cleaned = cleaned.slice(first, last + 1);
+          optimized = tryParse(cleaned);
+        }
+        if (!optimized) {
+          console.error("Failed to parse AI output for product " + product.id, rawArgs.slice(0, 300));
+          results.push({ id: product.id, status: "error", error: "JSON parse failed" });
+          continue;
+        }
 
         // Update product in DB
         await supabase

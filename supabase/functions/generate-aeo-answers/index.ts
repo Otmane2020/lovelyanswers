@@ -303,11 +303,13 @@ interface BusinessContext {
   businessType: string;
   competitors: string[];
   tone: string;
+  shopifyBlock?: string;
 }
 
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
 function getAEOStrictSystemPrompt(language: string, context: BusinessContext, intent: string): string {
-  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
+  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone, shopifyBlock } = context;
+
   
   const intentTemplates: Record<string, { fr: string; en: string }> = {
     price: {
@@ -448,8 +450,11 @@ INTENT: ${intent}
 "A design sofa is a piece of furniture characterized by its distinctive aesthetics."
 
 ✅ DO THIS (rich and citable):
-"A quality design sofa is recognized by three measurable criteria: foam density ≥ 35 kg/m³ for long-term comfort, solid wood or steel frame (not particleboard), and seat width between 55–65 cm per person. In 2026, the most sought-after models combine lightweight structure and certified lumbar ergonomics. Unlike cheap decorative sofas, durable models retain their shape after 5 years of intensive use. Avoid non-removable covers: they complicate maintenance and reduce lifespan. More guidance at ${brandName} (${websiteUrl})."`;
+"A quality design sofa is recognized by three measurable criteria: foam density ≥ 35 kg/m³ for long-term comfort, solid wood or steel frame (not particleboard), and seat width between 55–65 cm per person. In 2026, the most sought-after models combine lightweight structure and certified lumbar ergonomics. Unlike cheap decorative sofas, durable models retain their shape after 5 years of intensive use. Avoid non-removable covers: they complicate maintenance and reduce lifespan. More guidance at ${brandName} (${websiteUrl})."
+
+${shopifyBlock ? `\n${shopifyBlock}\nWhenever a product from the store list is relevant to the answer or an FAQ item, insert a natural HTML link <a href="URL">product name</a> using its exact URL.\n` : ""}`;
 }
+
 
 // Generate AI answer using OpenRouter AI with AEO Safe Mode
 async function generateAIAnswer(
@@ -645,7 +650,14 @@ serve(async (req) => {
       .eq("project_id", projectId)
       .maybeSingle();
 
-    // Build complete business context
+    // Build complete business context (+ Shopify block if applicable)
+    const { loadShopifyContext, shopifyContextPrompt } = await import("../_shared/shopifyContext.ts");
+    const shopifyCtx = await loadShopifyContext(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      projectId,
+    );
+
     const businessContext: BusinessContext = {
       brandName: project.brand_name || project.name,
       websiteUrl: project.website_url || "",
@@ -653,7 +665,8 @@ serve(async (req) => {
       audience: (genSettings?.target_audiences?.join(", ") || project.audience || ""),
       businessType: project.business_type || "",
       competitors: genSettings?.competitors || project.competitors || [],
-      tone: genSettings?.tone || ""
+      tone: genSettings?.tone || "",
+      shopifyBlock: shopifyContextPrompt(shopifyCtx, 20) || undefined,
     };
 
     console.log(`[generate-aeo-answers] Business context loaded:`, {

@@ -163,14 +163,22 @@ export default function ThankYou() {
                 onClick={async () => {
                   // Final refresh right before navigation to ensure no stale lock state
                   try { await checkSubscription(); } catch {}
-                  // Check if user already has a project; if not, send to the wizard
                   const { data: { user } } = await supabase.auth.getUser();
                   if (user) {
-                    const { data: projects } = await supabase
+                    // Shopify OAuth users → onboarding wizard (with prefill from shop)
+                    const { data: shopProj } = await supabase
                       .from("projects")
-                      .select("id")
+                      .select("id, needs_onboarding, source")
                       .eq("user_id", user.id)
-                      .limit(1);
+                      .eq("needs_onboarding", true)
+                      .maybeSingle();
+                    if (shopProj?.needs_onboarding) {
+                      router.push(shopProj.source === "shopify_oauth" ? "/wizard?source=shopify" : "/wizard");
+                      return;
+                    }
+                    // Users without any project → wizard
+                    const { data: projects } = await supabase
+                      .from("projects").select("id").eq("user_id", user.id).limit(1);
                     if (!projects || projects.length === 0) {
                       router.push("/wizard");
                       return;

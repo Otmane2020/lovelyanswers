@@ -243,3 +243,12 @@ verify_jwt = false
 [functions.shopify-import-products]
 verify_jwt = false
 
+
+[functions.shopify-fetch-context]
+verify_jwt = false
+
+[functions.shopify-publish-article]
+verify_jwt = false
+
+[functions.debug-shopping-status]
+verify_jwt = false
