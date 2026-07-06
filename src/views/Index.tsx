@@ -22,6 +22,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { ShoppingVisibilitySection } from "@/components/landing/ShoppingVisibilitySection";
+import { ShopifyIntegrationSection } from "@/components/landing/ShopifyIntegrationSection";
 import { TrafficGrowthSection } from "@/components/landing/TrafficGrowthSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -269,13 +270,16 @@ export default function Index() {
               <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
                 <Link href="/auth">Log in</Link>
               </Button>
+              <Button variant="outline" className="ml-1 rounded-xl" asChild>
+                <Link href="/dashboard">Open App</Link>
+              </Button>
               <Button className="ml-2 bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-5" asChild>
                 <Link href="/checkout?plan=pro&cycle=annual">Start free trial →</Link>
               </Button>
             </div>
             <div className="flex md:hidden items-center gap-2">
               <Button variant="ghost" size="sm" className="text-gray-600" asChild>
-                <Link href="/auth">Log in</Link>
+                <Link href="/dashboard">App</Link>
               </Button>
               <Button size="sm" className="bg-gray-900 text-white hover:bg-gray-800 rounded-lg" asChild>
                 <Link href="/checkout?plan=pro&cycle=annual">Start Free</Link>
@@ -555,6 +559,7 @@ export default function Index() {
         </section>
 
         <ShoppingVisibilitySection />
+        <ShopifyIntegrationSection />
         <TrafficGrowthSection />
 
 

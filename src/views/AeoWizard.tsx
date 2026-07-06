@@ -22,9 +22,10 @@ export default function AeoWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const addSiteMode = searchParams.get("addSite") === "1";
+  const shopifySource = searchParams.get("source") === "shopify";
   const { user } = useAuth();
   const createProject = useCreateProject();
-  
+
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -45,26 +46,46 @@ export default function AeoWizard() {
     }
   }, [searchParams, data.websiteUrl]);
 
+  // Prefill from Shopify shop info when coming from shopify_oauth flow
+  useEffect(() => {
+    if (!shopifySource || !user) return;
+    (async () => {
+      const { data: proj } = await supabase
+        .from("projects")
+        .select("id, website_url, language, brand_name, business_description")
+        .eq("user_id", user.id)
+        .eq("source", "shopify_oauth")
+        .maybeSingle();
+      if (proj) {
+        setData({
+          websiteUrl: proj.website_url || "",
+          language: proj.language || "en",
+          businessDescription: proj.business_description || "",
+        });
+      }
+    })();
+  }, [shopifySource, user]);
+
   // Force light theme
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
 
-  // Check if user already has a project - redirect to dashboard
+  // Check if user already has a project - redirect to dashboard (unless they still need onboarding)
   useEffect(() => {
     const checkExistingProject = async () => {
-      if (!user || addSiteMode) return;
+      if (!user || addSiteMode || shopifySource) return;
       const { data: projects } = await supabase
         .from("projects")
-        .select("id")
+        .select("id, needs_onboarding")
         .eq("user_id", user.id)
         .limit(1);
-      if (projects && projects.length > 0) {
+      if (projects && projects.length > 0 && !projects[0].needs_onboarding) {
         router.replace("/dashboard");
       }
     };
     checkExistingProject();
-  }, [user, router, addSiteMode]);
+  }, [user, router, addSiteMode, shopifySource]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -141,26 +162,57 @@ export default function AeoWizard() {
     try {
       const urlToSave = data.websiteUrl.startsWith("http") ? data.websiteUrl : `https://${data.websiteUrl}`;
       const domain = new URL(urlToSave).hostname.replace("www.", "");
-      const project = await createProject.mutateAsync({
-        name: domain,
-        website_url: urlToSave,
-        language: data.language,
-        business_description: data.businessDescription,
-        competitors: analyzedCompetitors.length > 0 ? analyzedCompetitors : undefined,
-        audience: analyzedAudiences.length > 0 ? analyzedAudiences.join(", ") : undefined,
-      });
-      if (analyzedKeywords.length > 0 && project?.id) {
+      let projectId: string | undefined;
+
+      if (shopifySource) {
+        // Shopify onboarding: update the existing shopify_oauth project instead of creating a new one
+        const { data: existing } = await supabase
+          .from("projects")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("source", "shopify_oauth")
+          .maybeSingle();
+        if (existing?.id) {
+          await supabase.from("projects").update({
+            website_url: urlToSave,
+            language: data.language,
+            business_description: data.businessDescription,
+            audience: analyzedAudiences.length > 0 ? analyzedAudiences.join(", ") : null,
+            competitors: analyzedCompetitors.length > 0 ? analyzedCompetitors : null,
+            needs_onboarding: false,
+          }).eq("id", existing.id);
+          await supabase.from("generation_settings").update({
+            language: data.language,
+            onboarding_completed: true,
+          }).eq("project_id", existing.id);
+          projectId = existing.id;
+        }
+      }
+
+      if (!projectId) {
+        const project = await createProject.mutateAsync({
+          name: domain,
+          website_url: urlToSave,
+          language: data.language,
+          business_description: data.businessDescription,
+          competitors: analyzedCompetitors.length > 0 ? analyzedCompetitors : undefined,
+          audience: analyzedAudiences.length > 0 ? analyzedAudiences.join(", ") : undefined,
+        });
+        projectId = project?.id;
+      }
+
+      if (analyzedKeywords.length > 0 && projectId) {
         const keywordRows = analyzedKeywords.map((k) => ({
-          project_id: project.id,
+          project_id: projectId!,
           keyword: k.keyword,
           intent: k.intent || "informational",
           is_used: false,
         }));
         await supabase.from("keywords").insert(keywordRows);
       }
-      if (project?.id) {
+      if (projectId) {
         supabase.functions.invoke('generate-30-days-content', {
-          body: { projectId: project.id, language: data.language, days: 30, questionsPerDay: 1, titlesOnly: true }
+          body: { projectId, language: data.language, days: 30, questionsPerDay: 1, titlesOnly: true }
         }).catch(err => console.error('[WIZARD] Title generation error:', err));
       }
       trackOnboardingComplete(data.websiteUrl);

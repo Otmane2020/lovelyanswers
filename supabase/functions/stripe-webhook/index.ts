@@ -324,10 +324,19 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
         });
         const impJson = await impRes.json().catch(() => ({}));
         logStep("Shopify import triggered", impJson);
-        // 2) Generate AI for imported products + fill 30-day planning
-        if (impJson?.projectId) {
+        const pid = impJson?.projectId;
+        // 2) Fetch shop context (language, address, pages, product URLs)
+        if (pid) {
+          fetch(`${supabaseUrl}/functions/v1/shopify-fetch-context`, {
+            method: "POST", headers: auth, body: JSON.stringify({ shop: install.shop, userId: profile.id, projectId: pid }),
+          }).catch((e) => logStep("shopify-fetch-context trigger error", { error: String(e) }));
+          // 3) Flag onboarding as needed so ThankYou can redirect merchant to /wizard
+          await supabaseAdmin.from("projects").update({
+            needs_onboarding: true, source: "shopify_oauth",
+          }).eq("id", pid);
+          // 4) Generate AI for imported products + fill 30-day planning
           fetch(`${supabaseUrl}/functions/v1/auto-generate-shopping`, {
-            method: "POST", headers: auth, body: JSON.stringify({ projectId: impJson.projectId }),
+            method: "POST", headers: auth, body: JSON.stringify({ projectId: pid }),
           }).catch((e) => logStep("auto-generate-shopping trigger error", { error: String(e) }));
         }
       }

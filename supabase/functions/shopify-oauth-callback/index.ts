@@ -126,19 +126,27 @@ serve(async (req) => {
       },
       { onConflict: "shop" }
     );
-    // Fire-and-forget: import Shopify products + connect the integration
+    // Fire-and-forget: import Shopify products + fetch shop context (language, pages, product URLs)
     try {
-      const importUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/shopify-import-products`;
-      fetch(importUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({ shop, userId }),
-      }).catch((e) => console.error("[shopify-oauth-callback] import trigger error:", e));
+      const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
+      const auth = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      };
+      const payload = JSON.stringify({ shop, userId });
+      fetch(`${base}/shopify-import-products`, { method: "POST", headers: auth, body: payload })
+        .catch((e) => console.error("[shopify-oauth-callback] import trigger error:", e));
+      // fetch shop context in parallel (populates generation_settings.shopify_shop_info etc.)
+      fetch(`${base}/shopify-fetch-context`, { method: "POST", headers: auth, body: payload })
+        .catch((e) => console.error("[shopify-oauth-callback] context trigger error:", e));
+      // mark the user's project(s) as needing onboarding after payment
+      if (userId) {
+        await supabase.from("projects")
+          .update({ needs_onboarding: true, source: "shopify_oauth" })
+          .eq("user_id", userId);
+      }
     } catch (e) {
-      console.error("[shopify-oauth-callback] import trigger failed:", e);
+      console.error("[shopify-oauth-callback] post-install trigger failed:", e);
     }
 
 

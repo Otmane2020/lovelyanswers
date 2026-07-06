@@ -907,8 +907,12 @@ export type Database = {
           id: string
           include_citations: boolean | null
           language: string
+          onboarding_completed: boolean
           project_id: string
           referral_source: string | null
+          shopify_pages: Json | null
+          shopify_products_index: Json | null
+          shopify_shop_info: Json | null
           target_audiences: string[] | null
           target_platforms: string[] | null
           tone: string | null
@@ -926,8 +930,12 @@ export type Database = {
           id?: string
           include_citations?: boolean | null
           language?: string
+          onboarding_completed?: boolean
           project_id: string
           referral_source?: string | null
+          shopify_pages?: Json | null
+          shopify_products_index?: Json | null
+          shopify_shop_info?: Json | null
           target_audiences?: string[] | null
           target_platforms?: string[] | null
           tone?: string | null
@@ -945,8 +953,12 @@ export type Database = {
           id?: string
           include_citations?: boolean | null
           language?: string
+          onboarding_completed?: boolean
           project_id?: string
           referral_source?: string | null
+          shopify_pages?: Json | null
+          shopify_products_index?: Json | null
+          shopify_shop_info?: Json | null
           target_audiences?: string[] | null
           target_platforms?: string[] | null
           tone?: string | null
@@ -3150,7 +3162,9 @@ export type Database = {
           is_active: boolean | null
           language: string
           name: string
+          needs_onboarding: boolean
           sitemap_url: string | null
+          source: string | null
           updated_at: string | null
           user_id: string
           website_url: string
@@ -3171,7 +3185,9 @@ export type Database = {
           is_active?: boolean | null
           language?: string
           name: string
+          needs_onboarding?: boolean
           sitemap_url?: string | null
+          source?: string | null
           updated_at?: string | null
           user_id: string
           website_url: string
@@ -3192,7 +3208,9 @@ export type Database = {
           is_active?: boolean | null
           language?: string
           name?: string
+          needs_onboarding?: boolean
           sitemap_url?: string | null
+          source?: string | null
           updated_at?: string | null
           user_id?: string
           website_url?: string
