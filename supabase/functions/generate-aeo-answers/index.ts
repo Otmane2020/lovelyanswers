@@ -303,11 +303,13 @@ interface BusinessContext {
   businessType: string;
   competitors: string[];
   tone: string;
+  shopifyBlock?: string;
 }
 
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
 function getAEOStrictSystemPrompt(language: string, context: BusinessContext, intent: string): string {
-  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
+  const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone, shopifyBlock } = context;
+
   
   const intentTemplates: Record<string, { fr: string; en: string }> = {
     price: {
