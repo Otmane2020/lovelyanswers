@@ -650,7 +650,14 @@ serve(async (req) => {
       .eq("project_id", projectId)
       .maybeSingle();
 
-    // Build complete business context
+    // Build complete business context (+ Shopify block if applicable)
+    const { loadShopifyContext, shopifyContextPrompt } = await import("../_shared/shopifyContext.ts");
+    const shopifyCtx = await loadShopifyContext(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      projectId,
+    );
+
     const businessContext: BusinessContext = {
       brandName: project.brand_name || project.name,
       websiteUrl: project.website_url || "",
@@ -658,7 +665,8 @@ serve(async (req) => {
       audience: (genSettings?.target_audiences?.join(", ") || project.audience || ""),
       businessType: project.business_type || "",
       competitors: genSettings?.competitors || project.competitors || [],
-      tone: genSettings?.tone || ""
+      tone: genSettings?.tone || "",
+      shopifyBlock: shopifyContextPrompt(shopifyCtx, 20) || undefined,
     };
 
     console.log(`[generate-aeo-answers] Business context loaded:`, {
