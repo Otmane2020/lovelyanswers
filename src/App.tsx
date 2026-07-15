@@ -52,6 +52,7 @@ import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
 import AeoWizard from "@/views/AeoWizard";
 import OAuthConsent from "@/views/OAuthConsent";
+import Connect from "@/views/Connect";
 import { SubscriptionGate } from "@/components/auth/SubscriptionGate";
 
 const gated = (el: React.ReactNode) => <SubscriptionGate>{el}</SubscriptionGate>;
@@ -110,6 +111,7 @@ export default function App() {
         <Route path="/account" element={<AeoAccount />} />
         <Route path="/tools/ai-visibility-checker" element={<AiVisibilityChecker />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+        <Route path="/connect" element={<Connect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
