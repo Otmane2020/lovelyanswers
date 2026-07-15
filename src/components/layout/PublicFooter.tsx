@@ -26,6 +26,7 @@ export function PublicFooter() {
               <li><Link href="/pricing" className="text-white/75 hover:text-white transition-colors">Pricing</Link></li>
               <li><Link href="/auth" className="text-white/75 hover:text-white transition-colors">Login</Link></li>
               <li><Link href="/checkout?plan=pro&cycle=annual" className="text-white/75 hover:text-white transition-colors">Start Free Trial</Link></li>
+              <li><Link href="/connect" className="text-white/75 hover:text-white transition-colors">Connect to ChatGPT / Claude</Link></li>
             </ul>
           </div>
           <div>
