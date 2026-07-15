@@ -52,6 +52,7 @@ import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
 import AeoWizard from "@/views/AeoWizard";
 import OAuthConsent from "@/views/OAuthConsent";
+import Connect from "@/views/Connect";
 import { SubscriptionGate } from "@/components/auth/SubscriptionGate";
 
 const gated = (el: React.ReactNode) => <SubscriptionGate>{el}</SubscriptionGate>;
