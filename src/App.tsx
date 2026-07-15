@@ -111,6 +111,7 @@ export default function App() {
         <Route path="/account" element={<AeoAccount />} />
         <Route path="/tools/ai-visibility-checker" element={<AiVisibilityChecker />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+        <Route path="/connect" element={<Connect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
