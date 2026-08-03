@@ -197,6 +197,27 @@ export default function Blog() {
                 Read the GEO metrics guide <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
+
+            <div className="max-w-4xl mx-auto mt-6 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <Badge className="mb-3 bg-violet-100 text-violet-700 border-violet-200">Featured Guide</Badge>
+                <h2 className="text-xl md:text-2xl font-bold text-[hsl(222,47%,11%)] mb-2">
+                  <Link href="/blog/chatgpt-vs-gemini-vs-perplexity-geo-comparison" className="hover:text-violet-700 transition-colors">
+                    ChatGPT vs Gemini vs Perplexity: How Each AI Engine Cites Brands
+                  </Link>
+                </h2>
+                <p className="text-gray-700 text-sm max-w-xl">
+                  A side-by-side comparison of citation styles, ranking dependencies, and the fastest way to get cited on each engine.
+                </p>
+              </div>
+              <Link
+                href="/blog/chatgpt-vs-gemini-vs-perplexity-geo-comparison"
+                className="inline-flex items-center gap-2 text-violet-700 font-semibold text-sm shrink-0 hover:gap-3 transition-all"
+                aria-label="Read the ChatGPT vs Gemini vs Perplexity comparison"
+              >
+                Read the comparison <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </section>
 

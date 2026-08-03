@@ -24,6 +24,14 @@
     <priority>0.85</priority>
   </url>
 
+  <!-- ChatGPT vs Gemini vs Perplexity Comparison -->
+  <url>
+    <loc>https://autopilotgeo.com/blog/chatgpt-vs-gemini-vs-perplexity-geo-comparison</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
   
   <!-- Pricing -->
   <url>
