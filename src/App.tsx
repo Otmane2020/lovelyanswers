@@ -72,6 +72,7 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/measuring-geo-success" element={<GeoSuccessMetrics />} />
+        <Route path="/blog/chatgpt-vs-gemini-vs-perplexity-geo-comparison" element={<AiEngineComparison />} />
         <Route path="/blog/:slug" element={<AeoPublicAnswer />} />
         <Route path="/settings" element={gated(<AeoSettings />)} />
         <Route path="/answers" element={gated(<Answers />)} />
