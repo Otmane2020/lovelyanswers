@@ -4,9 +4,9 @@ import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AutoPilot Geo — AI Visibility Platform | Rank in ChatGPT & AI Search",
+  title: "GEO Platform: Get Cited by ChatGPT & Perplexity",
   description:
-    "Track how your brand ranks in ChatGPT, Perplexity & AI search engines. Get cited by AI with AEO, GEO & auto-published SEO content.",
+    "See how AI assistants rank your brand, then auto-publish GEO content that gets you cited. Free AI visibility audit — from $29/mo.",
   keywords:
     "AEO, Answer Engine Optimization, AI SEO, ChatGPT ranking, how to appear in ChatGPT answers, AI visibility platform, generative engine optimization, GEO",
   authors: [{ name: "AutoPilot Geo" }],
