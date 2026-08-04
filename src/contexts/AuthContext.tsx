@@ -83,11 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Phone saved via user_metadata during signup
 
-    // Trigger AI welcome call + WhatsApp (fire & forget)
+    // Trigger AI welcome call + WhatsApp + notification email (fire & forget)
     if (!error && data.user) {
       const country = await fetch("https://ipapi.co/country/")
         .then(r => r.text())
         .catch(() => "");
+
+      // Trigger welcome automation
       fetch("https://apg-welcome-automation.oben-rockman.workers.dev", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,6 +98,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           phone: phone || "",
           country,
+        }),
+      }).catch(() => {});
+
+      // Send notification email to admin
+      fetch("https://ywrpxptnmdmjljvbkwyt.supabase.co/functions/v1/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ""}`,
+        },
+        body: JSON.stringify({
+          type: "custom",
+          to: "oben.rockman@gmail.com",
+          subject: `New signup: ${fullName || email}`,
+          html: `
+            <p><strong>New user registration on AutoPilot Geo</strong></p>
+            <p><strong>Name:</strong> ${fullName || "Not provided"}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+            <p><strong>Country:</strong> ${country || "Not detected"}</p>
+            <p><strong>Signup time:</strong> ${new Date().toISOString()}</p>
+          `,
         }),
       }).catch(() => {});
     }

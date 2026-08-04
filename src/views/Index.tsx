@@ -218,7 +218,7 @@ export default function Index() {
   return (
     <>
       <SocialProofToast />
-      <ExitIntentPopup />
+      <ExitIntentPopup headline="Start your AEO journey today" description="Join 500+ businesses getting cited by ChatGPT, Gemini, and Google. Begin your free audit in 30 seconds." ctaLabel="Get started" />
       <Helmet>
         <title>AutoPilot Geo – Get Your Business Recommended by ChatGPT & Google</title>
         <meta
