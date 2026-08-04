@@ -13,12 +13,12 @@ export const PRODUCTS = {
     ],
     prices: {
       monthly: {
-        id: "price_1SsmqiEfti9t9nN9eDpXOiMg",
+        id: "price_1U0oF8Efti9t9nN9N26qmmZS",
         amount: 999,
         display: "$9.99",
       },
       annual: {
-        id: "price_1SsmqmEfti9t9nN9z10qG5m3",
+        id: "price_1U0oFBEfti9t9nN9nFStWMTc",
         amount: 9588,
         display: "$7.99",
         savings: "20%",
@@ -38,12 +38,12 @@ export const PRODUCTS = {
     ],
     prices: {
       monthly: {
-        id: "price_1SsmqjEfti9t9nN9XMZbyaO1",
+        id: "price_1U0oFHEfti9t9nN9naKsKjjG",
         amount: 999,
         display: "$9.99",
       },
       annual: {
-        id: "price_1SsmqoEfti9t9nN9HMPK2MFG",
+        id: "price_1U0oFOEfti9t9nN9VIVYDQkP",
         amount: 9588,
         display: "$7.99",
         savings: "20%",
