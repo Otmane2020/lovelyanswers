@@ -19,8 +19,8 @@ import { useSubscriptionContext } from "@/contexts/SubscriptionContext";
 import { cn } from "@/lib/utils";
 
 // Stripe price IDs
-const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20"; // $29/month
-const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI"; // $279/year
+const PRICE_MONTHLY = "price_1U0oF8Efti9t9nN9N26qmmZS"; // $9.99/month
+const PRICE_ANNUAL = "price_1U0oFBEfti9t9nN9nFStWMTc"; // $95.88/year ($7.99/mo, -20%)
 
 const features = [
   "AEO Answers: Rank #1 on ChatGPT, Gemini and Perplexity",
@@ -60,7 +60,7 @@ export default function Checkout() {
 
   const handleCheckout = async () => {
     setIsLoading(true);
-    const checkoutValue = billingCycle === "annual" ? 279 : 29;
+    const checkoutValue = billingCycle === "annual" ? 95.88 : 9.99;
     trackCheckoutStart(billingCycle, checkoutValue);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -102,10 +102,9 @@ export default function Checkout() {
   }
 
   // Pricing
-  const monthlyPrice = 29;
-  const originalMonthlyPrice = 58;
-  const annualPrice = 279;
-  const annualMonthlyEquiv = Math.round(annualPrice / 12); // ~$23/month
+  const monthlyPrice = 9.99;
+  const annualPrice = 95.88;
+  const annualMonthlyEquiv = 7.99;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
