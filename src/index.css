@@ -84,6 +84,10 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+
+  #lovable-badge {
+    display: none !important;
+  }
 }
 
 @layer utilities {

@@ -53,9 +53,13 @@ export default function Pricing() {
       <SocialProofToast />
       <ExitIntentPopup ctaUrl="/onboarding" headline="Start your AEO journey today" description="Join 500+ businesses getting cited by ChatGPT, Gemini, and Google. Begin your free audit in 30 seconds." ctaLabel="Get started" />
       <Helmet>
-        <title>Pricing - AutoPilot Geo AEO Platform | $9.99/month AI SEO</title>
-        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $9.99/month. Save 20% billed yearly. Cancel anytime." />
+        <title>AI SEO Pricing - $9.99/month | AutoPilot Geo AEO Platform</title>
+        <meta name="description" content="Affordable AI SEO pricing: $9.99/month or $95.88/year. Get 30 AI articles/month, automatic backlinks, keyword research, AEO optimization for ChatGPT & Google. No trial needed." />
+        <meta name="keywords" content="AI SEO pricing, AEO platform, ChatGPT optimization, automatic content, keyword research" />
         <link rel="canonical" href="https://autopilotgeo.com/pricing" />
+        <meta property="og:title" content="Affordable AI SEO Pricing - $9.99/month" />
+        <meta property="og:description" content="Get everything you need for AI search optimization starting at just $9.99/month. 30 articles, backlinks, keyword research, and ChatGPT optimization." />
+        <meta property="og:url" content="https://autopilotgeo.com/pricing" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
       </Helmet>
 

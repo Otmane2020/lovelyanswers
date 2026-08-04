@@ -220,16 +220,17 @@ export default function Index() {
       <SocialProofToast />
       <ExitIntentPopup headline="Start your AEO journey today" description="Join 500+ businesses getting cited by ChatGPT, Gemini, and Google. Begin your free audit in 30 seconds." ctaLabel="Get started" />
       <Helmet>
-        <title>AutoPilot Geo – Get Your Business Recommended by ChatGPT & Google</title>
+        <title>AI SEO & AEO Platform | Get Cited by ChatGPT, Google & Gemini | AutoPilot Geo</title>
         <meta
           name="description"
-          content="Get your business recommended by ChatGPT, Gemini, Perplexity & Google. AI-powered AEO, GEO & SEO automation. Start free. Works for any industry."
+          content="Automate your AI search optimization. Get recommended by ChatGPT, Gemini, Perplexity & Google. AI-generated content, automatic backlinks, keyword research. $9.99/month. Free audit."
         />
+        <meta name="keywords" content="AI SEO, AEO, ChatGPT optimization, AI content generation, automatic backlinks, keyword research, local AEO" />
         <link rel="canonical" href="https://autopilotgeo.com/" />
-        <meta property="og:title" content="AutoPilot Geo – Get Recommended by ChatGPT & Google" />
+        <meta property="og:title" content="Get Your Business Recommended by ChatGPT & Google | AutoPilot Geo" />
         <meta
           property="og:description"
-          content="Automatically publish expert content that makes AI search engines recommend you — not your competitors. Works for any industry."
+          content="AI-powered platform to dominate ChatGPT, Gemini, and Google results. 30 articles/month, automatic backlinks, SEO audit. Start free."
         />
         <meta property="og:url" content="https://autopilotgeo.com/" />
         <meta property="og:type" content="website" />
