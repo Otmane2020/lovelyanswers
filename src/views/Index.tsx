@@ -66,7 +66,7 @@ const heroStats = [
   { value: "4.5", suffix: "x", label: "More AI visibility" },
   { value: "9.7", suffix: "x", label: "More brand mentions" },
   { value: "60", suffix: "%", label: "Traffic increase avg" },
-  { value: "$29", suffix: "/mo", label: "All-in pricing" },
+  { value: "$9.99", suffix: "/mo", label: "All-in pricing" },
 ];
 
 const featureCards = [
@@ -124,7 +124,7 @@ const testimonials = [
       {
         name: "Ryan G.",
         role: "Agency Owner",
-        text: "Canceled $1,200/mo in tools. Now paying $29/month and getting better rankings.",
+        text: "Canceled $1,200/mo in tools. Now paying $9.99/month and getting better rankings.",
         rating: 5,
       },
     ],
@@ -147,7 +147,7 @@ const testimonials = [
       {
         name: "Tom L.",
         role: "Local Business Owner",
-        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $29/mo.",
+        text: "Set it up once with the WordPress plugin, articles appear every day. Like a content team for $9.99/mo.",
         rating: 5,
       },
     ],
@@ -243,7 +243,7 @@ export default function Index() {
             name: "AutoPilot Geo",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "29", priceCurrency: "USD" },
+            offers: { "@type": "Offer", price: "9.99", priceCurrency: "USD" },
             aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "527", bestRating: "5" },
           })}
         />
@@ -789,7 +789,7 @@ export default function Index() {
               Be visible, today.
             </h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              Start your free trial and get your brand recommended by AI search engines.
+              Get started today and get your brand recommended by AI search engines.
             </p>
             <Button
               size="lg"

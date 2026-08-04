@@ -12,16 +12,16 @@ export const PRODUCTS = {
       "Export et publication directe",
     ],
     prices: {
-      monthly: { 
-        id: "price_1SsmqiEfti9t9nN9eDpXOiMg", 
-        amount: 2900,
-        display: "29€",
+      monthly: {
+        id: "price_1SsmqiEfti9t9nN9eDpXOiMg",
+        amount: 999,
+        display: "$9.99",
       },
-      annual: { 
-        id: "price_1SsmqmEfti9t9nN9z10qG5m3", 
-        amount: 27900,
-        display: "279€",
-        savings: "69€",
+      annual: {
+        id: "price_1SsmqmEfti9t9nN9z10qG5m3",
+        amount: 9588,
+        display: "$7.99",
+        savings: "20%",
       },
     }
   },
@@ -37,16 +37,16 @@ export const PRODUCTS = {
       "Audit SEO technique",
     ],
     prices: {
-      monthly: { 
-        id: "price_1SsmqjEfti9t9nN9XMZbyaO1", 
-        amount: 2900,
-        display: "29€",
+      monthly: {
+        id: "price_1SsmqjEfti9t9nN9XMZbyaO1",
+        amount: 999,
+        display: "$9.99",
       },
-      annual: { 
-        id: "price_1SsmqoEfti9t9nN9HMPK2MFG", 
-        amount: 27900,
-        display: "279€",
-        savings: "69€",
+      annual: {
+        id: "price_1SsmqoEfti9t9nN9HMPK2MFG",
+        amount: 9588,
+        display: "$7.99",
+        savings: "20%",
       },
     }
   }
@@ -66,8 +66,8 @@ export function getProductPrice(productId: ProductId, cycle: BillingCycle) {
   return PRODUCTS[productId].prices[cycle];
 }
 
-export function formatPrice(amountInCents: number, currency = "EUR"): string {
-  return new Intl.NumberFormat("fr-FR", {
+export function formatPrice(amountInCents: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
   }).format(amountInCents / 100);
