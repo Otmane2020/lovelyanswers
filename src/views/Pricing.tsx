@@ -51,7 +51,7 @@ export default function Pricing() {
   return (
     <>
       <SocialProofToast />
-      <ExitIntentPopup ctaUrl="/onboarding" headline="🎁 Special offer: 2 months free!" description="Join the 500+ sites boosting their AI visibility with AutoPilot Geo. Get 2 months free now." ctaLabel="Start for free" />
+      <ExitIntentPopup ctaUrl="/onboarding" headline="Start your AEO journey today" description="Join 500+ businesses getting cited by ChatGPT, Gemini, and Google. Begin your free audit in 30 seconds." ctaLabel="Get started" />
       <Helmet>
         <title>Pricing - AutoPilot Geo AEO Platform | $9.99/month AI SEO</title>
         <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $9.99/month. Save 20% billed yearly. Cancel anytime." />
@@ -98,7 +98,8 @@ export default function Pricing() {
                     <span className="text-6xl font-bold text-white">$9.99</span>
                     <span className="text-white/40">/month</span>
                   </div>
-                  <p className="text-sm text-white/50 font-medium mt-2">Or $7.99/month billed annually — save 20%</p>
+                  <p className="text-sm text-white/50 font-medium mt-2">Billed monthly. Cancel anytime.</p>
+                  <p className="text-sm text-emerald-400 font-medium mt-3">Save 20% with annual billing: $95.88/year</p>
                 </div>
                 <Button className="w-full gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 mb-8" size="lg" asChild>
                   <Link href="/signup">Start Ranking in ChatGPT <ArrowRight className="h-5 w-5" /></Link>
