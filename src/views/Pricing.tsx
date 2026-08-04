@@ -17,7 +17,7 @@ const pricingStructuredData = {
   "@context": "https://schema.org", "@type": "Product", "name": "AutoPilot Geo AEO Platform",
   "description": "All-in-one AI SEO solution with 30 articles/month, automatic backlinks, keyword research, and AI Answer Engine Optimization for ChatGPT, Gemini, and Google.",
   "brand": { "@type": "Brand", "name": "AutoPilot Geo" },
-  "offers": { "@type": "Offer", "price": "29", "priceCurrency": "USD", "priceValidUntil": "2027-12-31", "availability": "https://schema.org/InStock", "url": "https://autopilotgeo.com/pricing" },
+  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "priceValidUntil": "2027-12-31", "availability": "https://schema.org/InStock", "url": "https://autopilotgeo.com/pricing" },
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "527", "bestRating": "5" }
 };
 
@@ -42,7 +42,7 @@ const faqs = [
   { question: "Which languages are supported?", answer: "We support content generation in all major languages including English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, and many others." },
   { question: "How long does it typically take to see results?", answer: "While SEO is a long-term strategy, most clients begin seeing measurable improvements in their search rankings within 3-6 months." },
   { question: "Can I cancel my subscription?", answer: "Yes, you can cancel your subscription at any time. Content stays yours and you can continue to use it as you see fit." },
-  { question: "What is your refund policy?", answer: "We offer a 3-day free trial period to ensure our service meets your needs. Due to the costs associated with external APIs and AI services, we cannot offer refunds after the trial period ends." },
+  { question: "What is your refund policy?", answer: "Due to the costs associated with external APIs and AI services, we are unable to offer refunds once a subscription has started." },
 ];
 
 export default function Pricing() {
@@ -53,8 +53,8 @@ export default function Pricing() {
       <SocialProofToast />
       <ExitIntentPopup ctaUrl="/onboarding" headline="🎁 Special offer: 2 months free!" description="Join the 500+ sites boosting their AI visibility with AutoPilot Geo. Get 2 months free now." ctaLabel="Start for free" />
       <Helmet>
-        <title>Pricing - AutoPilot Geo AEO Platform | $29/month AI SEO</title>
-        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $29/month. 3-day free trial. Cancel anytime." />
+        <title>Pricing - AutoPilot Geo AEO Platform | $9.99/month AI SEO</title>
+        <meta name="description" content="Get 30 AI-optimized articles, backlinks, keyword research & WordPress auto-publishing for $9.99/month. Save 20% billed yearly. Cancel anytime." />
         <link rel="canonical" href="https://autopilotgeo.com/pricing" />
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
       </Helmet>
@@ -95,11 +95,10 @@ export default function Pricing() {
                   <h2 className="text-2xl font-bold mb-2 text-white">AI Visibility Engine</h2>
                   <p className="text-sm text-white/40 mb-4">Everything you need to get cited by AI search engines — on autopilot.</p>
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-2xl text-white/30 line-through">$58</span>
-                    <span className="text-6xl font-bold text-white">$29</span>
+                    <span className="text-6xl font-bold text-white">$9.99</span>
                     <span className="text-white/40">/month</span>
                   </div>
-                  <p className="text-sm text-white/50 font-medium mt-2">Or $23/month billed annually</p>
+                  <p className="text-sm text-white/50 font-medium mt-2">Or $7.99/month billed annually — save 20%</p>
                 </div>
                 <Button className="w-full gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 mb-8" size="lg" asChild>
                   <Link href="/signup">Start Ranking in ChatGPT <ArrowRight className="h-5 w-5" /></Link>

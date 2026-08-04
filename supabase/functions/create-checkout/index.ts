@@ -83,7 +83,7 @@ serve(async (req) => {
       ? `${origin}/auth?mode=signup&checkout=success`
       : `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
 
-    // Create checkout session with 3-day trial and promo codes enabled
+    // Create checkout session with promo codes enabled (no trial period)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,

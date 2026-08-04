@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = "AutoPilot Geo <support@autopilotgeo.com>";
 const ADMIN_EMAIL = "support@autopilotgeo.com";
+const SIGNUP_NOTIFICATION_EMAIL = "oben.rockman@gmail.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +42,13 @@ serve(async (req: Request): Promise<Response> => {
           subject: "Bienvenue sur AutoPilot Geo! 🎉",
           html: generateWelcomeEmail(profile.full_name || profile.email.split("@")[0]),
         });
+
+        // Notify admin of the new registration
+        await sendEmail({
+          to: SIGNUP_NOTIFICATION_EMAIL,
+          subject: `🆕 Nouvel utilisateur inscrit: ${profile.email}`,
+          html: generateNewUserNotification(profile),
+        }).catch((err) => console.error("[db-email-trigger] signup notification error:", err));
 
         // Trigger AI welcome call + WhatsApp (fire & forget)
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -181,6 +189,24 @@ function generateWelcomeEmail(name: string): string {
         AutoPilot Geo - Optimisez votre contenu pour l'ère de l'IA<br>
         <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
       </p>
+    </body>
+    </html>
+  `;
+}
+
+function generateNewUserNotification(profile: Record<string, any>): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #7c3aed;">🆕 Nouvel utilisateur inscrit</h2>
+
+      <div style="background: #f4f4f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Nom:</strong> ${profile.full_name || "N/A"}</p>
+        <p style="margin: 10px 0 0;"><strong>Email:</strong> ${profile.email}</p>
+        <p style="margin: 10px 0 0;"><strong>ID:</strong> ${profile.id}</p>
+      </div>
     </body>
     </html>
   `;
