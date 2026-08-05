@@ -87,13 +87,13 @@ function CardForm({ onDone, onError }: { onDone: () => void; onError: (m: string
   const submit = async () => {
     if (!stripe || !elements) return
     setSubmitting(true)
-    // Saves the card against the trialing subscription. Nothing is charged now.
-    const { error } = await stripe.confirmSetup({
+    // No trial: this actually charges the card.
+    const { error } = await stripe.confirmPayment({
       elements,
       redirect: 'if_required',
     })
     setSubmitting(false)
-    if (error) onError(error.message || 'Could not save your card')
+    if (error) onError(error.message || 'Could not charge your card')
     else onDone()
   }
 
@@ -109,9 +109,9 @@ function CardForm({ onDone, onError }: { onDone: () => void; onError: (m: string
         onClick={submit}
       >
         <IcLock />
-        {submitting ? 'Starting your trial…' : 'Start free trial'}
+        {submitting ? 'Processing…' : 'Subscribe now'}
       </button>
-      <p className="fine">3-day free trial · Cancel anytime · No charge until day 4</p>
+      <p className="fine">Cancel anytime</p>
       <div className="secure"><IcLock /> Card handled by Stripe — never touches our servers</div>
     </>
   )
@@ -136,6 +136,11 @@ export default function Onboarding() {
   const [phase, setPhase] = useState('')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
+  // Quick unauthenticated scrape fired right after step 1, so step 2 opens
+  // with a category already guessed and a properly-formatted brand name —
+  // instead of "sweet-deco" (raw domain slug) until the full AI pass runs.
+  const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string } | null>(null)
+  const [dfsKeywords, setDfsKeywords] = useState<string[]>([])
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -164,6 +169,37 @@ export default function Onboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, subLoading, subscribed, trial, navigate, resumedBilling])
 
+  /** Cheap keyword heuristic against the scraped description/domain — a
+   * pre-filled guess the user can still override, not a forced choice. */
+  const guessCategory = (text: string): string => {
+    const t = text.toLowerCase()
+    if (/restaurant|café|resto|food|cuisine|menu|traiteur/.test(t)) return 'Restaurant'
+    if (/saas|software|logiciel|platform|plateforme|application saas|api\b/.test(t)) return 'SaaS'
+    if (/shop|store|boutique|magasin|e-?commerce|panier|cart|livraison.*commande/.test(t)) return 'E-commerce'
+    if (/service|consult|agence|agency|artisan|plombier|électricien|coiffeur|réparation/.test(t)) return 'Local service'
+    if (/retail|vente au détail|showroom/.test(t)) return 'Retail store'
+    return ''
+  }
+
+  /* --- right after step 1: no-auth scrape so step 2 isn't a blank guess --- */
+  const preScrapeSite = useCallback(async () => {
+    const url = normalizeUrl(bizSite)
+    if (!url) return
+    try {
+      const { data } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
+      if (data?.success && data.data) {
+        const { brandName, description, language } = data.data
+        setPreScraped({ brandName, description: description || '', language: language || 'en' })
+        if (!category) {
+          const guessed = guessCategory(`${description || ''} ${url}`)
+          if (guessed) setCategory(guessed)
+        }
+      }
+    } catch (e) {
+      console.error('[ONBOARDING] pre-scrape failed', e)
+    }
+  }, [bizSite, category])
+
   /* --- step 3: analyse the site and create the project --- */
   const runAnalysis = useCallback(async () => {
     setError('')
@@ -180,17 +216,25 @@ export default function Onboarding() {
       const userId = sess.session?.user.id
       if (!userId) throw new Error('Session expired — please sign in again')
 
+      // analyze-website's AI pass never returns a brandName field at all — only
+      // its own naive regex fallback does, and that's the raw domain slug
+      // ("sweet-deco") whenever the page's <title> can't be parsed from a
+      // plain fetch (any JS-rendered site). Never trust that fallback: prefer
+      // what the user actually typed, then the properly-cased name firecrawl
+      // already found ("Sweet Déco").
+      const goodBrandName = bizName || preScraped?.brandName || data.brandName || data.domain
+
       const { data: project, error: projError } = await supabase
         .from('projects')
         .insert({
           user_id: userId,
-          name: bizName || data.brandName || data.domain,
+          name: goodBrandName,
           website_url: normalizeUrl(bizSite || `https://${data.domain}`),
           domain: data.domain,
-          language: data.language || 'en',
-          business_description: data.description || null,
+          language: data.language || preScraped?.language || 'en',
+          business_description: data.description || preScraped?.description || null,
           business_type: category || null,
-          brand_name: data.brandName || bizName || null,
+          brand_name: goodBrandName,
           competitors: Array.isArray(data.competitors) ? data.competitors : null,
           is_active: true,
         })
@@ -201,29 +245,30 @@ export default function Onboarding() {
       setProjectId(project.id)
 
       // Keywords the competitors already rank for — this is what the daily
-      // generator will aim at. Non-blocking: a DataForSEO outage must not
-      // strand someone mid-signup.
+      // generator will aim at, and what step 4 shows alongside the AI-guessed
+      // ones. Non-blocking: a DataForSEO outage must not strand someone mid-signup.
       setPhase('Studying your competitors…')
       try {
-        await supabase.functions.invoke('analyze-competitors', {
+        const { data: dfs } = await supabase.functions.invoke('analyze-competitors', {
           body: {
             projectId: project.id,
             competitors: data.competitors ?? [],
             language: data.language || 'en',
           },
         })
+        if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
       } catch (e) {
         console.error('[ONBOARDING] competitor analysis failed', e)
       }
 
-      setAnalysis(data as Analysis)
+      setAnalysis({ ...data, brandName: goodBrandName } as Analysis)
       setStep(4)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStep(3)
       setPhase('')
     }
-  }, [bizSite, bizName, category])
+  }, [bizSite, bizName, category, preScraped])
 
   // Signed in and sitting on step 3 → start analysing.
   useEffect(() => {
@@ -265,7 +310,7 @@ export default function Onboarding() {
     if (e) setError(e.message)
   }
 
-  /* --- step 5: ask Stripe for a setup intent --- */
+  /* --- step 5: ask Stripe for a payment intent --- */
   const openPaywall = async () => {
     setBusy(true); setError('')
     try {
@@ -282,27 +327,34 @@ export default function Onboarding() {
       setClientSecret(data.clientSecret)
       setStep(5)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start the trial')
+      setError(err instanceof Error ? err.message : 'Could not start checkout')
     } finally {
       setBusy(false)
     }
   }
 
-  /* --- step 6: don't wait for tomorrow's cron for the first piece --- */
+  /* --- step 6: seed the 30-day plan now, same call AeoWizard already uses —
+     daily-planning-fill's cron then fleshes out each day's full content. --- */
   const finish = async () => {
     setStep(6)
     if (!projectId) return
     try {
-      await supabase.functions.invoke('daily-content-rotation', { body: { projectId } })
+      await supabase.functions.invoke('generate-30-days-content', {
+        body: { projectId, language: analysis?.language || 'en', days: 30, questionsPerDay: 1, titlesOnly: true },
+      })
     } catch (e) {
       console.error('[ONBOARDING] first generation failed', e)
     }
   }
 
-  const brand = analysis?.brandName || bizName || 'your business'
-  const keywordList = (analysis?.keywords ?? []).map((k) =>
+  const brand = analysis?.brandName || preScraped?.brandName || bizName || 'your business'
+  const aiKeywords = (analysis?.keywords ?? []).map((k) =>
     typeof k === 'string' ? k : k.keyword
   ).filter(Boolean)
+  // AI-guessed keywords first, then whatever competitors already rank for
+  // that the AI pass didn't already surface — deduped, case-insensitive.
+  const seen = new Set(aiKeywords.map((k) => k.toLowerCase()))
+  const keywordList = [...aiKeywords, ...dfsKeywords.filter((k) => !seen.has(k.toLowerCase()))]
 
   return (
     <div className="apg-wizard-page">
@@ -337,13 +389,13 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && bizName.trim() && isValidUrl(bizSite) && setStep(2)} />
+                onKeyDown={(e) => e.key === 'Enter' && bizName.trim() && isValidUrl(bizSite) && (setError(''), setStep(2), preScrapeSite())} />
               <div className="foot-nav">
                 <span />
                 <button
                   className="btn btn-primary"
                   disabled={!bizName.trim() || !isValidUrl(bizSite)}
-                  onClick={() => { setError(''); setStep(2) }}
+                  onClick={() => { setError(''); setStep(2); preScrapeSite() }}
                 >
                   Continue <IcArrow />
                 </button>
@@ -439,13 +491,39 @@ export default function Onboarding() {
                   </div>
                 </div>
               </div>
+              {analysis.description && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
+                    What we understood about {brand}
+                  </div>
+                  <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 14 }}>
+                    {analysis.description}
+                  </p>
+                </>
+              )}
+              {category && (
+                <div className="found-chips" style={{ marginBottom: 14 }}>
+                  <span className="found-chip">{category}</span>
+                  {analysis.language && <span className="found-chip">{analysis.language.toUpperCase()}</span>}
+                </div>
+              )}
+              {analysis.competitors && analysis.competitors.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
+                    {analysis.competitors.length} competitor{analysis.competitors.length > 1 ? 's' : ''} already winning this
+                  </div>
+                  <div className="found-chips" style={{ marginBottom: 14 }}>
+                    {analysis.competitors.map((c) => <span className="found-chip" key={c}>{c}</span>)}
+                  </div>
+                </>
+              )}
               {keywordList.length > 0 && (
                 <>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
                     {keywordList.length} keywords we'll target
                   </div>
                   <div className="found-chips">
-                    {keywordList.slice(0, 6).map((k) => <span className="found-chip" key={k}>{k}</span>)}
+                    {keywordList.slice(0, 10).map((k) => <span className="found-chip" key={k}>{k}</span>)}
                   </div>
                 </>
               )}
@@ -461,11 +539,8 @@ export default function Onboarding() {
           {/* STEP 5 — paywall with Stripe Elements */}
           {step === 5 && (
             <>
-              <h1>Start your free trial</h1>
-              <p className="sub">
-                Card required to prevent abuse — you won't be charged until day 4, and you can cancel
-                anytime before that.
-              </p>
+              <h1>Choose your plan</h1>
+              <p className="sub">Pick monthly or annual — you're billed today, and can cancel anytime.</p>
 
               <div className="plan-toggle">
                 <button className={plan === 'monthly' ? 'on' : ''} onClick={() => setPlan('monthly')}>Monthly</button>
@@ -517,7 +592,7 @@ export default function Onboarding() {
               </div>
               <h1 style={{ textAlign: 'center' }}>You're all set</h1>
               <p className="sub" style={{ textAlign: 'center' }}>
-                Your trial has started and your first piece is already being written.
+                You're subscribed and your first piece is already being written.
               </p>
               <button className="btn btn-primary" onClick={() => navigate('/geo')}>
                 Go to my dashboard <IcArrow />
@@ -528,11 +603,11 @@ export default function Onboarding() {
               <div className="timeline">
                 <div className="tl-row">
                   <span className="tl-dot" />
-                  <div className="tl-text"><b>Now</b><span>Trial started, first draft is being written</span></div>
+                  <div className="tl-text"><b>Now</b><span>Subscription active, your 30-day content plan is being built</span></div>
                 </div>
                 <div className="tl-row">
                   <span className="tl-dot" />
-                  <div className="tl-text"><b>Tomorrow, 5am UTC</b><span>Content goes out automatically, cycling GEO → SEO → AEO → Local AEO</span></div>
+                  <div className="tl-text"><b>Every Mon / Wed / Fri, 6am UTC</b><span>New answers and articles publish automatically, filling the next 30 days</span></div>
                 </div>
                 <div className="tl-row">
                   <span className="tl-dot later" />
