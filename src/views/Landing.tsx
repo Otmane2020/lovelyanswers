@@ -82,7 +82,7 @@ export default function Landing() {
           <div className="nav-cta">
             <button className="btn btn-ghost btn-sm" onClick={openApp}>Open App</button>
             <button className="btn btn-gold btn-sm" onClick={startTrial}>
-              Start free trial <IcArrow size={13} />
+              Get started <IcArrow size={13} />
             </button>
           </div>
         </div>
@@ -101,10 +101,10 @@ export default function Landing() {
             customers find you when they ask AI.
           </p>
           <div className="hero-cta">
-            <button className="btn btn-gold" onClick={startTrial}>Start GEO free trial <IcArrow /></button>
+            <button className="btn btn-gold" onClick={startTrial}>Get started with GEO <IcArrow /></button>
             <a className="btn btn-ghost" href="#demo">See GEO in action</a>
           </div>
-          <p className="fine">3-day free trial · Card required · Cancel anytime</p>
+          <p className="fine">Cancel anytime · Secure checkout by Stripe</p>
 
           <div className="trust-row">
             <div className="trust-item"><div className="n mono">500+</div><div className="l">active sites ranking on AI</div></div>
@@ -367,7 +367,7 @@ export default function Landing() {
           </div>
 
           <button className="btn btn-gold" style={{ marginTop: '30px' }} onClick={startTrial}>
-            Start free trial <IcArrow />
+            Get started <IcArrow />
           </button>
         </div>
       </section>
@@ -404,7 +404,7 @@ export default function Landing() {
               </div>
               <button className="btn btn-primary btn-sm" onClick={startTrial}>Install on Shopify</button>
             </div>
-            <p className="fine" style={{ marginTop: '14px' }}>Free 3-day trial · Cancel anytime · No credit card until day 4</p>
+            <p className="fine" style={{ marginTop: '14px' }}>Cancel anytime</p>
           </div>
         </div>
       </section>
@@ -525,7 +525,7 @@ export default function Landing() {
                   <li key={f}><IcCheck /> {f}</li>
                 ))}
               </ul>
-              <button className="btn btn-ghost" style={{ width: '100%' }} onClick={startTrial}>Start free trial</button>
+              <button className="btn btn-ghost" style={{ width: '100%' }} onClick={startTrial}>Get started</button>
             </div>
 
             <div className="price-card featured">
@@ -539,7 +539,7 @@ export default function Landing() {
                   <li key={f}><IcCheck /> {f}</li>
                 ))}
               </ul>
-              <button className="btn btn-gold" style={{ width: '100%' }} onClick={startTrial}>Start free trial</button>
+              <button className="btn btn-gold" style={{ width: '100%' }} onClick={startTrial}>Get started</button>
             </div>
 
             <div className="price-card">
@@ -590,7 +590,7 @@ export default function Landing() {
             </div>
             <h2>Buyers ask AI which brand to choose. Make sure it's yours.</h2>
             <p>Get cited by ChatGPT, Gemini, Perplexity and Google AI Overviews today.</p>
-            <button className="btn btn-gold" onClick={startTrial}>Start GEO free trial <IcArrow /></button>
+            <button className="btn btn-gold" onClick={startTrial}>Get started with GEO <IcArrow /></button>
           </div>
         </div>
       </section>

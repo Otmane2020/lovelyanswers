@@ -13,15 +13,10 @@ const PRICE_MONTHLY =
 const PRICE_ANNUAL =
   Deno.env.get("STRIPE_PRICE_ANNUAL") ?? "price_1U10cIEfti9t9nN9nZHk8ZHA"; // $95.88/year
 
-const TRIAL_DAYS = 3;
-
 /**
- * Creates a trialing subscription and hands back the SetupIntent secret so the
- * card can be collected with Stripe Elements, inside our own onboarding.
- *
- * Because the subscription starts on a trial there is nothing to charge yet, so
- * Stripe issues a `pending_setup_intent` rather than a PaymentIntent — the card
- * is saved now and first billed on day 4.
+ * Creates a subscription that bills immediately and hands back the
+ * PaymentIntent secret so the card can be charged with Stripe Elements,
+ * inside our own onboarding. No trial: the first invoice is due on creation.
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -81,7 +76,7 @@ serve(async (req) => {
       limit: 10,
     });
     const active = currentSubs.data.find((s) =>
-      ["active", "trialing", "past_due"].includes(s.status)
+      ["active", "past_due"].includes(s.status)
     );
     if (active) {
       return new Response(
@@ -93,29 +88,25 @@ serve(async (req) => {
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
-      trial_period_days: TRIAL_DAYS,
       payment_behavior: "default_incomplete",
-      // No card saved by the end of the trial → cancel rather than silently
-      // leaving a subscription that can never bill.
-      trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
       payment_settings: { save_default_payment_method: "on_subscription" },
-      expand: ["pending_setup_intent"],
+      expand: ["latest_invoice.payment_intent"],
       metadata: { supabase_user_id: userData.user.id, plan },
     });
 
-    const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent | null;
-    if (!setupIntent?.client_secret) {
-      throw new Error("Stripe did not return a setup intent for the trialing subscription");
+    const invoice = subscription.latest_invoice as Stripe.Invoice | null;
+    const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent | null;
+    if (!paymentIntent?.client_secret) {
+      throw new Error("Stripe did not return a payment intent for the subscription");
     }
 
     console.log("[SUB-INTENT] subscription:", subscription.id, "status:", subscription.status);
 
     return new Response(
       JSON.stringify({
-        clientSecret: setupIntent.client_secret,
+        clientSecret: paymentIntent.client_secret,
         subscriptionId: subscription.id,
         customerId: customer.id,
-        trialDays: TRIAL_DAYS,
         plan,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
