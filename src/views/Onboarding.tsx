@@ -258,11 +258,40 @@ export default function Onboarding() {
     setError('')
     try {
       setPhase('Reading your website…')
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-website', {
-        body: { url: normalizeUrl(bizSite || bizName) },
-      })
-      if (fnError) throw new Error(fnError.message || 'Could not analyze your site')
-      if (!data?.success) throw new Error(data?.error || 'Could not analyze your site')
+      // analyze-website is meant to run without auth (config.toml declares
+      // verify_jwt = false for it, same as firecrawl-scrape-fast below), but
+      // production has been observed returning 401 for anonymous calls to it
+      // regardless — a deploy/dashboard-config drift, not something this
+      // code controls. Don't let that dead-end the funnel: fall back to the
+      // anonymous pre-scrape's brand/description/language so step 3 still
+      // renders, just without AI-detected competitors and keywords until
+      // persistProject retries analyze-website with a real session.
+      let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string } = {}
+      try {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-website', {
+          body: { url: normalizeUrl(bizSite || bizName) },
+        })
+        if (fnError) throw new Error(fnError.message || 'Could not analyze your site')
+        if (!fnData?.success) throw new Error(fnData?.error || 'Could not analyze your site')
+        data = fnData
+      } catch (e) {
+        console.error('[ONBOARDING] analyze-website failed, falling back to a direct scrape', e)
+        // Don't rely on preScrapeSite's state — it was fired in parallel from
+        // step 1's Continue click and may not have resolved yet. Fetch fresh
+        // instead of racing it.
+        const url = normalizeUrl(bizSite || bizName)
+        const { data: scraped } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
+        if (!scraped?.success || !scraped.data) throw e
+        data = {
+          success: true,
+          domain: url.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
+          brandName: scraped.data.brandName,
+          description: scraped.data.description || '',
+          language: scraped.data.language || 'en',
+          competitors: [],
+          keywords: [],
+        }
+      }
 
       // analyze-website's AI pass never returns a brandName field at all — only
       // its own naive regex fallback does, and that's the raw domain slug
@@ -318,20 +347,40 @@ export default function Onboarding() {
     const userId = sess.session?.user.id
     if (!userId) throw new Error('Session expired — please sign in again')
 
+    // If the anonymous analyze-website call earlier failed (production has
+    // been seen rejecting it with 401 without a session — see runAnonAnalysis),
+    // we're sitting on the pre-scrape fallback with no real competitors or
+    // keywords. Retry now that a session exists, so the project the
+    // generator uses is still seeded with real data instead of nothing.
+    let enriched = analysis
+    if (!analysis.competitors?.length) {
+      try {
+        const { data: retryData, error: retryError } = await supabase.functions.invoke('analyze-website', {
+          body: { url: normalizeUrl(bizSite || bizName) },
+        })
+        if (!retryError && retryData?.success) {
+          enriched = { ...analysis, ...retryData, brandName: analysis.brandName }
+          setAnalysis(enriched)
+        }
+      } catch (e) {
+        console.error('[ONBOARDING] analyze-website retry after signup failed', e)
+      }
+    }
+
     setPhase('Creating your workspace…')
-    const goodBrandName = analysis.brandName || bizName
+    const goodBrandName = enriched.brandName || bizName
     const { data: project, error: projError } = await supabase
       .from('projects')
       .insert({
         user_id: userId,
         name: goodBrandName,
-        website_url: normalizeUrl(bizSite || `https://${analysis.domain}`),
-        domain: analysis.domain,
-        language: analysis.language || preScraped?.language || 'en',
-        business_description: editableDescription || analysis.description || null,
+        website_url: normalizeUrl(bizSite || `https://${enriched.domain}`),
+        domain: enriched.domain,
+        language: enriched.language || preScraped?.language || 'en',
+        business_description: editableDescription || enriched.description || null,
         business_type: category || null,
         brand_name: goodBrandName,
-        competitors: Array.isArray(analysis.competitors) ? analysis.competitors : null,
+        competitors: Array.isArray(enriched.competitors) ? enriched.competitors : null,
         is_active: true,
       })
       .select()
@@ -348,8 +397,8 @@ export default function Onboarding() {
       const { data: dfs } = await supabase.functions.invoke('analyze-competitors', {
         body: {
           projectId: project.id,
-          competitors: analysis.competitors ?? [],
-          language: analysis.language || 'en',
+          competitors: enriched.competitors ?? [],
+          language: enriched.language || 'en',
         },
       })
       if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
@@ -365,8 +414,8 @@ export default function Onboarding() {
       const { data: kw } = await supabase.functions.invoke('keyword-research', {
         body: {
           projectId: project.id,
-          seedKeywords: (analysis.keywords ?? []).slice(0, 5).map((k) => typeof k === 'string' ? k : k.keyword),
-          language: analysis.language || 'en',
+          seedKeywords: (enriched.keywords ?? []).slice(0, 5).map((k) => typeof k === 'string' ? k : k.keyword),
+          language: enriched.language || 'en',
           country: country.toLowerCase(),
         },
       })
