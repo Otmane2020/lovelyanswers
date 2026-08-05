@@ -252,8 +252,9 @@ export default function Onboarding() {
     }
   }, [bizSite, category])
 
-  /* --- step 3: analyse the site and create the project --- */
-  const runAnalysis = useCallback(async () => {
+  /* --- step 2: analyse the site — no account needed yet, so people see
+     what AI already says about them before we ask them to sign up --- */
+  const runAnonAnalysis = useCallback(async () => {
     setError('')
     try {
       setPhase('Reading your website…')
@@ -263,11 +264,6 @@ export default function Onboarding() {
       if (fnError) throw new Error(fnError.message || 'Could not analyze your site')
       if (!data?.success) throw new Error(data?.error || 'Could not analyze your site')
 
-      setPhase('Creating your workspace…')
-      const { data: sess } = await supabase.auth.getSession()
-      const userId = sess.session?.user.id
-      if (!userId) throw new Error('Session expired — please sign in again')
-
       // analyze-website's AI pass never returns a brandName field at all — only
       // its own naive regex fallback does, and that's the raw domain slug
       // ("sweet-deco") whenever the page's <title> can't be parsed from a
@@ -276,59 +272,8 @@ export default function Onboarding() {
       // already found ("Sweet Déco").
       const goodBrandName = bizName || preScraped?.brandName || data.brandName || data.domain
 
-      const { data: project, error: projError } = await supabase
-        .from('projects')
-        .insert({
-          user_id: userId,
-          name: goodBrandName,
-          website_url: normalizeUrl(bizSite || `https://${data.domain}`),
-          domain: data.domain,
-          language: data.language || preScraped?.language || 'en',
-          business_description: data.description || preScraped?.description || null,
-          business_type: category || null,
-          brand_name: goodBrandName,
-          competitors: Array.isArray(data.competitors) ? data.competitors : null,
-          is_active: true,
-        })
-        .select()
-        .single()
-      if (projError) throw projError
-
-      setProjectId(project.id)
-
-      // Keywords the competitors already rank for — this is what the daily
-      // generator will aim at, and what step 4 shows alongside the AI-guessed
-      // ones. Non-blocking: a DataForSEO outage must not strand someone mid-signup.
-      setPhase('Studying your competitors…')
-      try {
-        const { data: dfs } = await supabase.functions.invoke('analyze-competitors', {
-          body: {
-            projectId: project.id,
-            competitors: data.competitors ?? [],
-            language: data.language || 'en',
-          },
-        })
-        if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
-        if (Array.isArray(dfs?.perCompetitor)) setCompetitorKeywords(dfs.perCompetitor)
-      } catch (e) {
-        console.error('[ONBOARDING] competitor analysis failed', e)
-      }
-
-      // Two more auto-fill passes, both best-effort: a scored/volumed
-      // keyword-research pass (real DataForSEO SERP data where available)
-      // and a Google Places match for address/phone/hours — replacing what
-      // would otherwise be manual fields on the review screen. Neither
-      // blocks getting there if it fails or the API key isn't configured.
-      setPhase('Researching keywords…')
-      try {
-        const { data: kw } = await supabase.functions.invoke('keyword-research', {
-          body: { projectId: project.id, seedKeywords: (data.keywords ?? []).slice(0, 5).map((k: any) => typeof k === 'string' ? k : k.keyword), language: data.language || 'en', country: country.toLowerCase() },
-        })
-        if (Array.isArray(kw?.clusters)) setKeywordClusters(kw.clusters)
-      } catch (e) {
-        console.error('[ONBOARDING] keyword research failed', e)
-      }
-
+      // Best-effort Google Business match — doesn't need auth or a project,
+      // so it can run now and show up on the review step before signup.
       setPhase('Checking your Google listing…')
       try {
         const countryName = COUNTRIES.find((c) => c.code === country)?.name || ''
@@ -358,41 +303,120 @@ export default function Onboarding() {
       setStep(3)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStep(2)
+      setStep(1)
       setPhase('')
     }
-  }, [bizSite, bizName, category, preScraped])
+  }, [bizSite, bizName, preScraped, country])
 
-  // Signed in and sitting on step 2 → start analysing.
-  useEffect(() => {
-    if (step === 2 && user && !analysis && !phase) runAnalysis()
-  }, [step, user, analysis, phase, runAnalysis])
+  /* --- step 3 -> paywall: create the account (if needed), then the project
+     and its competitor/keyword enrichment — all of this needs a real user,
+     which is why it waits until after the analysis is already on screen --- */
+  const persistProject = useCallback(async () => {
+    if (!analysis) throw new Error('Run the analysis first')
 
-  const handleSignup = async () => {
-    if (!email || password.length < 6) {
-      setError('Enter an email and a password of at least 6 characters')
-      return
+    const { data: sess } = await supabase.auth.getSession()
+    const userId = sess.session?.user.id
+    if (!userId) throw new Error('Session expired — please sign in again')
+
+    setPhase('Creating your workspace…')
+    const goodBrandName = analysis.brandName || bizName
+    const { data: project, error: projError } = await supabase
+      .from('projects')
+      .insert({
+        user_id: userId,
+        name: goodBrandName,
+        website_url: normalizeUrl(bizSite || `https://${analysis.domain}`),
+        domain: analysis.domain,
+        language: analysis.language || preScraped?.language || 'en',
+        business_description: editableDescription || analysis.description || null,
+        business_type: category || null,
+        brand_name: goodBrandName,
+        competitors: Array.isArray(analysis.competitors) ? analysis.competitors : null,
+        is_active: true,
+      })
+      .select()
+      .single()
+    if (projError) throw projError
+
+    setProjectId(project.id)
+
+    // Keywords the competitors already rank for — this is what the daily
+    // generator will aim at. Non-blocking: a DataForSEO outage must not
+    // strand someone mid-signup.
+    setPhase('Studying your competitors…')
+    try {
+      const { data: dfs } = await supabase.functions.invoke('analyze-competitors', {
+        body: {
+          projectId: project.id,
+          competitors: analysis.competitors ?? [],
+          language: analysis.language || 'en',
+        },
+      })
+      if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
+      if (Array.isArray(dfs?.perCompetitor)) setCompetitorKeywords(dfs.perCompetitor)
+    } catch (e) {
+      console.error('[ONBOARDING] competitor analysis failed', e)
     }
+
+    // A scored/volumed keyword-research pass (real DataForSEO SERP data
+    // where available). Non-blocking, same reasoning as above.
+    setPhase('Researching keywords…')
+    try {
+      const { data: kw } = await supabase.functions.invoke('keyword-research', {
+        body: {
+          projectId: project.id,
+          seedKeywords: (analysis.keywords ?? []).slice(0, 5).map((k) => typeof k === 'string' ? k : k.keyword),
+          language: analysis.language || 'en',
+          country: country.toLowerCase(),
+        },
+      })
+      if (Array.isArray(kw?.clusters)) setKeywordClusters(kw.clusters)
+    } catch (e) {
+      console.error('[ONBOARDING] keyword research failed', e)
+    }
+
+    return project.id
+  }, [analysis, bizName, bizSite, category, country, editableDescription, preScraped])
+
+  // Sitting on step 2 → start analysing right away, no account required.
+  useEffect(() => {
+    if (step === 2 && !analysis && !phase) runAnonAnalysis()
+  }, [step, analysis, phase, runAnonAnalysis])
+
+  /* --- step 3's CTA: create the account (only if not signed in yet), then
+     persist the project and move to the paywall. Account creation happens
+     here — after the analysis is already on screen — instead of gating
+     the analysis behind a blind signup. --- */
+  const claimVisibility = async () => {
     setBusy(true); setError('')
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email, password, options: { data: { full_name: bizName || email.split('@')[0] } },
-      })
-      if (signUpError) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInError) throw new Error(signUpError.message)
+      if (!user) {
+        if (!email || password.length < 6) {
+          setError('Enter an email and a password of at least 6 characters')
+          setBusy(false)
+          return
+        }
+        const { error: signUpError } = await supabase.auth.signUp({
+          email, password, options: { data: { full_name: bizName || email.split('@')[0] } },
+        })
+        if (signUpError) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+          if (signInError) throw new Error(signUpError.message)
+        }
+        const { data: sess } = await supabase.auth.getSession()
+        if (!sess.session) {
+          setError('Check your inbox to confirm your email, then sign in to continue.')
+          setBusy(false)
+          return
+        }
       }
-      const { data: sess } = await supabase.auth.getSession()
-      if (!sess.session) {
-        setError('Check your inbox to confirm your email, then sign in to continue.')
-        setBusy(false)
-        return
-      }
-      setBusy(false)
-      runAnalysis()
+      const pid = projectId || (await persistProject())
+      await openPaywall(pid)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account')
+    } finally {
       setBusy(false)
+      setPhase('')
     }
   }
 
@@ -432,13 +456,17 @@ export default function Onboarding() {
     }
   }
 
-  /* --- step 3 -> step 4: persist edits, then open the paywall --- */
-  const openPaywall = async () => {
-    if (projectId) {
+  /* --- step 3 -> step 4: persist edits, then open the paywall.
+     Accepts an explicit id because a caller that just created the project
+     in the same tick (persistProject via setProjectId) can't rely on the
+     `projectId` state closure having caught up yet. --- */
+  const openPaywall = async (pid?: string) => {
+    const id = pid ?? projectId
+    if (id) {
       await supabase.from('projects').update({
         business_description: editableDescription || null,
         business_type: category || null,
-      }).eq('id', projectId)
+      }).eq('id', id)
     }
     if (await refreshSubscription(plan, promoCode)) setStep(4)
   }
@@ -555,8 +583,62 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)} />
-              <label>Country</label>
-              <div style={{ position: 'relative' }}>
+              <div className="foot-nav">
+                <span />
+                <button
+                  className="btn btn-primary"
+                  disabled={!canStartAnalysis}
+                  onClick={() => { setError(''); setStep(2); preScrapeSite() }}
+                >
+                  Continue <IcArrow />
+                </button>
+              </div>
+              <p className="fine">
+                {!canStartAnalysis
+                  ? 'We need your business name and site to run the analysis.'
+                  : 'Category, description, competitors and keywords get detected automatically next.'}
+              </p>
+            </>
+          )}
+
+          {/* STEP 2 — real analysis, no account needed yet */}
+          {step === 2 && (
+            <>
+              <h1>Checking your AI visibility…</h1>
+              <p className="sub">This takes a few seconds.</p>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
+                <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
+                  <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              </div>
+              <p className="phase">{phase || 'Starting…'}</p>
+            </>
+          )}
+
+          {/* STEP 3 — review & edit what we auto-detected */}
+          {step === 3 && analysis && (
+            <>
+              <h1>Here's what we found for {brand}</h1>
+              <p className="sub">Generated from your real site — this is what's at stake.</p>
+              <div className="compare-preview">
+                <div className="prev-card before">
+                  <div className="lbl">Today, without AutopilotGEO</div>
+                  <div className="txt">
+                    ChatGPT has never heard of <b>{brand}</b>. When someone asks for a recommendation,
+                    a competitor gets named instead
+                    {analysis.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.
+                  </div>
+                </div>
+                <div className="prev-card after">
+                  <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
+                  <div className="txt">
+                    "{analysis.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
+                  </div>
+                </div>
+              </div>
+              <label className="first">Country</label>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
                 <button
                   type="button"
                   onClick={() => setCountryOpen((o) => !o)}
@@ -597,87 +679,6 @@ export default function Onboarding() {
                     </div>
                   </>
                 )}
-              </div>
-              <div className="foot-nav">
-                <span />
-                <button
-                  className="btn btn-primary"
-                  disabled={!canStartAnalysis}
-                  onClick={() => { setError(''); setStep(2); preScrapeSite() }}
-                >
-                  Continue <IcArrow />
-                </button>
-              </div>
-              <p className="fine">
-                {!canStartAnalysis
-                  ? 'We need your business name and site to run the analysis.'
-                  : 'Category, description, competitors and keywords get detected automatically next.'}
-              </p>
-            </>
-          )}
-
-          {/* STEP 2 — account, then the real analysis */}
-          {step === 2 && (
-            user ? (
-              <>
-                <h1>Checking your AI visibility…</h1>
-                <p className="sub">This takes a few seconds.</p>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                  <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
-                    <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <p className="phase">{phase || 'Starting…'}</p>
-              </>
-            ) : (
-              <>
-                <h1>Create your account</h1>
-                <p className="sub">So we can save the analysis of <b>{bizSite}</b> to your workspace.</p>
-                <button className="btn btn-social" onClick={() => oauth('google')}>
-                  <IcGoogle /> Continue with Google
-                </button>
-                <button className="btn btn-social" onClick={() => oauth('apple')}>
-                  <IcApple /> Continue with Apple
-                </button>
-                <div className="divider"><span /><em>or</em><span /></div>
-                <label className="first">Email</label>
-                <input type="email" value={email} placeholder="you@example.com"
-                  onChange={(e) => setEmail(e.target.value)} />
-                <label>Password</label>
-                <input type="password" value={password} placeholder="6+ characters"
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSignup()} />
-                <button className="btn btn-primary" style={{ marginTop: 20 }} disabled={busy} onClick={handleSignup}>
-                  {busy ? 'Creating account…' : <>Create account & analyze <IcArrow /></>}
-                </button>
-                <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(1)}>
-                  Back
-                </button>
-              </>
-            )
-          )}
-
-          {/* STEP 3 — review & edit what we auto-detected */}
-          {step === 3 && analysis && (
-            <>
-              <h1>Here's what we found for {brand}</h1>
-              <p className="sub">Generated from your real site — this is what's at stake.</p>
-              <div className="compare-preview">
-                <div className="prev-card before">
-                  <div className="lbl">Today, without AutopilotGEO</div>
-                  <div className="txt">
-                    ChatGPT has never heard of <b>{brand}</b>. When someone asks for a recommendation,
-                    a competitor gets named instead
-                    {analysis.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.
-                  </div>
-                </div>
-                <div className="prev-card after">
-                  <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
-                  <div className="txt">
-                    "{analysis.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
-                  </div>
-                </div>
               </div>
               <label className="first">What we understood about {brand} — edit if it's off</label>
               <textarea
@@ -757,10 +758,29 @@ export default function Onboarding() {
                   </div>
                 </>
               )}
+              {!user && (
+                <>
+                  <label className="first">Create your account to claim this</label>
+                  <button className="btn btn-social" onClick={() => oauth('google')}>
+                    <IcGoogle /> Continue with Google
+                  </button>
+                  <button className="btn btn-social" onClick={() => oauth('apple')}>
+                    <IcApple /> Continue with Apple
+                  </button>
+                  <div className="divider"><span /><em>or</em><span /></div>
+                  <label>Email</label>
+                  <input type="email" value={email} placeholder="you@example.com"
+                    onChange={(e) => setEmail(e.target.value)} />
+                  <label>Password</label>
+                  <input type="password" value={password} placeholder="6+ characters"
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && claimVisibility()} />
+                </>
+              )}
               <div className="foot-nav">
                 <span />
-                <button className="btn btn-gold" disabled={busy} onClick={openPaywall}>
-                  {busy ? 'Preparing…' : <>Claim this visibility <IcArrow /></>}
+                <button className="btn btn-gold" disabled={busy} onClick={claimVisibility}>
+                  {busy ? 'Preparing…' : <>{user ? 'Claim this visibility' : 'Create account & claim this visibility'} <IcArrow /></>}
                 </button>
               </div>
             </>
