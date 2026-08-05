@@ -27,11 +27,16 @@ const TAB_LABEL: Record<DemoTab, string> = {
   today: 'Today', content: 'Content', presence: 'Presence', results: 'Results', settings: 'Settings',
 }
 
+/* UGC testimonial reel. ~80 MB, so it is never fetched until the visitor plays it. */
+const UGC_VIDEO =
+  'https://autopilotgeo.com/__l5e/assets-v1/f7566a0b-b5cd-40fd-a310-3ee51b25c2b6/ugc-desktop.mp4'
+
 export default function Landing() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<DemoTab>('today')
   const [playing, setPlaying] = useState(true)
   const [hovering, setHovering] = useState(false)
+  const [videoOn, setVideoOn] = useState(false)
   const [cycle, setCycle] = useState(0) // bumps to restart the story fill animation
 
   const reduceMotion =
@@ -325,13 +330,45 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= WHY FOUNDERS SWITCH ================= */}
+      {/* ================= WHY FOUNDERS SWITCH (UGC) ================= */}
       <section style={{ paddingTop: 0 }}>
         <div className="wrap" style={{ textAlign: 'center' }}>
           <p className="eyebrow-label">Real creators · Real results</p>
           <h2 className="section-title">Why founders switch to AutopilotGEO</h2>
           <p className="section-sub">Hear it straight from the people using it every day.</p>
-          <button className="btn btn-gold" onClick={startTrial}>Start free trial <IcArrow /></button>
+
+          <div className="ugc">
+            <div className="ugc-frame">
+              {videoOn ? (
+                <video
+                  src={UGC_VIDEO}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="auto"
+                  onEnded={() => setVideoOn(false)}
+                />
+              ) : (
+                /* Facade: the 80 MB file is only fetched once the visitor clicks. */
+                <button
+                  className="ugc-cover"
+                  onClick={() => setVideoOn(true)}
+                  aria-label="Play founder testimonials video"
+                >
+                  <span className="ugc-play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                  </span>
+                  <span className="ugc-label">Founders on what changed after switching to GEO</span>
+                  <span className="ugc-hint">Tap to play · sound on</span>
+                </button>
+              )}
+            </div>
+            <p className="ugc-caption">Real customers, filmed in their own words.</p>
+          </div>
+
+          <button className="btn btn-gold" style={{ marginTop: '30px' }} onClick={startTrial}>
+            Start free trial <IcArrow />
+          </button>
         </div>
       </section>
 
