@@ -192,16 +192,25 @@ export function Content() {
           <IconCalendar /> Calendar
         </button>
         <span style={{ flex: 1 }} />
-        <button className={`chip ${filter === 'all' ? '' : 'off'}`} onClick={() => setFilter('all')}>
-          All ({rows.length})
-        </button>
-        <button className={`chip ${filter === 'live' ? '' : 'off'}`} onClick={() => setFilter('live')}>
+        {/* Mockup shows exactly these three as plain counts, no "All" pill.
+            Clicking the active one toggles back to 'all' instead of adding a
+            fourth chip that isn't in the design. */}
+        <button
+          className={`chip ${filter === 'live' ? '' : 'off'}`}
+          onClick={() => setFilter((f) => (f === 'live' ? 'all' : 'live'))}
+        >
           Live ({counts.live})
         </button>
-        <button className={`chip ${filter === 'wait' ? '' : 'off'}`} onClick={() => setFilter('wait')}>
+        <button
+          className={`chip ${filter === 'wait' ? '' : 'off'}`}
+          onClick={() => setFilter((f) => (f === 'wait' ? 'all' : 'wait'))}
+        >
           Waiting ({counts.wait})
         </button>
-        <button className={`chip ${filter === 'draft' ? '' : 'off'}`} onClick={() => setFilter('draft')}>
+        <button
+          className={`chip ${filter === 'draft' ? '' : 'off'}`}
+          onClick={() => setFilter((f) => (f === 'draft' ? 'all' : 'draft'))}
+        >
           Draft ({counts.draft})
         </button>
       </div>

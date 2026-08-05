@@ -30,10 +30,7 @@ serve(async (req) => {
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const publishableKey = Deno.env.get("STRIPE_PUBLISHABLE_KEY");
-
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not configured");
-    if (!publishableKey) throw new Error("STRIPE_PUBLISHABLE_KEY is not configured");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -88,7 +85,7 @@ serve(async (req) => {
     );
     if (active) {
       return new Response(
-        JSON.stringify({ alreadySubscribed: true, status: active.status, publishableKey }),
+        JSON.stringify({ alreadySubscribed: true, status: active.status }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -118,7 +115,6 @@ serve(async (req) => {
         clientSecret: setupIntent.client_secret,
         subscriptionId: subscription.id,
         customerId: customer.id,
-        publishableKey,
         trialDays: TRIAL_DAYS,
         plan,
       }),

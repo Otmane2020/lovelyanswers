@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadStripe, type Stripe } from '@stripe/stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,6 +10,15 @@ import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
 const TOTAL_STEPS = 6
+
+// Publishable keys are meant to be public (Stripe's own design — they only
+// ever initialize Stripe.js, never authorize a charge), so this is safe to
+// ship in frontend code. Kept as a Vite env var with this as the fallback so
+// it never depends on a Supabase Edge Function secret being set correctly.
+const STRIPE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  'pk_live_51OkmX3Efti9t9nN9Mlecdj4IgnmMGkECjdGaN85Qg6QJ1KoVOF3KQmX7Cj9aOQiTnolZG7MhJ2qSLS85QqEwJOpM00UBMNxh2H'
+const stripePromiseSingleton = loadStripe(STRIPE_PUBLISHABLE_KEY)
 
 const CATEGORIES = [
   'Retail store', 'Local service', 'E-commerce', 'Restaurant', 'SaaS', 'Other',
@@ -130,7 +139,6 @@ export default function Onboarding() {
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null)
 
   // Already has a project: paid (or trialing) -> dashboard. Payment gates
   // access, so a project without a subscription is an incomplete signup —
@@ -271,7 +279,6 @@ export default function Onboarding() {
         setStep(6)
         return
       }
-      setStripePromise(loadStripe(data.publishableKey))
       setClientSecret(data.clientSecret)
       setStep(5)
     } catch (err) {
@@ -486,8 +493,8 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              {clientSecret && stripePromise ? (
-                <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+              {clientSecret ? (
+                <Elements stripe={stripePromiseSingleton} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
                   <CardForm onDone={finish} onError={setError} />
                 </Elements>
               ) : (
