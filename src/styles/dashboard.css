@@ -1,4 +1,10 @@
-:root{
+/* Scoped to .geo-dashboard, not :root — index.css declares its own --primary
+   etc as bare HSL triplets (for hsl(var(--x)) use in shadcn/Tailwind). A
+   :root declaration here collided by name: depending on stylesheet load
+   order, var(--primary) could resolve to an invalid "232 50% 36%" string
+   instead of a hex color, silently dropping the background from every
+   .btn-primary in the dashboard (the "invisible Connect button" bug). */
+.geo-dashboard{
   --ink:#14162e; --ink-soft:#585b78;
   --paper:#f5f6fb; --surface:#ffffff; --line:#e4e5f0;
   --primary:#2e3a8c; --primary-deep:#1f2761; --primary-soft:#eef0fb;
