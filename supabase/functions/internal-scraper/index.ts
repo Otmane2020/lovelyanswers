@@ -225,6 +225,15 @@ function detectCMS(html: string): string {
   if (c.includes('hubspot.com') || c.includes('hs-scripts')) return 'HubSpot';
   if (c.includes('next-head-count') || c.includes('__next')) return 'Next.js';
   if (c.includes('nuxt') || c.includes('__nuxt')) return 'Nuxt';
+  // Lovable-built sites are generic React/Vite output with no framework
+  // fingerprint of their own, but Lovable's asset storage and editor SDK
+  // domains are a real, verifiable signature (gpteng.co is the underlying
+  // gpt-engineer infra Lovable runs on).
+  if (c.includes('gpteng.co') || c.includes('gpt-engineer-file-uploads') || c.includes('lovableproject.com') || c.includes('lovable.app')) return 'Lovable';
+  // Replit-hosted apps are identifiable by their own hosting domain — only
+  // reliable while the site is still on a *.repl.co/*.replit.app/*.replit.dev
+  // URL; a custom domain drops this signal (there is no other fingerprint).
+  if (c.includes('.repl.co') || c.includes('.replit.app') || c.includes('.replit.dev')) return 'Replit';
   return '';
 }
 
@@ -347,7 +356,13 @@ Deno.serve(async (req) => {
     const metaLang = langMatch?.[1] || '';
     const language = detectLanguage(html, metaLang);
     const brandName = extractBrandName(formattedUrl, title);
-    const cms = detectCMS(html);
+    // Check the site's own hosting domain first — the most reliable signal
+    // for Replit (there's no in-page fingerprint, only the *.repl.co/
+    // *.replit.app/*.replit.dev URL itself, which a custom domain would hide).
+    const hostLower = formattedUrl.toLowerCase();
+    const cms = (hostLower.includes('.repl.co') || hostLower.includes('.replit.app') || hostLower.includes('.replit.dev'))
+      ? 'Replit'
+      : detectCMS(html);
     const headings = extractHeadings(html);
     const { internal: internalLinks, external: externalLinks } = extractLinks(html, formattedUrl);
     const markdown = htmlToMarkdown(html);

@@ -177,7 +177,7 @@ export default function Onboarding() {
   // guess and brand name are already reasonable — "Sweet Déco", not
   // "sweet-deco" (the raw domain slug analyze-website falls back to) —
   // before the full AI pass even starts.
-  const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string } | null>(null)
+  const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string; cms: string } | null>(null)
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -279,12 +279,15 @@ export default function Onboarding() {
     const url = normalizeUrl(bizSite)
     if (!url) return
     try {
-      const { data } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
+      // Our own fetch-and-regex scraper — free, no third-party quota, no
+      // external API dependency. Firecrawl is kept only as analyze-website's
+      // own internal fallback, not called directly from onboarding anymore.
+      const { data } = await supabase.functions.invoke('internal-scraper', { body: { url } })
       if (data?.success && data.data) {
-        const { brandName, description, language, cms } = data.data
-        setPreScraped({ brandName, description: description || '', language: language || 'en' })
+        const { brandName, metaDescription, language, cms } = data.data
+        setPreScraped({ brandName, description: metaDescription || '', language: language || 'en', cms: cms || '' })
         if (!category) {
-          const guessed = guessCategory(`${description || ''} ${url}`, cms)
+          const guessed = guessCategory(`${metaDescription || ''} ${url}`, cms)
           if (guessed) setCategory(guessed)
         }
       }
@@ -315,13 +318,13 @@ export default function Onboarding() {
       } catch (e) {
         console.error('[ONBOARDING] analyze-website failed, falling back to a direct scrape', e)
         const url = normalizeUrl(bizSite || bizName)
-        const { data: scraped } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
+        const { data: scraped } = await supabase.functions.invoke('internal-scraper', { body: { url } })
         if (!scraped?.success || !scraped.data) throw e
         data = {
           success: true,
           domain: url.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
           brandName: scraped.data.brandName,
-          description: scraped.data.description || '',
+          description: scraped.data.metaDescription || '',
           language: scraped.data.language || 'en',
           competitors: [],
           keywords: [],
@@ -356,6 +359,7 @@ export default function Onboarding() {
           business_type: category || null,
           brand_name: goodBrandName,
           competitors: Array.isArray(data.competitors) ? data.competitors : null,
+          detected_cms: preScraped?.cms || null,
           is_active: true,
         })
         .select()
@@ -632,6 +636,7 @@ export default function Onboarding() {
                   <div className="brand-snap-tags">
                     {category && <span className="snap-tag">{category}</span>}
                     {brandLanguage && <span className="snap-tag">{brandLanguage.toUpperCase()}</span>}
+                    {preScraped?.cms && <span className="snap-tag">Built with {preScraped.cms}</span>}
                   </div>
                 </div>
               </div>

@@ -36,6 +36,15 @@ const PLATFORMS = [
   { id: 'webhook', name: 'Webhook', icon: '🔗', isImage: false },
 ] as const
 
+// Maps what internal-scraper's detectCMS() actually returns onto our
+// platform ids. WooCommerce/WordPress both land on 'wordpress' — same
+// Application Passwords auth works for either.
+const DETECTED_CMS_MAP: Record<string, string> = {
+  woocommerce: 'wordpress', wordpress: 'wordpress', shopify: 'shopify', wix: 'wix',
+  webflow: 'webflow', framer: 'framer', bigcommerce: 'bigcommerce',
+  lovable: 'lovable', replit: 'replit',
+}
+
 interface ConnectPanelProps {
   onClose: () => void
 }
@@ -52,6 +61,8 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
 
   const connectedFor = (id: string) => integrations.find((i) => i.platform === id && i.is_connected)
   const current = platform ? connectedFor(platform) : undefined
+  const detectedCms = (project as { detected_cms?: string } | undefined)?.detected_cms
+  const detectedPlatformId = detectedCms ? DETECTED_CMS_MAP[detectedCms.toLowerCase()] : undefined
 
   const disconnect = async (integrationId: string, name: string) => {
     try {
@@ -103,11 +114,15 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
               )}
               <span style={{ flex: 1, minWidth: 0 }}>
                 {p.name}
-                {connected && (
+                {connected ? (
                   <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--green)' }}>
                     Connected
                   </span>
-                )}
+                ) : detectedPlatformId === p.id ? (
+                  <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--primary)' }}>
+                    Detected on your site
+                  </span>
+                ) : null}
               </span>
             </button>
           )
