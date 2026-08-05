@@ -1,7 +1,7 @@
 "use client";
 import { ReactNode, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AeoSidebar } from "./AeoSidebar";
+// AeoSidebar removed — using the new GEODashboard design instead
 import { AppTopbar } from "./AppTopbar";
 import { TranslationProvider } from "@/lib/language";
 import { useGeneration } from "@/contexts/GenerationContext";
@@ -31,7 +31,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <TranslationProvider>
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <AeoSidebar />
           <SidebarInset className="flex-1 flex flex-col">
             {/* Persistent Upgrade Banner */}
             {showUpgradeBanner && (
