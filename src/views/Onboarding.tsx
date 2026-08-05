@@ -24,6 +24,39 @@ const CATEGORIES = [
   'Retail store', 'Local service', 'E-commerce', 'Restaurant', 'SaaS', 'Other',
 ]
 
+// Flag emoji is derived from the ISO code itself (regional-indicator code
+// points), not a hardcoded character per country — one formula covers all of them.
+const flagEmoji = (iso2: string) =>
+  String.fromCodePoint(...[...iso2.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)))
+
+const COUNTRIES: { code: string; name: string }[] = [
+  { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },
+  { code: 'FR', name: 'France' }, { code: 'DE', name: 'Germany' }, { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' }, { code: 'NL', name: 'Netherlands' }, { code: 'BE', name: 'Belgium' },
+  { code: 'PT', name: 'Portugal' }, { code: 'CH', name: 'Switzerland' }, { code: 'AT', name: 'Austria' },
+  { code: 'IE', name: 'Ireland' }, { code: 'SE', name: 'Sweden' }, { code: 'NO', name: 'Norway' },
+  { code: 'DK', name: 'Denmark' }, { code: 'FI', name: 'Finland' }, { code: 'PL', name: 'Poland' },
+  { code: 'CA', name: 'Canada' }, { code: 'AU', name: 'Australia' }, { code: 'NZ', name: 'New Zealand' },
+  { code: 'MX', name: 'Mexico' }, { code: 'BR', name: 'Brazil' }, { code: 'AR', name: 'Argentina' },
+  { code: 'MA', name: 'Morocco' }, { code: 'DZ', name: 'Algeria' }, { code: 'TN', name: 'Tunisia' },
+  { code: 'AE', name: 'United Arab Emirates' }, { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'IN', name: 'India' }, { code: 'JP', name: 'Japan' }, { code: 'SG', name: 'Singapore' },
+  { code: 'ZA', name: 'South Africa' },
+]
+
+/** Best-effort guess from the browser's own locale — e.g. "fr-FR" -> "FR".
+ * Just a starting point; the dropdown lets the user correct it in one click. */
+const guessCountryFromLocale = (): string => {
+  try {
+    const region = new Intl.Locale(navigator.language).maximize().region
+    if (region && COUNTRIES.some((c) => c.code === region)) return region
+  } catch {
+    // Intl.Locale unsupported or locale has no region — fall through.
+  }
+  const tag = navigator.language?.split('-')[1]?.toUpperCase()
+  return tag && COUNTRIES.some((c) => c.code === tag) ? tag : 'US'
+}
+
 interface Analysis {
   domain: string
   brandName: string
@@ -129,7 +162,7 @@ export default function Onboarding() {
 
   const [bizName, setBizName] = useState('')
   const [bizSite, setBizSite] = useState('')
-  const [country, setCountry] = useState('')
+  const [country, setCountry] = useState(guessCountryFromLocale)
   const [category, setCategory] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -279,7 +312,7 @@ export default function Onboarding() {
       setPhase('Researching keywords…')
       try {
         const { data: kw } = await supabase.functions.invoke('keyword-research', {
-          body: { projectId: project.id, seedKeywords: (data.keywords ?? []).slice(0, 5).map((k: any) => typeof k === 'string' ? k : k.keyword), language: data.language || 'en', country: country.trim().toLowerCase() || 'us' },
+          body: { projectId: project.id, seedKeywords: (data.keywords ?? []).slice(0, 5).map((k: any) => typeof k === 'string' ? k : k.keyword), language: data.language || 'en', country: country.toLowerCase() },
         })
         if (Array.isArray(kw?.clusters)) setKeywordClusters(kw.clusters)
       } catch (e) {
@@ -288,8 +321,9 @@ export default function Onboarding() {
 
       setPhase('Checking your Google listing…')
       try {
+        const countryName = COUNTRIES.find((c) => c.code === country)?.name || ''
         const { data: places } = await supabase.functions.invoke('places-search', {
-          body: { query: `${goodBrandName} ${country}`.trim() },
+          body: { query: `${goodBrandName} ${countryName}`.trim() },
         })
         const match = places?.results?.[0]
         if (match?.id) {
@@ -464,10 +498,19 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)} />
-              <label>Country</label>
-              <input type="text" value={country} placeholder="e.g. France"
+              <label>Country — detected automatically, change if it's wrong</label>
+              <select
+                value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && canStartAnalysis && (setError(''), setStep(2), preScrapeSite())} />
+                style={{
+                  width: '100%', padding: '13px 14px', borderRadius: '12px', border: '1.5px solid var(--line)',
+                  fontSize: '14.5px', fontFamily: 'inherit', background: 'var(--paper)', color: 'var(--ink)',
+                }}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{flagEmoji(c.code)} {c.name}</option>
+                ))}
+              </select>
               <div className="foot-nav">
                 <span />
                 <button
@@ -478,9 +521,11 @@ export default function Onboarding() {
                   Continue <IcArrow />
                 </button>
               </div>
-              {!canStartAnalysis ? (
-                <p className="fine">We need your site and country to run the analysis. Everything else — category, description, competitors, keywords — gets detected automatically.</p>
-              ) : null}
+              <p className="fine">
+                {!canStartAnalysis
+                  ? 'We need your business name and site to run the analysis.'
+                  : 'Category, description, competitors and keywords get detected automatically next.'}
+              </p>
             </>
           )}
 
