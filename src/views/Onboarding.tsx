@@ -333,15 +333,26 @@ export default function Onboarding() {
     }
   }
 
-  /* --- step 6: seed the 30-day plan now, same call AeoWizard already uses —
-     daily-planning-fill's cron then fleshes out each day's full content. --- */
+  /* --- step 6: seed the 30-day plan now instead of waiting on the cron's
+     small per-tick batches. Two tracks, both pre-existing: the AEO
+     answer+article pairing (same call AeoWizard already uses) and the
+     GEO/SEO/AEO/Local-AEO geo_contents track — 30 slots covers all 30 days
+     in one shot since maxSlots overrides the steady-state cron cap. --- */
   const finish = async () => {
     setStep(6)
     if (!projectId) return
     try {
-      await supabase.functions.invoke('generate-30-days-content', {
-        body: { projectId, language: analysis?.language || 'en', days: 30, questionsPerDay: 1, titlesOnly: true },
-      })
+      await Promise.all([
+        supabase.functions.invoke('generate-30-days-content', {
+          body: { projectId, language: analysis?.language || 'en', days: 30, questionsPerDay: 1, titlesOnly: true },
+        }),
+        // 16 slots (4 full days) is as much as one request can safely
+        // generate before risking a function timeout; check-planning-completeness's
+        // hourly cron tops up the rest of the 30-day window from here.
+        supabase.functions.invoke('generate-30-gso-contents', {
+          body: { projectId, maxSlots: 16 },
+        }),
+      ])
     } catch (e) {
       console.error('[ONBOARDING] first generation failed', e)
     }
