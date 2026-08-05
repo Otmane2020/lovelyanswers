@@ -71,7 +71,7 @@ serve(async (req) => {
       const totalAeo = (answersCount || 0) + (articlesCount || 0);
       const expectedAeo = 60; // 30 answers + 30 articles
       const totalGso = gsoCount || 0;
-      const expectedGso = 120; // 30 days x 4 content types (geo, seo, aeo, local_aeo)
+      const expectedGso = 30; // 1 piece/day, type rotating through geo/seo/aeo/local_aeo
 
       console.log(`[check-planning] Project ${project.name}: ${answersCount} answers, ${articlesCount} articles, ${totalGso} GSO (AEO: ${totalAeo}/${expectedAeo}, GSO: ${totalGso}/${expectedGso})`);
 

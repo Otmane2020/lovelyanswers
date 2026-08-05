@@ -127,11 +127,10 @@ Deno.serve(async (req) => {
 
     console.log("[generate-30-gso] Starting for project: " + project.name + ", brand: " + brand + ", lang: " + language);
 
-    // Rolling 30-day window: every calendar day should carry all 4 content
-    // types (geo, seo, aeo, local_aeo). Check what's already there — by day
-    // AND by type — so a run only ever fills the actual gaps, never the
-    // whole window, and can never produce a duplicate for a (day, type)
-    // that's already covered.
+    // Rolling 30-day window: exactly ONE piece per calendar day, with the
+    // type rotating through geo -> seo -> aeo -> local_aeo -> geo -> ...
+    // — 30 pieces total across the window, not 4/day. Check what's already
+    // scheduled per day so a run only fills days that are actually empty.
     const CONTENT_TYPES = ["geo", "seo", "aeo", "local_aeo"] as const;
     type ContentType = typeof CONTENT_TYPES[number];
     // Caps AI calls per invocation so one cron tick can't time out; the next
@@ -155,26 +154,23 @@ Deno.serve(async (req) => {
       .lt("scheduled_date", in30.toISOString());
 
     const dayKey = (d: Date) => d.toISOString().slice(0, 10);
-    const covered = new Map<string, Set<string>>(); // "YYYY-MM-DD" -> {geo, seo, ...}
-    for (const c of existingContents || []) {
-      const key = dayKey(new Date(c.scheduled_date));
-      if (!covered.has(key)) covered.set(key, new Set());
-      covered.get(key)!.add(c.content_type);
-    }
+    // Any content already scheduled for a day — of whatever type — means
+    // that day is done. Only one piece per day is ever wanted.
+    const coveredDays = new Set((existingContents || []).map((c) => dayKey(new Date(c.scheduled_date))));
 
-    // Every (day, missing type) still needed to reach a full 30-day window.
+    // One slot per still-empty day, with its type fixed by the day's
+    // position in the rotation — not by what's missing, since only one
+    // type is ever wanted per day in the first place.
     const slots: { date: Date; type: ContentType }[] = [];
     for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
       const date = new Date(now.getTime() + dayOffset * 86400000);
-      const have = covered.get(dayKey(date)) ?? new Set<string>();
-      for (const type of CONTENT_TYPES) {
-        if (!have.has(type)) slots.push({ date, type });
-      }
+      if (coveredDays.has(dayKey(date))) continue;
+      slots.push({ date, type: CONTENT_TYPES[dayOffset % CONTENT_TYPES.length] });
     }
 
-    const daysComplete = 30 - new Set(slots.map((s) => dayKey(s.date))).size;
+    const daysComplete = 30 - slots.length;
     console.log(
-      `[generate-30-gso] ${daysComplete}/30 days fully covered, ${slots.length} (day,type) slots still missing`
+      `[generate-30-gso] ${daysComplete}/30 days already scheduled, ${slots.length} days still missing`
     );
 
     if (slots.length === 0) {
