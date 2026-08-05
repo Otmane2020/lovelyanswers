@@ -7,8 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PRICE_MONTHLY = "price_1Sw4JNEfti9t9nN9Z88uua20"; // $29/month
-const PRICE_ANNUAL = "price_1Sw4LaEfti9t9nN97pvV9rYI"; // $279/year
+// Founding prices on "AutoPilot GEO — Starter" (prod_UYOqKNzPfdM0ZL).
+// Annual is -20% ($7.99/mo billed yearly), matching the other products' convention.
+// Overridable per environment so a price change never needs a redeploy.
+const PRICE_MONTHLY =
+  Deno.env.get("STRIPE_PRICE_MONTHLY") ?? "price_1U10c9Efti9t9nN95k2JZpYk"; // $9.99/month
+const PRICE_ANNUAL =
+  Deno.env.get("STRIPE_PRICE_ANNUAL") ?? "price_1U10cIEfti9t9nN9nZHk8ZHA"; // $95.88/year
+
+export const TRIAL_DAYS = 3;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -83,7 +90,8 @@ serve(async (req) => {
       ? `${origin}/auth?mode=signup&checkout=success`
       : `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
 
-    // Create checkout session with promo codes enabled (no trial period)
+    // 3-day trial: the landing and onboarding both advertise "no charge until
+    // day 4", so the subscription must not bill on creation.
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
@@ -95,6 +103,7 @@ serve(async (req) => {
       ],
       mode: "subscription",
       allow_promotion_codes: true,
+      subscription_data: { trial_period_days: TRIAL_DAYS },
       success_url: successUrl,
       cancel_url: `${origin}/onboarding`,
     });

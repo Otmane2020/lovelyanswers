@@ -48,9 +48,11 @@ verify_jwt = false
 [functions.aeo-sync]
 verify_jwt = false
 
+# NOTE: config.toml has no `schedule` key — only verify_jwt, import_map and
+# entrypoint exist here. Scheduling lives in pg_cron; see
+# supabase/migrations/20260805100000_fix_cron_jobs.sql
 [functions.publish-scheduled-answers]
 verify_jwt = false
-schedule = "0 * * * *"
 
 [functions.generate-30-days-content]
 verify_jwt = false
@@ -66,11 +68,9 @@ verify_jwt = false
 
 [functions.check-planning-completeness]
 verify_jwt = false
-schedule = "0 */6 * * *"
 
 [functions.daily-planning-fill]
 verify_jwt = false
-schedule = "0 6 * * *"
 
 [functions.suggest-audiences]
 verify_jwt = false
@@ -125,7 +125,6 @@ verify_jwt = false
 
 [functions.index-published-articles]
 verify_jwt = false
-schedule = "30 * * * *"
 
 [functions.gsc-test-indexation]
 verify_jwt = false
@@ -135,7 +134,6 @@ verify_jwt = false
 
 [functions.abandoned-cart-emails]
 verify_jwt = false
-schedule = "0 * * * *"
 
 [functions.generate-strategic-articles]
 verify_jwt = false
@@ -220,7 +218,6 @@ verify_jwt = false
 
 [functions.publish-geo-content]
 verify_jwt = false
-schedule = "0 2 * * *"
 
 [functions.create-search-campaign]
 verify_jwt = false
