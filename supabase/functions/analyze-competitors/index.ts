@@ -91,6 +91,10 @@ serve(async (req) => {
 
     const auth = btoa(`${login}:${password}`);
     const collected = new Map<string, RankedKeyword>();
+    // Kept alongside `collected` (which dedupes globally for storage) so the
+    // onboarding review screen can still show what each competitor specifically
+    // ranks for — the input the generator is actually targeting per rival.
+    const perCompetitor: { domain: string; keywords: string[] }[] = [];
 
     // What each competitor already ranks for is the best available proxy for
     // "what wins in this niche" — that's the brief the generator needs.
@@ -118,9 +122,12 @@ serve(async (req) => {
         const items = json?.tasks?.[0]?.result?.[0]?.items ?? [];
         console.log("[COMPETITORS]", domain, "→", items.length, "ranked keywords");
 
+        const thisDomainKeywords: string[] = [];
         for (const item of items) {
           const kw = item?.keyword_data?.keyword;
-          if (!kw || collected.has(kw.toLowerCase())) continue;
+          if (!kw) continue;
+          if (thisDomainKeywords.length < 6) thisDomainKeywords.push(kw);
+          if (collected.has(kw.toLowerCase())) continue;
           collected.set(kw.toLowerCase(), {
             keyword: kw,
             search_volume: item?.keyword_data?.keyword_info?.search_volume ?? null,
@@ -128,6 +135,7 @@ serve(async (req) => {
             source_url: `https://${domain}`,
           });
         }
+        if (thisDomainKeywords.length) perCompetitor.push({ domain, keywords: thisDomainKeywords });
       } catch (e) {
         console.error("[COMPETITORS] Failed for", domain, e);
         // A single competitor failing shouldn't lose the others' keywords.
@@ -136,7 +144,7 @@ serve(async (req) => {
 
     if (!collected.size) {
       return new Response(
-        JSON.stringify({ success: true, keywordsInserted: 0, message: "No keywords returned" }),
+        JSON.stringify({ success: true, keywordsInserted: 0, message: "No keywords returned", perCompetitor }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -169,7 +177,7 @@ serve(async (req) => {
 
     if (!rows.length) {
       return new Response(
-        JSON.stringify({ success: true, keywordsInserted: 0, message: "All keywords already stored" }),
+        JSON.stringify({ success: true, keywordsInserted: 0, message: "All keywords already stored", perCompetitor }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -185,6 +193,7 @@ serve(async (req) => {
         competitorsAnalyzed: targets.slice(0, 5).length,
         keywordsInserted: rows.length,
         topKeywords: rows.slice(0, 10).map((r) => r.keyword),
+        perCompetitor,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

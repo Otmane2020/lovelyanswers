@@ -66,6 +66,7 @@ interface Analysis {
   targetAudiences: string[]
   keywords: (string | { keyword: string })[]
   language: string
+  recommendationExample?: string
 }
 
 const normalizeUrl = (raw: string) => {
@@ -181,6 +182,7 @@ export default function Onboarding() {
   // — before the full AI pass even starts.
   const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string } | null>(null)
   const [dfsKeywords, setDfsKeywords] = useState<string[]>([])
+  const [competitorKeywords, setCompetitorKeywords] = useState<{ domain: string; keywords: string[] }[]>([])
   // DataForSEO-backed clusters (volume/difficulty/intent), richer than the
   // plain AI-guessed keyword list.
   const [keywordClusters, setKeywordClusters] = useState<{ name: string; intent: string; keywords: { keyword: string; volume: number }[] }[]>([])
@@ -307,6 +309,7 @@ export default function Onboarding() {
           },
         })
         if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
+        if (Array.isArray(dfs?.perCompetitor)) setCompetitorKeywords(dfs.perCompetitor)
       } catch (e) {
         console.error('[ONBOARDING] competitor analysis failed', e)
       }
@@ -672,9 +675,7 @@ export default function Onboarding() {
                 <div className="prev-card after">
                   <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
                   <div className="txt">
-                    "I'd recommend <b>{brand}</b> — {analysis.description
-                      ? analysis.description.slice(0, 110).replace(/\.$/, '')
-                      : 'known for great service'}."
+                    "{analysis.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
                   </div>
                 </div>
               </div>
@@ -716,8 +717,33 @@ export default function Onboarding() {
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
                     {analysis.competitors.length} competitor{analysis.competitors.length > 1 ? 's' : ''} already winning this
                   </div>
-                  <div className="found-chips" style={{ marginBottom: 14 }}>
-                    {analysis.competitors.map((c) => <span className="found-chip" key={c}>{c}</span>)}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {analysis.competitors.map((c) => {
+                      const bareDomain = c.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')
+                      const kws = competitorKeywords.find((ck) => ck.domain === bareDomain)?.keywords ?? []
+                      return (
+                        <div key={c} style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px',
+                          border: '1px solid var(--line)', borderRadius: 10, background: 'var(--paper)',
+                        }}>
+                          <img
+                            src={`https://www.google.com/s2/favicons?domain=${bareDomain}&sz=32`}
+                            alt=""
+                            width={18}
+                            height={18}
+                            style={{ borderRadius: 4, marginTop: 2, flexShrink: 0 }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{bareDomain}</div>
+                            {kws.length > 0 && (
+                              <div className="found-chips" style={{ marginTop: 4 }}>
+                                {kws.map((k) => <span className="found-chip" key={k}>{k}</span>)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </>
               )}

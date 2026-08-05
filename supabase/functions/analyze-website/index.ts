@@ -71,6 +71,7 @@ serve(async (req) => {
     let targetAudiences: string[] = [];
     let keywords: string[] = [];
     let detectedLanguage = "en";
+    let recommendationExample = "";
 
     // Step 1: Fetch and analyze FULL website content
     console.log("[ANALYZE-WEBSITE] 📄 Fetching full website content...");
@@ -258,6 +259,12 @@ TASKS:
 
 4. AUDIENCES: Identify 3 main target audiences IN ${langName}.
 
+5. RECOMMENDATION EXAMPLE: Write ONE short sentence, IN ${langName}, exactly how an AI assistant
+   (like ChatGPT) would naturally recommend this business to someone asking for a suggestion in
+   its category — conversational, first-person ("I'd recommend...", "Je te conseille...", etc
+   depending on ${langName}), mentioning what makes it a good pick. This is NOT the site description —
+   it's a spoken-style recommendation a chatbot would say out loud.
+
 IMPORTANT:
 - Competitors: return ONLY real, currently active domains of DIRECT competitors
 - Competitors must sell/offer the SAME type of product or service, not just be in the same broad category
@@ -274,6 +281,7 @@ Respond ONLY with this JSON (no explanation):
   "keywords": [{"keyword": "keyword in ${langName}", "intent": "informational"}],
   "description": "Professional enriched description in ${langName}...",
   "audiences": ["audience 1 in ${langName}", "audience 2", "audience 3"],
+  "recommendationExample": "Short spoken-style AI recommendation sentence in ${langName}...",
   "language": "${detectedLanguage}"
 }`;
 
@@ -331,6 +339,12 @@ Respond ONLY with this JSON (no explanation):
               if (Array.isArray(parsed.audiences)) {
                 targetAudiences = parsed.audiences.slice(0, 3);
                 console.log("[ANALYZE-WEBSITE] ✅ AI found audiences:", targetAudiences);
+              }
+
+              // Extract the spoken-style recommendation example
+              if (typeof parsed.recommendationExample === "string" && parsed.recommendationExample.length > 10) {
+                recommendationExample = parsed.recommendationExample;
+                console.log("[ANALYZE-WEBSITE] ✅ AI generated recommendation example");
               }
             }
           } catch (parseError) {
@@ -468,6 +482,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
         targetAudiences,
         keywords,
         language: detectedLanguage,
+        recommendationExample,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
