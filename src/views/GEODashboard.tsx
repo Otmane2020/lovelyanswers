@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useActiveProject } from '@/hooks/useProjects'
 import { Sidebar } from '@/components/dashboard/Sidebar'
@@ -16,7 +16,15 @@ export default function GEODashboard() {
   const navigate = useNavigate()
   const { user, isLoading: authLoading } = useAuth()
   const { project, isLoading: projectLoading } = useActiveProject()
-  const [activeTab, setActiveTab] = useState<DashboardTab>('today')
+  const [searchParams] = useSearchParams()
+  // ?tab=settings lets other screens deep-link straight to a panel instead of
+  // bouncing the user out to a separate page.
+  const requestedTab = searchParams.get('tab') as DashboardTab | null
+  const [activeTab, setActiveTab] = useState<DashboardTab>(
+    requestedTab && ['today', 'content', 'presence', 'results', 'settings'].includes(requestedTab)
+      ? requestedTab
+      : 'today'
+  )
 
   // Not signed in -> auth. Signed in but no project yet -> onboarding.
   useEffect(() => {

@@ -496,7 +496,7 @@ export default function Onboarding() {
               <button className="btn btn-primary" onClick={() => navigate('/geo')}>
                 Go to my dashboard <IcArrow />
               </button>
-              <button className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/integrations')}>
+              <button className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/geo?tab=settings')}>
                 Connect my website
               </button>
               <div className="timeline">
