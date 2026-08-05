@@ -9,7 +9,7 @@ import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = 5
 
 // Publishable keys are meant to be public (Stripe's own design — they only
 // ever initialize Stripe.js, never authorize a charge), so this is safe to
@@ -129,18 +129,28 @@ export default function Onboarding() {
 
   const [bizName, setBizName] = useState('')
   const [bizSite, setBizSite] = useState('')
+  const [country, setCountry] = useState('')
   const [category, setCategory] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const [phase, setPhase] = useState('')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  // Editable mirror of the auto-detected description, so step 3 is a real
+  // review-and-edit screen rather than a read-only report.
+  const [editableDescription, setEditableDescription] = useState('')
   const [projectId, setProjectId] = useState<string | null>(null)
-  // Quick unauthenticated scrape fired right after step 1, so step 2 opens
-  // with a category already guessed and a properly-formatted brand name —
-  // instead of "sweet-deco" (raw domain slug) until the full AI pass runs.
+  // Quick unauthenticated scrape fired right after step 1, so the category is
+  // already guessed and the brand name is properly formatted — "Sweet Déco",
+  // not "sweet-deco" (the raw domain slug analyze-website falls back to)
+  // — before the full AI pass even starts.
   const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string } | null>(null)
   const [dfsKeywords, setDfsKeywords] = useState<string[]>([])
+  // DataForSEO-backed clusters (volume/difficulty/intent), richer than the
+  // plain AI-guessed keyword list.
+  const [keywordClusters, setKeywordClusters] = useState<{ name: string; intent: string; keywords: { keyword: string; volume: number }[] }[]>([])
+  // Best-effort Google Business match — informational, not a live GMB sync.
+  const [placeInfo, setPlaceInfo] = useState<{ address?: string; phone?: string; openingHours?: string[]; rating?: number } | null>(null)
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -261,18 +271,57 @@ export default function Onboarding() {
         console.error('[ONBOARDING] competitor analysis failed', e)
       }
 
+      // Two more auto-fill passes, both best-effort: a scored/volumed
+      // keyword-research pass (real DataForSEO SERP data where available)
+      // and a Google Places match for address/phone/hours — replacing what
+      // would otherwise be manual fields on the review screen. Neither
+      // blocks getting there if it fails or the API key isn't configured.
+      setPhase('Researching keywords…')
+      try {
+        const { data: kw } = await supabase.functions.invoke('keyword-research', {
+          body: { projectId: project.id, seedKeywords: (data.keywords ?? []).slice(0, 5).map((k: any) => typeof k === 'string' ? k : k.keyword), language: data.language || 'en', country: country.trim().toLowerCase() || 'us' },
+        })
+        if (Array.isArray(kw?.clusters)) setKeywordClusters(kw.clusters)
+      } catch (e) {
+        console.error('[ONBOARDING] keyword research failed', e)
+      }
+
+      setPhase('Checking your Google listing…')
+      try {
+        const { data: places } = await supabase.functions.invoke('places-search', {
+          body: { query: `${goodBrandName} ${country}`.trim() },
+        })
+        const match = places?.results?.[0]
+        if (match?.id) {
+          const { data: details } = await supabase.functions.invoke('places-search', {
+            body: { placeId: match.id },
+          })
+          if (details?.business) {
+            setPlaceInfo({
+              address: details.business.address,
+              phone: details.business.phone,
+              openingHours: details.business.openingHours,
+              rating: details.business.rating,
+            })
+          }
+        }
+      } catch (e) {
+        console.error('[ONBOARDING] places lookup failed', e)
+      }
+
       setAnalysis({ ...data, brandName: goodBrandName } as Analysis)
-      setStep(4)
+      setEditableDescription(data.description || preScraped?.description || '')
+      setStep(3)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStep(3)
+      setStep(2)
       setPhase('')
     }
   }, [bizSite, bizName, category, preScraped])
 
-  // Signed in and sitting on step 3 → start analysing.
+  // Signed in and sitting on step 2 → start analysing.
   useEffect(() => {
-    if (step === 3 && user && !analysis && !phase) runAnalysis()
+    if (step === 2 && user && !analysis && !phase) runAnalysis()
   }, [step, user, analysis, phase, runAnalysis])
 
   const handleSignup = async () => {
@@ -314,6 +363,13 @@ export default function Onboarding() {
   const openPaywall = async () => {
     setBusy(true); setError('')
     try {
+      // Persist whatever was edited on the review screen before moving on.
+      if (projectId) {
+        await supabase.from('projects').update({
+          business_description: editableDescription || null,
+          business_type: category || null,
+        }).eq('id', projectId)
+      }
       const { data, error: e } = await supabase.functions.invoke('create-subscription-intent', {
         body: { plan },
       })
@@ -321,11 +377,11 @@ export default function Onboarding() {
       if (data?.error) throw new Error(data.error)
 
       if (data.alreadySubscribed) {
-        setStep(6)
+        setStep(5)
         return
       }
       setClientSecret(data.clientSecret)
-      setStep(5)
+      setStep(4)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start checkout')
     } finally {
@@ -333,13 +389,13 @@ export default function Onboarding() {
     }
   }
 
-  /* --- step 6: seed the 30-day plan now instead of waiting on the cron's
+  /* --- step 5: seed the 30-day plan now instead of waiting on the cron's
      small per-tick batches. Two tracks, both pre-existing: the AEO
      answer+article pairing (same call AeoWizard already uses) and the
      GEO/SEO/AEO/Local-AEO geo_contents track — 30 slots covers all 30 days
      in one shot since maxSlots overrides the steady-state cron cap. --- */
   const finish = async () => {
-    setStep(6)
+    setStep(5)
     if (!projectId) return
     try {
       await Promise.all([
@@ -358,14 +414,22 @@ export default function Onboarding() {
     }
   }
 
+  const canStartAnalysis = !!bizName.trim() && isValidUrl(bizSite) && !!country.trim()
   const brand = analysis?.brandName || preScraped?.brandName || bizName || 'your business'
   const aiKeywords = (analysis?.keywords ?? []).map((k) =>
     typeof k === 'string' ? k : k.keyword
   ).filter(Boolean)
-  // AI-guessed keywords first, then whatever competitors already rank for
-  // that the AI pass didn't already surface — deduped, case-insensitive.
-  const seen = new Set(aiKeywords.map((k) => k.toLowerCase()))
-  const keywordList = [...aiKeywords, ...dfsKeywords.filter((k) => !seen.has(k.toLowerCase()))]
+  const clusterKeywords = keywordClusters.flatMap((c) => c.keywords.map((k) => k.keyword))
+  // AI-guessed keywords first, then DataForSEO-scored ones from keyword-research,
+  // then whatever competitors already rank for — deduped, case-insensitive,
+  // keeping the first (highest-priority) occurrence of each.
+  const seen = new Set<string>()
+  const keywordList = [aiKeywords, clusterKeywords, dfsKeywords].flat().filter((k) => {
+    const key = k.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 
   return (
     <div className="apg-wizard-page">
@@ -399,46 +463,29 @@ export default function Onboarding() {
                 onChange={(e) => setBizName(e.target.value)} />
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
-                onChange={(e) => setBizSite(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && bizName.trim() && isValidUrl(bizSite) && (setError(''), setStep(2), preScrapeSite())} />
+                onChange={(e) => setBizSite(e.target.value)} />
+              <label>Country</label>
+              <input type="text" value={country} placeholder="e.g. France"
+                onChange={(e) => setCountry(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canStartAnalysis && (setError(''), setStep(2), preScrapeSite())} />
               <div className="foot-nav">
                 <span />
                 <button
                   className="btn btn-primary"
-                  disabled={!bizName.trim() || !isValidUrl(bizSite)}
+                  disabled={!canStartAnalysis}
                   onClick={() => { setError(''); setStep(2); preScrapeSite() }}
                 >
                   Continue <IcArrow />
                 </button>
               </div>
-              {!bizName.trim() || !isValidUrl(bizSite) ? (
-                <p className="fine">We need your site to run the analysis.</p>
+              {!canStartAnalysis ? (
+                <p className="fine">We need your site and country to run the analysis. Everything else — category, description, competitors, keywords — gets detected automatically.</p>
               ) : null}
             </>
           )}
 
-          {/* STEP 2 — category */}
+          {/* STEP 2 — account, then the real analysis */}
           {step === 2 && (
-            <>
-              <h1>What kind of business is it?</h1>
-              <p className="sub">This shapes the tone and the questions we optimize your content for.</p>
-              <div className="chip-grid">
-                {CATEGORIES.map((c) => (
-                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
-                    onClick={() => setCategory(c)}>{c}</button>
-                ))}
-              </div>
-              <div className="foot-nav">
-                <button className="btn-ghost" onClick={() => setStep(1)}>Back</button>
-                <button className="btn btn-primary" disabled={!category} onClick={() => setStep(3)}>
-                  Continue <IcArrow />
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* STEP 3 — account, then the real analysis */}
-          {step === 3 && (
             user ? (
               <>
                 <h1>Checking your AI visibility…</h1>
@@ -472,15 +519,15 @@ export default function Onboarding() {
                 <button className="btn btn-primary" style={{ marginTop: 20 }} disabled={busy} onClick={handleSignup}>
                   {busy ? 'Creating account…' : <>Create account & analyze <IcArrow /></>}
                 </button>
-                <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(2)}>
+                <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(1)}>
                   Back
                 </button>
               </>
             )
           )}
 
-          {/* STEP 4 — what we actually found */}
-          {step === 4 && analysis && (
+          {/* STEP 3 — review & edit what we auto-detected */}
+          {step === 3 && analysis && (
             <>
               <h1>Here's what we found for {brand}</h1>
               <p className="sub">Generated from your real site — this is what's at stake.</p>
@@ -502,21 +549,38 @@ export default function Onboarding() {
                   </div>
                 </div>
               </div>
-              {analysis.description && (
+              <label className="first">What we understood about {brand} — edit if it's off</label>
+              <textarea
+                value={editableDescription}
+                onChange={(e) => setEditableDescription(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px', fontSize: '13.5px', fontFamily: 'inherit',
+                  border: '1.5px solid var(--line)', borderRadius: '10px', background: 'var(--paper)',
+                  color: 'var(--ink)', resize: 'vertical', marginBottom: 14,
+                }}
+              />
+              <label>Category — tap to change</label>
+              <div className="chip-grid" style={{ marginBottom: 14 }}>
+                {CATEGORIES.map((c) => (
+                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
+                    onClick={() => setCategory(c)}>{c}</button>
+                ))}
+              </div>
+              {placeInfo && (
                 <>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
-                    What we understood about {brand}
+                    Found on Google Business
                   </div>
-                  <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 14 }}>
-                    {analysis.description}
-                  </p>
+                  <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 14 }}>
+                    {placeInfo.address && <div>{placeInfo.address}</div>}
+                    {placeInfo.phone && <div>{placeInfo.phone}</div>}
+                    {placeInfo.rating ? <div>{placeInfo.rating}★ on Google</div> : null}
+                    {placeInfo.openingHours && placeInfo.openingHours.length > 0 && (
+                      <div>{placeInfo.openingHours[0]}</div>
+                    )}
+                  </div>
                 </>
-              )}
-              {category && (
-                <div className="found-chips" style={{ marginBottom: 14 }}>
-                  <span className="found-chip">{category}</span>
-                  {analysis.language && <span className="found-chip">{analysis.language.toUpperCase()}</span>}
-                </div>
               )}
               {analysis.competitors && analysis.competitors.length > 0 && (
                 <>
@@ -547,8 +611,8 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* STEP 5 — paywall with Stripe Elements */}
-          {step === 5 && (
+          {/* STEP 4 — paywall with Stripe Elements */}
+          {step === 4 && (
             <>
               <h1>Choose your plan</h1>
               <p className="sub">Pick monthly or annual — you're billed today, and can cancel anytime.</p>
@@ -587,14 +651,14 @@ export default function Onboarding() {
                 <p className="phase">Loading secure payment form…</p>
               )}
 
-              <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(4)}>
+              <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(3)}>
                 Back
               </button>
             </>
           )}
 
-          {/* STEP 6 — done */}
-          {step === 6 && (
+          {/* STEP 5 — done */}
+          {step === 5 && (
             <>
               <div className="success-ic">
                 <svg className="ic-svg" viewBox="0 0 24 24" style={{ strokeWidth: 2 }}>
