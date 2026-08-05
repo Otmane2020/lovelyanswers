@@ -8,10 +8,8 @@ const corsHeaders = {
 };
 
 // Founding prices on "AutoPilot GEO — Starter" (prod_UYOqKNzPfdM0ZL).
-const PRICE_MONTHLY =
-  Deno.env.get("STRIPE_PRICE_MONTHLY") ?? "price_1U10c9Efti9t9nN95k2JZpYk"; // $9.99/month
-const PRICE_ANNUAL =
-  Deno.env.get("STRIPE_PRICE_ANNUAL") ?? "price_1U10cIEfti9t9nN9nZHk8ZHA"; // $95.88/year
+const PRICE_MONTHLY = Deno.env.get("STRIPE_PRICE_MONTHLY") ?? "price_1U10c9Efti9t9nN95k2JZpYk"; // $9.99/month
+const PRICE_ANNUAL = Deno.env.get("STRIPE_PRICE_ANNUAL") ?? "price_1U10cIEfti9t9nN9nZHk8ZHA"; // $95.88/year
 
 /**
  * Creates a subscription that bills immediately and hands back the
@@ -29,10 +27,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
 
     const body = await req.json().catch(() => ({}));
     const plan: string = body.plan === "annual" ? "annual" : "monthly";
@@ -48,9 +43,7 @@ serve(async (req) => {
       });
     }
 
-    const { data: userData, error: userError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const { data: userData, error: userError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (userError || !userData.user?.email) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
         status: 401,
@@ -59,7 +52,16 @@ serve(async (req) => {
     }
 
     const email = userData.user.email;
-    console.log("[SUB-INTENT] plan:", plan, "price:", priceId, "promo:", promoCodeInput || "(none)", "user:", userData.user.id);
+    console.log(
+      "[SUB-INTENT] plan:",
+      plan,
+      "price:",
+      priceId,
+      "promo:",
+      promoCodeInput || "(none)",
+      "user:",
+      userData.user.id,
+    );
 
     // Reuse the customer if this email already has one.
     const existing = await stripe.customers.list({ email, limit: 1 });
@@ -76,14 +78,12 @@ serve(async (req) => {
       status: "all",
       limit: 10,
     });
-    const active = currentSubs.data.find((s) =>
-      ["active", "past_due"].includes(s.status)
-    );
+    const active = currentSubs.data.find((s) => ["active", "past_due"].includes(s.status));
     if (active) {
-      return new Response(
-        JSON.stringify({ alreadySubscribed: true, status: active.status }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ alreadySubscribed: true, status: active.status }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Resolve the promo code before creating anything — an invalid code
@@ -149,7 +149,7 @@ serve(async (req) => {
         plan,
         discount: appliedDiscount ?? null,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
