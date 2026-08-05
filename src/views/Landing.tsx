@@ -5,8 +5,13 @@ export default function Landing() {
       <nav style={{position:'sticky',top:0,zIndex:30,background:'rgba(245,246,251,.9)',backdropFilter:'blur(10px)',borderBottom:'1px solid var(--line)'}}>
         <div style={{maxWidth:'1180px',margin:'0 auto',padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-            <div style={{width:'32px',height:'32px',borderRadius:'10px',background:'linear-gradient(150deg,#5f6ce0,#1a2058)'}}>🌟</div>
-            <div style={{fontWeight:'700',fontSize:'16px'}}>GEO</div>
+            <div style={{width:'32px',height:'32px',borderRadius:'10px',background:'linear-gradient(150deg,#5f6ce0,#1a2058)',display:'flex',alignItems:'center',justifyContent:'center',color:'#e9dfa8',fontSize:'16px'}}>
+              <svg viewBox="0 0 100 100" style={{width:'18px',height:'18px'}}>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#e9dfa8" strokeWidth="1.6" opacity=".85"/>
+                <path d="M50 8 C54.5 32 57.5 39 84 44 C57.5 49 54.5 56 50 80 C45.5 56 42.5 49 16 44 C42.5 39 45.5 32 50 8 Z" fill="#e9dfa8"/>
+              </svg>
+            </div>
+            <div><div style={{fontSize:'9.5px',letterSpacing:'.18em',color:'#c79a2e',fontWeight:'700'}}>AUTOPILOT</div><div style={{fontWeight:'700',fontSize:'16px',color:'var(--ink)'}}>GEO</div></div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
             <a href="/auth" style={{fontWeight:'600',fontSize:'13.5px',padding:'10px 15px',borderRadius:'10px',border:'1px solid var(--line)',background:'transparent',color:'var(--ink)',textDecoration:'none'}}>Open App</a>
