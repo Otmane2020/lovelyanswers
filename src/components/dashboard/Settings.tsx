@@ -9,27 +9,17 @@ import { useGoogleBusiness } from '@/hooks/useGoogleBusiness'
 import { ConnectPanel } from './ConnectPanel'
 import { IconGlobe, IconCart, IconUser, IconCard } from './Icons'
 
-import supabaseLogo from '@/assets/supabase-logo.svg'
 import googleSearchConsoleLogo from '@/assets/google-search-console-logo.svg'
 import googleBusinessLogo from '@/assets/google-business-logo.svg'
 
-const CMS_PLATFORMS = ['wordpress', 'shopify', 'webflow', 'wix', 'bigcommerce', 'framer', 'api', 'webhook']
+const CMS_PLATFORMS = ['wordpress', 'shopify', 'webflow', 'wix', 'bigcommerce', 'framer', 'lovable', 'bolt', 'replit', 'api', 'webhook']
 
 const PLATFORM_LABEL: Record<string, string> = {
   wordpress: 'WordPress', shopify: 'Shopify', webflow: 'Webflow', wix: 'Wix',
-  bigcommerce: 'BigCommerce', framer: 'Framer', api: 'API', webhook: 'Webhook',
+  bigcommerce: 'BigCommerce', framer: 'Framer', lovable: 'Lovable', bolt: 'Bolt', replit: 'Replit',
+  api: 'API', webhook: 'Webhook',
   google_business: 'Google Business Profile', google_search_console: 'Google Search Console',
 }
-
-// Replit/Bolt/Lovable moved to the real "Website (CMS)" connect flow
-// (ConnectPanel + IntegrationConfigModal) — they publish through a webhook
-// or API endpoint the same way WordPress/Shopify/etc. do, so they're no
-// longer "coming soon". Supabase is a different kind of integration (linking
-// the client's own Supabase project for data sync, not content publishing)
-// with no backend yet, so it stays here honestly labeled.
-const DEV_INTEGRATIONS = [
-  { id: 'supabase', name: 'Supabase', description: 'Link your own Supabase project for custom data sync.', logo: supabaseLogo, color: '#3ECF8E' },
-] as const
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', fontSize: '13.5px', fontFamily: 'inherit',
@@ -271,46 +261,6 @@ export function Settings() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="section-label">Integrations</div>
-      <p className="sub" style={{ marginTop: '-8px', marginBottom: '14px' }}>
-        Platforms AutopilotGEO is built to work alongside
-      </p>
-      <div className="card" style={{ marginBottom: '20px' }}>
-        {DEV_INTEGRATIONS.map((integ) => {
-          // Replit and Supabase logos are Simple Icons' monochrome SVGs —
-          // no brand color baked in — so they sit on a real brand-color
-          // badge, inverted to white. Bolt and Lovable's own asset files are
-          // already full-color, shown as-is on a plain bordered tile.
-          const hasColor = 'color' in integ
-          return (
-            <div className="setting-row" key={integ.id}>
-              <div className="setting-l">
-                <span style={{
-                  width: 38, height: 38, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: hasColor ? (integ as { color: string }).color : 'var(--surface)',
-                  border: hasColor ? 'none' : '1px solid var(--line)',
-                }}>
-                  <img
-                    src={integ.logo}
-                    alt={integ.name}
-                    style={{
-                      width: '60%', height: '60%', objectFit: 'contain',
-                      filter: hasColor ? 'brightness(0) invert(1)' : 'none',
-                    }}
-                  />
-                </span>
-                <div>
-                  <div className="setting-name">{integ.name}</div>
-                  <div className="setting-meta">{integ.description}</div>
-                </div>
-              </div>
-              <span className="badge-missing">Coming soon</span>
-            </div>
-          )
-        })}
       </div>
 
       <div className="section-label">Project</div>
