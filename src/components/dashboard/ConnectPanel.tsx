@@ -10,7 +10,10 @@ import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
 import framerLogo from '@/assets/framer-logo.png'
 import wixLogo from '@/assets/wix-logo.png'
 
-/** Platforms we can publish to or monitor. Same ids the edge functions expect. */
+/** Platforms we can publish to. Same ids the edge functions expect.
+ * Google Search Console lives in Settings' Connections card instead — it's
+ * an OAuth account link, not a CMS config form like these, and
+ * IntegrationConfigModal (used below) has no config for it at all. */
 const PLATFORMS = [
   { id: 'wordpress', name: 'WordPress', icon: wordpressLogo, isImage: true },
   { id: 'shopify', name: 'Shopify', icon: shopifyLogo, isImage: true },
@@ -18,7 +21,6 @@ const PLATFORMS = [
   { id: 'framer', name: 'Framer', icon: framerLogo, isImage: true },
   { id: 'bigcommerce', name: 'BigCommerce', icon: bigcommerceLogo, isImage: true },
   { id: 'webflow', name: 'Webflow', icon: '🔷', isImage: false },
-  { id: 'google_search_console', name: 'Google Search Console', icon: '🔍', isImage: false },
   { id: 'api', name: 'API', icon: '⚙️', isImage: false },
   { id: 'webhook', name: 'Webhook', icon: '🔗', isImage: false },
 ] as const

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,9 @@ import { useGoogleBusiness } from '@/hooks/useGoogleBusiness'
 import { ConnectPanel } from './ConnectPanel'
 import { IconGlobe, IconPin, IconCart, IconUser, IconCard } from './Icons'
 
+import boltLogo from '@/assets/bolt-logo.png'
+import lovableLogo from '@/assets/lovable-logo.svg'
+
 const CMS_PLATFORMS = ['wordpress', 'shopify', 'webflow', 'wix', 'bigcommerce', 'framer', 'api', 'webhook']
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -16,6 +19,16 @@ const PLATFORM_LABEL: Record<string, string> = {
   bigcommerce: 'BigCommerce', framer: 'Framer', api: 'API', webhook: 'Webhook',
   google_business: 'Google Business Profile', google_search_console: 'Google Search Console',
 }
+
+// No real "link your account" backend exists for any of these yet — shown
+// as coming soon rather than a Connect button that would fail, per the
+// rule to never present an integration as functional before its backend is.
+const DEV_INTEGRATIONS = [
+  { id: 'replit', name: 'Replit', description: 'Deploy generated content straight from a Replit workspace.', mono: '▲', color: '#F26207' },
+  { id: 'supabase', name: 'Supabase', description: 'Link your own Supabase project for custom data sync.', mono: 'S', color: '#3ECF8E' },
+  { id: 'bolt', name: 'Bolt', description: 'Push GEO content updates into a Bolt-built site.', logo: boltLogo },
+  { id: 'lovable', name: 'Lovable', description: 'Sync content into a Lovable-built site.', logo: lovableLogo },
+] as const
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', fontSize: '13.5px', fontFamily: 'inherit',
@@ -26,7 +39,7 @@ const inputStyle: React.CSSProperties = {
 export function Settings() {
   const { user } = useAuth()
   const { project } = useActiveProject()
-  const { data: integrations = [], isLoading } = useIntegrations()
+  const { data: integrations = [], isLoading, refetch: refetchIntegrations } = useIntegrations()
   const updateProject = useUpdateProject()
   // GEODashboard gates access on subscription status, so anyone reaching
   // Settings is already paying — there's no free tier to "upgrade" from here.
@@ -40,6 +53,7 @@ export function Settings() {
   const [editProject, setEditProject] = useState(false)
   const [editAccount, setEditAccount] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [connectingGsc, setConnectingGsc] = useState(false)
 
   const [brandName, setBrandName] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
@@ -47,6 +61,7 @@ export function Settings() {
 
   const cms = integrations.find((i) => CMS_PLATFORMS.includes(i.platform) && i.is_connected)
   const catalog = integrations.find((i) => ['shopify', 'bigcommerce'].includes(i.platform) && i.is_connected)
+  const gscConnected = integrations.some((i) => i.platform === 'google_search_console' && i.is_connected)
 
   const planLabel = subLoading
     ? 'Checking…'
@@ -71,6 +86,53 @@ export function Settings() {
       toast.error('Could not open billing. Please try again.')
     }
   }
+
+  // Real OAuth flow, ported from the legacy Integrations page rather than
+  // rebuilt: get the Google consent URL, remember where to return, redirect.
+  const connectGSC = async () => {
+    setConnectingGsc(true)
+    try {
+      const redirectUri = `${window.location.origin}/geo?tab=settings`
+      sessionStorage.setItem('gsc_oauth_redirect_uri', redirectUri)
+      const { data, error } = await supabase.functions.invoke('google-oauth-url', {
+        body: { redirectUri },
+      })
+      if (error) throw error
+      if (!data?.url) throw new Error('Failed to get OAuth URL')
+      window.location.href = data.url
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to connect to Google Search Console')
+      setConnectingGsc(false)
+    }
+  }
+
+  // Completes the round trip above: Google redirects back here with a code.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code')
+    const state = new URLSearchParams(window.location.search).get('state')
+    if (!code || !state) return
+
+    const exchange = async () => {
+      setConnectingGsc(true)
+      try {
+        const redirectUri = sessionStorage.getItem('gsc_oauth_redirect_uri') || `${window.location.origin}/geo?tab=settings`
+        const { data, error } = await supabase.functions.invoke('google-oauth-token', {
+          body: { code, state, redirectUri },
+        })
+        if (error) throw error
+        if (!data?.success) throw new Error([data?.error, data?.details].filter(Boolean).join('\n') || 'Failed to connect')
+        toast.success('Google Search Console connected')
+        refetchIntegrations()
+        sessionStorage.removeItem('gsc_oauth_redirect_uri')
+        window.history.replaceState({}, document.title, window.location.pathname + '?tab=settings')
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to connect Google Search Console')
+      } finally {
+        setConnectingGsc(false)
+      }
+    }
+    exchange()
+  }, [refetchIntegrations])
 
   const openProjectEdit = () => {
     setBrandName(project?.brand_name || project?.name || '')
@@ -184,6 +246,56 @@ export function Settings() {
             </div>
           )}
         </div>
+
+        <div className="setting-row">
+          <div className="setting-l">
+            <div className="setting-ic icon-tile indigo" style={{ fontSize: 16 }}>🔍</div>
+            <div>
+              <div className="setting-name">Google Search Console</div>
+              <div className="setting-meta">Indexing status and search performance</div>
+            </div>
+          </div>
+          {gscConnected ? (
+            <span className="badge-connected">Connected</span>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="badge-missing">Not connected</span>
+              <button className="btn btn-primary btn-sm" disabled={connectingGsc} onClick={connectGSC}>
+                {connectingGsc ? 'Connecting…' : 'Connect'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section-label">Integrations</div>
+      <p className="sub" style={{ marginTop: '-8px', marginBottom: '14px' }}>
+        Platforms AutopilotGEO is built to work alongside
+      </p>
+      <div className="card" style={{ marginBottom: '20px' }}>
+        {DEV_INTEGRATIONS.map((integ) => (
+          <div className="setting-row" key={integ.id}>
+            <div className="setting-l">
+              <span style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'logo' in integ ? 'var(--surface)' : (integ as { color: string }).color,
+                border: 'logo' in integ ? '1px solid var(--line)' : 'none',
+              }}>
+                {'logo' in integ ? (
+                  <img src={integ.logo} alt={integ.name} style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
+                ) : (
+                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{(integ as { mono: string }).mono}</span>
+                )}
+              </span>
+              <div>
+                <div className="setting-name">{integ.name}</div>
+                <div className="setting-meta">{integ.description}</div>
+              </div>
+            </div>
+            <span className="badge-missing">Coming soon</span>
+          </div>
+        ))}
       </div>
 
       <div className="section-label">Project</div>
