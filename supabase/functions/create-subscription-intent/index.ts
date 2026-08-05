@@ -37,6 +37,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const plan: string = body.plan === "annual" ? "annual" : "monthly";
     const priceId = plan === "annual" ? PRICE_ANNUAL : PRICE_MONTHLY;
+    const promoCodeInput: string = typeof body.promoCode === "string" ? body.promoCode.trim() : "";
 
     // The caller must be signed in — the subscription is tied to their account.
     const authHeader = req.headers.get("Authorization");
@@ -85,6 +86,28 @@ serve(async (req) => {
       );
     }
 
+    // Resolve the promo code before creating anything — an invalid code
+    // must fail loudly here, not silently charge full price.
+    let promotionCodeId: string | undefined;
+    let appliedDiscount: { code: string; percentOff: number | null; amountOff: number | null } | undefined;
+    if (promoCodeInput) {
+      const matches = await stripe.promotionCodes.list({ code: promoCodeInput, active: true, limit: 1 });
+      const promo = matches.data[0];
+      if (!promo) {
+        return new Response(JSON.stringify({ error: "That promo code isn't valid or has expired." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      promotionCodeId = promo.id;
+      appliedDiscount = {
+        code: promo.code,
+        percentOff: promo.coupon.percent_off ?? null,
+        amountOff: promo.coupon.amount_off ?? null,
+      };
+      console.log("[SUB-INTENT] promo code applied:", promo.code, promo.id);
+    }
+
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
@@ -92,6 +115,7 @@ serve(async (req) => {
       payment_settings: { save_default_payment_method: "on_subscription" },
       expand: ["latest_invoice.payment_intent"],
       metadata: { supabase_user_id: userData.user.id, plan },
+      ...(promotionCodeId ? { discounts: [{ promotion_code: promotionCodeId }] } : {}),
     });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice | null;
@@ -108,6 +132,7 @@ serve(async (req) => {
         subscriptionId: subscription.id,
         customerId: customer.id,
         plan,
+        discount: appliedDiscount ?? null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

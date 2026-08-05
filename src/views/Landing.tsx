@@ -393,10 +393,11 @@ export default function Landing() {
           <div className="demo-shell" style={{ maxWidth: '560px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
               <div style={{
-                width: 40, height: 40, borderRadius: 10, background: '#95BF47',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                width: 40, height: 40, borderRadius: 10, background: 'var(--surface)',
+                border: '1px solid var(--line)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0,
               }}>
-                <img src={shopifyLogo} alt="Shopify" style={{ width: 24, height: 24, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                <img src={shopifyLogo} alt="Shopify" style={{ width: 26, height: 26, objectFit: 'contain' }} />
               </div>
               <h3 style={{ fontSize: '16px', margin: 0 }}>GEO Shopping for Shopify</h3>
             </div>
