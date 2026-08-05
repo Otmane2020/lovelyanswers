@@ -832,13 +832,24 @@ export default function Onboarding() {
               </div>
               <h1 style={{ textAlign: 'center' }}>You're all set</h1>
               <p className="sub" style={{ textAlign: 'center' }}>
-                You're subscribed and your first piece is already being written.
+                You're subscribed and your first piece is already being written. Last step: connect your site so it can actually publish.
               </p>
-              <button className="btn btn-primary" onClick={() => navigate('/geo')}>
-                Go to my dashboard <IcArrow />
+              <button className="btn btn-primary" onClick={() => navigate('/geo?tab=settings')}>
+                Connect my website <IcArrow />
               </button>
-              <button className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/geo?tab=settings')}>
-                Connect my website
+              <a
+                className="btn-ghost"
+                style={{ width: '100%', marginTop: 8, textAlign: 'center', display: 'block' }}
+                href={`mailto:support@autopilotgeo.com?subject=${encodeURIComponent(
+                  `Connect my site — ${bizName || 'my project'}`
+                )}&body=${encodeURIComponent(
+                  `Hi,\n\nCan you connect my CMS for me? Here are my details:\n\nProject: ${bizName || ''}\nWebsite: ${bizSite || ''}\n\nThanks!`
+                )}`}
+              >
+                I need help — do it for me
+              </a>
+              <button className="btn-ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/geo')}>
+                Skip for now, go to my dashboard
               </button>
               <div className="timeline">
                 <div className="tl-row">
