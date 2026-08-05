@@ -22,6 +22,7 @@ import AeoSupport from "@/views/AeoSupport";
 import AeoIntegrations from "@/views/AeoIntegrations";
 import AeoHistory from "@/views/AeoHistory";
 import AeoGeo from "@/views/AeoGeo";
+import GEODashboard from "@/views/GEODashboard";
 import AeoLocal from "@/views/AeoLocal";
 import AeoReddit from "@/views/AeoReddit";
 import AeoSeoAudit from "@/views/AeoSeoAudit";
@@ -47,6 +48,7 @@ import AeoPublicAnswer from "@/views/AeoPublicAnswer";
 import LocalAeoArticle from "@/views/LocalAeoArticle";
 import AiVisibilityChecker from "@/views/tools/AiVisibilityChecker";
 import Onboarding from "@/views/Onboarding";
+import Landing from "@/views/Landing";
 import AeoWizard from "@/views/AeoWizard";
 
 export default function App() {
@@ -54,7 +56,9 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<IndexPage />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
@@ -77,7 +81,7 @@ export default function App() {
         <Route path="/support" element={<AeoSupport />} />
         <Route path="/integrations" element={<AeoIntegrations />} />
         <Route path="/history" element={<AeoHistory />} />
-        <Route path="/geo" element={<AeoGeo />} />
+        <Route path="/geo" element={<GEODashboard />} />
         <Route path="/local" element={<AeoLocal />} />
         <Route path="/localAEO" element={<LocalAeoArticle />} />
         <Route path="/reddit" element={<AeoReddit />} />

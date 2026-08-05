@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
-import AeoGeoPage from "@/views/AeoGeo";
+import GEODashboard from "@/views/GEODashboard";
 
 export default function Page() {
-  return <AeoGeoPage />;
+  return <GEODashboard />;
 }
