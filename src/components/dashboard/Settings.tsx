@@ -7,10 +7,14 @@ import { useIntegrations } from '@/hooks/useIntegrations'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useGoogleBusiness } from '@/hooks/useGoogleBusiness'
 import { ConnectPanel } from './ConnectPanel'
-import { IconGlobe, IconPin, IconCart, IconUser, IconCard } from './Icons'
+import { IconGlobe, IconCart, IconUser, IconCard } from './Icons'
 
 import boltLogo from '@/assets/bolt-logo.png'
 import lovableLogo from '@/assets/lovable-logo.svg'
+import replitLogo from '@/assets/replit-logo.svg'
+import supabaseLogo from '@/assets/supabase-logo.svg'
+import googleSearchConsoleLogo from '@/assets/google-search-console-logo.svg'
+import googleBusinessLogo from '@/assets/google-business-logo.svg'
 
 const CMS_PLATFORMS = ['wordpress', 'shopify', 'webflow', 'wix', 'bigcommerce', 'framer', 'api', 'webhook']
 
@@ -24,8 +28,8 @@ const PLATFORM_LABEL: Record<string, string> = {
 // as coming soon rather than a Connect button that would fail, per the
 // rule to never present an integration as functional before its backend is.
 const DEV_INTEGRATIONS = [
-  { id: 'replit', name: 'Replit', description: 'Deploy generated content straight from a Replit workspace.', mono: '▲', color: '#F26207' },
-  { id: 'supabase', name: 'Supabase', description: 'Link your own Supabase project for custom data sync.', mono: 'S', color: '#3ECF8E' },
+  { id: 'replit', name: 'Replit', description: 'Deploy generated content straight from a Replit workspace.', logo: replitLogo, color: '#F26207' },
+  { id: 'supabase', name: 'Supabase', description: 'Link your own Supabase project for custom data sync.', logo: supabaseLogo, color: '#3ECF8E' },
   { id: 'bolt', name: 'Bolt', description: 'Push GEO content updates into a Bolt-built site.', logo: boltLogo },
   { id: 'lovable', name: 'Lovable', description: 'Sync content into a Lovable-built site.', logo: lovableLogo },
 ] as const
@@ -211,7 +215,9 @@ export function Settings() {
 
         <div className="setting-row">
           <div className="setting-l">
-            <div className="setting-ic icon-tile indigo"><IconPin /></div>
+            <div className="setting-ic icon-tile indigo" style={{ padding: 8 }}>
+              <img src={googleBusinessLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
             <div>
               <div className="setting-name">Google Business Profile</div>
               <div className="setting-meta">Business listing and reviews</div>
@@ -249,7 +255,9 @@ export function Settings() {
 
         <div className="setting-row">
           <div className="setting-l">
-            <div className="setting-ic icon-tile indigo" style={{ fontSize: 16 }}>🔍</div>
+            <div className="setting-ic icon-tile indigo" style={{ padding: 8 }}>
+              <img src={googleSearchConsoleLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
             <div>
               <div className="setting-name">Google Search Console</div>
               <div className="setting-meta">Indexing status and search performance</div>
@@ -273,29 +281,39 @@ export function Settings() {
         Platforms AutopilotGEO is built to work alongside
       </p>
       <div className="card" style={{ marginBottom: '20px' }}>
-        {DEV_INTEGRATIONS.map((integ) => (
-          <div className="setting-row" key={integ.id}>
-            <div className="setting-l">
-              <span style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'logo' in integ ? 'var(--surface)' : (integ as { color: string }).color,
-                border: 'logo' in integ ? '1px solid var(--line)' : 'none',
-              }}>
-                {'logo' in integ ? (
-                  <img src={integ.logo} alt={integ.name} style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
-                ) : (
-                  <span style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{(integ as { mono: string }).mono}</span>
-                )}
-              </span>
-              <div>
-                <div className="setting-name">{integ.name}</div>
-                <div className="setting-meta">{integ.description}</div>
+        {DEV_INTEGRATIONS.map((integ) => {
+          // Replit and Supabase logos are Simple Icons' monochrome SVGs —
+          // no brand color baked in — so they sit on a real brand-color
+          // badge, inverted to white. Bolt and Lovable's own asset files are
+          // already full-color, shown as-is on a plain bordered tile.
+          const hasColor = 'color' in integ
+          return (
+            <div className="setting-row" key={integ.id}>
+              <div className="setting-l">
+                <span style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: hasColor ? (integ as { color: string }).color : 'var(--surface)',
+                  border: hasColor ? 'none' : '1px solid var(--line)',
+                }}>
+                  <img
+                    src={integ.logo}
+                    alt={integ.name}
+                    style={{
+                      width: '60%', height: '60%', objectFit: 'contain',
+                      filter: hasColor ? 'brightness(0) invert(1)' : 'none',
+                    }}
+                  />
+                </span>
+                <div>
+                  <div className="setting-name">{integ.name}</div>
+                  <div className="setting-meta">{integ.description}</div>
+                </div>
               </div>
+              <span className="badge-missing">Coming soon</span>
             </div>
-            <span className="badge-missing">Coming soon</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="section-label">Project</div>

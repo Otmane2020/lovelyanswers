@@ -10,6 +10,9 @@ import framerLogo from '@/assets/framer-logo.png'
 import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
 import lovableLogo from '@/assets/lovable-logo.svg'
 import boltLogo from '@/assets/bolt-logo.png'
+import supabaseLogo from '@/assets/supabase-logo.svg'
+import vercelLogo from '@/assets/vercel-logo.svg'
+import netlifyLogo from '@/assets/netlify-logo.svg'
 
 /* ---------- inline icons (ported from the design's <symbol> defs) ---------- */
 const Ic = ({ d, size = 16, sw = 1.6, circles = [] as { cx: number; cy: number; r: number }[] }) => (
@@ -457,9 +460,9 @@ export default function Landing() {
               </div>
             ))}
             {[
-              { name: 'Supabase', mono: 'S', color: '#3ECF8E' },
-              { name: 'Vercel', mono: '▲', color: '#000000' },
-              { name: 'Netlify', mono: 'N', color: '#00C7B7' },
+              { name: 'Supabase', logo: supabaseLogo, color: '#3ECF8E' },
+              { name: 'Vercel', logo: vercelLogo, color: '#000000' },
+              { name: 'Netlify', logo: netlifyLogo, color: '#00C7B7' },
             ].map((p) => (
               <div key={p.name} style={{
                 display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px',
@@ -469,9 +472,8 @@ export default function Landing() {
                 <span style={{
                   width: 26, height: 26, borderRadius: 7, background: p.color, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 13, fontWeight: 800,
                 }}>
-                  {p.mono}
+                  <img src={p.logo} alt={p.name} style={{ width: '60%', height: '60%', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
                 </span>
                 {p.name}
               </div>

@@ -9,6 +9,7 @@ import wordpressLogo from '@/assets/wordpress-logo-new.png'
 import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
 import framerLogo from '@/assets/framer-logo.png'
 import wixLogo from '@/assets/wix-logo.png'
+import webflowLogo from '@/assets/webflow-logo.svg'
 
 /** Platforms we can publish to. Same ids the edge functions expect.
  * Google Search Console lives in Settings' Connections card instead — it's
@@ -20,7 +21,7 @@ const PLATFORMS = [
   { id: 'wix', name: 'Wix', icon: wixLogo, isImage: true },
   { id: 'framer', name: 'Framer', icon: framerLogo, isImage: true },
   { id: 'bigcommerce', name: 'BigCommerce', icon: bigcommerceLogo, isImage: true },
-  { id: 'webflow', name: 'Webflow', icon: '🔷', isImage: false },
+  { id: 'webflow', name: 'Webflow', icon: webflowLogo, isImage: true },
   { id: 'api', name: 'API', icon: '⚙️', isImage: false },
   { id: 'webhook', name: 'Webhook', icon: '🔗', isImage: false },
 ] as const
