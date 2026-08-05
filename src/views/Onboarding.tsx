@@ -1,174 +1,287 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { useCreateProject } from '@/hooks/useProjects'
+import { useAnalytics } from '@/hooks/useAnalytics'
+import { BrandMark, themeVars } from '@/components/brand/BrandMark'
+
+interface Analysis {
+  domain: string
+  brandName: string
+  description: string
+  competitors: string[]
+  targetAudiences: string[]
+  keywords: { keyword: string; volume?: number }[] | string[]
+  language: string
+}
+
+function normalizeUrl(raw: string) {
+  const t = raw.trim()
+  if (!t) return ''
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`
+}
+
+function isValidUrl(raw: string) {
+  try {
+    const u = new URL(normalizeUrl(raw))
+    return !!u.hostname && u.hostname.includes('.')
+  } catch {
+    return false
+  }
+}
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [businessName, setBusinessName] = useState('')
-  const [businessCategory, setBusinessCategory] = useState('')
+  const { user, isLoading: authLoading } = useAuth()
+  const createProject = useCreateProject()
+  const { track } = useAnalytics()
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [websiteUrl, setWebsiteUrl] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [phase, setPhase] = useState('')
 
-  // Auto-advance from loading step after 3 seconds
+  // Already signed in with a project? Straight to the dashboard.
   useEffect(() => {
-    if (step === 3) {
-      const timer = setTimeout(() => setStep(4), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [step])
+    if (authLoading || !user) return
+    supabase
+      .from('projects')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) navigate('/geo', { replace: true })
+      })
+  }, [authLoading, user, navigate])
 
-  const categories = [
-    'E-commerce', 'SaaS', 'Local Business', 'Agency', 'Marketplace', 'Content',
-    'Service Provider', 'Consulting', 'Education', 'Healthcare', 'Finance', 'Other'
-  ]
-
-  const handleSignup = async () => {
-    if (!email || !password) {
-      setError('Email and password required')
-      return
-    }
-
-    setLoading(true)
+  const runAnalysis = async () => {
+    setStep(3)
     setError('')
-
     try {
-      const { error: signupError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: businessName,
-            business_category: businessCategory,
-          }
-        }
+      setPhase('Fetching your site…')
+      const { data, error: fnError } = await supabase.functions.invoke('analyze-website', {
+        body: { url: normalizeUrl(websiteUrl) },
+      })
+      if (fnError) throw new Error(fnError.message || 'Could not analyze your site')
+      if (!data?.success) throw new Error(data?.error || 'Could not analyze your site')
+
+      setPhase('Creating your project…')
+      const project = await createProject.mutateAsync({
+        name: data.brandName || data.domain,
+        website_url: normalizeUrl(websiteUrl),
+        domain: data.domain,
+        language: data.language || 'en',
+        business_description: data.description || undefined,
+        brand_name: data.brandName || undefined,
+        competitors: Array.isArray(data.competitors) ? data.competitors : undefined,
       })
 
-      if (signupError) throw signupError
-      setStep(6)
+      track('signup_completed', { domain: data.domain })
+      setAnalysis(data as Analysis)
+      if (project) setStep(4)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed')
-    } finally {
-      setLoading(false)
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setStep(2)
     }
   }
 
+  const handleUrlSubmit = () => {
+    if (!isValidUrl(websiteUrl)) {
+      setError('Enter a valid website address, e.g. yourstore.com')
+      return
+    }
+    setError('')
+    track('signup_started', { domain: websiteUrl })
+    // Analysis needs an authenticated session — sign in first if needed.
+    if (user) runAnalysis()
+    else setStep(2)
+  }
+
+  const handleSignup = async () => {
+    if (!email || password.length < 6) {
+      setError('Enter an email and a password of at least 6 characters')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: email.split('@')[0] } },
+      })
+
+      // Existing account? Sign in instead of failing.
+      if (signUpError) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw new Error(signUpError.message)
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        setError('Check your inbox to confirm your email, then sign in to continue.')
+        setBusy(false)
+        return
+      }
+
+      setBusy(false)
+      await runAnalysis()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create your account')
+      setBusy(false)
+    }
+  }
+
+  const keywordList = (analysis?.keywords || []).map((k: any) =>
+    typeof k === 'string' ? k : k.keyword
+  )
+
   return (
-    <div style={{minHeight:'100vh',background:'var(--paper)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-      {/* Progress bar */}
-      <div style={{position:'absolute',top:0,left:0,right:0,height:'4px',background:'linear-gradient(90deg,#2e3a8c 0%,#2e3a8c ' + (step*16.67) + '%,#e4e5f0 ' + (step*16.67) + '%,#e4e5f0 100%)'}}>
+    <div style={{ ...themeVars, minHeight: '100vh', background: 'var(--paper)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', fontFamily: 'Inter, sans-serif', color: 'var(--ink)' }}>
+      {/* progress */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '3px', background: 'var(--line)' }}>
+        <div style={{ height: '100%', width: `${step * 25}%`, background: 'linear-gradient(90deg,#2e3a8c,#5f6ce0)', transition: 'width .4s ease' }} />
       </div>
 
-      <div style={{maxWidth:'540px',width:'100%'}}>
-        {/* Step 1: Business Name */}
+      <div style={{ marginTop: '44px', marginBottom: '32px' }}>
+        <BrandMark size={40} withText />
+      </div>
+
+      <div style={{ maxWidth: '520px', width: '100%' }}>
+        {error && (
+          <div style={{ background: 'var(--red-soft)', color: 'var(--red)', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', border: '1px solid #f1cccc' }}>
+            {error}
+          </div>
+        )}
+
         {step === 1 && (
-          <div style={{textAlign:'center',animation:'fadeIn 0.3s ease'}}>
-            <div style={{width:'60px',height:'60px',borderRadius:'16px',background:'linear-gradient(150deg,#5f6ce0,#1a2058)',display:'flex',alignItems:'center',justifyContent:'center',color:'#e9dfa8',margin:'0 auto 24px'}}>
-              <svg viewBox="0 0 100 100" style={{width:'32px',height:'32px'}}>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#e9dfa8" strokeWidth="1.6" opacity=".85"/>
-                <path d="M50 8 C54.5 32 57.5 39 84 44 C57.5 49 54.5 56 50 80 C45.5 56 42.5 49 16 44 C42.5 39 45.5 32 50 8 Z" fill="#e9dfa8"/>
-              </svg>
-            </div>
-            <h1 style={{fontSize:'28px',fontWeight:'700',margin:'0 0 12px',color:'var(--ink)'}}>What's your business name?</h1>
-            <p style={{fontSize:'15px',color:'var(--ink-soft)',margin:'0 0 28px'}}>We'll use this to customize your AI visibility audit</p>
-            <input type="text" placeholder="Your business name..." value={businessName} onChange={(e) => setBusinessName(e.target.value)} style={{width:'100%',padding:'12px 16px',fontSize:'15px',border:'1px solid var(--line)',borderRadius:'10px',marginBottom:'16px'}} />
-            <button onClick={() => businessName.trim() && setStep(2)} style={{width:'100%',padding:'12px',fontSize:'15px',fontWeight:'600',background:'linear-gradient(120deg,#f3e3ad,#c79a2e)',color:'#3a2c05',border:'none',borderRadius:'10px',cursor:'pointer'}} disabled={!businessName.trim()}>Continue →</button>
-          </div>
-        )}
-
-        {/* Step 2: Category */}
-        {step === 2 && (
-          <div style={{textAlign:'center',animation:'fadeIn 0.3s ease'}}>
-            <h1 style={{fontSize:'28px',fontWeight:'700',margin:'0 0 12px',color:'var(--ink)'}}>What category best fits?</h1>
-            <p style={{fontSize:'15px',color:'var(--ink-soft)',margin:'0 0 24px'}}>Help us tailor your content strategy</p>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-              {categories.map(cat => (
-                <button key={cat} onClick={() => {setBusinessCategory(cat); setStep(3)}} style={{padding:'16px',border:businessCategory === cat ? 'none' : '1px solid var(--line)',background:businessCategory === cat ? 'linear-gradient(120deg,#2e3a8c,#1f2761)' : 'var(--surface)',color:businessCategory === cat ? '#fff' : 'var(--ink)',borderRadius:'10px',fontSize:'14px',fontWeight:'600',cursor:'pointer',transition:'all 0.2s'}}>
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Loading */}
-        {step === 3 && (
-          <div style={{textAlign:'center',animation:'fadeIn 0.3s ease',paddingTop:'60px'}}>
-            <div style={{width:'80px',height:'80px',margin:'0 auto 24px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <svg style={{width:'80px',height:'80px',animation:'spin 2s linear infinite'}} viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#grad)" strokeWidth="3"/>
-                <defs><linearGradient id="grad"><stop offset="0%" style={{stopColor:'#2e3a8c',stopOpacity:1}}/><stop offset="100%" style={{stopColor:'#2e3a8c',stopOpacity:0.1}}/></linearGradient></defs>
-              </svg>
-            </div>
-            <h2 style={{fontSize:'24px',fontWeight:'700',margin:'0 0 8px'}}>Analyzing your business...</h2>
-            <p style={{fontSize:'14px',color:'var(--ink-soft)',margin:'0'}}>This usually takes 30-45 seconds</p>
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-          </div>
-        )}
-
-        {/* Step 4: Before/After Preview */}
-        {step === 4 && (
-          <div style={{animation:'fadeIn 0.3s ease'}}>
-            <h1 style={{fontSize:'28px',fontWeight:'700',margin:'0 0 24px',color:'var(--ink)'}}>Here's your potential</h1>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'28px'}}>
-              <div style={{background:'var(--red-soft)',border:'1px solid var(--line)',borderRadius:'12px',padding:'20px',textAlign:'center'}}>
-                <div style={{fontSize:'36px',fontWeight:'700',color:'var(--red)',marginBottom:'8px'}}>0</div>
-                <div style={{fontSize:'13px',color:'var(--ink-soft)'}}>AI mentions today</div>
-              </div>
-              <div style={{background:'var(--green-soft)',border:'1px solid var(--line)',borderRadius:'12px',padding:'20px',textAlign:'center'}}>
-                <div style={{fontSize:'36px',fontWeight:'700',color:'var(--green)',marginBottom:'8px'}}>12-15</div>
-                <div style={{fontSize:'13px',color:'var(--ink-soft)'}}>In 90 days</div>
-              </div>
-            </div>
-            <div style={{background:'var(--primary-soft)',border:'1px solid var(--line)',borderRadius:'12px',padding:'16px',marginBottom:'28px'}}>
-              <div style={{fontSize:'13px',fontWeight:'600',color:'var(--primary)',marginBottom:'8px'}}>📈 Expected impact</div>
-              <div style={{fontSize:'15px',color:'var(--ink)'}}>
-                Your {businessCategory} will be recommended by ChatGPT, Gemini & Perplexity within 90 days
-              </div>
-            </div>
-            <button onClick={() => setStep(5)} style={{width:'100%',padding:'12px',fontSize:'15px',fontWeight:'600',background:'linear-gradient(120deg,#f3e3ad,#c79a2e)',color:'#3a2c05',border:'none',borderRadius:'10px',cursor:'pointer',marginBottom:'12px'}}>Get Started Free →</button>
-            <button onClick={() => navigate('/auth')} style={{width:'100%',padding:'12px',fontSize:'15px',fontWeight:'600',background:'transparent',color:'var(--ink)',border:'1px solid var(--line)',borderRadius:'10px',cursor:'pointer'}}>I already have an account</button>
-          </div>
-        )}
-
-        {/* Step 5: Create Account */}
-        {step === 5 && (
-          <div style={{animation:'fadeIn 0.3s ease'}}>
-            <h1 style={{fontSize:'28px',fontWeight:'700',margin:'0 0 8px',color:'var(--ink)'}}>Create your account</h1>
-            <p style={{fontSize:'14px',color:'var(--ink-soft)',margin:'0 0 20px'}}>No credit card required • Cancel anytime</p>
-            {error && <div style={{background:'var(--red-soft)',color:'var(--red)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'13px'}}>{error}</div>}
-            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} style={{width:'100%',padding:'12px 16px',fontSize:'15px',border:'1px solid var(--line)',borderRadius:'10px',marginBottom:'12px',boxSizing:'border-box'}} />
-            <input type="password" placeholder="Choose a password" value={password} onChange={(e) => setPassword(e.target.value)} style={{width:'100%',padding:'12px 16px',fontSize:'15px',border:'1px solid var(--line)',borderRadius:'10px',marginBottom:'20px',boxSizing:'border-box'}} />
-            <button onClick={handleSignup} disabled={loading} style={{width:'100%',padding:'12px',fontSize:'15px',fontWeight:'600',background:loading ? '#ccc' : 'linear-gradient(120deg,#f3e3ad,#c79a2e)',color:loading ? 'var(--ink-soft)' : '#3a2c05',border:'none',borderRadius:'10px',cursor:loading ? 'default' : 'pointer'}}>
-              {loading ? 'Creating account...' : 'Get Free Access →'}
+          <div>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', margin: '0 0 10px' }}>
+              What's your website?
+            </h1>
+            <p style={{ fontSize: '15px', color: 'var(--ink-soft)', margin: '0 0 24px' }}>
+              We'll analyze it and show you how AI assistants currently see your business.
+            </p>
+            <input
+              type="url"
+              autoFocus
+              placeholder="yourstore.com"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleUrlSubmit()}
+              style={inputStyle}
+            />
+            <button onClick={handleUrlSubmit} style={goldBtn} disabled={!websiteUrl.trim()}>
+              Analyze my site →
             </button>
-            <div style={{fontSize:'12px',color:'var(--ink-soft)',textAlign:'center',marginTop:'16px'}}>
-              By signing up, you agree to our Terms • Privacy Policy
-            </div>
+            <p style={{ fontSize: '12px', color: 'var(--ink-soft)', textAlign: 'center', marginTop: '14px' }}>
+              Free · No credit card required
+            </p>
           </div>
         )}
 
-        {/* Step 6: Success */}
-        {step === 6 && (
-          <div style={{textAlign:'center',animation:'fadeIn 0.3s ease',paddingTop:'60px'}}>
-            <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--green-soft)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}>
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="var(--green)" strokeWidth="2">
-                <path d="M20 6L9 17l-5-5"/>
-              </svg>
+        {step === 2 && (
+          <div>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', margin: '0 0 10px' }}>
+              Create your account
+            </h1>
+            <p style={{ fontSize: '15px', color: 'var(--ink-soft)', margin: '0 0 24px' }}>
+              So we can save the analysis of <b style={{ color: 'var(--ink)' }}>{websiteUrl}</b> to your workspace.
+            </p>
+            <input type="email" autoFocus placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+            <input type="password" placeholder="Choose a password (6+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSignup()} style={inputStyle} />
+            <button onClick={handleSignup} disabled={busy} style={{ ...goldBtn, opacity: busy ? 0.6 : 1 }}>
+              {busy ? 'Creating account…' : 'Create account & analyze →'}
+            </button>
+            <button onClick={() => navigate('/auth')} style={ghostBtn}>I already have an account</button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+            <svg style={{ width: '72px', height: '72px', margin: '0 auto 24px', animation: 'apgspin 1.4s linear infinite' }} viewBox="0 0 50 50">
+              <circle cx="25" cy="25" r="20" fill="none" stroke="var(--line)" strokeWidth="4" />
+              <circle cx="25" cy="25" r="20" fill="none" stroke="#2e3a8c" strokeWidth="4" strokeDasharray="90 130" strokeLinecap="round" />
+            </svg>
+            <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '22px', margin: '0 0 8px' }}>Analyzing your site…</h2>
+            <p style={{ fontSize: '14px', color: 'var(--ink-soft)', margin: 0 }}>{phase || 'This takes about 30 seconds'}</p>
+            <style>{`@keyframes apgspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+          </div>
+        )}
+
+        {step === 4 && analysis && (
+          <div>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '28px', margin: '0 0 10px' }}>
+              Here's what we found
+            </h1>
+            <p style={{ fontSize: '15px', color: 'var(--ink-soft)', margin: '0 0 22px' }}>
+              Your workspace for <b style={{ color: 'var(--ink)' }}>{analysis.brandName || analysis.domain}</b> is ready.
+            </p>
+
+            <div style={cardStyle}>
+              <div style={cardLabel}>Business</div>
+              <p style={{ fontSize: '14px', lineHeight: 1.6, margin: 0, color: 'var(--ink-soft)' }}>
+                {analysis.description || 'No description detected — you can add one in Settings.'}
+              </p>
             </div>
-            <h1 style={{fontSize:'28px',fontWeight:'700',margin:'0 0 12px',color:'var(--ink)'}}>Welcome to AutoPilot GEO!</h1>
-            <p style={{fontSize:'15px',color:'var(--ink-soft)',margin:'0 0 28px'}}>Your account is ready. Let's get you ranking.</p>
-            <button onClick={() => navigate('/geo')} style={{width:'100%',padding:'12px',fontSize:'15px',fontWeight:'600',background:'linear-gradient(120deg,#f3e3ad,#c79a2e)',color:'#3a2c05',border:'none',borderRadius:'10px',cursor:'pointer'}}>Go to Dashboard →</button>
+
+            {keywordList.length > 0 && (
+              <div style={cardStyle}>
+                <div style={cardLabel}>Keywords we'll target ({keywordList.length})</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {keywordList.slice(0, 8).map((k: string) => (
+                    <span key={k} style={{ fontSize: '12.5px', fontWeight: 600, padding: '5px 11px', borderRadius: '20px', background: 'var(--primary-soft)', color: 'var(--primary)' }}>{k}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysis.competitors?.length > 0 && (
+              <div style={cardStyle}>
+                <div style={cardLabel}>Competitors detected</div>
+                <div style={{ fontSize: '13.5px', color: 'var(--ink-soft)' }}>{analysis.competitors.slice(0, 5).join(' · ')}</div>
+              </div>
+            )}
+
+            <button onClick={() => navigate('/geo')} style={{ ...goldBtn, marginTop: '8px' }}>
+              Go to my dashboard →
+            </button>
           </div>
         )}
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        :root { --paper: #f5f6fb; --surface: #ffffff; --line: #e4e5f0; --ink: #14162e; --ink-soft: #585b78; --primary: #2e3a8c; --primary-soft: #eef0fb; --green: #1f8a5f; --green-soft: #e9f7f0; --red: #c23b3b; --red-soft: #fbeaea; }
-      `}</style>
     </div>
   )
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '13px 16px', fontSize: '15px', border: '1px solid var(--line)',
+  borderRadius: '10px', marginBottom: '12px', boxSizing: 'border-box', fontFamily: 'inherit',
+  background: 'var(--surface)', color: 'var(--ink)',
+}
+
+const goldBtn: React.CSSProperties = {
+  width: '100%', padding: '13px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit',
+  background: 'linear-gradient(120deg,#f3e3ad,#c79a2e)', color: '#3a2c05', border: 'none',
+  borderRadius: '10px', cursor: 'pointer',
+}
+
+const ghostBtn: React.CSSProperties = {
+  width: '100%', padding: '13px', fontSize: '14px', fontWeight: 600, fontFamily: 'inherit',
+  background: 'transparent', color: 'var(--ink)', border: '1px solid var(--line)',
+  borderRadius: '10px', cursor: 'pointer', marginTop: '10px',
+}
+
+const cardStyle: React.CSSProperties = {
+  background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '14px',
+  padding: '18px', marginBottom: '12px',
+}
+
+const cardLabel: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
+  color: 'var(--ink-soft)', marginBottom: '10px',
 }
