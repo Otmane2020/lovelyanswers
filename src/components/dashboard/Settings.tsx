@@ -9,7 +9,7 @@ import { useGoogleBusiness } from '@/hooks/useGoogleBusiness'
 import { ConnectPanel } from './ConnectPanel'
 import { IconGlobe, IconCart, IconUser, IconCard } from './Icons'
 
-import boltLogo from '@/assets/bolt-logo.png'
+import boltLogo from '@/assets/bolt-new-logo.svg'
 import lovableLogo from '@/assets/lovable-logo.svg'
 import replitLogo from '@/assets/replit-logo.svg'
 import supabaseLogo from '@/assets/supabase-logo.svg'
