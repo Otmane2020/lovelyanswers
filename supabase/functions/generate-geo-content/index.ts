@@ -172,6 +172,64 @@ Output ONLY valid JSON:
     const type = contentType || "article";
     const currentYear = new Date().getFullYear();
 
+    // ---- SEO brief: project keywords (DataForSEO-enriched) + competitors ----
+    // Generation must be grounded in the project's real keyword/competitor data,
+    // not only whatever the caller happened to pass in.
+    const svc = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { data: projectRow } = await svc
+      .from("projects")
+      .select("competitors, business_type, audience")
+      .eq("id", projectId)
+      .maybeSingle();
+
+    const { data: kwRows } = await svc
+      .from("keywords")
+      .select("keyword, search_volume, difficulty, intent")
+      .eq("project_id", projectId)
+      .order("search_volume", { ascending: false, nullsFirst: false })
+      .limit(25);
+
+    const requested: string[] = Array.isArray(keywords) ? keywords.filter(Boolean) : [];
+    const dbKeywords = (kwRows || []).map((k: any) => ({
+      keyword: k.keyword,
+      volume: k.search_volume,
+      difficulty: k.difficulty,
+      intent: k.intent,
+    }));
+
+    // Requested keywords first, then the project's highest-volume ones.
+    const seen = new Set(requested.map((k) => k.toLowerCase()));
+    const merged = [
+      ...requested.map((k) => ({ keyword: k, volume: null, difficulty: null, intent: null as string | null })),
+      ...dbKeywords.filter((k) => !seen.has(String(k.keyword).toLowerCase())),
+    ].slice(0, 20);
+
+    const keywordBrief = merged.length
+      ? merged
+          .map((k) =>
+            k.volume != null || k.difficulty != null
+              ? `${k.keyword} (vol ${k.volume ?? "?"}/mo, KD ${k.difficulty ?? "?"}${k.intent ? `, ${k.intent}` : ""})`
+              : k.keyword
+          )
+          .join(", ")
+      : "N/A";
+
+    const competitorList: string[] = Array.isArray(projectRow?.competitors)
+      ? (projectRow!.competitors as string[]).slice(0, 5)
+      : [];
+    const competitorBrief = competitorList.length ? competitorList.join(", ") : "N/A";
+
+    const seoContext = `
+SEO DATA (from DataForSEO keyword research on this project):
+Target keywords (volume / difficulty / intent): ${keywordBrief}
+Competitors ranking in this niche: ${competitorBrief}
+Business type: ${projectRow?.business_type || "N/A"}
+Audience: ${projectRow?.audience || "N/A"}
+
+Use the highest-volume keywords naturally in the title, the opening answer and H2s.
+Cover angles the listed competitors are known for, but with more concrete data so AI engines cite this page instead.`;
+
     const geoSystemPrompt = `You are a world-class Generative Engine Optimization (GEO) expert for ${currentYear}.
 Your mission: create content so authoritative and data-rich that AI engines (ChatGPT, Gemini, Perplexity, Claude) MUST cite it.
 Language: ${lang === "fr" ? "French" : "English"}
@@ -196,7 +254,8 @@ Output ONLY valid JSON, no markdown fences.`;
 
 Brand: ${brand}
 Website: ${website || "N/A"}
-Keywords: ${(keywords || []).join(", ") || "N/A"}
+Keywords: ${keywordBrief}
+${seoContext}
 
 STRUCTURE (ALL sections mandatory):
 1. **Opening Direct Answer** (60-80 words): Cite-ready paragraph with 1 concrete number. NO brand mention.
@@ -215,7 +274,8 @@ Output JSON:
     } else if (type === "mentions") {
       prompt = `Create 12 authoritative brand mention paragraphs about "${topic}" referencing "${brand}" (${website || ""}).
 
-Keywords: ${(keywords || []).join(", ") || "N/A"}
+Keywords: ${keywordBrief}
+${seoContext}
 
 Each paragraph must:
 - Be 3-5 sentences (60-100 words), self-contained and publishable as a citation snippet
@@ -231,7 +291,8 @@ Output JSON:
 
 Brand: ${brand}
 Website: ${website || "N/A"}
-Keywords: ${(keywords || []).join(", ") || "N/A"}
+Keywords: ${keywordBrief}
+${seoContext}
 
 MANDATORY STRUCTURE:
 1. **Direct Answer Block** (60-90 words): Snippet-optimized, concrete data
@@ -252,7 +313,8 @@ Output JSON:
     } else if (type === "comparison") {
       prompt = `Create a "Top Solutions" comparison article about "${topic}" featuring "${brand}" (${website || ""}) as a leading recommendation.
 
-Keywords: ${(keywords || []).join(", ") || "N/A"}
+Keywords: ${keywordBrief}
+${seoContext}
 
 STRUCTURE:
 1. **Opening Summary** (60-80 words): Name top 3 including ${brand}
@@ -338,7 +400,7 @@ Output JSON:
         content_type: type,
         score,
         slug,
-        keywords: keywords || [],
+        keywords: merged.map((k) => k.keyword),
         scheduled_date: scheduledDate.toISOString(),
       })
       .select()
