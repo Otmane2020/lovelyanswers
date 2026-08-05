@@ -3,6 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/landing.css'
 
+import shopifyLogo from '@/assets/shopify-logo-new.png'
+import wordpressLogo from '@/assets/wordpress-logo-new.png'
+import wixLogo from '@/assets/wix-logo.png'
+import framerLogo from '@/assets/framer-logo.png'
+import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
+
 /* ---------- inline icons (ported from the design's <symbol> defs) ---------- */
 const Ic = ({ d, size = 16, sw = 1.6, circles = [] as { cx: number; cy: number; r: number }[] }) => (
   <svg className="ic-svg" viewBox="0 0 24 24" style={{ width: size, height: size, strokeWidth: sw }}>
@@ -380,7 +386,15 @@ export default function Landing() {
           <p className="section-sub">Dominate Google Shopping, Rich Results, Discover feeds, and AI conversations — all on autopilot.</p>
 
           <div className="demo-shell" style={{ maxWidth: '560px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '16px', marginBottom: '6px' }}>GEO Shopping for Shopify</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, background: '#95BF47',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <img src={shopifyLogo} alt="Shopify" style={{ width: 24, height: 24, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              </div>
+              <h3 style={{ fontSize: '16px', margin: 0 }}>GEO Shopping for Shopify</h3>
+            </div>
             <p style={{ fontSize: '13.5px', color: 'var(--ink-soft)', marginBottom: '20px' }}>
               Turn your Shopify store into an AI-citation machine. We import your products, detect your
               shop's language and automatically generate optimized articles that get cited by ChatGPT,
@@ -405,6 +419,52 @@ export default function Landing() {
               <button className="btn btn-primary btn-sm" onClick={startTrial}>Install on Shopify</button>
             </div>
             <p className="fine" style={{ marginTop: '14px' }}>Cancel anytime</p>
+          </div>
+
+          <p style={{
+            textAlign: 'center', fontSize: '11.5px', fontWeight: 700, letterSpacing: '.08em',
+            textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '48px 0 18px',
+          }}>
+            Works with the platform you already use
+          </p>
+          <div style={{
+            display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
+            gap: '14px', maxWidth: '640px', margin: '0 auto',
+          }}>
+            {[
+              { name: 'Shopify', logo: shopifyLogo, bg: '#95BF47' },
+              { name: 'WordPress', logo: wordpressLogo, bg: '#21759B' },
+              { name: 'Wix', logo: wixLogo, bg: '#000000' },
+              { name: 'Framer', logo: framerLogo, bg: '#0055FF' },
+              { name: 'BigCommerce', logo: bigcommerceLogo, bg: '#34313F' },
+            ].map((p) => (
+              <div key={p.name} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px',
+                background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px',
+                fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
+              }}>
+                <span style={{
+                  width: 26, height: 26, borderRadius: 7, background: p.bg, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <img src={p.logo} alt={p.name} style={{ width: 16, height: 16, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                </span>
+                {p.name}
+              </div>
+            ))}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px',
+              background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px',
+              fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
+            }}>
+              <span style={{
+                width: 26, height: 26, borderRadius: 7, background: 'var(--primary-soft)', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+              }}>
+                🔗
+              </span>
+              API & Webhooks
+            </div>
           </div>
         </div>
       </section>
