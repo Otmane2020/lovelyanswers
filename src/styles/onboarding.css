@@ -127,6 +127,42 @@
 .apg-wizard .fine{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:12px;line-height:1.5;}
 .apg-wizard .secure{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--ink-soft);margin-top:10px;}
 
+/* brand snapshot — real, cheap crawl data (logo + description) */
+.apg-wizard .brand-snap{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+.apg-wizard .brand-snap-logo{
+  width:38px;height:38px;border-radius:10px;background:linear-gradient(150deg,#5f6ce0,#1a2058);
+  color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.apg-wizard .brand-snap-name{font-weight:700;font-size:13.5px;}
+.apg-wizard .brand-snap-desc{font-size:11.5px;color:var(--ink-soft);margin-top:1px;line-height:1.4;}
+.apg-wizard .brand-snap-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.apg-wizard .snap-tag{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--primary-soft);color:var(--primary);}
+
+/* locked teaser — honest skeleton placeholder, never fabricated specific data */
+.apg-wizard .locked-card{position:relative;border-radius:12px;overflow:hidden;margin-bottom:20px;border:1px solid var(--line);}
+.apg-wizard .locked-blur{padding:14px 16px;background:var(--surface);}
+.apg-wizard .skel-row{display:flex;gap:10px;padding:7px 0;}
+.apg-wizard .skel-logos{display:flex;align-items:center;gap:6px;padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid var(--line);}
+.apg-wizard .skel-circle{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(90deg,#eceefa 25%,#dfe1f3 37%,#eceefa 63%);
+  background-size:400% 100%;animation:apgWizShimmer 1.6s ease-in-out infinite;
+}
+.apg-wizard .skel-bar{
+  display:block;height:9px;border-radius:5px;
+  background:linear-gradient(90deg,#eceefa 25%,#dfe1f3 37%,#eceefa 63%);
+  background-size:400% 100%;animation:apgWizShimmer 1.6s ease-in-out infinite;
+}
+@keyframes apgWizShimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
+.apg-wizard .locked-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;gap:10px;
+  padding:0 18px;background:rgba(245,246,251,.86);
+}
+.apg-wizard .locked-overlay svg{color:var(--primary);flex-shrink:0;}
+.apg-wizard .locked-overlay strong{display:block;font-size:12.5px;}
+.apg-wizard .locked-overlay span{font-size:11px;color:var(--ink-soft);}
+
 /* success step */
 .apg-wizard .success-ic{
   width:64px;height:64px;border-radius:50%;background:var(--green-soft);

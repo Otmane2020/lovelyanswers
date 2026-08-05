@@ -9,7 +9,7 @@ import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 7
 
 // Publishable keys are meant to be public (Stripe's own design — they only
 // ever initialize Stripe.js, never authorize a charge), so this is safe to
@@ -113,7 +113,7 @@ const IcApple = () => (
   </svg>
 )
 
-/* ---------- Stripe card form (step 5) ---------- */
+/* ---------- Stripe card form (paywall step) ---------- */
 function CardForm({ onDone, onError }: { onDone: () => void; onError: (m: string) => void }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -172,22 +172,12 @@ export default function Onboarding() {
 
   const [phase, setPhase] = useState('')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  // Editable mirror of the auto-detected description, so step 3 is a real
-  // review-and-edit screen rather than a read-only report.
-  const [editableDescription, setEditableDescription] = useState('')
   const [projectId, setProjectId] = useState<string | null>(null)
-  // Quick unauthenticated scrape fired right after step 1, so the category is
-  // already guessed and the brand name is properly formatted — "Sweet Déco",
-  // not "sweet-deco" (the raw domain slug analyze-website falls back to)
-  // — before the full AI pass even starts.
+  // Quick unauthenticated scrape fired right after step 2, so the category
+  // guess and brand name are already reasonable — "Sweet Déco", not
+  // "sweet-deco" (the raw domain slug analyze-website falls back to) —
+  // before the full AI pass even starts.
   const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string } | null>(null)
-  const [dfsKeywords, setDfsKeywords] = useState<string[]>([])
-  const [competitorKeywords, setCompetitorKeywords] = useState<{ domain: string; keywords: string[] }[]>([])
-  // DataForSEO-backed clusters (volume/difficulty/intent), richer than the
-  // plain AI-guessed keyword list.
-  const [keywordClusters, setKeywordClusters] = useState<{ name: string; intent: string; keywords: { keyword: string; volume: number }[] }[]>([])
-  // Best-effort Google Business match — informational, not a live GMB sync.
-  const [placeInfo, setPlaceInfo] = useState<{ address?: string; phone?: string; openingHours?: string[]; rating?: number } | null>(null)
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -216,10 +206,17 @@ export default function Onboarding() {
         setResumedBilling(true)
         setProjectId(existing.id)
         setBizName(existing.brand_name || existing.name || '')
-        openPaywall()
+        openPaywall(existing.id)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, subLoading, subscribed, trial, navigate, resumedBilling])
+
+  // Account already exists (fresh signup just resolved, or an OAuth redirect
+  // landed back here with a session) and there's no project yet — skip the
+  // create-account step instead of showing it again.
+  useEffect(() => {
+    if (!authLoading && user && step === 1) setStep(2)
+  }, [authLoading, user, step])
 
   /** Cheap keyword heuristic against the scraped description/domain — a
    * pre-filled guess the user can still override, not a forced choice. */
@@ -233,7 +230,44 @@ export default function Onboarding() {
     return ''
   }
 
-  /* --- right after step 1: no-auth scrape so step 2 isn't a blank guess --- */
+  /* --- step 1: create the account first — everything after this has a
+     real session, so no anonymous-auth workarounds are needed downstream --- */
+  const createAccount = async () => {
+    if (!email || password.length < 6) {
+      setError('Enter an email and a password of at least 6 characters')
+      return
+    }
+    setBusy(true); setError('')
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email, password, options: { data: { full_name: email.split('@')[0] } },
+      })
+      if (signUpError) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw new Error(signUpError.message)
+      }
+      const { data: sess } = await supabase.auth.getSession()
+      if (!sess.session) {
+        setError('Check your inbox to confirm your email, then sign in to continue.')
+        return
+      }
+      setStep(2)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create your account')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const oauth = async (provider: 'google' | 'apple') => {
+    const { error: e } = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: `${window.location.origin}/onboarding`,
+    })
+    if (e) setError(e.message)
+  }
+
+  /* --- right after step 2: no-auth scrape so the category guess and step 5
+     preview aren't blank while the full analysis is still loading --- */
   const preScrapeSite = useCallback(async () => {
     const url = normalizeUrl(bizSite)
     if (!url) return
@@ -252,20 +286,17 @@ export default function Onboarding() {
     }
   }, [bizSite, category])
 
-  /* --- step 2: analyse the site — no account needed yet, so people see
-     what AI already says about them before we ask them to sign up --- */
-  const runAnonAnalysis = useCallback(async () => {
+  /* --- step 4: analyse the site and create the project. The account
+     already exists by this point (step 1), so this always has a real
+     session — no anonymous-call auth drama. Competitor and keyword
+     research (DataForSEO, real money) is deliberately NOT triggered here:
+     it only runs once payment is confirmed, via the Stripe webhook, so a
+     signup that never converts never costs anything beyond this one
+     lightweight AI pass. --- */
+  const runAnalysis = useCallback(async () => {
     setError('')
     try {
       setPhase('Reading your website…')
-      // analyze-website is meant to run without auth (config.toml declares
-      // verify_jwt = false for it, same as firecrawl-scrape-fast below), but
-      // production has been observed returning 401 for anonymous calls to it
-      // regardless — a deploy/dashboard-config drift, not something this
-      // code controls. Don't let that dead-end the funnel: fall back to the
-      // anonymous pre-scrape's brand/description/language so step 3 still
-      // renders, just without AI-detected competitors and keywords until
-      // persistProject retries analyze-website with a real session.
       let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string } = {}
       try {
         const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-website', {
@@ -276,9 +307,6 @@ export default function Onboarding() {
         data = fnData
       } catch (e) {
         console.error('[ONBOARDING] analyze-website failed, falling back to a direct scrape', e)
-        // Don't rely on preScrapeSite's state — it was fired in parallel from
-        // step 1's Continue click and may not have resolved yet. Fetch fresh
-        // instead of racing it.
         const url = normalizeUrl(bizSite || bizName)
         const { data: scraped } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
         if (!scraped?.success || !scraped.data) throw e
@@ -300,181 +328,46 @@ export default function Onboarding() {
       // what the user actually typed, then the properly-cased name firecrawl
       // already found ("Sweet Déco").
       const goodBrandName = bizName || preScraped?.brandName || data.brandName || data.domain
+      const fullAnalysis = { ...data, brandName: goodBrandName } as Analysis
+      setAnalysis(fullAnalysis)
 
-      // Best-effort Google Business match — doesn't need auth or a project,
-      // so it can run now and show up on the review step before signup.
-      setPhase('Checking your Google listing…')
-      try {
-        const countryName = COUNTRIES.find((c) => c.code === country)?.name || ''
-        const { data: places } = await supabase.functions.invoke('places-search', {
-          body: { query: `${goodBrandName} ${countryName}`.trim() },
+      setPhase('Creating your workspace…')
+      const { data: sess } = await supabase.auth.getSession()
+      const userId = sess.session?.user.id
+      if (!userId) throw new Error('Session expired — please sign in again')
+
+      const { data: project, error: projError } = await supabase
+        .from('projects')
+        .insert({
+          user_id: userId,
+          name: goodBrandName,
+          website_url: normalizeUrl(bizSite || `https://${data.domain}`),
+          domain: data.domain,
+          language: data.language || preScraped?.language || 'en',
+          country,
+          business_description: data.description || preScraped?.description || null,
+          business_type: category || null,
+          brand_name: goodBrandName,
+          competitors: Array.isArray(data.competitors) ? data.competitors : null,
+          is_active: true,
         })
-        const match = places?.results?.[0]
-        if (match?.id) {
-          const { data: details } = await supabase.functions.invoke('places-search', {
-            body: { placeId: match.id },
-          })
-          if (details?.business) {
-            setPlaceInfo({
-              address: details.business.address,
-              phone: details.business.phone,
-              openingHours: details.business.openingHours,
-              rating: details.business.rating,
-            })
-          }
-        }
-      } catch (e) {
-        console.error('[ONBOARDING] places lookup failed', e)
-      }
+        .select()
+        .single()
+      if (projError) throw projError
+      setProjectId(project.id)
 
-      setAnalysis({ ...data, brandName: goodBrandName } as Analysis)
-      setEditableDescription(data.description || preScraped?.description || '')
-      setStep(3)
+      setStep(5)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStep(1)
+      setStep(2)
       setPhase('')
     }
-  }, [bizSite, bizName, preScraped, country])
+  }, [bizSite, bizName, preScraped, country, category])
 
-  /* --- step 3 -> paywall: create the account (if needed), then the project
-     and its competitor/keyword enrichment — all of this needs a real user,
-     which is why it waits until after the analysis is already on screen --- */
-  const persistProject = useCallback(async () => {
-    if (!analysis) throw new Error('Run the analysis first')
-
-    const { data: sess } = await supabase.auth.getSession()
-    const userId = sess.session?.user.id
-    if (!userId) throw new Error('Session expired — please sign in again')
-
-    // If the anonymous analyze-website call earlier failed (production has
-    // been seen rejecting it with 401 without a session — see runAnonAnalysis),
-    // we're sitting on the pre-scrape fallback with no real competitors or
-    // keywords. Retry now that a session exists, so the project the
-    // generator uses is still seeded with real data instead of nothing.
-    let enriched = analysis
-    if (!analysis.competitors?.length) {
-      try {
-        const { data: retryData, error: retryError } = await supabase.functions.invoke('analyze-website', {
-          body: { url: normalizeUrl(bizSite || bizName) },
-        })
-        if (!retryError && retryData?.success) {
-          enriched = { ...analysis, ...retryData, brandName: analysis.brandName }
-          setAnalysis(enriched)
-        }
-      } catch (e) {
-        console.error('[ONBOARDING] analyze-website retry after signup failed', e)
-      }
-    }
-
-    setPhase('Creating your workspace…')
-    const goodBrandName = enriched.brandName || bizName
-    const { data: project, error: projError } = await supabase
-      .from('projects')
-      .insert({
-        user_id: userId,
-        name: goodBrandName,
-        website_url: normalizeUrl(bizSite || `https://${enriched.domain}`),
-        domain: enriched.domain,
-        language: enriched.language || preScraped?.language || 'en',
-        business_description: editableDescription || enriched.description || null,
-        business_type: category || null,
-        brand_name: goodBrandName,
-        competitors: Array.isArray(enriched.competitors) ? enriched.competitors : null,
-        is_active: true,
-      })
-      .select()
-      .single()
-    if (projError) throw projError
-
-    setProjectId(project.id)
-
-    // Keywords the competitors already rank for — this is what the daily
-    // generator will aim at. Non-blocking: a DataForSEO outage must not
-    // strand someone mid-signup.
-    setPhase('Studying your competitors…')
-    try {
-      const { data: dfs } = await supabase.functions.invoke('analyze-competitors', {
-        body: {
-          projectId: project.id,
-          competitors: enriched.competitors ?? [],
-          language: enriched.language || 'en',
-        },
-      })
-      if (Array.isArray(dfs?.topKeywords)) setDfsKeywords(dfs.topKeywords)
-      if (Array.isArray(dfs?.perCompetitor)) setCompetitorKeywords(dfs.perCompetitor)
-    } catch (e) {
-      console.error('[ONBOARDING] competitor analysis failed', e)
-    }
-
-    // A scored/volumed keyword-research pass (real DataForSEO SERP data
-    // where available). Non-blocking, same reasoning as above.
-    setPhase('Researching keywords…')
-    try {
-      const { data: kw } = await supabase.functions.invoke('keyword-research', {
-        body: {
-          projectId: project.id,
-          seedKeywords: (enriched.keywords ?? []).slice(0, 5).map((k) => typeof k === 'string' ? k : k.keyword),
-          language: enriched.language || 'en',
-          country: country.toLowerCase(),
-        },
-      })
-      if (Array.isArray(kw?.clusters)) setKeywordClusters(kw.clusters)
-    } catch (e) {
-      console.error('[ONBOARDING] keyword research failed', e)
-    }
-
-    return project.id
-  }, [analysis, bizName, bizSite, category, country, editableDescription, preScraped])
-
-  // Sitting on step 2 → start analysing right away, no account required.
+  // Sitting on step 4 → start analysing right away.
   useEffect(() => {
-    if (step === 2 && !analysis && !phase) runAnonAnalysis()
-  }, [step, analysis, phase, runAnonAnalysis])
-
-  /* --- step 3's CTA: create the account (only if not signed in yet), then
-     persist the project and move to the paywall. Account creation happens
-     here — after the analysis is already on screen — instead of gating
-     the analysis behind a blind signup. --- */
-  const claimVisibility = async () => {
-    setBusy(true); setError('')
-    try {
-      if (!user) {
-        if (!email || password.length < 6) {
-          setError('Enter an email and a password of at least 6 characters')
-          setBusy(false)
-          return
-        }
-        const { error: signUpError } = await supabase.auth.signUp({
-          email, password, options: { data: { full_name: bizName || email.split('@')[0] } },
-        })
-        if (signUpError) {
-          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-          if (signInError) throw new Error(signUpError.message)
-        }
-        const { data: sess } = await supabase.auth.getSession()
-        if (!sess.session) {
-          setError('Check your inbox to confirm your email, then sign in to continue.')
-          setBusy(false)
-          return
-        }
-      }
-      const pid = projectId || (await persistProject())
-      await openPaywall(pid)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create your account')
-    } finally {
-      setBusy(false)
-      setPhase('')
-    }
-  }
-
-  const oauth = async (provider: 'google' | 'apple') => {
-    const { error: e } = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/onboarding`,
-    })
-    if (e) setError(e.message)
-  }
+    if (step === 4 && !analysis && !phase) runAnalysis()
+  }, [step, analysis, phase, runAnalysis])
 
   /* --- ask Stripe for a payment intent matching the current plan + promo.
      Re-invoked whenever either changes — create-subscription-intent updates
@@ -491,7 +384,7 @@ export default function Onboarding() {
       if (data?.error) throw new Error(data.error)
 
       if (data.alreadySubscribed) {
-        setStep(5)
+        setStep(7)
         return
       }
       setClientSecret(data.clientSecret)
@@ -505,19 +398,19 @@ export default function Onboarding() {
     }
   }
 
-  /* --- step 3 -> step 4: persist edits, then open the paywall.
+  /* --- step 5 -> step 6: persist edits, then open the paywall.
      Accepts an explicit id because a caller that just created the project
-     in the same tick (persistProject via setProjectId) can't rely on the
+     in the same tick (runAnalysis via setProjectId) can't rely on the
      `projectId` state closure having caught up yet. --- */
   const openPaywall = async (pid?: string) => {
     const id = pid ?? projectId
     if (id) {
       await supabase.from('projects').update({
-        business_description: editableDescription || null,
         business_type: category || null,
+        country,
       }).eq('id', id)
     }
-    if (await refreshSubscription(plan, promoCode)) setStep(4)
+    if (await refreshSubscription(plan, promoCode)) setStep(6)
   }
 
   const changePlan = async (nextPlan: 'monthly' | 'annual') => {
@@ -545,13 +438,16 @@ export default function Onboarding() {
     }
   }
 
-  /* --- step 5: seed the 30-day plan now instead of waiting on the cron's
-     small per-tick batches. Two tracks, both pre-existing: the AEO
+  /* --- step 6 -> step 7: seed the 30-day plan now instead of waiting on the
+     cron's small per-tick batches. Two tracks, both pre-existing: the AEO
      answer+article pairing (same call AeoWizard already uses) and the
      GEO/SEO/AEO/Local-AEO geo_contents track — 30 slots covers all 30 days
-     in one shot since maxSlots overrides the steady-state cron cap. --- */
+     in one shot since maxSlots overrides the steady-state cron cap. Real
+     competitor/keyword research (DataForSEO) is NOT triggered here — the
+     Stripe webhook does that once the payment this step just took is
+     actually confirmed. --- */
   const finish = async () => {
-    setStep(5)
+    setStep(7)
     if (!projectId) return
     try {
       await Promise.all([
@@ -570,7 +466,7 @@ export default function Onboarding() {
     }
   }
 
-  const canStartAnalysis = !!bizName.trim() && isValidUrl(bizSite) && !!country.trim()
+  const canStartAnalysis = !!bizName.trim() && isValidUrl(bizSite)
 
   // Base prices in cents, matching what create-subscription-intent actually
   // charges — kept in sync manually since the price itself lives in Stripe.
@@ -584,20 +480,8 @@ export default function Onboarding() {
     : basePriceCents
   const discountedPriceLabel = `$${(discountedPriceCents / 100).toFixed(2)}`
   const brand = analysis?.brandName || preScraped?.brandName || bizName || 'your business'
-  const aiKeywords = (analysis?.keywords ?? []).map((k) =>
-    typeof k === 'string' ? k : k.keyword
-  ).filter(Boolean)
-  const clusterKeywords = keywordClusters.flatMap((c) => c.keywords.map((k) => k.keyword))
-  // AI-guessed keywords first, then DataForSEO-scored ones from keyword-research,
-  // then whatever competitors already rank for — deduped, case-insensitive,
-  // keeping the first (highest-priority) occurrence of each.
-  const seen = new Set<string>()
-  const keywordList = [aiKeywords, clusterKeywords, dfsKeywords].flat().filter((k) => {
-    const key = k.toLowerCase()
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+  const brandDescription = analysis?.description || preScraped?.description || ''
+  const brandLanguage = analysis?.language || preScraped?.language || ''
 
   return (
     <div className="apg-wizard-page">
@@ -618,12 +502,40 @@ export default function Onboarding() {
         <div className="step" key={step}>
           {error && <div className="err">{error}</div>}
 
-          {/* STEP 1 — business */}
+          {/* STEP 1 — create account first; everything after this has a real session */}
           {step === 1 && (
+            <>
+              <h1>Create your account</h1>
+              <p className="sub">Just this — no card yet. This lets us save your progress as you go.</p>
+              <button className="btn btn-social" onClick={() => oauth('google')}>
+                <IcGoogle /> Continue with Google
+              </button>
+              <button className="btn btn-social" onClick={() => oauth('apple')}>
+                <IcApple /> Continue with Apple
+              </button>
+              <div className="divider"><span /><em>or</em><span /></div>
+              <label className="first">Email</label>
+              <input type="email" value={email} placeholder="you@example.com"
+                onChange={(e) => setEmail(e.target.value)} />
+              <label>Password</label>
+              <input type="password" value={password} placeholder="6+ characters"
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && createAccount()} />
+              <div className="foot-nav">
+                <span />
+                <button className="btn btn-primary" disabled={busy} onClick={createAccount}>
+                  {busy ? 'Creating account…' : <>Continue <IcArrow /></>}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* STEP 2 — business name + website */}
+          {step === 2 && (
             <>
               <h1>Let's see how AI talks about your business today</h1>
               <p className="sub">
-                No card, no setup — tell us who you are and we'll show you what ChatGPT and Gemini
+                No setup — tell us who you are and we'll show you what ChatGPT and Gemini
                 currently say (or don't say) about you.
               </p>
               <label className="first">Business name</label>
@@ -637,7 +549,7 @@ export default function Onboarding() {
                 <button
                   className="btn btn-primary"
                   disabled={!canStartAnalysis}
-                  onClick={() => { setError(''); setStep(2); preScrapeSite() }}
+                  onClick={() => { setError(''); setStep(3); preScrapeSite() }}
                 >
                   Continue <IcArrow />
                 </button>
@@ -645,16 +557,36 @@ export default function Onboarding() {
               <p className="fine">
                 {!canStartAnalysis
                   ? 'We need your business name and site to run the analysis.'
-                  : 'Category, description, competitors and keywords get detected automatically next.'}
+                  : 'Description, sector and language get detected automatically next.'}
               </p>
             </>
           )}
 
-          {/* STEP 2 — real analysis, no account needed yet */}
-          {step === 2 && (
+          {/* STEP 3 — category */}
+          {step === 3 && (
             <>
-              <h1>Checking your AI visibility…</h1>
-              <p className="sub">This takes a few seconds.</p>
+              <h1>What kind of business is it?</h1>
+              <p className="sub">This shapes the tone and the questions we optimize your content for.</p>
+              <div className="chip-grid">
+                {CATEGORIES.map((c) => (
+                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
+                    onClick={() => setCategory(c)}>{c}</button>
+                ))}
+              </div>
+              <div className="foot-nav">
+                <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
+                <button className="btn btn-primary" onClick={() => setStep(4)}>
+                  Continue <IcArrow />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* STEP 4 — reading the site, real analysis + project creation */}
+          {step === 4 && (
+            <>
+              <h1>Reading your website…</h1>
+              <p className="sub">Pulling your logo, detecting your sector and language.</p>
               <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
                 <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
@@ -665,27 +597,43 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* STEP 3 — review & edit what we auto-detected */}
-          {step === 3 && analysis && (
+          {/* STEP 5 — the "wow" preview, still before payment */}
+          {step === 5 && (analysis || preScraped) && (
             <>
               <h1>Here's what we found for {brand}</h1>
-              <p className="sub">Generated from your real site — this is what's at stake.</p>
+              <p className="sub">This is a real preview generated from your site — this is what's at stake.</p>
+
+              <div className="brand-snap">
+                <div className="brand-snap-logo">{brand.trim().charAt(0).toUpperCase() || '?'}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="brand-snap-name">{brand}</div>
+                  <div className="brand-snap-desc">
+                    {brandDescription || `Detected from ${bizSite.replace(/^https?:\/\//, '')}`}
+                  </div>
+                  <div className="brand-snap-tags">
+                    {category && <span className="snap-tag">{category}</span>}
+                    {brandLanguage && <span className="snap-tag">{brandLanguage.toUpperCase()}</span>}
+                  </div>
+                </div>
+              </div>
+
               <div className="compare-preview">
                 <div className="prev-card before">
                   <div className="lbl">Today, without AutopilotGEO</div>
                   <div className="txt">
                     ChatGPT has never heard of <b>{brand}</b>. When someone asks for a recommendation,
                     a competitor gets named instead
-                    {analysis.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.
+                    {analysis?.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.
                   </div>
                 </div>
                 <div className="prev-card after">
                   <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
                   <div className="txt">
-                    "{analysis.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
+                    "{analysis?.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
                   </div>
                 </div>
               </div>
+
               <label className="first">Country</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
                 <button
@@ -729,114 +677,41 @@ export default function Onboarding() {
                   </>
                 )}
               </div>
-              <label className="first">What we understood about {brand} — edit if it's off</label>
-              <textarea
-                value={editableDescription}
-                onChange={(e) => setEditableDescription(e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%', padding: '10px 12px', fontSize: '13.5px', fontFamily: 'inherit',
-                  border: '1.5px solid var(--line)', borderRadius: '10px', background: 'var(--paper)',
-                  color: 'var(--ink)', resize: 'vertical', marginBottom: 14,
-                }}
-              />
-              <label>Category — tap to change</label>
-              <div className="chip-grid" style={{ marginBottom: 14 }}>
-                {CATEGORIES.map((c) => (
-                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
-                    onClick={() => setCategory(c)}>{c}</button>
-                ))}
+
+              {/* Honest skeleton teaser — no fabricated competitor names or
+                  keyword numbers. The real report (DataForSEO) only runs once
+                  payment is confirmed, via the Stripe webhook — showing fake
+                  specifics here would risk not matching what gets generated. */}
+              <div className="locked-card">
+                <div className="locked-blur">
+                  <div className="skel-logos">
+                    <span className="skel-circle" /><span className="skel-circle" /><span className="skel-circle" />
+                    <span style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 6 }}>competitors ranking nearby</span>
+                  </div>
+                  <div className="skel-row"><span className="skel-bar" style={{ width: '38%' }} /><span className="skel-bar" style={{ width: '28%' }} /><span className="skel-bar" style={{ width: '22%' }} /></div>
+                  <div className="skel-row"><span className="skel-bar" style={{ width: '46%' }} /><span className="skel-bar" style={{ width: '20%' }} /><span className="skel-bar" style={{ width: '18%' }} /></div>
+                  <div className="skel-row"><span className="skel-bar" style={{ width: '34%' }} /><span className="skel-bar" style={{ width: '24%' }} /><span className="skel-bar" style={{ width: '26%' }} /></div>
+                </div>
+                <div className="locked-overlay">
+                  <IcLock />
+                  <div>
+                    <strong>Competitor &amp; keyword report not run yet</strong>
+                    <span>We generate this from your real site right after payment — no guessing beforehand</span>
+                  </div>
+                </div>
               </div>
-              {placeInfo && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
-                    Found on Google Business
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 14 }}>
-                    {placeInfo.address && <div>{placeInfo.address}</div>}
-                    {placeInfo.phone && <div>{placeInfo.phone}</div>}
-                    {placeInfo.rating ? <div>{placeInfo.rating}★ on Google</div> : null}
-                    {placeInfo.openingHours && placeInfo.openingHours.length > 0 && (
-                      <div>{placeInfo.openingHours[0]}</div>
-                    )}
-                  </div>
-                </>
-              )}
-              {analysis.competitors && analysis.competitors.length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
-                    {analysis.competitors.length} competitor{analysis.competitors.length > 1 ? 's' : ''} already winning this
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-                    {analysis.competitors.map((c) => {
-                      const bareDomain = c.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')
-                      const kws = competitorKeywords.find((ck) => ck.domain === bareDomain)?.keywords ?? []
-                      return (
-                        <div key={c} style={{
-                          display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px',
-                          border: '1px solid var(--line)', borderRadius: 10, background: 'var(--paper)',
-                        }}>
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${bareDomain}&sz=32`}
-                            alt=""
-                            width={18}
-                            height={18}
-                            style={{ borderRadius: 4, marginTop: 2, flexShrink: 0 }}
-                          />
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{bareDomain}</div>
-                            {kws.length > 0 && (
-                              <div className="found-chips" style={{ marginTop: 4 }}>
-                                {kws.map((k) => <span className="found-chip" key={k}>{k}</span>)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-              {keywordList.length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
-                    {keywordList.length} keywords we'll target
-                  </div>
-                  <div className="found-chips">
-                    {keywordList.slice(0, 10).map((k) => <span className="found-chip" key={k}>{k}</span>)}
-                  </div>
-                </>
-              )}
-              {!user && (
-                <>
-                  <label className="first">Create your account to claim this</label>
-                  <button className="btn btn-social" onClick={() => oauth('google')}>
-                    <IcGoogle /> Continue with Google
-                  </button>
-                  <button className="btn btn-social" onClick={() => oauth('apple')}>
-                    <IcApple /> Continue with Apple
-                  </button>
-                  <div className="divider"><span /><em>or</em><span /></div>
-                  <label>Email</label>
-                  <input type="email" value={email} placeholder="you@example.com"
-                    onChange={(e) => setEmail(e.target.value)} />
-                  <label>Password</label>
-                  <input type="password" value={password} placeholder="6+ characters"
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && claimVisibility()} />
-                </>
-              )}
+
               <div className="foot-nav">
-                <span />
-                <button className="btn btn-gold" disabled={busy} onClick={claimVisibility}>
-                  {busy ? 'Preparing…' : <>{user ? 'Claim this visibility' : 'Create account & claim this visibility'} <IcArrow /></>}
+                <button className="btn-ghost" onClick={() => setStep(3)}>Back</button>
+                <button className="btn btn-gold" disabled={busy} onClick={() => openPaywall()}>
+                  {busy ? 'Preparing…' : <>Claim this visibility <IcArrow /></>}
                 </button>
               </div>
             </>
           )}
 
-          {/* STEP 4 — paywall with Stripe Elements */}
-          {step === 4 && (
+          {/* STEP 6 — paywall with Stripe Elements, no trial */}
+          {step === 6 && (
             <>
               <h1>Choose your plan</h1>
               <p className="sub">Pick monthly or annual — you're billed today, and can cancel anytime.</p>
@@ -911,14 +786,14 @@ export default function Onboarding() {
                 <p className="phase">Loading secure payment form…</p>
               )}
 
-              <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(3)}>
+              <button className="btn-ghost" style={{ width: '100%', marginTop: 6 }} onClick={() => setStep(5)}>
                 Back
               </button>
             </>
           )}
 
-          {/* STEP 5 — done */}
-          {step === 5 && (
+          {/* STEP 7 — success, technical connection happens after this */}
+          {step === 7 && (
             <>
               <div className="success-ic">
                 <svg className="ic-svg" viewBox="0 0 24 24" style={{ strokeWidth: 2 }}>

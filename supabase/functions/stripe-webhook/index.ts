@@ -226,7 +226,74 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     } catch (unlockErr) {
       logStep("Error in auto-unlock process", { error: String(unlockErr) });
     }
+
+    // Competitor and keyword research (DataForSEO — real money) only ever
+    // runs once payment is actually confirmed, not during onboarding — a
+    // signup that never converts should never cost a DataForSEO call. This
+    // fires on every subscription.updated event though, so it has to be
+    // idempotent: skip if this project already has keywords stored.
+    try {
+      await triggerCompetitorAnalysisOnce(profile.id);
+    } catch (compErr) {
+      logStep("Error triggering competitor analysis", { error: String(compErr) });
+    }
   }
+}
+
+async function triggerCompetitorAnalysisOnce(userId: string) {
+  const { data: projects } = await supabaseAdmin
+    .from("projects")
+    .select("id, competitors, language, country")
+    .eq("user_id", userId)
+    .limit(1);
+
+  const project = projects?.[0];
+  if (!project) {
+    logStep("No project found for competitor analysis", { userId });
+    return;
+  }
+
+  const { count } = await supabaseAdmin
+    .from("keywords")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", project.id);
+
+  if (count && count > 0) {
+    logStep("Competitor analysis already run for project, skipping", { projectId: project.id });
+    return;
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${serviceRoleKey}`,
+  };
+
+  logStep("Triggering competitor + keyword research", { projectId: project.id });
+
+  const compRes = await fetch(`${supabaseUrl}/functions/v1/analyze-competitors`, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({
+      projectId: project.id,
+      competitors: project.competitors ?? [],
+      language: project.language || "en",
+    }),
+  }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
+  logStep("analyze-competitors result", compRes);
+
+  const kwRes = await fetch(`${supabaseUrl}/functions/v1/keyword-research`, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({
+      projectId: project.id,
+      seedKeywords: [],
+      language: project.language || "en",
+      country: (project.country || "us").toLowerCase(),
+    }),
+  }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
+  logStep("keyword-research result", kwRes);
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
