@@ -4,6 +4,7 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSubscription } from '@/hooks/useSubscription'
 import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
@@ -111,6 +112,7 @@ function CardForm({ onDone, onError }: { onDone: () => void; onError: (m: string
 export default function Onboarding() {
   const navigate = useNavigate()
   const { user, isLoading: authLoading } = useAuth()
+  const { subscribed, trial, isLoading: subLoading } = useSubscription()
 
   const [step, setStep] = useState(1)
   const [error, setError] = useState('')
@@ -130,12 +132,29 @@ export default function Onboarding() {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null)
 
-  // Already onboarded? Go straight to the dashboard.
+  // Already has a project: paid (or trialing) -> dashboard. Payment gates
+  // access, so a project without a subscription is an incomplete signup —
+  // resume straight at the paywall instead of leaving them stuck on step 1,
+  // and regardless of how they arrived here (GEODashboard enforces the same
+  // rule and redirects unpaid users back to this exact effect).
+  const [resumedBilling, setResumedBilling] = useState(false)
   useEffect(() => {
-    if (authLoading || !user) return
-    supabase.from('projects').select('id').eq('user_id', user.id).limit(1)
-      .then(({ data }) => { if (data?.length) navigate('/geo', { replace: true }) })
-  }, [authLoading, user, navigate])
+    if (authLoading || !user || subLoading || resumedBilling) return
+    supabase.from('projects').select('id, brand_name, name').eq('user_id', user.id).limit(1)
+      .then(({ data }) => {
+        const existing = data?.[0]
+        if (!existing) return
+        if (subscribed || trial) {
+          navigate('/geo', { replace: true })
+          return
+        }
+        setResumedBilling(true)
+        setProjectId(existing.id)
+        setBizName(existing.brand_name || existing.name || '')
+        openPaywall()
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, subLoading, subscribed, trial, navigate, resumedBilling])
 
   /* --- step 3: analyse the site and create the project --- */
   const runAnalysis = useCallback(async () => {

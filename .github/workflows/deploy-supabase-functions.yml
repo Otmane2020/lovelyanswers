@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/deploy-supabase-functions.yml'
   workflow_dispatch:  # allows manual trigger from GitHub UI
 
 jobs:
@@ -44,19 +46,15 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Deploy welcome-automation
+      - name: Deploy every function in supabase/functions
+        # Deploying two hardcoded functions here meant every other function in
+        # the repo — including ones actively wired into the app — silently
+        # never reached production. `functions deploy` with no name deploys
+        # everything under supabase/functions, honoring each function's
+        # verify_jwt/entrypoint from supabase/config.toml.
         run: |
-          supabase functions deploy welcome-automation \
-            --project-ref pnohfokjlhpzrkczruju \
-            --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy db-email-trigger
-        run: |
-          supabase functions deploy db-email-trigger \
-            --project-ref pnohfokjlhpzrkczruju \
-            --no-verify-jwt
+          supabase functions deploy \
+            --project-ref pnohfokjlhpzrkczruju
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

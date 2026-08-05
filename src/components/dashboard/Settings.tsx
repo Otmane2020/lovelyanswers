@@ -28,9 +28,11 @@ export function Settings() {
   const { project } = useActiveProject()
   const { data: integrations = [], isLoading } = useIntegrations()
   const updateProject = useUpdateProject()
+  // GEODashboard gates access on subscription status, so anyone reaching
+  // Settings is already paying — there's no free tier to "upgrade" from here.
   const {
     subscribed, trial, subscriptionEnd, creditsTotal,
-    isLoading: subLoading, startCheckout, openCustomerPortal,
+    isLoading: subLoading, openCustomerPortal,
   } = useSubscription()
   const { isConnected: gmbConnected, connectGMB } = useGoogleBusiness()
 
@@ -48,9 +50,11 @@ export function Settings() {
 
   const planLabel = subLoading
     ? 'Checking…'
+    : trial
+    ? 'Free trial — active'
     : subscribed
-    ? trial ? 'Free trial — active' : 'Active subscription'
-    : 'No active plan'
+    ? 'Active subscription'
+    : 'Subscription inactive'
 
   const planMeta = subLoading
     ? ''
@@ -58,12 +62,11 @@ export function Settings() {
     ? `${trial ? 'Trial ends' : 'Renews'} ${new Date(subscriptionEnd).toLocaleDateString()}${
         creditsTotal ? ` · ${creditsTotal} credits` : ''
       }`
-    : 'Start a plan to keep publishing daily'
+    : 'Contact support if this looks wrong'
 
   const handleBilling = async () => {
     try {
-      if (subscribed) await openCustomerPortal()
-      else await startCheckout()
+      await openCustomerPortal()
     } catch {
       toast.error('Could not open billing. Please try again.')
     }
@@ -255,7 +258,7 @@ export function Settings() {
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" disabled={subLoading} onClick={handleBilling}>
-            {subscribed ? 'Manage' : 'Upgrade'}
+            Manage
           </button>
         </div>
       </div>

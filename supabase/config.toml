@@ -1,5 +1,11 @@
 project_id = "pnohfokjlhpzrkczruju"
 
+# Previously deployed with an explicit --no-verify-jwt CLI flag rather than a
+# config.toml entry; declared here so a blanket `functions deploy` preserves
+# the same auth behavior instead of defaulting to verify_jwt = true.
+[functions.welcome-automation]
+verify_jwt = false
+
 [functions.firecrawl-scrape]
 verify_jwt = false
 
