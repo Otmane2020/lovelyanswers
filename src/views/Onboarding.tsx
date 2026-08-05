@@ -189,6 +189,11 @@ export default function Onboarding() {
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoInput, setPromoInput] = useState('')
+  const [promoBusy, setPromoBusy] = useState(false)
+  const [promoError, setPromoError] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percentOff: number | null; amountOff: number | null } | null>(null)
 
   // Already has a project: paid (or trialing) -> dashboard. Payment gates
   // access, so a project without a subscription is an incomplete signup —
@@ -395,19 +400,16 @@ export default function Onboarding() {
     if (e) setError(e.message)
   }
 
-  /* --- step 5: ask Stripe for a payment intent --- */
-  const openPaywall = async () => {
+  /* --- ask Stripe for a payment intent matching the current plan + promo.
+     Re-invoked whenever either changes — create-subscription-intent updates
+     the same never-paid subscription in place rather than creating a new
+     one each time, so toggling plan/promo repeatedly doesn't abandon
+     orphaned Stripe subscriptions. --- */
+  const refreshSubscription = async (nextPlan: 'monthly' | 'annual', nextPromo: string) => {
     setBusy(true); setError('')
     try {
-      // Persist whatever was edited on the review screen before moving on.
-      if (projectId) {
-        await supabase.from('projects').update({
-          business_description: editableDescription || null,
-          business_type: category || null,
-        }).eq('id', projectId)
-      }
       const { data, error: e } = await supabase.functions.invoke('create-subscription-intent', {
-        body: { plan },
+        body: { plan: nextPlan, promoCode: nextPromo || undefined },
       })
       if (e) throw new Error(e.message)
       if (data?.error) throw new Error(data.error)
@@ -417,11 +419,49 @@ export default function Onboarding() {
         return
       }
       setClientSecret(data.clientSecret)
-      setStep(4)
+      setAppliedDiscount(data.discount ?? null)
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start checkout')
+      return false
     } finally {
       setBusy(false)
+    }
+  }
+
+  /* --- step 3 -> step 4: persist edits, then open the paywall --- */
+  const openPaywall = async () => {
+    if (projectId) {
+      await supabase.from('projects').update({
+        business_description: editableDescription || null,
+        business_type: category || null,
+      }).eq('id', projectId)
+    }
+    if (await refreshSubscription(plan, promoCode)) setStep(4)
+  }
+
+  const changePlan = async (nextPlan: 'monthly' | 'annual') => {
+    setPlan(nextPlan)
+    await refreshSubscription(nextPlan, promoCode)
+  }
+
+  const applyPromoCode = async () => {
+    const code = promoInput.trim()
+    if (!code) return
+    setPromoBusy(true); setPromoError('')
+    try {
+      const { data, error: e } = await supabase.functions.invoke('create-subscription-intent', {
+        body: { plan, promoCode: code },
+      })
+      if (e) throw new Error(e.message)
+      if (data?.error) throw new Error(data.error)
+      setClientSecret(data.clientSecret)
+      setAppliedDiscount(data.discount ?? null)
+      setPromoCode(code)
+    } catch (err) {
+      setPromoError(err instanceof Error ? err.message : 'Could not apply that code')
+    } finally {
+      setPromoBusy(false)
     }
   }
 
@@ -451,6 +491,18 @@ export default function Onboarding() {
   }
 
   const canStartAnalysis = !!bizName.trim() && isValidUrl(bizSite) && !!country.trim()
+
+  // Base prices in cents, matching what create-subscription-intent actually
+  // charges — kept in sync manually since the price itself lives in Stripe.
+  const basePriceCents = plan === 'monthly' ? 999 : 9588
+  const discountedPriceCents = appliedDiscount
+    ? appliedDiscount.percentOff
+      ? Math.round(basePriceCents * (1 - appliedDiscount.percentOff / 100))
+      : appliedDiscount.amountOff
+      ? Math.max(0, basePriceCents - appliedDiscount.amountOff)
+      : basePriceCents
+    : basePriceCents
+  const discountedPriceLabel = `$${(discountedPriceCents / 100).toFixed(2)}`
   const brand = analysis?.brandName || preScraped?.brandName || bizName || 'your business'
   const aiKeywords = (analysis?.keywords ?? []).map((k) =>
     typeof k === 'string' ? k : k.keyword
@@ -695,8 +747,8 @@ export default function Onboarding() {
               <p className="sub">Pick monthly or annual — you're billed today, and can cancel anytime.</p>
 
               <div className="plan-toggle">
-                <button className={plan === 'monthly' ? 'on' : ''} onClick={() => setPlan('monthly')}>Monthly</button>
-                <button className={plan === 'annual' ? 'on' : ''} onClick={() => setPlan('annual')}>
+                <button disabled={busy} className={plan === 'monthly' ? 'on' : ''} onClick={() => changePlan('monthly')}>Monthly</button>
+                <button disabled={busy} className={plan === 'annual' ? 'on' : ''} onClick={() => changePlan('annual')}>
                   Annual <span className="save">−20%</span>
                 </button>
               </div>
@@ -708,7 +760,7 @@ export default function Onboarding() {
                   <div style={{ textAlign: 'right' }}>
                     <div className="plan-was">{plan === 'monthly' ? '$29/mo' : '$119.88/yr'}</div>
                     <div className="price">
-                      {plan === 'monthly' ? '$9.99' : '$95.88'}
+                      {discountedPriceLabel}
                       <span>{plan === 'monthly' ? '/mo' : '/yr'}</span>
                     </div>
                   </div>
@@ -719,6 +771,42 @@ export default function Onboarding() {
                   <div><IcCheck /> Weekly presence check</div>
                 </div>
               </div>
+
+              {appliedDiscount ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'var(--green-soft)', border: '1px solid #cfe9db', borderRadius: '10px',
+                  padding: '10px 12px', marginBottom: '14px', fontSize: '13px', color: 'var(--green)',
+                }}>
+                  <span><IcCheck size={13} /> Code <b>{appliedDiscount.code}</b> applied
+                    {appliedDiscount.percentOff ? ` — ${appliedDiscount.percentOff}% off` : appliedDiscount.amountOff ? ` — $${(appliedDiscount.amountOff / 100).toFixed(2)} off` : ''}
+                  </span>
+                  <button
+                    className="btn-ghost"
+                    style={{ padding: '2px 8px', fontSize: 12 }}
+                    onClick={() => { setPromoCode(''); setPromoInput(''); refreshSubscription(plan, '') }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  <input
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value)}
+                    placeholder="Promo code"
+                    onKeyDown={(e) => e.key === 'Enter' && applyPromoCode()}
+                    style={{
+                      flex: 1, padding: '10px 12px', fontSize: '13.5px', fontFamily: 'inherit',
+                      border: '1.5px solid var(--line)', borderRadius: '9px', background: 'var(--paper)', color: 'var(--ink)',
+                    }}
+                  />
+                  <button className="btn btn-ghost btn-sm" disabled={promoBusy || !promoInput.trim()} onClick={applyPromoCode}>
+                    {promoBusy ? 'Checking…' : 'Apply'}
+                  </button>
+                </div>
+              )}
+              {promoError && <p className="err" style={{ marginTop: '-8px' }}>{promoError}</p>}
 
               {clientSecret ? (
                 <Elements stripe={stripePromiseSingleton} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
@@ -759,7 +847,7 @@ export default function Onboarding() {
                 </div>
                 <div className="tl-row">
                   <span className="tl-dot" />
-                  <div className="tl-text"><b>Every Mon / Wed / Fri, 6am UTC</b><span>New answers and articles publish automatically, filling the next 30 days</span></div>
+                  <div className="tl-text"><b>Every day</b><span>New GEO, SEO, AEO and Local AEO content publishes automatically, filling the next 30 days</span></div>
                 </div>
                 <div className="tl-row">
                   <span className="tl-dot later" />

@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     const email = userData.user.email;
-    console.log("[SUB-INTENT] plan:", plan, "price:", priceId, "user:", userData.user.id);
+    console.log("[SUB-INTENT] plan:", plan, "price:", priceId, "promo:", promoCodeInput || "(none)", "user:", userData.user.id);
 
     // Reuse the customer if this email already has one.
     const existing = await stripe.customers.list({ email, limit: 1 });
@@ -108,15 +108,30 @@ serve(async (req) => {
       console.log("[SUB-INTENT] promo code applied:", promo.code, promo.id);
     }
 
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
-      expand: ["latest_invoice.payment_intent"],
-      metadata: { supabase_user_id: userData.user.id, plan },
-      ...(promotionCodeId ? { discounts: [{ promotion_code: promotionCodeId }] } : {}),
-    });
+    // Switching plan or applying/changing a promo code re-invokes this
+    // endpoint from the same onboarding step. Update the existing
+    // never-paid subscription in place instead of creating another one —
+    // otherwise every toggle leaves an abandoned "incomplete" subscription
+    // behind in Stripe.
+    const pendingSub = currentSubs.data.find((s) => s.status === "incomplete");
+
+    const subscription = pendingSub
+      ? await stripe.subscriptions.update(pendingSub.id, {
+          items: [{ id: pendingSub.items.data[0].id, price: priceId }],
+          payment_behavior: "default_incomplete",
+          expand: ["latest_invoice.payment_intent"],
+          metadata: { supabase_user_id: userData.user.id, plan },
+          discounts: promotionCodeId ? [{ promotion_code: promotionCodeId }] : [],
+        })
+      : await stripe.subscriptions.create({
+          customer: customer.id,
+          items: [{ price: priceId }],
+          payment_behavior: "default_incomplete",
+          payment_settings: { save_default_payment_method: "on_subscription" },
+          expand: ["latest_invoice.payment_intent"],
+          metadata: { supabase_user_id: userData.user.id, plan },
+          ...(promotionCodeId ? { discounts: [{ promotion_code: promotionCodeId }] } : {}),
+        });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice | null;
     const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent | null;
