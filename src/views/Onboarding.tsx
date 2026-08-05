@@ -552,7 +552,7 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)} />
-              <label>Country — detected automatically, change if it's wrong</label>
+              <label>Country</label>
               <div style={{ position: 'relative' }}>
                 <button
                   type="button"
