@@ -548,10 +548,18 @@ export default function Onboarding() {
                 <span />
                 <button
                   className="btn btn-primary"
-                  disabled={!canStartAnalysis}
-                  onClick={() => { setError(''); setStep(3); preScrapeSite() }}
+                  disabled={!canStartAnalysis || busy}
+                  onClick={async () => {
+                    setError(''); setBusy(true)
+                    // Wait for the quick scrape so the category guess is
+                    // already in place when step 3 renders, instead of
+                    // popping in a second or two after the chips are shown.
+                    await preScrapeSite()
+                    setBusy(false)
+                    setStep(3)
+                  }}
                 >
-                  Continue <IcArrow />
+                  {busy ? 'Reading your site…' : <>Continue <IcArrow /></>}
                 </button>
               </div>
               <p className="fine">
@@ -566,7 +574,11 @@ export default function Onboarding() {
           {step === 3 && (
             <>
               <h1>What kind of business is it?</h1>
-              <p className="sub">This shapes the tone and the questions we optimize your content for.</p>
+              <p className="sub">
+                {category
+                  ? <>Detected from your site — tap to change if it's off.</>
+                  : 'This shapes the tone and the questions we optimize your content for.'}
+              </p>
               <div className="chip-grid">
                 {CATEGORIES.map((c) => (
                   <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
