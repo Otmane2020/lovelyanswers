@@ -94,6 +94,14 @@ async function trackQuery(query: any, projectId: string, brandNames: string[], c
     case 'bing':
       rawResponse = await queryBing(query.query)
       break
+    case 'chatgpt':
+    case 'openai':
+      rawResponse = await queryViaOpenRouter(query.query, 'openai/gpt-4o')
+      break
+    case 'claude':
+    case 'anthropic':
+      rawResponse = await queryViaOpenRouter(query.query, 'anthropic/claude-3.5-sonnet')
+      break
     default:
       throw new Error(`Unknown platform: ${query.platform}`)
   }
@@ -176,6 +184,33 @@ async function queryBing(query: string): Promise<string> {
   return data.webPages?.value
     ?.map((r: any) => `${r.name}: ${r.snippet}`)
     .join('\n') ?? ''
+}
+
+// ChatGPT and Claude have no direct case here — OPENAI_API_KEY and
+// ANTHROPIC_API_KEY are never configured anywhere in this project. Routed
+// through OpenRouter instead, the same gateway already used everywhere else
+// in this codebase (analyze-website, generate-30-gso-contents, sentiment
+// analysis below), so this works with the secret that's already set rather
+// than requiring two more to be added.
+async function queryViaOpenRouter(query: string, model: string): Promise<string> {
+  const apiKey = Deno.env.get('OPENROUTER_API_KEY')
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set')
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: query }],
+      max_tokens: 1024,
+    }),
+  })
+  if (!res.ok) throw new Error(`OpenRouter ${model} error: ${res.status} ${await res.text()}`)
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content ?? ''
 }
 
 // --- PARSER ---
