@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -11,6 +11,14 @@ export default function Onboarding() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+
+  // Auto-advance from loading step after 3 seconds
+  useEffect(() => {
+    if (step === 3) {
+      const timer = setTimeout(() => setStep(4), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [step])
 
   const categories = [
     'E-commerce', 'SaaS', 'Local Business', 'Agency', 'Marketplace', 'Content',
@@ -39,7 +47,7 @@ export default function Onboarding() {
       })
 
       if (signupError) throw signupError
-      setStep(3)
+      setStep(6)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {
