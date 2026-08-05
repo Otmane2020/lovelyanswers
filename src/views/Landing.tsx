@@ -40,8 +40,58 @@ export default function Landing() {
       </header>
 
       {/* FOOTER */}
-      <footer style={{borderTop:'1px solid var(--line)',padding:'60px 0 30px',textAlign:'center',color:'var(--ink-soft)',fontSize:'12.5px'}}>
-        © 2026 AutopilotGEO. All rights reserved.
+      <footer style={{borderTop:'1px solid var(--line)',padding:'60px 0 30px'}}>
+        <div style={{maxWidth:'1180px',margin:'0 auto',paddingLeft:'20px',paddingRight:'20px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr',gap:'32px',marginBottom:'32px'}}>
+            {/* Brand Col */}
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'14px'}}>
+                <div style={{width:'32px',height:'32px',borderRadius:'10px',background:'linear-gradient(150deg,#5f6ce0,#1a2058)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <svg viewBox="0 0 100 100" style={{width:'17px',height:'17px'}}>
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="#e9dfa8" strokeWidth="1.6" opacity=".85"/>
+                    <path d="M50 8 C54.5 32 57.5 39 84 44 C57.5 49 54.5 56 50 80 C45.5 56 42.5 49 16 44 C42.5 39 45.5 32 50 8 Z" fill="#e9dfa8"/>
+                  </svg>
+                </div>
+                <div><div style={{fontSize:'9.5px',letterSpacing:'.18em',color:'#c79a2e',fontWeight:'700'}}>AUTOPILOT</div><div style={{fontWeight:'700',fontSize:'16px',color:'var(--ink)'}}>GEO</div></div>
+              </div>
+              <p style={{fontSize:'13.5px',color:'var(--ink-soft)',lineHeight:'1.6',margin:'0 0 10px',maxWidth:'280px'}}>The #1 Answer & Generative Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
+              <p style={{fontSize:'13.5px',color:'var(--ink-soft)',lineHeight:'1.6',margin:'10px 0 0'}}>AutopilotGEO Ltd · support@autopilotgeo.com</p>
+            </div>
+
+            {/* Product Col */}
+            <div>
+              <h4 style={{fontSize:'12.5px',fontWeight:'700',letterSpacing:'.06em',textTransform:'uppercase',color:'var(--ink-soft)',marginBottom:'16px'}}>Product</h4>
+              <a href="#blog" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Blog</a>
+              <a href="#local" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Local AEO</a>
+              <a href="#pricing" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Pricing</a>
+              <a href="/auth" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Login</a>
+            </div>
+
+            {/* Company Col */}
+            <div>
+              <h4 style={{fontSize:'12.5px',fontWeight:'700',letterSpacing:'.06em',textTransform:'uppercase',color:'var(--ink-soft)',marginBottom:'16px'}}>Company</h4>
+              <a href="#about" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>About us</a>
+              <a href="/terms" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Terms of service</a>
+              <a href="/privacy" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Privacy policy</a>
+              <a href="#contact" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Contact</a>
+            </div>
+
+            {/* Security Col */}
+            <div>
+              <h4 style={{fontSize:'12.5px',fontWeight:'700',letterSpacing:'.06em',textTransform:'uppercase',color:'var(--ink-soft)',marginBottom:'16px'}}>Trust & Security</h4>
+              <a href="#stripe" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Secure payment — powered by Stripe</a>
+              <a href="#trusted" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Trusted by 500+ businesses</a>
+              <h4 style={{fontSize:'12.5px',fontWeight:'700',letterSpacing:'.06em',textTransform:'uppercase',color:'var(--ink-soft)',marginBottom:'16px',marginTop:'20px'}}>Resources</h4>
+              <a href="#articles" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>AEO Articles</a>
+              <a href="#seo" style={{display:'block',fontSize:'14px',color:'var(--ink-soft)',marginBottom:'11px',textDecoration:'none'}}>Local SEO</a>
+            </div>
+          </div>
+
+          <div style={{borderTop:'1px solid var(--line)',paddingTop:'24px',display:'flex',justifyContent:'space-between',fontSize:'12.5px',color:'var(--ink-soft)',flexWrap:'wrap',gap:'10px'}}>
+            <span>© 2026 AutopilotGEO Ltd. All rights reserved.</span>
+            <span>autopilotgeo.com</span>
+          </div>
+        </div>
       </footer>
     </div>
   )
