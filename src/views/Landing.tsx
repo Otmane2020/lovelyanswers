@@ -8,6 +8,8 @@ import wordpressLogo from '@/assets/wordpress-logo-new.png'
 import wixLogo from '@/assets/wix-logo.png'
 import framerLogo from '@/assets/framer-logo.png'
 import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
+import lovableLogo from '@/assets/lovable-logo.svg'
+import boltLogo from '@/assets/bolt-logo.png'
 
 /* ---------- inline icons (ported from the design's <symbol> defs) ---------- */
 const Ic = ({ d, size = 16, sw = 1.6, circles = [] as { cx: number; cy: number; r: number }[] }) => (
@@ -429,14 +431,16 @@ export default function Landing() {
           </p>
           <div style={{
             display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
-            gap: '14px', maxWidth: '640px', margin: '0 auto',
+            gap: '14px', maxWidth: '760px', margin: '0 auto',
           }}>
             {[
-              { name: 'Shopify', logo: shopifyLogo, bg: '#95BF47' },
-              { name: 'WordPress', logo: wordpressLogo, bg: '#21759B' },
-              { name: 'Wix', logo: wixLogo, bg: '#000000' },
-              { name: 'Framer', logo: framerLogo, bg: '#0055FF' },
-              { name: 'BigCommerce', logo: bigcommerceLogo, bg: '#34313F' },
+              { name: 'Shopify', logo: shopifyLogo },
+              { name: 'WordPress', logo: wordpressLogo },
+              { name: 'Wix', logo: wixLogo },
+              { name: 'Framer', logo: framerLogo },
+              { name: 'BigCommerce', logo: bigcommerceLogo },
+              { name: 'Lovable', logo: lovableLogo },
+              { name: 'Bolt', logo: boltLogo },
             ].map((p) => (
               <div key={p.name} style={{
                 display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px',
@@ -444,10 +448,30 @@ export default function Landing() {
                 fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
               }}>
                 <span style={{
-                  width: 26, height: 26, borderRadius: 7, background: p.bg, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                 }}>
-                  <img src={p.logo} alt={p.name} style={{ width: 16, height: 16, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                  <img src={p.logo} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </span>
+                {p.name}
+              </div>
+            ))}
+            {[
+              { name: 'Supabase', mono: 'S', color: '#3ECF8E' },
+              { name: 'Vercel', mono: '▲', color: '#000000' },
+              { name: 'Netlify', mono: 'N', color: '#00C7B7' },
+            ].map((p) => (
+              <div key={p.name} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px',
+                background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px',
+                fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
+              }}>
+                <span style={{
+                  width: 26, height: 26, borderRadius: 7, background: p.color, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 13, fontWeight: 800,
+                }}>
+                  {p.mono}
                 </span>
                 {p.name}
               </div>
