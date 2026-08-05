@@ -218,13 +218,20 @@ export default function Onboarding() {
     if (!authLoading && user && step === 1) setStep(2)
   }, [authLoading, user, step])
 
-  /** Cheap keyword heuristic against the scraped description/domain — a
-   * pre-filled guess the user can still override, not a forced choice. */
-  const guessCategory = (text: string): string => {
+  /** Cheap keyword heuristic against the scraped description/domain (and,
+   * when known, the detected CMS) — a pre-filled guess the user can still
+   * override, not a forced choice. The CMS is checked first: a real
+   * WooCommerce/Shopify/etc. storefront is a far more reliable e-commerce
+   * signal than hoping the homepage copy happens to say "shop" or "cart" —
+   * a B2B wholesaler's description ("grossiste en meubles pour
+   * professionnels") won't contain either. */
+  const guessCategory = (text: string, cms?: string): string => {
     const t = text.toLowerCase()
+    const ecommerceCms = ['woocommerce', 'shopify', 'bigcommerce', 'magento', 'prestashop', 'wix']
+    if (cms && ecommerceCms.includes(cms.toLowerCase())) return 'E-commerce'
     if (/restaurant|café|resto|food|cuisine|menu|traiteur/.test(t)) return 'Restaurant'
     if (/saas|software|logiciel|platform|plateforme|application saas|api\b/.test(t)) return 'SaaS'
-    if (/shop|store|boutique|magasin|e-?commerce|panier|cart|livraison.*commande/.test(t)) return 'E-commerce'
+    if (/shop|store|boutique|magasin|e-?commerce|panier|cart|livraison|grossiste|wholesale|mobilier|meuble|produit/.test(t)) return 'E-commerce'
     if (/service|consult|agence|agency|artisan|plombier|électricien|coiffeur|réparation/.test(t)) return 'Local service'
     if (/retail|vente au détail|showroom/.test(t)) return 'Retail store'
     return ''
@@ -274,10 +281,10 @@ export default function Onboarding() {
     try {
       const { data } = await supabase.functions.invoke('firecrawl-scrape-fast', { body: { url } })
       if (data?.success && data.data) {
-        const { brandName, description, language } = data.data
+        const { brandName, description, language, cms } = data.data
         setPreScraped({ brandName, description: description || '', language: language || 'en' })
         if (!category) {
-          const guessed = guessCategory(`${description || ''} ${url}`)
+          const guessed = guessCategory(`${description || ''} ${url}`, cms)
           if (guessed) setCategory(guessed)
         }
       }
