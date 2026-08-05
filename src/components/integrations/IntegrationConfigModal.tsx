@@ -29,8 +29,9 @@ import wixLogo from "@/assets/wix-logo.png";
 import wordpressLogo from "@/assets/wordpress-logo-new.png";
 import bigcommerceLogo from "@/assets/bigcommerce-logo.png";
 import framerLogo from "@/assets/framer-logo.png";
-import boltLogo from "@/assets/bolt-logo.png";
+import boltLogo from "@/assets/bolt-new-logo.svg";
 import lovableLogo from "@/assets/lovable-logo.svg";
+import replitLogo from "@/assets/replit-logo.svg";
 
 // Guide steps for each platform
 const PLATFORM_GUIDES: Record<string, { title: string; steps: string[] }> = {
@@ -319,6 +320,19 @@ const CMS_CONFIG: Record<string, {
     helpText: "",
     fields: [
       { key: "endpoint", label: "Supabase Function URL", placeholder: "https://xxx.supabase.co/functions/v1/receive-article", helpText: "The receive-article function URL from your project" },
+    ],
+  },
+  replit: {
+    name: "Replit",
+    icon: replitLogo as unknown as string,
+    isImage: true,
+    color: "from-orange-500 to-orange-700",
+    description: "Publish articles to your Replit-hosted project.",
+    helpText: "Use webhooks or API to push content to your Replit app.",
+    fields: [
+      { key: "name", label: "Integration Name", placeholder: "My Replit Project" },
+      { key: "endpoint", label: "Webhook URL", placeholder: "https://your-repl-name.username.repl.co/webhook" },
+      { key: "token", label: "API Token", placeholder: "Enter your API token (optional)", type: "password", optional: true },
     ],
   },
 };

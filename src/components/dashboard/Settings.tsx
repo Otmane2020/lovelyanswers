@@ -9,9 +9,6 @@ import { useGoogleBusiness } from '@/hooks/useGoogleBusiness'
 import { ConnectPanel } from './ConnectPanel'
 import { IconGlobe, IconCart, IconUser, IconCard } from './Icons'
 
-import boltLogo from '@/assets/bolt-new-logo.svg'
-import lovableLogo from '@/assets/lovable-logo.svg'
-import replitLogo from '@/assets/replit-logo.svg'
 import supabaseLogo from '@/assets/supabase-logo.svg'
 import googleSearchConsoleLogo from '@/assets/google-search-console-logo.svg'
 import googleBusinessLogo from '@/assets/google-business-logo.svg'
@@ -24,14 +21,14 @@ const PLATFORM_LABEL: Record<string, string> = {
   google_business: 'Google Business Profile', google_search_console: 'Google Search Console',
 }
 
-// No real "link your account" backend exists for any of these yet — shown
-// as coming soon rather than a Connect button that would fail, per the
-// rule to never present an integration as functional before its backend is.
+// Replit/Bolt/Lovable moved to the real "Website (CMS)" connect flow
+// (ConnectPanel + IntegrationConfigModal) — they publish through a webhook
+// or API endpoint the same way WordPress/Shopify/etc. do, so they're no
+// longer "coming soon". Supabase is a different kind of integration (linking
+// the client's own Supabase project for data sync, not content publishing)
+// with no backend yet, so it stays here honestly labeled.
 const DEV_INTEGRATIONS = [
-  { id: 'replit', name: 'Replit', description: 'Deploy generated content straight from a Replit workspace.', logo: replitLogo, color: '#F26207' },
   { id: 'supabase', name: 'Supabase', description: 'Link your own Supabase project for custom data sync.', logo: supabaseLogo, color: '#3ECF8E' },
-  { id: 'bolt', name: 'Bolt', description: 'Push GEO content updates into a Bolt-built site.', logo: boltLogo },
-  { id: 'lovable', name: 'Lovable', description: 'Sync content into a Lovable-built site.', logo: lovableLogo },
 ] as const
 
 const inputStyle: React.CSSProperties = {

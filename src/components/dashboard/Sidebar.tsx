@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIntegrations } from '@/hooks/useIntegrations'
+import { useSubscription } from '@/hooks/useSubscription'
 import type { DashboardTab } from '@/views/GEODashboard'
 import {
   IconSparkle, IconHome, IconWrite, IconPin, IconChart, IconGear
@@ -23,6 +25,18 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const { data: integrations } = useIntegrations()
+  const { trial, subscriptionEnd, openCustomerPortal } = useSubscription()
+
+  // Only one paid tier exists today (Starter), so "Upgrade" opens the same
+  // Stripe customer portal as Settings' "Manage" — it's the honest action
+  // available right now, not a fabricated higher-tier flow.
+  const handleUpgrade = async () => {
+    try {
+      await openCustomerPortal()
+    } catch {
+      toast.error('Could not open billing. Please try again.')
+    }
+  }
 
   // Publishing needs a CMS. Flag Settings when it isn't connected.
   const cmsConnected = (integrations || []).some(
@@ -65,6 +79,20 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       ))}
 
       <div className="sidebar-foot">
+        <div className="plan-box">
+          <div className="plan-box-top">
+            <span className="plan-name">Starter</span>
+            {trial && <span className="plan-pill">Trial</span>}
+          </div>
+          {subscriptionEnd && (
+            <div className="plan-meta">
+              {trial ? 'Trial ends' : 'Renews'} {new Date(subscriptionEnd).toLocaleDateString()}
+            </div>
+          )}
+          <button className="btn-upgrade" onClick={handleUpgrade}>
+            Upgrade
+          </button>
+        </div>
         <div className="signout" onClick={handleSignOut} role="button" tabIndex={0}>
           ⇥ Sign out
         </div>

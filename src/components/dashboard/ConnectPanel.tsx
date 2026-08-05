@@ -10,11 +10,18 @@ import bigcommerceLogo from '@/assets/bigcommerce-logo.png'
 import framerLogo from '@/assets/framer-logo.png'
 import wixLogo from '@/assets/wix-logo.png'
 import webflowLogo from '@/assets/webflow-logo.svg'
+import boltLogo from '@/assets/bolt-new-logo.svg'
+import lovableLogo from '@/assets/lovable-logo.svg'
+import replitLogo from '@/assets/replit-logo.svg'
 
 /** Platforms we can publish to. Same ids the edge functions expect.
  * Google Search Console lives in Settings' Connections card instead — it's
  * an OAuth account link, not a CMS config form like these, and
- * IntegrationConfigModal (used below) has no config for it at all. */
+ * IntegrationConfigModal (used below) has no config for it at all.
+ * Bolt/Lovable/Replit publish through a webhook or API endpoint the same
+ * way "API"/"Webhook" do — these AI site builders don't have their own
+ * publish API, so IntegrationConfigModal's config for them just collects
+ * that endpoint under their own branding instead of the generic one. */
 const PLATFORMS = [
   { id: 'wordpress', name: 'WordPress', icon: wordpressLogo, isImage: true },
   { id: 'shopify', name: 'Shopify', icon: shopifyLogo, isImage: true },
@@ -22,6 +29,9 @@ const PLATFORMS = [
   { id: 'framer', name: 'Framer', icon: framerLogo, isImage: true },
   { id: 'bigcommerce', name: 'BigCommerce', icon: bigcommerceLogo, isImage: true },
   { id: 'webflow', name: 'Webflow', icon: webflowLogo, isImage: true },
+  { id: 'lovable', name: 'Lovable', icon: lovableLogo, isImage: true },
+  { id: 'bolt', name: 'Bolt', icon: boltLogo, isImage: true },
+  { id: 'replit', name: 'Replit', icon: replitLogo, isImage: true },
   { id: 'api', name: 'API', icon: '⚙️', isImage: false },
   { id: 'webhook', name: 'Webhook', icon: '🔗', isImage: false },
 ] as const
