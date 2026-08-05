@@ -84,7 +84,7 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
               }}
             >
               {p.isImage ? (
-                <img src={p.icon as string} alt="" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
+                <img src={p.icon as unknown as string} alt="" style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} />
               ) : (
                 <span style={{ fontSize: 19, flexShrink: 0 }}>{p.icon as string}</span>
               )}
