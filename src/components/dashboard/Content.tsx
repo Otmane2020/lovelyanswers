@@ -4,6 +4,10 @@ import { useAnswers } from '@/hooks/useAnswers'
 import { useGeoContents } from '@/hooks/useGeoContents'
 import { IconFlame, IconFile, IconMessage, IconTag, IconList, IconCalendar } from './Icons'
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const MONTH_NAME = (y: number, m: number) =>
+  new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
+
 type Status = 'live' | 'wait' | 'draft'
 type Filter = 'all' | Status
 
@@ -23,6 +27,9 @@ const STATUS_LABEL: Record<Status, string> = { live: 'Live', wait: 'Waiting', dr
 export function Content() {
   const [viewMode, setViewMode] = useState<'list' | 'cal'>('list')
   const [filter, setFilter] = useState<Filter>('all')
+  const today = new Date()
+  const [calYear, setCalYear] = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth())
 
   const { data: articles = [], isLoading: la } = useArticles()
   const { data: answers = [], isLoading: lb } = useAnswers()
@@ -113,6 +120,34 @@ export function Content() {
     .filter((r) => r.status === 'live' && r.date)
     .slice(0, 6)
 
+  // One dot per day: live beats waiting beats nothing, for that day's status.
+  const calDays = useMemo(() => {
+    const byDay = new Map<number, 'live' | 'wait'>()
+    rows.forEach((r) => {
+      if (!r.date) return
+      const d = new Date(r.date)
+      if (d.getFullYear() !== calYear || d.getMonth() !== calMonth) return
+      const day = d.getDate()
+      const current = byDay.get(day)
+      if (r.status === 'live') byDay.set(day, 'live')
+      else if (r.status === 'wait' && current !== 'live') byDay.set(day, 'wait')
+    })
+
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+    // JS getDay(): 0=Sun..6=Sat. Mockup's grid starts on Monday, so shift Sunday to the end.
+    const firstWeekday = (new Date(calYear, calMonth, 1).getDay() + 6) % 7
+    const cells: ({ day: number; status: 'live' | 'wait' | 'none' } | null)[] = []
+    for (let i = 0; i < firstWeekday; i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, status: byDay.get(d) || 'none' })
+    return cells
+  }, [rows, calYear, calMonth])
+
+  const shiftMonth = (delta: number) => {
+    const d = new Date(calYear, calMonth + delta, 1)
+    setCalYear(d.getFullYear())
+    setCalMonth(d.getMonth())
+  }
+
   return (
     <section>
       <div className="top-header">
@@ -186,6 +221,57 @@ export function Content() {
             in one stream.
           </p>
         </div>
+      ) : viewMode === 'cal' ? (
+        <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card-head">
+            <div>
+              <h2>{MONTH_NAME(calYear, calMonth)}</h2>
+              <p className="sub">One dot = one piece of content published that day</p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => shiftMonth(-1)}>
+                ‹ {MONTH_NAME(calYear, calMonth === 0 ? 11 : calMonth - 1).split(' ')[0]}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => shiftMonth(1)}>
+                {MONTH_NAME(calYear, calMonth === 11 ? 0 : calMonth + 1).split(' ')[0]} ›
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '6px', marginTop: '6px' }}>
+            {WEEKDAYS.map((w) => (
+              <div key={w} style={{ fontSize: '11px', color: 'var(--ink-soft)', textAlign: 'center' }}>{w}</div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '6px', marginTop: '6px' }}>
+            {calDays.map((cell, i) =>
+              cell ? (
+                <div
+                  key={i}
+                  style={{
+                    aspectRatio: '1', borderRadius: '8px', background: '#fafafd', border: '1px solid var(--line)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', color: 'var(--ink-soft)', gap: '3px',
+                  }}
+                >
+                  {cell.day}
+                  <span
+                    style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: cell.status === 'live' ? 'var(--green)' : cell.status === 'wait' ? 'var(--amber)' : '#e2e3ee',
+                    }}
+                  />
+                </div>
+              ) : (
+                <div key={i} />
+              )
+            )}
+          </div>
+          <div className="legend" style={{ marginTop: '14px' }}>
+            <span><i className="dot" style={{ background: 'var(--green)' }} />Published</span>
+            <span><i className="dot" style={{ background: 'var(--amber)' }} />Waiting</span>
+            <span><i className="dot" style={{ background: '#e2e3ee' }} />Nothing that day</span>
+          </div>
+        </div>
       ) : viewMode === 'list' ? (
         <div className="card">
           <div className="tbl-wrap">
@@ -222,28 +308,7 @@ export function Content() {
             </table>
           </div>
         </div>
-      ) : (
-        <div className="card">
-          <h2>Scheduled</h2>
-          <p className="sub">Upcoming pieces by date</p>
-          {visible.filter((r) => r.status === 'wait').length === 0 ? (
-            <p style={{ fontSize: '13.5px', color: 'var(--ink-soft)', margin: 0 }}>Nothing scheduled.</p>
-          ) : (
-            visible
-              .filter((r) => r.status === 'wait')
-              .slice(0, 30)
-              .map((row) => (
-                <div className="task-row" key={row.id}>
-                  <span className="task-dot" style={{ background: 'var(--amber)' }} />
-                  <span className="t-title">{row.title}</span>
-                  <span className="t-meta">
-                    {row.date ? new Date(row.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '—'}
-                  </span>
-                </div>
-              ))
-          )}
-        </div>
-      )}
+      ) : null}
 
       {history.length > 0 && (
         <>

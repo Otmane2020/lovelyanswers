@@ -6,6 +6,7 @@ import { useAnswers } from '@/hooks/useAnswers'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { useRecentMentions, useVisibilityHistory } from '@/hooks/useTrackingData'
 import type { DashboardTab } from '@/views/GEODashboard'
+import { IconAlert } from './Icons'
 
 interface TodayProps {
   onNavigate: (tab: DashboardTab) => void
@@ -191,11 +192,23 @@ export function Today({ onNavigate }: TodayProps) {
 
       {!cmsConnected && stats.waiting > 0 && (
         <div className="action-banner">
-          <div className="icon">⚠</div>
+          <div className="icon"><IconAlert /></div>
           <div className="body">
             <h3>{stats.waiting} piece{stats.waiting > 1 ? 's' : ''} of content ready, but your site isn't connected</h3>
-            <p>Nothing publishes until it's linked. Takes about 5 minutes.</p>
+            <p>Nothing publishes until it's linked. Takes about 5 minutes, or we'll do it for you.</p>
           </div>
+          <a
+            className="btn btn-ghost amber btn-sm"
+            href={`mailto:support@autopilotgeo.com?subject=${encodeURIComponent(
+              `Connect my site — ${project?.brand_name || project?.name || 'my project'}`
+            )}&body=${encodeURIComponent(
+              `Hi,\n\nCan you connect my CMS for me? Here are my details:\n\nProject: ${
+                project?.brand_name || project?.name || ''
+              }\nWebsite: ${project?.website_url || ''}\n\nThanks!`
+            )}`}
+          >
+            Do it for me
+          </a>
           <button className="btn btn-primary btn-sm" onClick={() => onNavigate('settings')}>
             Connect my site
           </button>
