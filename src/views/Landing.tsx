@@ -146,7 +146,7 @@ export default function Landing() {
             <div className="stat-tile"><div className="n">4.5x</div><div className="l">More AI citations</div></div>
             <div className="stat-tile"><div className="n">9.7x</div><div className="l">More brand mentions in AI</div></div>
             <div className="stat-tile"><div className="n">60%</div><div className="l">GEO traffic increase avg</div></div>
-            <div className="stat-tile"><div className="n">€9.99<span style={{ fontSize: '14px' }}>/mo</span></div><div className="l">Founding price — locked</div></div>
+            <div className="stat-tile"><div className="n">$9.99<span style={{ fontSize: '14px' }}>/mo</span></div><div className="l">Founding price — locked</div></div>
           </div>
 
           <p className="eyebrow-label" style={{ marginTop: '64px' }}>Optimizes your presence on</p>
@@ -514,9 +514,12 @@ export default function Landing() {
           <div className="price-grid">
             <div className="price-card">
               <h3>Starter</h3>
-              <div className="was">€29/mo</div>
-              <div className="amt">€9<span style={{ fontSize: '22px' }}>.99</span><span style={{ fontSize: '16px' }}>/mo</span></div>
-              <div className="per">Founding price for the first 500 businesses — locked while you stay subscribed</div>
+              <div className="was">$29/mo</div>
+              <div className="amt">$9<span style={{ fontSize: '22px' }}>.99</span><span style={{ fontSize: '16px' }}>/mo</span></div>
+              <div className="per">
+                Founding price for the first 500 businesses — locked while you stay subscribed.
+                Or $95.88/year (−20%).
+              </div>
               <ul>
                 {['1 GEO-optimized piece / day', '1 website connected', 'ChatGPT, Gemini, Perplexity tracking', 'Weekly presence check'].map((f) => (
                   <li key={f}><IcCheck /> {f}</li>
