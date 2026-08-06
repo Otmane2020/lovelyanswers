@@ -194,7 +194,8 @@ export default function Onboarding() {
   // guess and brand name are already reasonable — "Sweet Déco", not
   // "sweet-deco" (the raw domain slug analyze-website falls back to) —
   // before the full AI pass even starts.
-  const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string; cms: string } | null>(null)
+  const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string; cms: string; favicon: string } | null>(null)
+  const [faviconFailed, setFaviconFailed] = useState(false)
   // runAnalysis can be triggered from a background timer (see the debounced
   // effect below) and keeps running across renders that happen while it's
   // in flight — reading language/country/category/preScraped directly off
@@ -248,6 +249,7 @@ export default function Onboarding() {
           description: existing.business_description || '',
           language: existing.language || 'en',
           cms: existing.detected_cms || '',
+          favicon: '',
         })
         setAnalysis({
           domain: existing.domain || '',
@@ -344,8 +346,9 @@ export default function Onboarding() {
       // own internal fallback, not called directly from onboarding anymore.
       const { data } = await supabase.functions.invoke('internal-scraper', { body: { url } })
       if (data?.success && data.data) {
-        const { brandName, metaDescription, language: detectedLanguage, cms, country: detectedCountry } = data.data
-        setPreScraped({ brandName, description: metaDescription || '', language: detectedLanguage || 'en', cms: cms || '' })
+        const { brandName, metaDescription, language: detectedLanguage, cms, country: detectedCountry, favicon } = data.data
+        setPreScraped({ brandName, description: metaDescription || '', language: detectedLanguage || 'en', cms: cms || '', favicon: favicon || '' })
+        setFaviconFailed(false)
         setLanguage(detectedLanguage && LANGUAGES.some((l) => l.code === detectedLanguage) ? detectedLanguage : 'en')
         // Site-stated location (address / hreflang / ccTLD) beats the
         // visitor's own browser locale — the default this state started
@@ -835,7 +838,18 @@ export default function Onboarding() {
               <p className="sub">This is a real preview generated from your site — this is what's at stake.</p>
 
               <div className="brand-snap">
-                <div className="brand-snap-logo">{brand.trim().charAt(0).toUpperCase() || '?'}</div>
+                <div className="brand-snap-logo">
+                  {preScraped?.favicon && !faviconFailed ? (
+                    <img
+                      src={preScraped.favicon}
+                      alt=""
+                      style={{ width: '70%', height: '70%', objectFit: 'contain', borderRadius: 4 }}
+                      onError={() => setFaviconFailed(true)}
+                    />
+                  ) : (
+                    brand.trim().charAt(0).toUpperCase() || '?'
+                  )}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="brand-snap-name">{brand}</div>
                   <div className="brand-snap-desc">
