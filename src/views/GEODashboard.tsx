@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { useActiveProject } from '@/hooks/useProjects'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -81,22 +82,33 @@ export default function GEODashboard() {
 
       setGenerating(true)
       try {
-        const { data: sess } = await supabase.auth.getSession()
-        if (!sess.session?.access_token) return
-        await supabase.functions.invoke('generate-30-days-content', {
-          body: {
-            projectId: project.id,
-            language: project.language || 'en',
-            days: 30,
-            overwrite: false,
-            questionsPerDay: 1,
-          },
-          headers: { Authorization: `Bearer ${sess.session.access_token}` },
-        })
+        // generate-30-days-content writes answers/articles but never touches
+        // `planning` — daily-planning-fill is the one that actually upserts
+        // planning rows and links answer_id/article_id back onto them, which
+        // is what the completeness check above (and the cron) both rely on.
+        // It only fills a few days per call (timeout budget), so call it a
+        // handful of times in a row to catch a mostly-empty project up fast
+        // instead of waiting for one visit per batch.
+        let totalCompleted = 0
+        for (let i = 0; i < 4; i++) {
+          const { data, error } = await supabase.functions.invoke('daily-planning-fill', {
+            body: { projectId: project.id, days: 30, maxDaysToFill: 3 },
+          })
+          if (error) throw error
+          const result = data?.results?.[0]
+          totalCompleted += result?.daysCompleted || 0
+          if (!result || (!result.stoppedEarly && result.daysTouched === 0)) break
+        }
+        if (totalCompleted > 0) {
+          toast.success(`${totalCompleted} piece${totalCompleted > 1 ? 's' : ''} of content generated`)
+        } else {
+          toast.error('Content generation ran but produced nothing — check the edge function logs')
+        }
         queryClient.invalidateQueries({ queryKey: ['articles'] })
         queryClient.invalidateQueries({ queryKey: ['answers'] })
       } catch (e) {
         console.error('[GEODashboard] auto-fill generation failed', e)
+        toast.error(e instanceof Error ? e.message : 'Content generation failed')
       } finally {
         setGenerating(false)
       }
