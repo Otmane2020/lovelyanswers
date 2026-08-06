@@ -13,12 +13,6 @@ export function PublicFooter() {
               <AnimatedLogo size="sm" theme="dark" />
             </Link>
             <p className="text-sm text-white/50 mb-4 max-w-xs">The #1 Answer Engine Optimization platform. Get cited by ChatGPT, Gemini, and AI assistants.</p>
-            <div className="text-sm text-white/40 space-y-1">
-              <p className="font-medium text-white/60">AutoPilot Geo Ltd</p>
-              <p>Suite 4, Piccadilly House</p>
-              <p>Manchester, M1 1AB</p>
-              <p>United Kingdom</p>
-            </div>
           </div>
           <div>
             <h4 className="font-semibold mb-4 text-white/80">Product</h4>
@@ -61,8 +55,6 @@ export function PublicFooter() {
           <p className="text-sm text-white/30">© {new Date().getFullYear()} AutoPilot Geo Ltd. All rights reserved.</p>
           <div className="flex items-center gap-4 text-sm text-white/30">
             <span>Answer Engine Optimization Platform</span>
-            <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline">Made with ❤️ in Manchester</span>
           </div>
         </div>
       </div>

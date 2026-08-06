@@ -35,6 +35,7 @@ import ThankYou from "@/views/ThankYou";
 import NotFound from "@/views/NotFound";
 import AiSeo from "@/views/AiSeo";
 import AutoSeo from "@/views/AutoSeo";
+import Audit from "@/views/Audit";
 import AuditPremium from "@/views/AuditPremium";
 import AiShoppingAssistant from "@/views/AiShoppingAssistant";
 import ShoppingDashboard from "@/views/ShoppingDashboard";
@@ -61,7 +62,6 @@ export default function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/wizard" element={<AeoWizard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/pricing" element={<Pricing />} />
@@ -86,6 +86,7 @@ export default function App() {
         <Route path="/localAEO" element={<LocalAeoArticle />} />
         <Route path="/reddit" element={<AeoReddit />} />
         <Route path="/seo-audit" element={<AeoSeoAudit />} />
+        <Route path="/audit" element={<Audit />} />
         <Route path="/audit-premium" element={<AuditPremium />} />
         <Route path="/about" element={<About />} />
         <Route path="/privacy" element={<Privacy />} />
