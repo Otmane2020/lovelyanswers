@@ -141,7 +141,20 @@ serve(async (req) => {
       confirmation_secret?: { client_secret: string; type: string };
     }) | null;
     const confirmationSecret = invoice?.confirmation_secret;
+
+    // A 100%-off promo code zeroes the invoice — Stripe settles it and
+    // activates the subscription immediately, with nothing to confirm, so
+    // there is no confirmation_secret at all. That's success, not failure:
+    // tell the frontend the same way it already handles an existing paid
+    // subscription (skip straight past the card form).
     if (!confirmationSecret?.client_secret) {
+      if (subscription.status === "active" || (invoice && invoice.amount_due === 0)) {
+        console.log("[SUB-INTENT] Zero-amount subscription activated with no payment needed:", subscription.id);
+        return new Response(
+          JSON.stringify({ alreadySubscribed: true, status: subscription.status, discount: appliedDiscount ?? null }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       throw new Error("Stripe did not return a payment confirmation secret for the subscription");
     }
 

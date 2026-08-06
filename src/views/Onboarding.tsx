@@ -531,7 +531,8 @@ export default function Onboarding() {
       if (data?.error) throw new Error(data.error)
 
       if (data.alreadySubscribed) {
-        setStep(7)
+        setAppliedDiscount(data.discount ?? null)
+        finish()
         return
       }
       setClientSecret(data.clientSecret)
@@ -576,6 +577,16 @@ export default function Onboarding() {
       })
       if (e) throw new Error(e.message)
       if (data?.error) throw new Error(data.error)
+      // A 100%-off code settles the invoice at $0 — Stripe activates the
+      // subscription immediately with nothing left to confirm, so there's
+      // no card form to show at all. Same finish() the CardForm itself
+      // calls after a real payment.
+      if (data.alreadySubscribed) {
+        setAppliedDiscount(data.discount ?? null)
+        setPromoCode(code)
+        finish()
+        return
+      }
       setClientSecret(data.clientSecret)
       setAppliedDiscount(data.discount ?? null)
       setPromoCode(code)
@@ -755,51 +766,18 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <label className="first">Country</label>
-              <div style={{ position: 'relative', marginBottom: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => setCountryOpen((o) => !o)}
-                  style={{
-                    width: '100%', padding: '11px 14px', borderRadius: '12px', border: '1.5px solid var(--line)',
-                    fontSize: '14.5px', fontFamily: 'inherit', background: 'var(--paper)', color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', textAlign: 'left',
-                  }}
-                >
-                  <img src={flagUrl(country)} alt="" width={22} height={16} style={{ borderRadius: 2, flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{COUNTRIES.find((c) => c.code === country)?.name}</span>
-                  <IcArrow />
-                </button>
-                {countryOpen && (
-                  <>
-                    {/* Backdrop to close on outside click — sits under the list, above everything else. */}
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setCountryOpen(false)} />
-                    <div style={{
-                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 11,
-                      background: 'var(--surface)', border: '1.5px solid var(--line)', borderRadius: '12px',
-                      maxHeight: '220px', overflowY: 'auto', boxShadow: '0 12px 28px rgba(20,22,46,.14)',
-                    }}>
-                      {COUNTRIES.map((c) => (
-                        <button
-                          type="button"
-                          key={c.code}
-                          onClick={() => { setCountry(c.code); setCountryOpen(false) }}
-                          style={{
-                            width: '100%', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '10px',
-                            background: c.code === country ? 'var(--primary-soft)' : 'transparent', border: 'none',
-                            fontFamily: 'inherit', fontSize: '13.5px', color: 'var(--ink)', cursor: 'pointer', textAlign: 'left',
-                          }}
-                        >
-                          <img src={flagUrl(c.code)} alt="" width={20} height={15} style={{ borderRadius: 2, flexShrink: 0 }} />
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+              <div className="card-box" style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
+                  What our AI understood about your business
+                </div>
+                <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                  {analysis?.description || preScraped?.description || (
+                    <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>
+                  )}
+                </div>
               </div>
 
-              <label>Content language — detected from your site</label>
+              <label className="first">Content language — detected from your site</label>
               <div className="chip-grid" style={{ marginBottom: 14 }}>
                 {LANGUAGES.map((l) => (
                   <button key={l.code} className={`chip-opt${language === l.code ? ' sel' : ''}`}
@@ -888,7 +866,6 @@ export default function Onboarding() {
                 <div className="locked-blur">
                   <div className="skel-logos">
                     <span className="skel-circle" /><span className="skel-circle" /><span className="skel-circle" />
-                    <span style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 6 }}>competitors ranking nearby</span>
                   </div>
                   <div className="skel-row"><span className="skel-bar" style={{ width: '38%' }} /><span className="skel-bar" style={{ width: '28%' }} /><span className="skel-bar" style={{ width: '22%' }} /></div>
                   <div className="skel-row"><span className="skel-bar" style={{ width: '46%' }} /><span className="skel-bar" style={{ width: '20%' }} /><span className="skel-bar" style={{ width: '18%' }} /></div>
