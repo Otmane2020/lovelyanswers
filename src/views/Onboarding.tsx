@@ -228,7 +228,7 @@ export default function Onboarding() {
     if (authLoading || !user || subLoading || resumedBilling) return
     supabase.from('projects')
       .select('id, brand_name, name, website_url, domain, business_description, business_type, language, country, detected_cms, competitors')
-      .eq('user_id', user.id).limit(1)
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
         const existing = data?.[0]
         if (!existing) return
@@ -419,6 +419,20 @@ export default function Onboarding() {
         setCategory(data.category)
       }
 
+      // Language normally comes from the pre-scrape (preScrapeSite), which
+      // runs as its own separate, earlier call — if that one silently
+      // failed (network hiccup, timeout), `language` is still sitting at
+      // its hardcoded 'en' default even though this analysis succeeded and
+      // knows better. Only step in when there's no pre-scrape result at
+      // all — when it did succeed, its content-based detection is already
+      // more reliable than analyze-website's own (which just trusts
+      // whatever <html lang> the page declares).
+      let effectiveLanguage = curLanguage
+      if (!curPreScraped && data.language && LANGUAGES.some((l) => l.code === data.language)) {
+        effectiveLanguage = data.language
+        setLanguage(data.language)
+      }
+
       // analyze-website's AI pass never returns a brandName field at all — only
       // its own naive regex fallback does, and that's the raw domain slug
       // ("sweet-deco") whenever the page's <title> can't be parsed from a
@@ -441,7 +455,7 @@ export default function Onboarding() {
           name: goodBrandName,
           website_url: normalizeUrl(bizSite || `https://${data.domain}`),
           domain: data.domain,
-          language: curLanguage,
+          language: effectiveLanguage,
           country: curCountry,
           business_description: data.description || curPreScraped?.description || null,
           business_type: effectiveCategory || null,
