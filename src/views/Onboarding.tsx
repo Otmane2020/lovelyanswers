@@ -24,6 +24,13 @@ const CATEGORIES = [
   'Retail store', 'Local service', 'E-commerce', 'Restaurant', 'SaaS', 'Other',
 ]
 
+const LANGUAGES: { code: string; name: string }[] = [
+  { code: 'en', name: 'English' }, { code: 'fr', name: 'Français' },
+  { code: 'es', name: 'Español' }, { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' }, { code: 'pt', name: 'Português' },
+  { code: 'nl', name: 'Nederlands' },
+]
+
 // Flag emoji (regional-indicator code points) renders fine on Mac/iOS but
 // Windows shows the raw two-letter codes instead of combining them into a
 // flag — and a native <select><option> can't hold an <img> to fix that
@@ -167,6 +174,7 @@ export default function Onboarding() {
   const [country, setCountry] = useState(guessCountryFromLocale)
   const [countryOpen, setCountryOpen] = useState(false)
   const [category, setCategory] = useState('')
+  const [language, setLanguage] = useState('en')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -284,8 +292,9 @@ export default function Onboarding() {
       // own internal fallback, not called directly from onboarding anymore.
       const { data } = await supabase.functions.invoke('internal-scraper', { body: { url } })
       if (data?.success && data.data) {
-        const { brandName, metaDescription, language, cms } = data.data
-        setPreScraped({ brandName, description: metaDescription || '', language: language || 'en', cms: cms || '' })
+        const { brandName, metaDescription, language: detectedLanguage, cms } = data.data
+        setPreScraped({ brandName, description: metaDescription || '', language: detectedLanguage || 'en', cms: cms || '' })
+        setLanguage(detectedLanguage && LANGUAGES.some((l) => l.code === detectedLanguage) ? detectedLanguage : 'en')
         if (!category) {
           const guessed = guessCategory(`${metaDescription || ''} ${url}`, cms)
           if (guessed) setCategory(guessed)
@@ -353,7 +362,7 @@ export default function Onboarding() {
           name: goodBrandName,
           website_url: normalizeUrl(bizSite || `https://${data.domain}`),
           domain: data.domain,
-          language: data.language || preScraped?.language || 'en',
+          language,
           country,
           business_description: data.description || preScraped?.description || null,
           business_type: category || null,
@@ -419,6 +428,7 @@ export default function Onboarding() {
       await supabase.from('projects').update({
         business_type: category || null,
         country,
+        language,
       }).eq('id', id)
     }
     if (await refreshSubscription(plan, promoCode)) setStep(6)
@@ -463,7 +473,7 @@ export default function Onboarding() {
     try {
       await Promise.all([
         supabase.functions.invoke('generate-30-days-content', {
-          body: { projectId, language: analysis?.language || 'en', days: 30, questionsPerDay: 1, titlesOnly: true },
+          body: { projectId, language, days: 30, questionsPerDay: 1, titlesOnly: true },
         }),
         // 16 slots (4 full days) is as much as one request can safely
         // generate before risking a function timeout; check-planning-completeness's
@@ -492,7 +502,7 @@ export default function Onboarding() {
   const discountedPriceLabel = `$${(discountedPriceCents / 100).toFixed(2)}`
   const brand = analysis?.brandName || preScraped?.brandName || bizName || 'your business'
   const brandDescription = analysis?.description || preScraped?.description || ''
-  const brandLanguage = analysis?.language || preScraped?.language || ''
+  const brandLanguage = language
 
   return (
     <div className="apg-wizard-page">
@@ -555,7 +565,49 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)} />
-              <label>Country</label>
+              <div className="foot-nav">
+                <span />
+                <button
+                  className="btn btn-primary"
+                  disabled={!canStartAnalysis || busy}
+                  onClick={async () => {
+                    setError(''); setBusy(true)
+                    // Wait for the quick scrape so the category guess is
+                    // already in place when step 3 renders, instead of
+                    // popping in a second or two after the chips are shown.
+                    await preScrapeSite()
+                    setBusy(false)
+                    setStep(3)
+                  }}
+                >
+                  {busy ? 'Reading your site…' : <>Continue <IcArrow /></>}
+                </button>
+              </div>
+              <p className="fine">
+                {!canStartAnalysis
+                  ? 'We need your business name and site to run the analysis.'
+                  : 'Description, sector and language get detected automatically next.'}
+              </p>
+            </>
+          )}
+
+          {/* STEP 3 — category */}
+          {step === 3 && (
+            <>
+              <h1>What kind of business is it?</h1>
+              <p className="sub">
+                {category
+                  ? <>Detected from your site — tap to change if it's off.</>
+                  : 'This shapes the tone and the questions we optimize your content for.'}
+              </p>
+              <div className="chip-grid">
+                {CATEGORIES.map((c) => (
+                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
+                    onClick={() => setCategory(c)}>{c}</button>
+                ))}
+              </div>
+
+              <label className="first">Country — detected automatically, tap to change</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
                 <button
                   type="button"
@@ -598,47 +650,15 @@ export default function Onboarding() {
                   </>
                 )}
               </div>
-              <div className="foot-nav">
-                <span />
-                <button
-                  className="btn btn-primary"
-                  disabled={!canStartAnalysis || busy}
-                  onClick={async () => {
-                    setError(''); setBusy(true)
-                    // Wait for the quick scrape so the category guess is
-                    // already in place when step 3 renders, instead of
-                    // popping in a second or two after the chips are shown.
-                    await preScrapeSite()
-                    setBusy(false)
-                    setStep(3)
-                  }}
-                >
-                  {busy ? 'Reading your site…' : <>Continue <IcArrow /></>}
-                </button>
-              </div>
-              <p className="fine">
-                {!canStartAnalysis
-                  ? 'We need your business name and site to run the analysis.'
-                  : 'Description, sector and language get detected automatically next.'}
-              </p>
-            </>
-          )}
 
-          {/* STEP 3 — category */}
-          {step === 3 && (
-            <>
-              <h1>What kind of business is it?</h1>
-              <p className="sub">
-                {category
-                  ? <>Detected from your site — tap to change if it's off.</>
-                  : 'This shapes the tone and the questions we optimize your content for.'}
-              </p>
-              <div className="chip-grid">
-                {CATEGORIES.map((c) => (
-                  <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
-                    onClick={() => setCategory(c)}>{c}</button>
+              <label>Content language — detected from your site</label>
+              <div className="chip-grid" style={{ marginBottom: 14 }}>
+                {LANGUAGES.map((l) => (
+                  <button key={l.code} className={`chip-opt${language === l.code ? ' sel' : ''}`}
+                    onClick={() => setLanguage(l.code)}>{l.name}</button>
                 ))}
               </div>
+
               <div className="foot-nav">
                 <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
                 <button className="btn btn-primary" onClick={() => setStep(4)}>
