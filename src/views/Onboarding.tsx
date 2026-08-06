@@ -162,7 +162,7 @@ function CardForm({ onDone, onError }: { onDone: () => void; onError: (m: string
 /* ---------- wizard ---------- */
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, signOut } = useAuth()
   const { subscribed, trial, isLoading: subLoading } = useSubscription()
 
   const [step, setStep] = useState(1)
@@ -295,6 +295,14 @@ export default function Onboarding() {
       redirect_uri: `${window.location.origin}/onboarding`,
     })
     if (e) setError(e.message)
+  }
+
+  // Escape hatch for someone signed into the wrong account, or restarting
+  // after getting stuck mid-flow — otherwise there's no way out of the
+  // wizard once step 1 has passed.
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/onboarding', { replace: true })
   }
 
   /* --- right after step 2: no-auth scrape so the category guess and step 5
@@ -577,7 +585,21 @@ export default function Onboarding() {
               <BrandMark size={26} />
               <div className="brand-name">AutopilotGEO</div>
             </div>
-            <div className="step-count">Step {step}/{TOTAL_STEPS}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="step-count">Step {step}/{TOTAL_STEPS}</div>
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{
+                    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                    fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', fontFamily: 'inherit',
+                  }}
+                >
+                  Sign out
+                </button>
+              )}
+            </div>
           </div>
           <div className="progress">
             <div className="progress-bar" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
