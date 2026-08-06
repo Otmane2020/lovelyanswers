@@ -185,7 +185,7 @@ function generateAnswerHTML(
   
   <h1 style="font-size: 28px; margin-bottom: 24px; color: #0a0a0a; font-weight: 700; line-height: 1.3;">${question}</h1>
   
-  <div class="aeo-answer-box" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-left: 4px solid #667eea; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
+  <div class="aeo-answer-box" style="background: linear-gradient(135deg, #5f6ce015 0%, #1a205815 100%); border-left: 4px solid #5f6ce0; padding: 24px; margin-bottom: 24px; border-radius: 0 12px 12px 0;">
     <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #2d2d2d;">${answerText}</p>
   </div>
   
@@ -193,7 +193,7 @@ function generateAnswerHTML(
   ${faqSection}
   
   <footer class="aeo-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea; text-decoration: none; font-weight: 500;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #5f6ce0; text-decoration: none; font-weight: 500;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
     <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
   </footer>
 </article>`;
@@ -219,7 +219,7 @@ function generateArticleHTML(
   <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
   ${article.html_content}
   <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #667eea;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
+    <p style="margin: 0 0 8px 0;"><a href="https://autopilotgeo.com" style="color: #5f6ce0;" target="_blank">AutoPilot Geo</a> – Rank in ChatGPT Gemini & Google with AI Answers</p>
     <p style="margin: 0; font-size: 12px; color: #999;">AutoPilot Geo – Rank in ChatGPT</p>
   </footer>
 </article>`
@@ -241,7 +241,7 @@ function generateArticleHTML(
   <h1 style="font-size: 32px; margin-bottom: 24px; font-weight: 700;">${article.title}</h1>
   <div class="article-content"><p>${htmlContent}</p></div>
   <footer style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 14px; color: #666;">
-    <p>Source: <a href="${websiteUrl}" style="color: #667eea;">${brandName}</a> • ${currentYear}</p>
+    <p>Source: <a href="${websiteUrl}" style="color: #5f6ce0;">${brandName}</a> • ${currentYear}</p>
   </footer>
 </article>`
   };

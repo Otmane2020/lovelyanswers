@@ -267,7 +267,7 @@ Rules:
           <td style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
             <div style="font-size: 14px; font-weight: 600; color: #1a1a1a;">${icon} ${issue.title}</div>
             <div style="font-size: 13px; color: #666; margin-top: 4px;">${issue.description}</div>
-            ${issue.recommendation ? `<div style="font-size: 12px; color: #7c3aed; margin-top: 4px;">💡 ${issue.recommendation}</div>` : ""}
+            ${issue.recommendation ? `<div style="font-size: 12px; color: #2e3a8c; margin-top: 4px;">💡 ${issue.recommendation}</div>` : ""}
           </td>
         </tr>`;
     }).join("");
@@ -326,20 +326,20 @@ Rules:
 
     <!-- CTA Button -->
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${auditUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">
+      <a href="${auditUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #2e3a8c, #5f6ce0); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">
         📊 View Full Audit Report
       </a>
     </div>
 
     <!-- Premium Audit CTA -->
-    <div style="background: #f8f5ff; border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+    <div style="background: #f8f5ff; border: 2px solid #2e3a8c; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
       <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin: 0 0 8px;">
         🏆 Want to see how you compare to competitors?
       </h3>
       <p style="font-size: 14px; color: #666; margin: 0 0 16px;">
         Get a Premium AEO Audit with competitor landscape, market trends, and strategic recommendations — completely free.
       </p>
-      <a href="https://autopilotgeo.com/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+      <a href="https://autopilotgeo.com/audit-premium?url=${encodeURIComponent(cleanUrl)}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #2e3a8c, #5f6ce0); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
         🔍 Get Premium Audit (Free) →
       </a>
     </div>
@@ -361,7 +361,7 @@ Rules:
     <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
       <p style="font-size: 12px; color: #999;">
         AutoPilot Geo — AI-Powered SEO & AEO Platform<br>
-        <a href="https://autopilotgeo.com" style="color: #7c3aed;">autopilotgeo.com</a>
+        <a href="https://autopilotgeo.com" style="color: #2e3a8c;">autopilotgeo.com</a>
       </p>
     </div>
   </div>

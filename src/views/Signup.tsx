@@ -89,7 +89,7 @@ export default function Signup() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[hsl(222,47%,11%)]"><Loader2 className="h-8 w-8 animate-spin text-violet-400" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#1a2058]"><Loader2 className="h-8 w-8 animate-spin text-violet-400" /></div>;
   }
 
   return (
@@ -103,7 +103,7 @@ export default function Signup() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-[hsl(222,47%,11%)]">Create an account</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#1a2058]">Create an account</h1>
               <p className="mt-2 text-gray-500">
                 Already have an account?{" "}
                 <Link href="/auth" className="text-violet-600 font-medium hover:underline">Sign in</Link>
@@ -161,7 +161,7 @@ export default function Signup() {
                 </div>
                 {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               </div>
-              <Button type="submit" className="w-full h-12 text-base bg-[hsl(222,47%,11%)] text-white hover:bg-[hsl(222,47%,15%)]" disabled={isLoading}>
+              <Button type="submit" className="w-full h-12 text-base bg-[#1a2058] text-white hover:bg-[#232c66]" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ArrowRight className="mr-2 h-5 w-5" />}
                 Create account
               </Button>
@@ -175,7 +175,7 @@ export default function Signup() {
       </div>
 
       {/* Right Panel - Dark Navy */}
-      <div className="hidden lg:flex flex-1 bg-[hsl(222,47%,11%)] items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 bg-[#1a2058] items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[150px]" />
         <div className="relative max-w-lg text-center space-y-6">
           <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mx-auto">

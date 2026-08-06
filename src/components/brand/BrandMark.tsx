@@ -84,10 +84,10 @@ export function BrandMark({ size = 32, withText = false, light = false }: BrandM
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       {tile}
       <div style={{ lineHeight: 1.05 }}>
-        <div style={{ fontSize: '9.5px', letterSpacing: '.18em', color: 'var(--gold)', fontWeight: 700 }}>
+        <div style={{ fontSize: '9.5px', letterSpacing: '.18em', color: 'var(--gold, #c79a2e)', fontWeight: 700 }}>
           AUTOPILOT
         </div>
-        <div style={{ fontWeight: 700, fontSize: '16px', color: light ? '#fff' : 'var(--ink)' }}>GEO</div>
+        <div style={{ fontWeight: 700, fontSize: '16px', color: light ? '#fff' : 'var(--ink, #14162e)' }}>GEO</div>
       </div>
     </div>
   )

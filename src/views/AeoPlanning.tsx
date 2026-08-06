@@ -522,7 +522,7 @@ export default function AeoPlanning() {
                           } else {
                             toast.error("You've used your free publish. Upgrade to publish the remaining 29 articles.", { action: { label: "Upgrade", onClick: () => window.location.href = "/checkout" } });
                           }
-                        }} disabled={publishingId === item.id || !canPublish} className={cn("text-white", canPublishFree && !isSubscribed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[hsl(222,47%,11%)] hover:bg-[hsl(222,47%,15%)]")}>
+                        }} disabled={publishingId === item.id || !canPublish} className={cn("text-white", canPublishFree && !isSubscribed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#1a2058] hover:bg-[#232c66]")}>
                           {publishingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
                           {canPublishFree && !isSubscribed ? "Publish Free ✨" : "Publish"}
                         </Button>

@@ -104,8 +104,8 @@ ${JSON.stringify(faqSchema, null, 2)}
   
   <style>
     :root {
-      --primary: #7c3aed;
-      --primary-light: #a78bfa;
+      --primary: #2e3a8c;
+      --primary-light: #5f6ce0;
       --bg: #ffffff;
       --surface: #f8fafc;
       --surface-alt: #f1f5f9;

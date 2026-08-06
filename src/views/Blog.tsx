@@ -122,7 +122,7 @@ export default function Blog() {
         </header>
 
         {/* Hero Section - Dark */}
-        <section className="py-16 md:py-24 bg-[hsl(222,47%,11%)]">
+        <section className="py-16 md:py-24 bg-[#1a2058]">
           <div className="container">
             <div className="max-w-3xl mx-auto text-center">
               <Badge className="mb-4 bg-white/10 text-white/70 border-white/20">
@@ -160,7 +160,7 @@ export default function Blog() {
             ) : filteredAnswers.length === 0 ? (
               <div className="text-center py-16">
                 <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold mb-2 text-[hsl(222,47%,11%)]">{searchQuery ? "No articles found" : "No articles yet"}</h2>
+                <h2 className="text-2xl font-semibold mb-2 text-[#1a2058]">{searchQuery ? "No articles found" : "No articles yet"}</h2>
                 <p className="text-gray-500 mb-6">{searchQuery ? "Try adjusting your search terms" : "Check back soon for AI-optimized content"}</p>
                 {searchQuery && <Button variant="outline" onClick={() => setSearchQuery("")}>Clear Search</Button>}
               </div>
@@ -175,7 +175,7 @@ export default function Blog() {
                       <Card className="h-full hover:shadow-lg transition-shadow group cursor-pointer border-gray-200">
                         <CardHeader>
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-lg leading-tight group-hover:text-violet-600 transition-colors text-[hsl(222,47%,11%)]">
+                            <CardTitle className="text-lg leading-tight group-hover:text-violet-600 transition-colors text-[#1a2058]">
                               {answer.question}
                             </CardTitle>
                             {answer.score && answer.score >= 80 && (
@@ -207,13 +207,13 @@ export default function Blog() {
         </section>
 
         {/* CTA - Dark */}
-        <section className="py-16 bg-[hsl(222,47%,11%)]">
+        <section className="py-16 bg-[#1a2058]">
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
               <h2 className="text-3xl font-bold mb-4 text-white">Want AI-Optimized Content for Your Business?</h2>
               <p className="text-white/50 mb-8">AutoPilot Geo helps you create content that ranks first in AI search engines.</p>
               <Link href="/auth">
-                <Button size="lg" className="gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90">
+                <Button size="lg" className="gap-2 bg-white text-[#1a2058] hover:bg-white/90">
                   Get Started Free <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

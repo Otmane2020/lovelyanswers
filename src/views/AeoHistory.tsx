@@ -27,7 +27,7 @@ interface UnifiedHistoryItem { id: string; title: string; source: SourceType; sc
 const getSourceBadge = (source: SourceType) => {
   switch (source) {
     case "aeo": return <Badge className="bg-primary/10 text-primary border-primary/20 gap-1"><Sparkles className="h-3 w-3" />AEO</Badge>;
-    case "local": return <Badge className="bg-[hsl(222,47%,11%)]/10 text-[hsl(222,47%,30%)] border-[hsl(222,47%,11%)]/20 gap-1"><MapPin className="h-3 w-3" />Local AEO</Badge>;
+    case "local": return <Badge className="bg-[#1a2058]/10 text-[#2e3a8c] border-[#1a2058]/20 gap-1"><MapPin className="h-3 w-3" />Local AEO</Badge>;
     case "seo": return <Badge className="bg-primary/10 text-primary border-primary/20 gap-1"><Search className="h-3 w-3" />SEO</Badge>;
   }
 };
@@ -106,7 +106,7 @@ export default function AeoHistory() {
                       <TableRow key={`${item.source}-${item.id}`}>
                         <TableCell className="font-medium"><div className="line-clamp-2">{item.title}</div></TableCell>
                         <TableCell>{getSourceBadge(item.source)}</TableCell>
-                        <TableCell>{item.score !== null ? (<Badge variant="outline" className={item.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{item.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                        <TableCell>{item.score !== null ? (<Badge variant="outline" className={item.score >= 80 ? "border-[#2e3a8c] text-[#2e3a8c]" : item.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{item.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
                         <TableCell>{getStatusBadge(item)}</TableCell>
                         <TableCell>
                           {(() => {
@@ -118,7 +118,7 @@ export default function AeoHistory() {
                         <TableCell className="text-muted-foreground text-sm">{item.published_at ? format(new Date(item.published_at), "MMM d, yyyy") : format(new Date(item.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {item.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(item.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[hsl(222,47%,30%)]" /></Button>)}
+                            {item.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(item.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[#2e3a8c]" /></Button>)}
                             {item.slug && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyLink(item.slug!)} title="Copy Link"><Copy className="h-4 w-4" /></Button>)}
                           </div>
                         </TableCell>
@@ -143,7 +143,7 @@ export default function AeoHistory() {
                     {answers.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell className="font-medium"><div className="line-clamp-2">{a.question}</div></TableCell>
-                        <TableCell>{a.score !== null ? (<Badge variant="outline" className={a.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : a.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                        <TableCell>{a.score !== null ? (<Badge variant="outline" className={a.score >= 80 ? "border-[#2e3a8c] text-[#2e3a8c]" : a.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
                         <TableCell>{getStatusBadge(a)}</TableCell>
                         <TableCell>
                           {(() => {
@@ -155,7 +155,7 @@ export default function AeoHistory() {
                         <TableCell className="text-muted-foreground text-sm">{a.published_at ? format(new Date(a.published_at), "MMM d, yyyy") : format(new Date(a.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[hsl(222,47%,30%)]" /></Button>)}
+                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[#2e3a8c]" /></Button>)}
                             {a.slug && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyLink(a.slug)} title="Copy Link"><Copy className="h-4 w-4" /></Button>)}
                           </div>
                         </TableCell>
@@ -180,7 +180,7 @@ export default function AeoHistory() {
                     {localAnswers.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell className="font-medium"><div className="line-clamp-2">{a.question}</div></TableCell>
-                        <TableCell>{a.score !== null ? (<Badge variant="outline" className={a.score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : a.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                        <TableCell>{a.score !== null ? (<Badge variant="outline" className={a.score >= 80 ? "border-[#2e3a8c] text-[#2e3a8c]" : a.score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
                         <TableCell>{getStatusBadge(a)}</TableCell>
                         <TableCell>
                           {(() => {
@@ -192,7 +192,7 @@ export default function AeoHistory() {
                         <TableCell className="text-muted-foreground text-sm">{a.published_at ? format(new Date(a.published_at), "MMM d, yyyy") : format(new Date(a.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[hsl(222,47%,30%)]" /></Button>)}
+                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[#2e3a8c]" /></Button>)}
                             {a.slug && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyLink(a.slug)} title="Copy Link"><Copy className="h-4 w-4" /></Button>)}
                           </div>
                         </TableCell>
@@ -217,7 +217,7 @@ export default function AeoHistory() {
                     {articles.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell className="font-medium"><div className="line-clamp-2">{a.title}</div></TableCell>
-                        <TableCell>{a.aeo_score !== null ? (<Badge variant="outline" className={a.aeo_score >= 80 ? "border-[hsl(222,47%,30%)] text-[hsl(222,47%,30%)]" : a.aeo_score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.aeo_score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
+                        <TableCell>{a.aeo_score !== null ? (<Badge variant="outline" className={a.aeo_score >= 80 ? "border-[#2e3a8c] text-[#2e3a8c]" : a.aeo_score >= 60 ? "border-amber-500 text-amber-600" : ""}>{a.aeo_score}%</Badge>) : (<span className="text-muted-foreground">—</span>)}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{a.word_count ? `${a.word_count.toLocaleString()} words` : "—"}</TableCell>
                         <TableCell>
                           {(() => {
@@ -229,7 +229,7 @@ export default function AeoHistory() {
                         <TableCell className="text-muted-foreground text-sm">{a.created_at ? format(new Date(a.created_at), "MMM d, yyyy") : "—"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[hsl(222,47%,30%)]" /></Button>)}
+                            {a.published_url && (<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(a.published_url!, "_blank")} title="View on Site"><ExternalLink className="h-4 w-4 text-[#2e3a8c]" /></Button>)}
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push(`/articles/${a.id}`)} title="View Article"><Eye className="h-4 w-4" /></Button>
                           </div>
                         </TableCell>

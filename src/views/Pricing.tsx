@@ -63,8 +63,8 @@ export default function Pricing() {
         <script type="application/ld+json">{JSON.stringify(pricingStructuredData)}</script>
       </Helmet>
 
-      <div className="min-h-screen bg-[hsl(222,47%,11%)]">
-        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[hsl(222,47%,11%)]/90 backdrop-blur-xl">
+      <div className="min-h-screen bg-[#1a2058]">
+        <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-[#1a2058]/90 backdrop-blur-xl">
           <div className="container flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center">
               <AnimatedLogo size="md" />
@@ -72,7 +72,7 @@ export default function Pricing() {
             <div className="flex items-center gap-4">
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link href="/">Home</Link></Button>
               <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10" asChild><Link href="/auth">Sign In</Link></Button>
-              <Button className="bg-white text-[hsl(222,47%,11%)] hover:bg-white/90" asChild>
+              <Button className="bg-white text-[#1a2058] hover:bg-white/90" asChild>
                 <Link href="/signup">Start Free <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             </div>
@@ -105,7 +105,7 @@ export default function Pricing() {
                   <p className="text-sm text-white/50 font-medium mt-2">Billed monthly. Cancel anytime.</p>
                   <p className="text-sm text-emerald-400 font-medium mt-3">Save 20% with annual billing: $95.88/year</p>
                 </div>
-                <Button className="w-full gap-2 bg-white text-[hsl(222,47%,11%)] hover:bg-white/90 mb-8" size="lg" asChild>
+                <Button className="w-full gap-2 bg-white text-[#1a2058] hover:bg-white/90 mb-8" size="lg" asChild>
                   <Link href="/signup">Start Ranking in ChatGPT <ArrowRight className="h-5 w-5" /></Link>
                 </Button>
                 <div className="space-y-4">
@@ -139,16 +139,16 @@ export default function Pricing() {
         <section className="py-20 bg-white">
           <div className="container max-w-3xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4 text-[hsl(222,47%,11%)]">FAQs</h2>
+              <h2 className="text-3xl font-bold mb-4 text-[#1a2058]">FAQs</h2>
               <p className="text-gray-500">
                 Haven't found what you are looking for?{" "}
-                <a href="mailto:support@autopilotgeo.com" className="text-[hsl(222,47%,30%)] hover:underline">Send us an email</a>
+                <a href="mailto:support@autopilotgeo.com" className="text-[#2e3a8c] hover:underline">Send us an email</a>
               </p>
             </div>
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, i) => (
                 <AccordionItem key={i} value={`item-${i}`} className="border rounded-lg px-4 bg-gray-50">
-                  <AccordionTrigger className="text-left hover:no-underline text-[hsl(222,47%,11%)]">{faq.question}</AccordionTrigger>
+                  <AccordionTrigger className="text-left hover:no-underline text-[#1a2058]">{faq.question}</AccordionTrigger>
                   <AccordionContent className="text-gray-500">{faq.answer}</AccordionContent>
                 </AccordionItem>
               ))}

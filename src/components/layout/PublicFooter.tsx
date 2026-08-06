@@ -5,7 +5,7 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 
 export function PublicFooter() {
   return (
-    <footer className="bg-[hsl(222,47%,11%)] border-t border-white/10">
+    <footer className="bg-[#1a2058] border-t border-white/10">
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-2 lg:col-span-2">
