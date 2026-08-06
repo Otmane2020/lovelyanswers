@@ -327,26 +327,43 @@ function extractBrandName(url: string, title: string): string {
   }
 }
 
-function detectLanguage(html: string, metaLang: string): string {
-  if (metaLang && metaLang.length >= 2) return metaLang.substring(0, 2).toLowerCase();
-
-  const text = html.substring(0, 8000).toLowerCase();
+/** Scores clean, human-written text (title/description/body — never raw
+ * HTML/JS, which drowns out short taglines with boilerplate noise) against
+ * per-language word lists and, as a lighter-weight tie-breaker, language-
+ * distinctive accented characters (a single "está" or "être" is a real
+ * signal even in a four-word tagline where whole-word matches are sparse). */
+function scoreLanguageFromText(text: string): { lang: string; score: number } {
+  const t = text.toLowerCase();
   const scores: Record<string, number> = { en: 0, fr: 0, de: 0, es: 0, it: 0, pt: 0 };
 
-  const patterns: Record<string, RegExp[]> = {
-    fr: [/\bles\b/g, /\bdes\b/g, /\bpour\b/g, /\bavec\b/g, /\bdans\b/g, /\bc'est\b/g, /\bvotre\b/g, /\bnotre\b/g],
-    en: [/\bthe\b/g, /\band\b/g, /\byour\b/g, /\bwith\b/g, /\bfrom\b/g, /\bthat\b/g, /\bthis\b/g, /\bhave\b/g],
-    de: [/\bund\b/g, /\bder\b/g, /\bdie\b/g, /\bdas\b/g, /\bfür\b/g, /\bnicht\b/g, /\bsich\b/g, /\büber\b/g],
-    es: [/\bpara\b/g, /\bcon\b/g, /\bpor\b/g, /\bnuestro\b/g, /\btambién\b/g, /\bestá\b/g],
-    it: [/\bdella\b/g, /\bdei\b/g, /\bnon\b/g, /\bnostro\b/g, /\bquesto\b/g, /\bperché\b/g],
-    pt: [/\bnão\b/g, /\bvocê\b/g, /\bnosso\b/g, /\btambém\b/g, /\bmuito\b/g, /\besta\b/g],
+  const wordPatterns: Record<string, RegExp[]> = {
+    fr: [/\bles\b/g, /\bdes\b/g, /\bpour\b/g, /\bavec\b/g, /\bdans\b/g, /\bc'est\b/g, /\bvotre\b/g, /\bnotre\b/g, /\bplus\b/g, /\bque\b/g, /\bqualité\b/g, /\bmaison\b/g],
+    en: [/\bthe\b/g, /\band\b/g, /\byour\b/g, /\bwith\b/g, /\bfrom\b/g, /\bthat\b/g, /\bthis\b/g, /\bhave\b/g, /\bhome\b/g, /\bstyle\b/g],
+    de: [/\bund\b/g, /\bder\b/g, /\bdie\b/g, /\bdas\b/g, /\bfür\b/g, /\bnicht\b/g, /\bsich\b/g, /\büber\b/g, /\bmehr\b/g],
+    es: [/\bpara\b/g, /\bcon\b/g, /\bpor\b/g, /\bnuestro\b/g, /\btambién\b/g, /\bestá\b/g, /\bmás\b/g, /\bque\b/g, /\bun\b/g, /\buna\b/g, /\bestilo\b/g, /\bvida\b/g, /\bhogar\b/g, /\bcalidad\b/g],
+    it: [/\bdella\b/g, /\bdei\b/g, /\bnon\b/g, /\bnostro\b/g, /\bquesto\b/g, /\bperché\b/g, /\bpiù\b/g],
+    pt: [/\bnão\b/g, /\bvocê\b/g, /\bnosso\b/g, /\btambém\b/g, /\bmuito\b/g, /\besta\b/g, /\bmais\b/g],
   };
-
-  for (const [lang, regs] of Object.entries(patterns)) {
+  for (const [lang, regs] of Object.entries(wordPatterns)) {
     for (const r of regs) {
-      const m = text.match(r);
+      const m = t.match(r);
       if (m) scores[lang] += m.length;
     }
+  }
+
+  // Distinctive characters, weighted lightly (0.5) — good for breaking ties
+  // on short text where whole-word hits are scarce, not strong enough alone
+  // to override a real word-based signal for a different language.
+  const charPatterns: Record<string, RegExp> = {
+    es: /[ñ¿¡]|á|é|í|ó|ú/g,
+    fr: /[çœ]|à|â|è|ê|ë|î|ï|ô|û|ù/g,
+    de: /[ß]|ä|ö|ü/g,
+    pt: /[ãõ]|â|ê|ô|ç/g,
+    it: /à|è|ì|ò|ù/g,
+  };
+  for (const [lang, r] of Object.entries(charPatterns)) {
+    const m = t.match(r);
+    if (m) scores[lang] += m.length * 0.5;
   }
 
   let best = 'en';
@@ -354,7 +371,26 @@ function detectLanguage(html: string, metaLang: string): string {
   for (const [lang, score] of Object.entries(scores)) {
     if (score > bestScore) { bestScore = score; best = lang; }
   }
-  return bestScore > 5 ? best : 'en';
+  return { lang: best, score: bestScore };
+}
+
+/** A declared <html lang> is often just whatever a theme/template shipped
+ * with, unrelated to the market a store actually targets (a Shopify site
+ * can have shop_currency=USD, lang="en" in its boilerplate, and a homepage
+ * tagline that's entirely Spanish). Content is the ground truth: only fall
+ * back to the declared lang when the page's own text doesn't clearly say
+ * otherwise. */
+function detectLanguage(metaLang: string, title: string, description: string, bodyText: string): string {
+  const declared = metaLang && metaLang.length >= 2 ? metaLang.substring(0, 2).toLowerCase() : '';
+  // Title/description first and weighted by repetition (x3) — a tagline
+  // saying "Más que un estilo de vida" is a stronger, cleaner signal than
+  // the same words once each buried a thousand characters into body copy.
+  const { lang: contentLang, score } = scoreLanguageFromText(
+    `${title} ${title} ${title} ${description} ${description} ${bodyText.slice(0, 2000)}`
+  );
+  if (!declared) return contentLang && score > 2 ? contentLang : 'en';
+  if (contentLang !== declared && score >= 3) return contentLang;
+  return declared;
 }
 
 Deno.serve(async (req) => {
@@ -413,7 +449,8 @@ Deno.serve(async (req) => {
     const favicon = extractFavicon(html, formattedUrl);
     const langMatch = html.match(/<html[^>]*lang=["']([^"']+)["']/i);
     const metaLang = langMatch?.[1] || '';
-    const language = detectLanguage(html, metaLang);
+    const markdown = htmlToMarkdown(html);
+    const language = detectLanguage(metaLang, title, metaDescription || ogDescription, markdown);
     const brandName = extractBrandName(formattedUrl, title);
     // Check the site's own hosting domain first — the most reliable signal
     // for Replit (there's no in-page fingerprint, only the *.repl.co/
@@ -424,7 +461,6 @@ Deno.serve(async (req) => {
       : detectCMS(html);
     const headings = extractHeadings(html);
     const { internal: internalLinks, external: externalLinks } = extractLinks(html, formattedUrl);
-    const markdown = htmlToMarkdown(html);
     const wordCount = markdown.split(/\s+/).filter(w => w.length > 1).length;
     const schemaTypes = extractSchemaTypes(html);
     const country = detectCountry(html, new URL(formattedUrl).hostname);
