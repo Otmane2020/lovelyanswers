@@ -27,6 +27,8 @@ const STATUS_LABEL: Record<Status, string> = { live: 'Live', wait: 'Waiting', dr
 export function Content() {
   const [viewMode, setViewMode] = useState<'list' | 'cal'>('list')
   const [filter, setFilter] = useState<Filter>('all')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
   const today = new Date()
   const [calYear, setCalYear] = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth())
@@ -88,6 +90,13 @@ export function Content() {
   )
 
   const visible = filter === 'all' ? rows : rows.filter((r) => r.status === filter)
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const pageRows = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const changeFilter = (f: Filter | ((prev: Filter) => Filter)) => {
+    setFilter(f)
+    setPage(1)
+  }
 
   // Publishing streak: did anything go live on each of the last 5 days?
   const streak = useMemo(() => {
@@ -197,19 +206,19 @@ export function Content() {
             fourth chip that isn't in the design. */}
         <button
           className={`chip ${filter === 'live' ? '' : 'off'}`}
-          onClick={() => setFilter((f) => (f === 'live' ? 'all' : 'live'))}
+          onClick={() => changeFilter((f) => (f === 'live' ? 'all' : 'live'))}
         >
           Live ({counts.live})
         </button>
         <button
           className={`chip ${filter === 'wait' ? '' : 'off'}`}
-          onClick={() => setFilter((f) => (f === 'wait' ? 'all' : 'wait'))}
+          onClick={() => changeFilter((f) => (f === 'wait' ? 'all' : 'wait'))}
         >
           Waiting ({counts.wait})
         </button>
         <button
           className={`chip ${filter === 'draft' ? '' : 'off'}`}
-          onClick={() => setFilter((f) => (f === 'draft' ? 'all' : 'draft'))}
+          onClick={() => changeFilter((f) => (f === 'draft' ? 'all' : 'draft'))}
         >
           Draft ({counts.draft})
         </button>
@@ -295,7 +304,7 @@ export function Content() {
                 </tr>
               </thead>
               <tbody>
-                {visible.slice(0, 100).map((row) => (
+                {pageRows.map((row) => (
                   <tr key={row.id}>
                     <td>{row.title}</td>
                     <td><span className="src-tag">{row.icon} {row.format}</span></td>
@@ -316,6 +325,19 @@ export function Content() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                ‹ Previous
+              </button>
+              <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
+                Page {page} of {totalPages} · {visible.length} items
+              </span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                Next ›
+              </button>
+            </div>
+          )}
         </div>
       ) : null}
 
