@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -181,11 +181,27 @@ export default function Onboarding() {
   const [phase, setPhase] = useState('')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  // Which normalized URL analysis has already been kicked off for — guards
+  // the debounced auto-start below against firing twice for the same site
+  // (e.g. once from typing, once from clicking Continue right after).
+  const analysisStartedForUrl = useRef<string | null>(null)
   // Quick unauthenticated scrape fired right after step 2, so the category
   // guess and brand name are already reasonable — "Sweet Déco", not
   // "sweet-deco" (the raw domain slug analyze-website falls back to) —
   // before the full AI pass even starts.
   const [preScraped, setPreScraped] = useState<{ brandName: string; description: string; language: string; cms: string } | null>(null)
+  // runAnalysis can be triggered from a background timer (see the debounced
+  // effect below) and keeps running across renders that happen while it's
+  // in flight — reading language/country/category/preScraped directly off
+  // its own useCallback closure would risk using whatever those were at the
+  // moment it was scheduled, not the freshest values once the pre-scrape
+  // that's meant to fill them actually resolves. This ref is always current
+  // regardless of which render's closure ends up calling it.
+  const latestFormRef = useRef({ language, country, category, preScraped })
+  useEffect(() => {
+    latestFormRef.current = { language, country, category, preScraped }
+  })
 
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -311,14 +327,21 @@ export default function Onboarding() {
     }
   }, [bizSite, category])
 
-  /* --- step 4: analyse the site and create the project. The account
-     already exists by this point (step 1), so this always has a real
-     session — no anonymous-call auth drama. Competitor and keyword
-     research (DataForSEO, real money) is deliberately NOT triggered here:
-     it only runs once payment is confirmed, via the Stripe webhook, so a
-     signup that never converts never costs anything beyond this one
-     lightweight AI pass. --- */
+  /* --- analyse the site and create the project. Runs in the background as
+     soon as a full URL is typed (see the debounced effect below) rather
+     than waiting for step 4 — by the time someone clicks through category/
+     country/language it's often already done. The account already exists
+     by this point (step 1), so this always has a real session — no
+     anonymous-call auth drama. Competitor and keyword research (DataForSEO,
+     real money) is deliberately NOT triggered here: it only runs once
+     payment is confirmed, via the Stripe webhook, so a signup that never
+     converts never costs anything beyond this one lightweight AI pass.
+     Doesn't navigate on its own — callers (the debounce trigger, step 4's
+     entry effect) decide what to do with the result, since this can finish
+     while the person is sitting on any step from 2 to 4. --- */
   const runAnalysis = useCallback(async () => {
+    if (analyzing || projectId) return
+    setAnalyzing(true)
     setError('')
     try {
       setPhase('Reading your website…')
@@ -346,13 +369,17 @@ export default function Onboarding() {
         }
       }
 
+      // Read the freshest values, not whatever this closure had at the
+      // moment it was scheduled — see latestFormRef's own comment above.
+      const { language: curLanguage, country: curCountry, category: curCategory, preScraped: curPreScraped } = latestFormRef.current
+
       // analyze-website's AI pass never returns a brandName field at all — only
       // its own naive regex fallback does, and that's the raw domain slug
       // ("sweet-deco") whenever the page's <title> can't be parsed from a
       // plain fetch (any JS-rendered site). Never trust that fallback: prefer
       // what the user actually typed, then the properly-cased name firecrawl
       // already found ("Sweet Déco").
-      const goodBrandName = bizName || preScraped?.brandName || data.brandName || data.domain
+      const goodBrandName = bizName || curPreScraped?.brandName || data.brandName || data.domain
       const fullAnalysis = { ...data, brandName: goodBrandName } as Analysis
       setAnalysis(fullAnalysis)
 
@@ -368,32 +395,63 @@ export default function Onboarding() {
           name: goodBrandName,
           website_url: normalizeUrl(bizSite || `https://${data.domain}`),
           domain: data.domain,
-          language,
-          country,
-          business_description: data.description || preScraped?.description || null,
-          business_type: category || null,
+          language: curLanguage,
+          country: curCountry,
+          business_description: data.description || curPreScraped?.description || null,
+          business_type: curCategory || null,
           brand_name: goodBrandName,
           competitors: Array.isArray(data.competitors) ? data.competitors : null,
-          detected_cms: preScraped?.cms || null,
+          detected_cms: curPreScraped?.cms || null,
           is_active: true,
         })
         .select()
         .single()
       if (projError) throw projError
       setProjectId(project.id)
-
-      setStep(5)
+      setPhase('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      setStep(2)
       setPhase('')
+    } finally {
+      setAnalyzing(false)
     }
-  }, [bizSite, bizName, preScraped, country, category])
+  }, [analyzing, projectId, bizSite, bizName])
 
-  // Sitting on step 4 → start analysing right away.
+  // Start analysing as soon as a full business name + URL is typed — don't
+  // wait for someone to click through category/country/language first.
+  // Debounced so it fires once typing settles, not on every keystroke, and
+  // guarded by analysisStartedForUrl so it never fires twice for the same
+  // site (e.g. once from typing, once from step 2's Continue button below).
   useEffect(() => {
-    if (step === 4 && !analysis && !phase) runAnalysis()
-  }, [step, analysis, phase, runAnalysis])
+    if (step < 2 || step > 4 || !user) return
+    if (!bizName.trim() || !isValidUrl(bizSite)) return
+    const url = normalizeUrl(bizSite)
+    if (analysisStartedForUrl.current === url) return
+    const timer = setTimeout(() => {
+      analysisStartedForUrl.current = url
+      // Must resolve first — runAnalysis's project insert reads language/
+      // country/cms from state closures that only reflect this scrape's
+      // findings once it has actually finished updating them.
+      preScrapeSite().then(() => runAnalysis())
+    }, 700)
+    return () => clearTimeout(timer)
+  }, [step, user, bizName, bizSite, preScrapeSite, runAnalysis])
+
+  // Sitting on step 4 (either because analysis hasn't finished yet, or the
+  // debounce above never got a chance to fire before someone clicked
+  // through) → make sure it's actually running, then leave the moment it's
+  // done — from here or from wherever the person actually is.
+  useEffect(() => {
+    if (step === 4 && !analyzing && !projectId) runAnalysis()
+  }, [step, analyzing, projectId, runAnalysis])
+
+  // The moment the project exists, if we're sitting on the waiting screen
+  // (step 4), move on — this is what actually lets analysis finish "in the
+  // background" while someone's still on category/country/language and
+  // have step 4 feel instant when they get there.
+  useEffect(() => {
+    if (step === 4 && projectId) setStep(5)
+  }, [step, projectId])
 
   /* --- ask Stripe for a payment intent matching the current plan + promo.
      Re-invoked whenever either changes — create-subscription-intent updates
@@ -578,10 +636,17 @@ export default function Onboarding() {
                   disabled={!canStartAnalysis || busy}
                   onClick={async () => {
                     setError(''); setBusy(true)
-                    // Wait for the quick scrape so the category guess is
-                    // already in place when step 3 renders, instead of
-                    // popping in a second or two after the chips are shown.
-                    await preScrapeSite()
+                    // The debounced effect above already starts both the
+                    // scrape and the full analysis shortly after typing
+                    // stops — this only actually does anything if someone
+                    // clicks through faster than that 700ms window, so the
+                    // category guess is still ready by the time step 3 shows.
+                    const url = normalizeUrl(bizSite)
+                    if (analysisStartedForUrl.current !== url) {
+                      analysisStartedForUrl.current = url
+                      await preScrapeSite()
+                      runAnalysis()
+                    }
                     setBusy(false)
                     setStep(3)
                   }}
@@ -667,7 +732,7 @@ export default function Onboarding() {
 
               <div className="foot-nav">
                 <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="btn btn-primary" onClick={() => setStep(4)}>
+                <button className="btn btn-primary" onClick={() => setStep(projectId ? 5 : 4)}>
                   Continue <IcArrow />
                 </button>
               </div>
