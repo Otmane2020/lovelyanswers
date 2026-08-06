@@ -115,11 +115,16 @@ serve(async (req) => {
     // behind in Stripe.
     const pendingSub = currentSubs.data.find((s) => s.status === "incomplete");
 
+    // Basil-generation API versions (2025-03-31.basil and later) dropped
+    // Invoice.payment_intent entirely — the PaymentIntent/SetupIntent client
+    // secret now lives at latest_invoice.confirmation_secret instead. The
+    // Stripe SDK's shipped types don't model this new field yet, hence the
+    // casts.
     const subscription = pendingSub
       ? await stripe.subscriptions.update(pendingSub.id, {
           items: [{ id: pendingSub.items.data[0].id, price: priceId }],
           payment_behavior: "default_incomplete",
-          expand: ["latest_invoice.payment_intent"],
+          expand: ["latest_invoice.confirmation_secret"],
           metadata: { supabase_user_id: userData.user.id, plan },
           discounts: promotionCodeId ? [{ promotion_code: promotionCodeId }] : [],
         })
@@ -128,22 +133,28 @@ serve(async (req) => {
           items: [{ price: priceId }],
           payment_behavior: "default_incomplete",
           payment_settings: { save_default_payment_method: "on_subscription" },
-          expand: ["latest_invoice.payment_intent"],
+          expand: ["latest_invoice.confirmation_secret"],
           metadata: { supabase_user_id: userData.user.id, plan },
           ...(promotionCodeId ? { discounts: [{ promotion_code: promotionCodeId }] } : {}),
         });
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice | null;
-    const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent | null;
-    if (!paymentIntent?.client_secret) {
-      throw new Error("Stripe did not return a payment intent for the subscription");
+    const invoice = subscription.latest_invoice as (Stripe.Invoice & {
+      confirmation_secret?: { client_secret: string; type: string };
+    }) | null;
+    const confirmationSecret = invoice?.confirmation_secret;
+    if (!confirmationSecret?.client_secret) {
+      throw new Error("Stripe did not return a payment confirmation secret for the subscription");
     }
 
-    console.log("[SUB-INTENT] subscription:", subscription.id, "status:", subscription.status);
+    console.log(
+      "[SUB-INTENT] subscription:", subscription.id,
+      "status:", subscription.status,
+      "confirmation type:", confirmationSecret.type,
+    );
 
     return new Response(
       JSON.stringify({
-        clientSecret: paymentIntent.client_secret,
+        clientSecret: confirmationSecret.client_secret,
         subscriptionId: subscription.id,
         customerId: customer.id,
         plan,
