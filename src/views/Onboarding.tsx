@@ -492,10 +492,12 @@ export default function Onboarding() {
     if (analysisStartedForUrl.current === url) return
     const timer = setTimeout(() => {
       analysisStartedForUrl.current = url
-      // Must resolve first — runAnalysis's project insert reads language/
-      // country/cms from state closures that only reflect this scrape's
-      // findings once it has actually finished updating them.
-      preScrapeSite().then(() => runAnalysis())
+      // Run together instead of sequentially — the AI call is the slow
+      // part (several seconds), the plain scrape is sub-second, so it's
+      // always done well before runAnalysis reaches its project insert
+      // (which is what actually needs its language/country/cms state).
+      preScrapeSite()
+      runAnalysis()
     }, 700)
     return () => clearTimeout(timer)
   }, [step, user, bizName, bizSite, preScrapeSite, runAnalysis])
@@ -759,25 +761,27 @@ export default function Onboarding() {
                   ? <>Detected from your site — tap to change if it's off.</>
                   : 'This shapes the tone and the questions we optimize your content for.'}
               </p>
-              <div className="chip-grid">
+
+              <div className="card-box">
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
+                  What our AI understood about your business
+                </div>
+                <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                  {analysis?.description || (
+                    <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>
+                  )}
+                </div>
+              </div>
+
+              <label className="first">Business category</label>
+              <div className="chip-grid" style={{ marginBottom: 14 }}>
                 {CATEGORIES.map((c) => (
                   <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
                     onClick={() => { categoryTouchedRef.current = true; setCategory(c) }}>{c}</button>
                 ))}
               </div>
 
-              <div className="card-box" style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
-                  What our AI understood about your business
-                </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                  {analysis?.description || preScraped?.description || (
-                    <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>
-                  )}
-                </div>
-              </div>
-
-              <label className="first">Content language — detected from your site</label>
+              <label>Content language — detected from your site</label>
               <div className="chip-grid" style={{ marginBottom: 14 }}>
                 {LANGUAGES.map((l) => (
                   <button key={l.code} className={`chip-opt${language === l.code ? ' sel' : ''}`}
