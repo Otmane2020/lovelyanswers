@@ -555,6 +555,49 @@ export default function Onboarding() {
               <label>Website</label>
               <input type="url" value={bizSite} placeholder="yourstore.com"
                 onChange={(e) => setBizSite(e.target.value)} />
+              <label>Country</label>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setCountryOpen((o) => !o)}
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: '12px', border: '1.5px solid var(--line)',
+                    fontSize: '14.5px', fontFamily: 'inherit', background: 'var(--paper)', color: 'var(--ink)',
+                    display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <img src={flagUrl(country)} alt="" width={22} height={16} style={{ borderRadius: 2, flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{COUNTRIES.find((c) => c.code === country)?.name}</span>
+                  <IcArrow />
+                </button>
+                {countryOpen && (
+                  <>
+                    {/* Backdrop to close on outside click — sits under the list, above everything else. */}
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setCountryOpen(false)} />
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 11,
+                      background: 'var(--surface)', border: '1.5px solid var(--line)', borderRadius: '12px',
+                      maxHeight: '220px', overflowY: 'auto', boxShadow: '0 12px 28px rgba(20,22,46,.14)',
+                    }}>
+                      {COUNTRIES.map((c) => (
+                        <button
+                          type="button"
+                          key={c.code}
+                          onClick={() => { setCountry(c.code); setCountryOpen(false) }}
+                          style={{
+                            width: '100%', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '10px',
+                            background: c.code === country ? 'var(--primary-soft)' : 'transparent', border: 'none',
+                            fontFamily: 'inherit', fontSize: '13.5px', color: 'var(--ink)', cursor: 'pointer', textAlign: 'left',
+                          }}
+                        >
+                          <img src={flagUrl(c.code)} alt="" width={20} height={15} style={{ borderRadius: 2, flexShrink: 0 }} />
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="foot-nav">
                 <span />
                 <button
@@ -656,50 +699,6 @@ export default function Onboarding() {
                     "{analysis?.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
                   </div>
                 </div>
-              </div>
-
-              <label className="first">Country</label>
-              <div style={{ position: 'relative', marginBottom: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => setCountryOpen((o) => !o)}
-                  style={{
-                    width: '100%', padding: '11px 14px', borderRadius: '12px', border: '1.5px solid var(--line)',
-                    fontSize: '14.5px', fontFamily: 'inherit', background: 'var(--paper)', color: 'var(--ink)',
-                    display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', textAlign: 'left',
-                  }}
-                >
-                  <img src={flagUrl(country)} alt="" width={22} height={16} style={{ borderRadius: 2, flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{COUNTRIES.find((c) => c.code === country)?.name}</span>
-                  <IcArrow />
-                </button>
-                {countryOpen && (
-                  <>
-                    {/* Backdrop to close on outside click — sits under the list, above everything else. */}
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setCountryOpen(false)} />
-                    <div style={{
-                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 11,
-                      background: 'var(--surface)', border: '1.5px solid var(--line)', borderRadius: '12px',
-                      maxHeight: '220px', overflowY: 'auto', boxShadow: '0 12px 28px rgba(20,22,46,.14)',
-                    }}>
-                      {COUNTRIES.map((c) => (
-                        <button
-                          type="button"
-                          key={c.code}
-                          onClick={() => { setCountry(c.code); setCountryOpen(false) }}
-                          style={{
-                            width: '100%', padding: '9px 14px', display: 'flex', alignItems: 'center', gap: '10px',
-                            background: c.code === country ? 'var(--primary-soft)' : 'transparent', border: 'none',
-                            fontFamily: 'inherit', fontSize: '13.5px', color: 'var(--ink)', cursor: 'pointer', textAlign: 'left',
-                          }}
-                        >
-                          <img src={flagUrl(c.code)} alt="" width={20} height={15} style={{ borderRadius: 2, flexShrink: 0 }} />
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Honest skeleton teaser — no fabricated competitor names or
