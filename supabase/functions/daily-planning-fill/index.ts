@@ -9,6 +9,25 @@ const corsHeaders = {
 type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
+/** One piece a day, cycling through five angles — day 0 GEO, day 1 SEO,
+ * day 2 AEO, day 3 Local AEO, day 4 AEO Shopping, then repeat. */
+const ROTATION = ["geo", "seo", "aeo", "local_aeo", "aeo_shopping"] as const;
+type ContentAngle = typeof ROTATION[number];
+
+const ANGLE_BRIEF: Record<ContentAngle, string> = {
+  geo: "Generative Engine Optimization: a citation-ready piece that ChatGPT, Gemini and Perplexity can quote directly. Lead with the answer, keep claims factual and attributable.",
+  seo: "Classic SEO piece: search-intent driven, structured with clear points, targeting the keyword's organic ranking.",
+  aeo: "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.",
+  local_aeo: "Local AEO: answer the question as it would be asked about this specific area — mention the city/region, opening hours, delivery zone and other local specifics.",
+  aeo_shopping: "AEO Shopping: answer a buying-decision question the way an AI assistant would when a shopper asks for a product recommendation — price range, what to look for, and why this business is a solid pick.",
+};
+
+/** Days since epoch — stable across timezones, so the cycle never skips or repeats a day. */
+function angleForOffset(dayOffset: number): ContentAngle {
+  const base = Math.floor(Date.now() / 86_400_000) + dayOffset;
+  return ROTATION[base % ROTATION.length];
+}
+
 function detectIntent(text: string): IntentType {
   const q = text.toLowerCase();
   if (/prix|tarif|cost|price|budget/.test(q)) return "price";
@@ -59,7 +78,8 @@ async function generateQuestion(
   language: string,
   apiKey: string,
   dayNumber: number,
-  keywords: string[] = []
+  keywords: string[] = [],
+  angleBrief: string = ""
 ): Promise<{ question: string; intent: IntentType }> {
   const currentYear = new Date().getFullYear();
 
@@ -73,7 +93,9 @@ async function generateQuestion(
     ? "Tu generes UNE question DECISIONNELLE unique. La question DOIT finir par \"?\". INTERDIT de generer des mots-cles simples."
     : "Generate ONE unique DECISION-ORIENTED question. The question MUST end with \"?\". FORBIDDEN to generate simple keywords.";
 
-  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + keywordsInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
+  const angleInstruction = angleBrief ? "\nAngle for today: " + angleBrief : "";
+
+  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + angleInstruction + keywordsInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -146,7 +168,9 @@ async function generateAnswer(
   } catch (e) {
     console.error("Failed to generate answer:", e);
     return {
-      answer: brandName + " propose des solutions adaptees. Consultez les ressources disponibles.",
+      answer: language === "fr"
+        ? brandName + " propose des solutions adaptees. Consultez les ressources disponibles."
+        : brandName + " offers solutions tailored to your needs. See the resources below for details.",
       bullets: [],
       faq: [],
     };
@@ -158,13 +182,16 @@ async function generateArticle(
   answer: string,
   brandName: string,
   language: string,
-  apiKey: string
+  apiKey: string,
+  angleBrief: string = ""
 ): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
   const systemPrompt = language === "fr"
     ? "Tu rediges un article de blog SEO/AEO complet. Titre accrocheur. 800-1200 mots. Mentionner " + brandName + " 2-3 fois."
     : "Write a complete SEO/AEO blog article. Catchy title. 800-1200 words. Mention " + brandName + " 2-3 times.";
 
-  const userPrompt = "Question: " + question + "\nAnswer: " + answer + "\nBrand: " + brandName + "\n\nReturn JSON: {\"title\": \"...\", \"content\": \"...\", \"metaDescription\": \"...\"}";
+  const userPrompt = "Question: " + question + "\nAnswer: " + answer + "\nBrand: " + brandName +
+    (angleBrief ? "\nAngle: " + angleBrief : "") +
+    "\n\nReturn JSON: {\"title\": \"...\", \"content\": \"...\", \"metaDescription\": \"...\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -267,9 +294,6 @@ serve(async (req) => {
       maxDaysToFill = 3,
     } = body ?? {};
 
-    // Only publish on Mon (1), Wed (3), Fri (5)
-    const PUBLISH_DAYS = new Set([1, 3, 5]);
-
     console.log("[daily-planning-fill] Starting daily planning fill...", {
       projectId,
       days,
@@ -303,7 +327,11 @@ serve(async (req) => {
     for (const project of projects || []) {
       const brandName = project.brand_name || project.name;
       const description = project.business_description || "";
-      const language = project.language || "fr";
+      // Never default to French — project.language should already reflect
+      // the site's real detected language from onboarding. Defaulting to
+      // "fr" here silently generated French content for non-French sites
+      // whenever this column was empty.
+      const language = project.language || "en";
 
       const { data: projectKeywords } = await supabase
         .from("keywords")
@@ -323,10 +351,7 @@ serve(async (req) => {
       for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
         const dateStr = targetDate.toISOString().split("T")[0];
-
-        // Only generate content on Mon/Wed/Fri (3 quality posts per week)
-        const dayOfWeek = targetDate.getDay();
-        if (!PUBLISH_DAYS.has(dayOfWeek)) continue;
+        const angle = angleForOffset(dayOffset);
 
         await supabase
           .from("planning")
@@ -377,7 +402,7 @@ serve(async (req) => {
         }
 
         if (!answerId) {
-          const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList);
+          const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle]);
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
           const score = computeScore(answerData.answer, brandName);
 
@@ -415,7 +440,7 @@ serve(async (req) => {
         // 2) Ensure we have an article
         if (!planningRow.article_id) {
           try {
-            const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey);
+            const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey, ANGLE_BRIEF[angle]);
             const score = computeScore(answerText, brandName);
 
             const { data: insertedArticle, error: articleError } = await supabase
