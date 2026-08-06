@@ -186,6 +186,10 @@ export default function Onboarding() {
   // the debounced auto-start below against firing twice for the same site
   // (e.g. once from typing, once from clicking Continue right after).
   const analysisStartedForUrl = useRef<string | null>(null)
+  // Whether the person has manually picked a category chip themselves —
+  // once true, the AI's own classification (arriving later, from the
+  // slower analyze-website call) no longer overwrites their choice.
+  const categoryTouchedRef = useRef(false)
   // Quick unauthenticated scrape fired right after step 2, so the category
   // guess and brand name are already reasonable — "Sweet Déco", not
   // "sweet-deco" (the raw domain slug analyze-website falls back to) —
@@ -211,15 +215,20 @@ export default function Onboarding() {
   const [promoError, setPromoError] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percentOff: number | null; amountOff: number | null } | null>(null)
 
-  // Already has a project: paid (or trialing) -> dashboard. Payment gates
-  // access, so a project without a subscription is an incomplete signup —
-  // resume straight at the paywall instead of leaving them stuck on step 1,
-  // and regardless of how they arrived here (GEODashboard enforces the same
-  // rule and redirects unpaid users back to this exact effect).
+  // Already has a project: paid (or trialing) -> dashboard, nothing left to
+  // do here. A project without a subscription is an incomplete signup —
+  // but "incomplete" now also covers projects the background auto-analysis
+  // created from just a typed URL, before the person ever saw or confirmed
+  // anything. Resume at the review step (5), not straight at checkout —
+  // jumping straight to payment for something they never actually reviewed
+  // is exactly the "why am I suddenly being asked to pay" complaint this
+  // was causing.
   const [resumedBilling, setResumedBilling] = useState(false)
   useEffect(() => {
     if (authLoading || !user || subLoading || resumedBilling) return
-    supabase.from('projects').select('id, brand_name, name').eq('user_id', user.id).limit(1)
+    supabase.from('projects')
+      .select('id, brand_name, name, website_url, domain, business_description, business_type, language, country, detected_cms, competitors')
+      .eq('user_id', user.id).limit(1)
       .then(({ data }) => {
         const existing = data?.[0]
         if (!existing) return
@@ -230,7 +239,26 @@ export default function Onboarding() {
         setResumedBilling(true)
         setProjectId(existing.id)
         setBizName(existing.brand_name || existing.name || '')
-        openPaywall(existing.id)
+        setBizSite(existing.website_url || '')
+        if (existing.business_type) setCategory(existing.business_type)
+        if (existing.language) setLanguage(existing.language)
+        if (existing.country && COUNTRIES.some((c) => c.code === existing.country)) setCountry(existing.country)
+        setPreScraped({
+          brandName: existing.brand_name || existing.name || '',
+          description: existing.business_description || '',
+          language: existing.language || 'en',
+          cms: existing.detected_cms || '',
+        })
+        setAnalysis({
+          domain: existing.domain || '',
+          brandName: existing.brand_name || existing.name || '',
+          description: existing.business_description || '',
+          competitors: Array.isArray(existing.competitors) ? existing.competitors : [],
+          targetAudiences: [],
+          keywords: [],
+          language: existing.language || 'en',
+        })
+        setStep(5)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, subLoading, subscribed, trial, navigate, resumedBilling])
@@ -353,7 +381,7 @@ export default function Onboarding() {
     setError('')
     try {
       setPhase('Reading your website…')
-      let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string } = {}
+      let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string; category?: string } = {}
       try {
         const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-website', {
           body: { url: normalizeUrl(bizSite || bizName) },
@@ -381,6 +409,16 @@ export default function Onboarding() {
       // moment it was scheduled — see latestFormRef's own comment above.
       const { language: curLanguage, country: curCountry, category: curCategory, preScraped: curPreScraped } = latestFormRef.current
 
+      // The AI actually understands what the business does ("site vitrine
+      // professionnel, livré en 48h" -> a web design service, not retail),
+      // unlike the fast pre-scrape's keyword-matching guess. Prefer it —
+      // but never fight someone who already picked a chip themselves.
+      let effectiveCategory = curCategory
+      if (data.category && CATEGORIES.includes(data.category) && !categoryTouchedRef.current) {
+        effectiveCategory = data.category
+        setCategory(data.category)
+      }
+
       // analyze-website's AI pass never returns a brandName field at all — only
       // its own naive regex fallback does, and that's the raw domain slug
       // ("sweet-deco") whenever the page's <title> can't be parsed from a
@@ -406,7 +444,7 @@ export default function Onboarding() {
           language: curLanguage,
           country: curCountry,
           business_description: data.description || curPreScraped?.description || null,
-          business_type: curCategory || null,
+          business_type: effectiveCategory || null,
           brand_name: goodBrandName,
           competitors: Array.isArray(data.competitors) ? data.competitors : null,
           detected_cms: curPreScraped?.cms || null,
@@ -696,7 +734,7 @@ export default function Onboarding() {
               <div className="chip-grid">
                 {CATEGORIES.map((c) => (
                   <button key={c} className={`chip-opt${category === c ? ' sel' : ''}`}
-                    onClick={() => setCategory(c)}>{c}</button>
+                    onClick={() => { categoryTouchedRef.current = true; setCategory(c) }}>{c}</button>
                 ))}
               </div>
 

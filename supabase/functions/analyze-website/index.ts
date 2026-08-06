@@ -72,6 +72,7 @@ serve(async (req) => {
     let keywords: string[] = [];
     let detectedLanguage = "en";
     let recommendationExample = "";
+    let category = "";
 
     // Step 1: Fetch and analyze FULL website content
     console.log("[ANALYZE-WEBSITE] 📄 Fetching full website content...");
@@ -265,6 +266,13 @@ TASKS:
    depending on ${langName}), mentioning what makes it a good pick. This is NOT the site description —
    it's a spoken-style recommendation a chatbot would say out loud.
 
+6. CATEGORY: Classify this business into EXACTLY ONE of these six categories, based on
+   what it actually does (not keyword-matching — understand the business):
+   "Retail store" | "Local service" | "E-commerce" | "Restaurant" | "SaaS" | "Other"
+   A web design agency selling websites, a plumber, a consultant, a photographer — all
+   "Local service". A company selling software/subscriptions — "SaaS". A site selling
+   physical products online — "E-commerce". A physical shop's own site — "Retail store".
+
 IMPORTANT:
 - Competitors: return ONLY real, currently active domains of DIRECT competitors
 - Competitors must sell/offer the SAME type of product or service, not just be in the same broad category
@@ -282,6 +290,7 @@ Respond ONLY with this JSON (no explanation):
   "description": "Professional enriched description in ${langName}...",
   "audiences": ["audience 1 in ${langName}", "audience 2", "audience 3"],
   "recommendationExample": "Short spoken-style AI recommendation sentence in ${langName}...",
+  "category": "one of: Retail store | Local service | E-commerce | Restaurant | SaaS | Other",
   "language": "${detectedLanguage}"
 }`;
 
@@ -345,6 +354,16 @@ Respond ONLY with this JSON (no explanation):
               if (typeof parsed.recommendationExample === "string" && parsed.recommendationExample.length > 10) {
                 recommendationExample = parsed.recommendationExample;
                 console.log("[ANALYZE-WEBSITE] ✅ AI generated recommendation example");
+              }
+
+              // Extract the AI-classified category — understands what the
+              // business actually does, unlike the onboarding UI's own
+              // keyword-matching guess (which reads "site vitrine
+              // professionnel" and has no idea that's a web design service).
+              const validCategories = ["Retail store", "Local service", "E-commerce", "Restaurant", "SaaS", "Other"];
+              if (typeof parsed.category === "string" && validCategories.includes(parsed.category)) {
+                category = parsed.category;
+                console.log("[ANALYZE-WEBSITE] ✅ AI classified category:", category);
               }
             }
           } catch (parseError) {
@@ -483,6 +502,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
         keywords,
         language: detectedLanguage,
         recommendationExample,
+        category,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
