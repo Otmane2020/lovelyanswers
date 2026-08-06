@@ -86,7 +86,9 @@ function detectCMSFromContent(html: string, markdown: string): string {
   }
   
   // Magento patterns
-  if (content.includes('magento') || content.includes('mage/') || content.includes('varien')) {
+  // 'mage/' alone used to match every page's own <link type="image/x-icon">,
+  // misidentifying nearly any site as Magento.
+  if (content.includes('magento') || content.includes('/skin/frontend/') || content.includes('varien')) {
     return 'Magento';
   }
   

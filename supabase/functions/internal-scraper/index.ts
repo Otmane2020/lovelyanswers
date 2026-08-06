@@ -277,7 +277,9 @@ function detectCMS(html: string): string {
   if (c.includes('duda.co') || c.includes('dudaone.com')) return 'Duda';
   if (c.includes('bigcommerce.com')) return 'BigCommerce';
   if (c.includes('prestashop') || c.includes('/modules/ps_')) return 'PrestaShop';
-  if (c.includes('magento') || c.includes('mage/')) return 'Magento';
+  // 'mage/' alone used to match — but so does every page's own
+  // <link type="image/x-icon">, misidentifying nearly any site as Magento.
+  if (c.includes('magento') || c.includes('/skin/frontend/') || c.includes('mage-init')) return 'Magento';
   if (c.includes('ghost.org') || c.includes('ghost-portal')) return 'Ghost';
   if (c.includes('drupal.org') || c.includes('/sites/default/files')) return 'Drupal';
   if (c.includes('joomla') || c.includes('/media/com_')) return 'Joomla';
