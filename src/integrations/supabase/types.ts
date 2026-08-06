@@ -3155,7 +3155,9 @@ export type Database = {
           business_description: string | null
           business_type: string | null
           competitors: string[] | null
+          country: string | null
           created_at: string | null
+          detected_cms: string | null
           domain: string | null
           example_url: string | null
           id: string
@@ -3178,7 +3180,9 @@ export type Database = {
           business_description?: string | null
           business_type?: string | null
           competitors?: string[] | null
+          country?: string | null
           created_at?: string | null
+          detected_cms?: string | null
           domain?: string | null
           example_url?: string | null
           id?: string
@@ -3201,7 +3205,9 @@ export type Database = {
           business_description?: string | null
           business_type?: string | null
           competitors?: string[] | null
+          country?: string | null
           created_at?: string | null
+          detected_cms?: string | null
           domain?: string | null
           example_url?: string | null
           id?: string
