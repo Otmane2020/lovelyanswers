@@ -116,11 +116,11 @@ select cron.schedule(
   $$ select public.invoke_edge_function('publish-geo-content'); $$
 );
 
-select cron.schedule(
-  'apg-publish-scheduled-answers',
-  '0 * * * *',
-  $$ select public.invoke_edge_function('publish-scheduled-answers'); $$
-);
+-- publish-scheduled-answers is already covered by a working job created
+-- directly in the SQL editor at some point (jobname
+-- 'publish-scheduled-answers-cron', not tracked in any migration) —
+-- confirmed running hourly and succeeding. Not re-scheduled here to
+-- avoid publishing the same due content twice an hour.
 
 select cron.schedule(
   'apg-daily-planning-fill',
