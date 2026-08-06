@@ -79,7 +79,8 @@ async function generateQuestion(
   apiKey: string,
   dayNumber: number,
   keywords: string[] = [],
-  angleBrief: string = ""
+  angleBrief: string = "",
+  avoidQuestions: string[] = []
 ): Promise<{ question: string; intent: IntentType }> {
   const currentYear = new Date().getFullYear();
 
@@ -89,13 +90,19 @@ async function generateQuestion(
       : "\nProject SEO keywords to USE as the basis for the question:\n" + keywords.join(", ") + "\n\nTransform one of these keywords into a natural, decision-oriented question."
     : "";
 
+  const avoidInstruction = avoidQuestions.length > 0
+    ? (language === "fr"
+        ? "\nQuestions DEJA utilisees, INTERDIT de repeter ou reformuler ces sujets:\n- " + avoidQuestions.slice(0, 25).join("\n- ")
+        : "\nQuestions ALREADY used — FORBIDDEN to repeat or rephrase these topics:\n- " + avoidQuestions.slice(0, 25).join("\n- "))
+    : "";
+
   const systemPrompt = language === "fr"
     ? "Tu generes UNE question DECISIONNELLE unique. La question DOIT finir par \"?\". INTERDIT de generer des mots-cles simples."
     : "Generate ONE unique DECISION-ORIENTED question. The question MUST end with \"?\". FORBIDDEN to generate simple keywords.";
 
   const angleInstruction = angleBrief ? "\nAngle for today: " + angleBrief : "";
 
-  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + angleInstruction + keywordsInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
+  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + angleInstruction + keywordsInstruction + avoidInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -123,10 +130,28 @@ async function generateQuestion(
     };
   } catch (e) {
     console.error("Failed to generate question:", e);
+    // A single static fallback meant every OpenRouter failure produced the
+    // exact same question — with real outages that's not a rare edge case,
+    // it silently filled the whole pipeline with duplicates. Rotate through
+    // a handful of templates instead so a string of failures still varies.
+    const name = brandName.toLowerCase();
+    const templatesFr = [
+      "Quels criteres verifier avant de choisir " + name + " ?",
+      "Pourquoi choisir " + name + " plutot qu'une alternative ?",
+      "Quelles erreurs eviter avec " + name + " ?",
+      "Quel budget prevoir pour " + name + " ?",
+      "Comment choisir " + name + " adapte a ses besoins en " + currentYear + " ?",
+    ];
+    const templatesEn = [
+      "What criteria to check before choosing " + name + "?",
+      "Why choose " + name + " over alternatives?",
+      "What mistakes to avoid with " + name + "?",
+      "What budget to expect for " + name + "?",
+      "How to choose " + name + " suited to your needs in " + currentYear + "?",
+    ];
+    const templates = language === "fr" ? templatesFr : templatesEn;
     return {
-      question: language === "fr"
-        ? "Comment choisir " + brandName.toLowerCase() + " adapte a ses besoins en " + currentYear + " ?"
-        : "How to choose " + brandName.toLowerCase() + " suited to your needs in " + currentYear + "?",
+      question: templates[Math.abs(dayNumber) % templates.length],
       intent: "criteria",
     };
   }
@@ -343,6 +368,18 @@ serve(async (req) => {
       const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
       console.log("[daily-planning-fill] Found " + keywordList.length + " unused keywords for project " + project.name);
 
+      // Every existing question for this project, so a new one is never a
+      // near-duplicate of one already sitting in the pipeline. Without this,
+      // a weak prompt signal (just "day number" + a repeating 5-angle brief)
+      // regenerates the same handful of topics over and over.
+      const { data: existingAnswers } = await supabase
+        .from("answers")
+        .select("question")
+        .eq("project_id", project.id)
+        .limit(500);
+      const normalize = (q: string) => q.toLowerCase().replace(/[?!.,]/g, "").trim();
+      const usedQuestions = new Set<string>((existingAnswers || []).map((a: any) => normalize(a.question || "")));
+
       let daysTouched = 0;
       let daysCompleted = 0;
       let stoppedEarly = false;
@@ -402,7 +439,19 @@ serve(async (req) => {
         }
 
         if (!answerId) {
-          const q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle]);
+          let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions]);
+          // One retry with a stronger nudge if it still landed on something
+          // already used (small business + a static fallback template make
+          // this the common case, not a rare one).
+          if (usedQuestions.has(normalize(q.question))) {
+            q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions]);
+          }
+          if (usedQuestions.has(normalize(q.question))) {
+            console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
+            continue;
+          }
+          usedQuestions.add(normalize(q.question));
+
           const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
           const score = computeScore(answerData.answer, brandName);
 
