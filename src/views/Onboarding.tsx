@@ -261,6 +261,19 @@ export default function Onboarding() {
           language: existing.language || 'en',
         })
         setStep(5)
+        // The projects table never stored a favicon column, so a resumed
+        // project always came back with none — re-run just the lightweight
+        // scrape to backfill it instead of showing the letter fallback.
+        if (existing.website_url) {
+          setFaviconFailed(false)
+          supabase.functions.invoke('internal-scraper', { body: { url: normalizeUrl(existing.website_url) } })
+            .then(({ data: scraped }) => {
+              if (scraped?.success && scraped.data?.favicon) {
+                setPreScraped((prev) => (prev ? { ...prev, favicon: scraped.data.favicon } : prev))
+              }
+            })
+            .catch((e) => console.error('[ONBOARDING] resume favicon backfill failed', e))
+        }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, subLoading, subscribed, trial, navigate, resumedBilling])
@@ -510,13 +523,6 @@ export default function Onboarding() {
     if (step === 4 && !analyzing && !projectId) runAnalysis()
   }, [step, analyzing, projectId, runAnalysis])
 
-  // The moment the project exists, if we're sitting on the waiting screen
-  // (step 4), move on — this is what actually lets analysis finish "in the
-  // background" while someone's still on category/country/language and
-  // have step 4 feel instant when they get there.
-  useEffect(() => {
-    if (step === 4 && projectId) setStep(5)
-  }, [step, projectId])
 
   /* --- ask Stripe for a payment intent matching the current plan + promo.
      Re-invoked whenever either changes — create-subscription-intent updates
@@ -791,25 +797,45 @@ export default function Onboarding() {
 
               <div className="foot-nav">
                 <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="btn btn-primary" onClick={() => setStep(projectId ? 5 : 4)}>
+                <button className="btn btn-primary" onClick={() => setStep(4)}>
                   Continue <IcArrow />
                 </button>
               </div>
             </>
           )}
 
-          {/* STEP 4 — reading the site, real analysis + project creation */}
+          {/* STEP 4 — reading the site, real analysis + project creation.
+             Never auto-advances to step 5 — even once the analysis is
+             ready, it waits for an explicit click. */}
           {step === 4 && (
             <>
-              <h1>Reading your website…</h1>
-              <p className="sub">Pulling your logo, detecting your sector and language.</p>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
-                  <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
+              {projectId ? (
+                <>
+                  <h1>Your site's been analyzed</h1>
+                  <p className="sub">Logo, sector and language are ready to review.</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
+                    <IcCheck size={46} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1>Reading your website…</h1>
+                  <p className="sub">Pulling your logo, detecting your sector and language.</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
+                    <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
+                      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <p className="phase">{phase || 'Starting…'}</p>
+                </>
+              )}
+              <div className="foot-nav">
+                <button className="btn-ghost" onClick={() => setStep(3)}>Back</button>
+                <button className="btn btn-primary" disabled={!projectId} onClick={() => setStep(5)}>
+                  Continue <IcArrow />
+                </button>
               </div>
-              <p className="phase">{phase || 'Starting…'}</p>
             </>
           )}
 
