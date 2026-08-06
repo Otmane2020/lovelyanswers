@@ -292,9 +292,15 @@ export default function Onboarding() {
       // own internal fallback, not called directly from onboarding anymore.
       const { data } = await supabase.functions.invoke('internal-scraper', { body: { url } })
       if (data?.success && data.data) {
-        const { brandName, metaDescription, language: detectedLanguage, cms } = data.data
+        const { brandName, metaDescription, language: detectedLanguage, cms, country: detectedCountry } = data.data
         setPreScraped({ brandName, description: metaDescription || '', language: detectedLanguage || 'en', cms: cms || '' })
         setLanguage(detectedLanguage && LANGUAGES.some((l) => l.code === detectedLanguage) ? detectedLanguage : 'en')
+        // Site-stated location (address / hreflang / ccTLD) beats the
+        // visitor's own browser locale — the default this state started
+        // with — for guessing where the *business* actually is.
+        if (detectedCountry && COUNTRIES.some((c) => c.code === detectedCountry)) {
+          setCountry(detectedCountry)
+        }
         if (!category) {
           const guessed = guessCategory(`${metaDescription || ''} ${url}`, cms)
           if (guessed) setCategory(guessed)
@@ -607,7 +613,7 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <label className="first">Country — detected automatically, tap to change</label>
+              <label className="first">Country</label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
                 <button
                   type="button"

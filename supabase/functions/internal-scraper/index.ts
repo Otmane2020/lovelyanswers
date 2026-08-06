@@ -18,6 +18,7 @@ interface ScrapeResult {
     favicon: string;
     ogImage: string;
     language: string;
+    country: string;
     brandName: string;
     cms: string;
     headings: { level: number; text: string }[];
@@ -183,6 +184,64 @@ function htmlToMarkdown(html: string): string {
     .trim();
 
   return content;
+}
+
+// Country-code TLDs worth trusting directly — deliberately excludes generic
+// or ambiguous ones (.io, .co, .ai, .me...) that get used worldwide and
+// would be misleading as a location signal.
+const CC_TLD_COUNTRY: Record<string, string> = {
+  fr: 'FR', de: 'DE', es: 'ES', it: 'IT', nl: 'NL', be: 'BE', pt: 'PT',
+  ch: 'CH', at: 'AT', ie: 'IE', se: 'SE', no: 'NO', dk: 'DK', fi: 'FI',
+  pl: 'PL', ca: 'CA', au: 'AU', nz: 'NZ', mx: 'MX', br: 'BR', ar: 'AR',
+  ma: 'MA', dz: 'DZ', tn: 'TN', ae: 'AE', sa: 'SA', in: 'IN', jp: 'JP',
+  sg: 'SG', za: 'ZA', us: 'US', uk: 'GB',
+};
+
+/** Best signal first: a JSON-LD/microdata postal address is an explicit,
+ * business-stated location — far more reliable than guessing from the TLD
+ * or hreflang, both of which just describe which market a page targets. */
+function extractCountryFromAddress(html: string): string {
+  const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(match[1]);
+      const nodes = Array.isArray(data) ? data : [data, ...(data['@graph'] || [])];
+      for (const node of nodes) {
+        const addr = node?.address;
+        const raw = typeof addr?.addressCountry === 'string'
+          ? addr.addressCountry
+          : addr?.addressCountry?.name;
+        if (typeof raw === 'string' && raw.length >= 2) return raw;
+      }
+    } catch {}
+  }
+  const microMatch = html.match(/itemprop=["']addressCountry["'][^>]*content=["']([^"']+)["']/i);
+  if (microMatch) return microMatch[1];
+  return '';
+}
+
+/** Falls back to hreflang region subtags (e.g. "fr-FR" -> FR), then the
+ * domain's own country-code TLD. Neither is as reliable as a stated
+ * address — both describe the market a page targets, not necessarily
+ * where the business actually is — but still a reasonable starting guess. */
+function detectCountry(html: string, hostname: string): string {
+  const fromAddress = extractCountryFromAddress(html);
+  if (fromAddress) return fromAddress.toUpperCase().slice(0, 2);
+
+  const hreflangRegex = /<link[^>]*rel=["']alternate["'][^>]*hreflang=["']([a-z]{2})-([A-Z]{2})["']/gi;
+  const regions: Record<string, number> = {};
+  let m;
+  while ((m = hreflangRegex.exec(html)) !== null) {
+    regions[m[2]] = (regions[m[2]] || 0) + 1;
+  }
+  const topRegion = Object.entries(regions).sort((a, b) => b[1] - a[1])[0];
+  if (topRegion) return topRegion[0];
+
+  const tld = hostname.split('.').pop()?.toLowerCase();
+  if (tld && CC_TLD_COUNTRY[tld]) return CC_TLD_COUNTRY[tld];
+
+  return '';
 }
 
 function extractSchemaTypes(html: string): string[] {
@@ -368,6 +427,7 @@ Deno.serve(async (req) => {
     const markdown = htmlToMarkdown(html);
     const wordCount = markdown.split(/\s+/).filter(w => w.length > 1).length;
     const schemaTypes = extractSchemaTypes(html);
+    const country = detectCountry(html, new URL(formattedUrl).hostname);
 
     const result: ScrapeResult = {
       success: true,
@@ -378,6 +438,7 @@ Deno.serve(async (req) => {
         favicon,
         ogImage: ogImage ? (ogImage.startsWith('http') ? ogImage : new URL(ogImage, formattedUrl).href) : '',
         language,
+        country,
         brandName,
         cms,
         headings: headings.slice(0, 30),
@@ -398,7 +459,7 @@ Deno.serve(async (req) => {
       },
     };
 
-    console.log(`[internal-scraper] Done in ${Date.now() - startTime}ms | title="${title.substring(0, 50)}" | lang=${language} | brand=${brandName} | cms=${cms} | words=${wordCount} | links=${internalLinks.length + externalLinks.length} | schema=${schemaTypes.join(',')}`);
+    console.log(`[internal-scraper] Done in ${Date.now() - startTime}ms | title="${title.substring(0, 50)}" | lang=${language} | country=${country || 'unknown'} | brand=${brandName} | cms=${cms} | words=${wordCount} | links=${internalLinks.length + externalLinks.length} | schema=${schemaTypes.join(',')}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
