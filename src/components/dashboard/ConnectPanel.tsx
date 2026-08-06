@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useActiveProject } from '@/hooks/useProjects'
 import { useIntegrations, useDeleteIntegration } from '@/hooks/useIntegrations'
 import { IntegrationConfigModal } from '@/components/integrations/IntegrationConfigModal'
+import { DoItForMeModal } from './DoItForMeModal'
 import { toast } from 'sonner'
 
 import shopifyLogo from '@/assets/shopify-logo-new.png'
@@ -58,6 +59,7 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
   const { data: integrations = [], refetch } = useIntegrations()
   const deleteIntegration = useDeleteIntegration()
   const [platform, setPlatform] = useState<string | null>(null)
+  const [showDoItForMe, setShowDoItForMe] = useState(false)
 
   const connectedFor = (id: string) => integrations.find((i) => i.platform === id && i.is_connected)
   const current = platform ? connectedFor(platform) : undefined
@@ -83,6 +85,18 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onClose}>Done</button>
       </div>
+
+      <button
+        onClick={() => setShowDoItForMe(true)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+          padding: '10px 12px', marginTop: 4, marginBottom: 4, borderRadius: 10,
+          border: '1px dashed var(--line)', background: 'var(--primary-soft)',
+          color: 'var(--primary)', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+        }}
+      >
+        Prefer we set it up for you? Get help connecting →
+      </button>
 
       <div
         style={{
@@ -158,6 +172,8 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
             ))}
         </>
       )}
+
+      {showDoItForMe && <DoItForMeModal onClose={() => setShowDoItForMe(false)} />}
 
       {project && (
         <IntegrationConfigModal
