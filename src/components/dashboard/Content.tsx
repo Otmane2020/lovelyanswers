@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useArticles } from '@/hooks/useArticles'
 import { useAnswers } from '@/hooks/useAnswers'
 import { useGeoContents } from '@/hooks/useGeoContents'
+import { useShoppingProducts } from '@/hooks/useShoppingProducts'
+import { useIntegrations } from '@/hooks/useIntegrations'
 import { IconFlame, IconFile, IconMessage, IconTag, IconList, IconCalendar } from './Icons'
 import { ContentPreviewModal } from './ContentPreviewModal'
 
@@ -12,15 +14,18 @@ const MONTH_NAME = (y: number, m: number) =>
 // Mirrors daily-planning-fill's own ROTATION + angleForOffset exactly — the
 // angle was never stored on the row itself, but since scheduled_date is
 // always written as that day's UTC midnight, the same day-index formula
-// reproduces it deterministically without a schema migration.
+// reproduces it deterministically without a schema migration. The backend
+// also drops Shopping/Local AEO from the rotation when the project has no
+// products / no Google Business connection, so the same filter has to be
+// applied here or the label guess drifts out of sync.
 const ANGLE_ROTATION = ['geo', 'aeo', 'seo', 'local_aeo', 'aeo_shopping'] as const
 const ANGLE_LABEL: Record<string, string> = {
   geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping',
 }
-function angleLabelForDate(dateStr: string | null): string {
-  if (!dateStr) return 'GEO'
+function angleLabelForDate(dateStr: string | null, rotation: readonly string[]): string {
+  if (!dateStr || rotation.length === 0) return 'GEO'
   const dayIndex = Math.floor(new Date(dateStr).getTime() / 86_400_000)
-  const angle = ANGLE_ROTATION[((dayIndex % ANGLE_ROTATION.length) + ANGLE_ROTATION.length) % ANGLE_ROTATION.length]
+  const angle = rotation[((dayIndex % rotation.length) + rotation.length) % rotation.length]
   return ANGLE_LABEL[angle]
 }
 
@@ -55,14 +60,23 @@ export function Content() {
   const { data: articles = [], isLoading: la } = useArticles()
   const { data: answers = [], isLoading: lb } = useAnswers()
   const { data: geoContents = [], isLoading: lc } = useGeoContents()
+  const { data: shoppingProducts = [] } = useShoppingProducts()
+  const { data: integrations = [] } = useIntegrations()
 
   const loading = la || lb || lc
+
+  const hasProducts = shoppingProducts.length > 0
+  const hasGmb = integrations.some((i: any) => i.platform === 'google_business' && i.is_connected)
+  const availableRotation = useMemo(
+    () => ANGLE_ROTATION.filter((a) => (a !== 'aeo_shopping' || hasProducts) && (a !== 'local_aeo' || hasGmb)),
+    [hasProducts, hasGmb]
+  )
 
   const rows: Row[] = useMemo(() => {
     const fromArticles: Row[] = articles.map((a: any) => ({
       id: `art-${a.id}`,
       title: a.title,
-      format: `Article · ${angleLabelForDate(a.scheduled_date || a.created_at)}`,
+      format: `Article · ${angleLabelForDate(a.scheduled_date || a.created_at, availableRotation)}`,
       icon: <IconFile />,
       where: a.gsc_indexed ? 'Your site · Google' : 'Your site',
       status: a.status === 'published' ? 'live' : a.scheduled_date ? 'wait' : 'draft',
@@ -75,7 +89,7 @@ export function Content() {
     const fromAnswers: Row[] = answers.map((a: any) => ({
       id: `ans-${a.id}`,
       title: a.question,
-      format: `Answer · ${angleLabelForDate(a.scheduled_date || a.created_at)}`,
+      format: `Answer · ${angleLabelForDate(a.scheduled_date || a.created_at, availableRotation)}`,
       icon: <IconMessage />,
       where: (a.platforms && a.platforms.length ? a.platforms : ['ChatGPT']).join(' · '),
       status: a.is_public ? 'live' : a.scheduled_date ? 'wait' : 'draft',
@@ -103,7 +117,7 @@ export function Content() {
       if (!y.date) return -1
       return new Date(y.date).getTime() - new Date(x.date).getTime()
     })
-  }, [articles, answers, geoContents])
+  }, [articles, answers, geoContents, availableRotation])
 
   const counts = useMemo(
     () => ({
@@ -199,11 +213,14 @@ export function Content() {
           </div>
           <div>
             <div style={{ fontWeight: '700', fontSize: '14.5px' }}>
-              Current pace: {pace} piece{pace === '1.0' ? '' : 's'} of content a day
+              {publishedLast30 === 0 && counts.wait > 0
+                ? `Nothing published yet — ${counts.wait} piece${counts.wait > 1 ? 's' : ''} ready and waiting`
+                : `Current pace: ${pace} piece${pace === '1.0' ? '' : 's'} of content a day`}
             </div>
             <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>
-              {publishedLast30} published in the last 30 days. Each piece is written once and works
-              everywhere — that's what GEO means.
+              {publishedLast30 === 0 && counts.wait > 0
+                ? "Connect your site in Settings to start publishing what's already generated."
+                : `${publishedLast30} published in the last 30 days. Each piece is written once and works everywhere — that's what GEO means.`}
             </div>
           </div>
         </div>

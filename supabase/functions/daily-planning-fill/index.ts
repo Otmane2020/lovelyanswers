@@ -22,10 +22,15 @@ const ANGLE_BRIEF: Record<ContentAngle, string> = {
   aeo_shopping: "AEO Shopping: answer a buying-decision question the way an AI assistant would when a shopper asks for a product recommendation — price range, what to look for, and why this business is a solid pick.",
 };
 
-/** Days since epoch — stable across timezones, so the cycle never skips or repeats a day. */
-function angleForOffset(dayOffset: number): ContentAngle {
+/** Days since epoch — stable across timezones, so the cycle never skips or repeats a day.
+ * Takes the rotation array as a parameter (rather than closing over the
+ * module-level ROTATION) so a project missing prerequisites for an angle
+ * (no products for Shopping, no Google Business connection for Local AEO)
+ * can pass a filtered list — the frontend derives the same label from
+ * scheduled_date with an identical formula, so both must stay in sync. */
+function angleForOffset(dayOffset: number, rotation: readonly ContentAngle[] = ROTATION): ContentAngle {
   const base = Math.floor(Date.now() / 86_400_000) + dayOffset;
-  return ROTATION[base % ROTATION.length];
+  return rotation[base % rotation.length];
 }
 
 function detectIntent(text: string): IntentType {
@@ -80,7 +85,8 @@ async function generateQuestion(
   dayNumber: number,
   keywords: string[] = [],
   angleBrief: string = "",
-  avoidQuestions: string[] = []
+  avoidQuestions: string[] = [],
+  competitors: string[] = []
 ): Promise<{ question: string; intent: IntentType }> {
   const currentYear = new Date().getFullYear();
 
@@ -88,6 +94,12 @@ async function generateQuestion(
     ? language === "fr"
       ? "\nMots-cles SEO du projet a UTILISER comme base pour la question:\n" + keywords.join(", ") + "\n\nTransforme l'un de ces mots-cles en question naturelle et decisionnelle."
       : "\nProject SEO keywords to USE as the basis for the question:\n" + keywords.join(", ") + "\n\nTransform one of these keywords into a natural, decision-oriented question."
+    : "";
+
+  const competitorsInstruction = competitors.length > 0
+    ? language === "fr"
+      ? "\nConcurrents connus: " + competitors.join(", ") + ". La question peut porter sur un choix entre " + brandName + " et l'un d'eux, sans jamais favoriser le concurrent."
+      : "\nKnown competitors: " + competitors.join(", ") + ". The question may be about choosing between " + brandName + " and one of them, never favoring the competitor."
     : "";
 
   const avoidInstruction = avoidQuestions.length > 0
@@ -102,7 +114,7 @@ async function generateQuestion(
 
   const angleInstruction = angleBrief ? "\nAngle for today: " + angleBrief : "";
 
-  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + angleInstruction + keywordsInstruction + avoidInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
+  const userPrompt = "Business: " + brandName + "\nDescription: " + description + "\nDay number: " + dayNumber + angleInstruction + keywordsInstruction + competitorsInstruction + avoidInstruction + "\n\nGenerate 1 unique COMPLETE QUESTION. Return JSON: {\"question\": \"...\", \"intent\": \"criteria|price|howto|comparison|why|best\"}";
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -369,7 +381,7 @@ serve(async (req) => {
 
     const projectsQuery = supabase
       .from("projects")
-      .select("id, name, language, brand_name, business_description")
+      .select("id, name, language, brand_name, business_description, competitors")
       .eq("is_active", true);
 
     const { data: projects, error: projectsError } = projectId
@@ -405,7 +417,8 @@ serve(async (req) => {
         .limit(30);
 
       const keywordList = (projectKeywords || []).map((k: any) => k.keyword);
-      console.log("[daily-planning-fill] Found " + keywordList.length + " unused keywords for project " + project.name);
+      const competitorList: string[] = Array.isArray(project.competitors) ? project.competitors.slice(0, 3) : [];
+      console.log("[daily-planning-fill] Found " + keywordList.length + " unused keywords, " + competitorList.length + " competitors for project " + project.name);
 
       // Every existing question for this project, so a new one is never a
       // near-duplicate of one already sitting in the pipeline. Without this,
@@ -419,6 +432,30 @@ serve(async (req) => {
       const normalize = (q: string) => q.toLowerCase().replace(/[?!.,]/g, "").trim();
       const usedQuestions = new Set<string>((existingAnswers || []).map((a: any) => normalize(a.question || "")));
 
+      // Shopping and Local AEO content is only meaningful with real data
+      // behind it — a "Shopping" piece with no products, or a "Local AEO"
+      // piece with no Google Business connection, is generic filler with
+      // nothing to actually cite. Skip those angles for this project until
+      // the prerequisite is there instead of generating hollow content.
+      const { count: productCount } = await supabase
+        .from("shopping_products")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      const hasProducts = (productCount || 0) > 0;
+
+      const { data: gmbIntegration } = await supabase
+        .from("integrations")
+        .select("id")
+        .eq("project_id", project.id)
+        .eq("platform", "google_business")
+        .eq("is_connected", true)
+        .maybeSingle();
+      const hasGmb = !!gmbIntegration;
+
+      const availableRotation = ROTATION.filter(
+        (a) => (a !== "aeo_shopping" || hasProducts) && (a !== "local_aeo" || hasGmb)
+      );
+
       let daysTouched = 0;
       let daysCompleted = 0;
       let stoppedEarly = false;
@@ -427,7 +464,7 @@ serve(async (req) => {
       for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
         const dateStr = targetDate.toISOString().split("T")[0];
-        const angle = angleForOffset(dayOffset);
+        const angle = angleForOffset(dayOffset, availableRotation);
 
         await supabase
           .from("planning")
@@ -478,12 +515,12 @@ serve(async (req) => {
         }
 
         if (!answerId) {
-          let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions]);
+          let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
           // One retry with a stronger nudge if it still landed on something
           // already used (small business + a static fallback template make
           // this the common case, not a rare one).
           if (usedQuestions.has(normalize(q.question))) {
-            q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions]);
+            q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
           }
           if (usedQuestions.has(normalize(q.question))) {
             console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);

@@ -54,11 +54,27 @@ Deno.serve(async (req) => {
     if (!queries?.length) {
       const brand = project.brand_name || project.name
       const category = (project.business_type || 'business').toLowerCase()
+
+      // Real research (DataForSEO, via keyword-research / analyze-competitors,
+      // both triggered post-payment) beats generic guesses when it exists —
+      // tracking what people actually search for is the whole point.
+      const { data: topKeywords } = await supabase
+        .from('keywords')
+        .select('keyword')
+        .eq('project_id', project_id)
+        .order('search_volume', { ascending: false, nullsFirst: false })
+        .limit(2)
+
+      const competitors: string[] = Array.isArray(project.competitors) ? project.competitors.slice(0, 1) : []
+
       const defaultQueries = [
-        `Best ${category} recommendations`,
+        ...(topKeywords || []).map((k: any) => k.keyword).filter(Boolean),
+        ...competitors.map((c: string) => `${brand} vs ${c} — which is better?`),
         `Is ${brand} a good choice?`,
         `What is ${brand}?`,
-      ]
+      ].slice(0, topKeywords?.length ? 4 : 3)
+      if (!defaultQueries.length) defaultQueries.push(`Best ${category} recommendations`)
+
       const seedRows = defaultQueries.flatMap((query) =>
         ['chatgpt', 'claude'].map((platform) => ({
           project_id,

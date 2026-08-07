@@ -75,9 +75,18 @@ export default function GEODashboard() {
     generationCheckedFor.current = project.id
 
     const checkAndFill = async () => {
+      // Generating a full 30-day backlog before the site is even connected
+      // to publish to just piles up a scary "76 waiting" wall with nothing
+      // going live. Keep a small buffer until there's somewhere for it to
+      // actually go.
+      const cmsConnectedNow = integrations.some(
+        (i: any) => i.is_connected && !['google_business', 'google_search_console'].includes(i.platform)
+      )
+      const windowDays = cmsConnectedNow ? 30 : 7
+
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
-      const endDateStr = new Date(today.getTime() + 30 * 86400000).toISOString().split('T')[0]
+      const endDateStr = new Date(today.getTime() + windowDays * 86400000).toISOString().split('T')[0]
 
       const [{ count: totalRows }, { count: incompleteRows }] = await Promise.all([
         supabase.from('planning').select('id', { count: 'exact', head: true })
@@ -87,7 +96,7 @@ export default function GEODashboard() {
           .or('answer_id.is.null,article_id.is.null'),
       ])
 
-      if ((totalRows || 0) >= 30 && (incompleteRows || 0) === 0) return
+      if ((totalRows || 0) >= windowDays && (incompleteRows || 0) === 0) return
 
       setGenerating(true)
       try {
@@ -103,7 +112,7 @@ export default function GEODashboard() {
         let totalCompleted = 0
         for (let i = 0; i < 8; i++) {
           const { data, error } = await supabase.functions.invoke('daily-planning-fill', {
-            body: { projectId: project.id, days: 30, maxDaysToFill: 1 },
+            body: { projectId: project.id, days: windowDays, maxDaysToFill: 1 },
           })
           if (error) throw error
           const result = data?.results?.[0]
@@ -174,7 +183,10 @@ export default function GEODashboard() {
           </div>
         )}
         {showDoItForMe && <DoItForMeModal onClose={() => setShowDoItForMe(false)} />}
-        {generating && (
+        {/* One banner at a time — CMS-not-connected is the more actionable,
+            persistent one, so it wins over the transient "generating" state
+            instead of stacking both. */}
+        {generating && !(!cmsConnected && waiting > 0) && (
           <div className="action-banner" style={{ marginBottom: 20 }}>
             <div className="icon">
               <svg className="spinner" width="18" height="18" viewBox="0 0 24 24">
