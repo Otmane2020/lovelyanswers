@@ -15,12 +15,21 @@ export const OPENROUTER_FREE_MODELS = [
   "openai/gpt-oss-20b:free",
 ];
 
-// Lovable AI Gateway models (billed to the workspace, used only when
-// OpenRouter free quota is exhausted).
+// Google Gemini native API (OpenAI-compatible endpoint), first fallback.
+export const GEMINI_FALLBACK_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+];
+
+// DeepSeek API, second fallback.
+export const DEEPSEEK_FALLBACK_MODELS = ["deepseek-chat"];
+
+// Lovable AI Gateway models (billed to the workspace, last resort).
 export const LOVABLE_FALLBACK_MODELS = [
   "google/gemini-2.5-flash",
   "google/gemini-2.5-flash-lite",
 ];
+
 
 export interface ChatBody {
   messages: any[];
