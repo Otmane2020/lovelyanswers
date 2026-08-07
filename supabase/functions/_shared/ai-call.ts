@@ -15,12 +15,21 @@ export const OPENROUTER_FREE_MODELS = [
   "openai/gpt-oss-20b:free",
 ];
 
-// Lovable AI Gateway models (billed to the workspace, used only when
-// OpenRouter free quota is exhausted).
+// Google Gemini native API (OpenAI-compatible endpoint), first fallback.
+export const GEMINI_FALLBACK_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+];
+
+// DeepSeek API, second fallback.
+export const DEEPSEEK_FALLBACK_MODELS = ["deepseek-chat"];
+
+// Lovable AI Gateway models (billed to the workspace, last resort).
 export const LOVABLE_FALLBACK_MODELS = [
   "google/gemini-2.5-flash",
   "google/gemini-2.5-flash-lite",
 ];
+
 
 export interface ChatBody {
   messages: any[];
@@ -38,7 +47,7 @@ export interface ChatBody {
 export interface ChatResult {
   choices: Array<{ message: { content?: string; tool_calls?: any[] } }>;
   model: string;
-  provider: "openrouter" | "lovable";
+  provider: "openrouter" | "gemini" | "deepseek" | "lovable";
 }
 
 function buildBody(model: string, opts: ChatBody) {
@@ -134,6 +143,52 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     }
   } else {
     console.warn("[AI] OPENROUTER_API_KEY not set, skipping OpenRouter");
+  }
+
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (geminiKey) {
+    console.log("[AI] OpenRouter exhausted, falling back to Gemini API");
+    for (const model of GEMINI_FALLBACK_MODELS) {
+      try {
+        const r = await tryEndpoint(
+          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          geminiKey,
+          model,
+          opts,
+        );
+        if (r.ok) return { choices: [{ message: r.message }], model, provider: "gemini" };
+        lastError = r.error;
+        lastStatus = r.status;
+      } catch (err) {
+        console.error(`[AI:Gemini] ${model} threw:`, err);
+        lastError = String(err);
+      }
+    }
+  } else {
+    console.warn("[AI] GEMINI_API_KEY not set, skipping Gemini fallback");
+  }
+
+  const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY");
+  if (deepseekKey) {
+    console.log("[AI] Gemini unavailable, falling back to DeepSeek");
+    for (const model of DEEPSEEK_FALLBACK_MODELS) {
+      try {
+        const r = await tryEndpoint(
+          "https://api.deepseek.com/chat/completions",
+          deepseekKey,
+          model,
+          opts,
+        );
+        if (r.ok) return { choices: [{ message: r.message }], model, provider: "deepseek" };
+        lastError = r.error;
+        lastStatus = r.status;
+      } catch (err) {
+        console.error(`[AI:DeepSeek] ${model} threw:`, err);
+        lastError = String(err);
+      }
+    }
+  } else {
+    console.warn("[AI] DEEPSEEK_API_KEY not set, skipping DeepSeek fallback");
   }
 
   if (lovableKey) {
