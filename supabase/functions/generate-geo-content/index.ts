@@ -344,27 +344,15 @@ Output JSON:
 
     console.log("Generating GEO content: type=" + type + ", topic=" + topic + ", brand=" + brand);
 
-    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openRouterKey,
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: geoSystemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.65,
-        max_tokens: 4000,
-      }),
+    const aiData = await chatCompletion({
+      messages: [
+        { role: "system", content: geoSystemPrompt },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.65,
+      max_tokens: 4000,
     });
 
-    const aiData = await aiRes.json();
     const rawContent = aiData.choices?.[0]?.message?.content;
 
     if (!rawContent) {
