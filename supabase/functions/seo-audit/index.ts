@@ -123,6 +123,7 @@ Include at least 10 checks. Be specific and actionable.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [
           { role: "system", content: "You are an SEO expert. Always respond with valid JSON arrays only." },
           { role: "user", content: auditPrompt }

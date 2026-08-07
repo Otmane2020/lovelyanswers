@@ -306,6 +306,7 @@ Respond ONLY with this JSON (no explanation):
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
+            max_tokens: 4000,
             messages: [
               { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: analysisPrompt }
@@ -418,6 +419,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
+            max_tokens: 4000,
             messages: [
               { role: "system", content: "Tu es un expert en analyse de marché et en identification de concurrents. Tu réponds uniquement avec du JSON valide." },
               { role: "user", content: prompt }

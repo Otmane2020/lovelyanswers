@@ -110,6 +110,7 @@ async function generateQuestion(
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         temperature: 0.7,
         messages: [
           { role: "system", content: systemPrompt },
@@ -177,6 +178,7 @@ async function generateAnswer(
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         temperature: 0.3,
         messages: [
           { role: "system", content: systemPrompt },
@@ -224,6 +226,7 @@ async function generateArticle(
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         temperature: 0.5,
         messages: [
           { role: "system", content: systemPrompt },

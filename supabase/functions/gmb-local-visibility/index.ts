@@ -54,6 +54,7 @@ Return ONLY the JSON array, no other text.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       }),
