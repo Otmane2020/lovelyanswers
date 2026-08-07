@@ -9,7 +9,7 @@ import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 6
 
 // Publishable keys are meant to be public (Stripe's own design — they only
 // ever initialize Stripe.js, never authorize a charge), so this is safe to
@@ -506,7 +506,7 @@ export default function Onboarding() {
   // guarded by analysisStartedForUrl so it never fires twice for the same
   // site (e.g. once from typing, once from step 2's Continue button below).
   useEffect(() => {
-    if (step < 2 || step > 4 || !user) return
+    if (step < 2 || step > 3 || !user) return
     if (!bizName.trim() || !isValidUrl(bizSite)) return
     const url = normalizeUrl(bizSite)
     if (analysisStartedForUrl.current === url) return
@@ -527,7 +527,7 @@ export default function Onboarding() {
   // through) → make sure it's actually running, then leave the moment it's
   // done — from here or from wherever the person actually is.
   useEffect(() => {
-    if (step === 4 && !analyzing && !projectId) runAnalysis()
+    if (step === 3 && !analyzing && !projectId) runAnalysis()
   }, [step, analyzing, projectId, runAnalysis])
 
 
