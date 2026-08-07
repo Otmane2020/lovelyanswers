@@ -91,6 +91,9 @@ serve(async (req) => {
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
         },
+        // A slow/unresponsive target site must not hang onboarding's
+        // "Analyzing your site…" state forever.
+        signal: AbortSignal.timeout(15000),
       });
       
       if (siteResponse.ok) {
@@ -300,6 +303,12 @@ Respond ONLY with this JSON (no explanation):
 
         const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
+          // Free models queue behind rate limits instead of failing fast —
+          // without a hard cap here, a stalled upstream request left the
+          // whole analysis (and onboarding's "Analyzing your site…" state)
+          // hanging indefinitely instead of falling through to the
+          // meta-description fallback.
+          signal: AbortSignal.timeout(25000),
           headers: {
             "Authorization": `Bearer ${openrouterApiKey}`,
             "Content-Type": "application/json",
@@ -416,6 +425,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
 
         const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
+          signal: AbortSignal.timeout(25000),
           headers: {
             "Authorization": `Bearer ${openrouterApiKey}`,
             "Content-Type": "application/json",

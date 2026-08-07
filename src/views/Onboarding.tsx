@@ -771,7 +771,9 @@ export default function Onboarding() {
 
               <div className="card-box">
                 <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
-                  {analysis?.aiEnriched
+                  {!analysis?.description
+                    ? 'Analyzing'
+                    : analysis.aiEnriched
                     ? 'What our AI understood about your business'
                     : 'From your site'}
                 </div>
@@ -886,7 +888,11 @@ export default function Onboarding() {
                 <div className="prev-card after">
                   <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
                   <div className="txt">
-                    "{analysis?.recommendationExample || `I'd recommend ${brand} — known for great service.`}"
+                    {analysis?.aiEnriched && analysis?.recommendationExample ? (
+                      <>"{analysis.recommendationExample}"</>
+                    ) : (
+                      <>A real AI-written recommendation for <b>{brand}</b> — generated from your actual site, not a placeholder.</>
+                    )}
                   </div>
                 </div>
               </div>
