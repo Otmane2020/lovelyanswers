@@ -5,6 +5,7 @@ import { SubscriptionGate } from "@/components/aeo/SubscriptionGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserSettings } from "./settings/UserSettings";
 import { BusinessSettings } from "./settings/BusinessSettings";
+import { ProjectContextCard } from "./settings/ProjectContextCard";
 import { TeamMembers } from "./settings/TeamMembers";
 import { ArticleSettings } from "./settings/ArticleSettings";
 import { ArticleVisuals } from "./settings/ArticleVisuals";
@@ -155,7 +156,8 @@ export default function AeoSettings() {
                 </div>
               )}
             </TabsContent>
-            <TabsContent value="business" className="mt-0">
+            <TabsContent value="business" className="mt-0 space-y-6">
+              <ProjectContextCard />
               <BusinessSettings />
             </TabsContent>
             <TabsContent value="keywords" className="mt-0">

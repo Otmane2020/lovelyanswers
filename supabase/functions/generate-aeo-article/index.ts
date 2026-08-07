@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -415,6 +418,8 @@ interface BusinessContext {
   businessType: string;
   competitors: string[];
   tone: string;
+  /** Rendered project_context blocks (business, website, keywords, questions...). */
+  contextBlocks?: string;
 }
 
 // Generate article content using OpenRouter AI with proper SEO structure and settings
@@ -427,6 +432,7 @@ async function generateArticleContentWithSettings(
   settings: ArticleSettings
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
   const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
+  const projectContextBlocks = context.contextBlocks || "";
   
   // Build dynamic instructions based on settings
   const wordRange = settings.articleLength <= 1500 ? "1000-1500" : 
@@ -478,7 +484,8 @@ ${businessDescription ? `- Description: ${businessDescription}` : ""}
 ${audience ? `- Audience cible: ${audience}` : ""}
 ${businessType ? `- Type d'activité: ${businessType}` : ""}
 ${competitors?.length > 0 ? `- Concurrents à différencier: ${competitors.join(", ")}` : ""}
-${tone ? `- Ton de voix: ${tone}` : ""}`;
+${tone ? `- Ton de voix: ${tone}` : ""}
+${projectContextBlocks ? `\n${projectContextBlocks}\n\nAEO ARTICLE : article long extractible par les moteurs de réponse. Ancre chaque section dans les pages, l'offre et l'audience réelles ci-dessus. Aucun contenu générique.` : ""}`;
 
   const businessContextEn = `
 BUSINESS CONTEXT (use this information to personalize the article):
@@ -488,7 +495,8 @@ ${businessDescription ? `- Description: ${businessDescription}` : ""}
 ${audience ? `- Target audience: ${audience}` : ""}
 ${businessType ? `- Business type: ${businessType}` : ""}
 ${competitors?.length > 0 ? `- Competitors to differentiate from: ${competitors.join(", ")}` : ""}
-${tone ? `- Tone of voice: ${tone}` : ""}`;
+${tone ? `- Tone of voice: ${tone}` : ""}
+${projectContextBlocks ? `\n${projectContextBlocks}\n\nAEO ARTICLE: long-form answer content built to be extracted by answer engines. Ground every section in the real pages, offering and audience above. No generic filler.` : ""}`;
 
   const systemPrompt = language === 'fr'
     ? `Tu es un expert en rédaction AEO (Answer Engine Optimization). Tu génères des articles optimisés pour être CITÉS par ChatGPT, Gemini, Perplexity et autres IA.
@@ -718,31 +726,15 @@ Reply in JSON:
   "keywords": ["main keyword", "secondary keyword 1", "secondary keyword 2", "secondary keyword 3"]
 }`;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemma-4-31b-it:free",
-      // Free models get rate-limited upstream constantly; OpenRouter falls back
-      // through this list automatically when one errors out.
-      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.55,
-      max_tokens: 4000,
-    }),
+  const data = await chatCompletion({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ],
+    temperature: 0.55,
+    max_tokens: 4000,
   });
 
-  if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "";
   
   return safeParseJSON<{ content: string; meta_description: string; keywords: string[] }>(
@@ -868,6 +860,13 @@ serve(async (req) => {
       competitors: genSettings?.competitors || answer.projects?.competitors || [],
       tone: genSettings?.tone || ""
     };
+
+    // Fail-safe project context — generation continues even if DataForSEO is down.
+    {
+      const { blocks, readiness, degraded } = await loadGenerationContext(supabase, answer.project_id, { maxKeywords: 20 });
+      businessContext.contextBlocks = blocks;
+      console.log(`[generate-aeo-article] context readiness=${readiness} degraded=${degraded.join(" | ") || "none"}`);
+    }
 
     console.log(`[generate-aeo-article] Business context loaded:`, {
       brandName: businessContext.brandName,

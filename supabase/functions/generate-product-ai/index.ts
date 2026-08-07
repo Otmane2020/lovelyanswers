@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +45,12 @@ serve(async (req) => {
     if (fetchError) throw fetchError;
     if (!products || products.length === 0) throw new Error("No products to process");
 
+    // Fail-safe project context (includes PRODUCT DATA). Generation continues
+    // even when DataForSEO or another provider is unavailable.
+    const { blocks: projectContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(supabase, projectId, { includeProducts: true, maxKeywords: 15 });
+    console.log(`[generate-product-ai] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     const results = [];
     for (const product of products) {
       try {
@@ -60,6 +69,7 @@ CRITICAL RULES:
 - The ai_description must contain ONE strong positioning sentence with specific use case and dimensions/context
 - Sound like a trusted product expert giving buying advice, not a salesperson
 
+${projectContextBlocks ? `${projectContextBlocks}\n\nSHOPPING AEO: optimise this product for AI shopping assistants. Ground the copy in the real catalogue, brand positioning and audience above — never generic e-commerce phrasing.\n` : ""}
 Brand context: ${project?.brand_name || "Unknown"} - ${project?.business_description || "E-commerce store"}
 Website: ${project?.website_url || ""}
 Industry: ${project?.business_type || "E-commerce"}
@@ -88,71 +98,52 @@ MPN: ${product.mpn || "N/A"}
 URL: ${product.product_url || "N/A"}
 Image: ${product.image_url || "N/A"}`;
 
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + OPENROUTER_API_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemma-4-31b-it:free",
-            // Free models get rate-limited upstream constantly; OpenRouter falls back
-            // through this list automatically when one errors out.
-            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-            max_tokens: 4000,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            tools: [{
-              type: "function",
-              function: {
-                name: "optimize_product",
-                description: "Return optimized product content for AI engines",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    ai_title: { type: "string", description: "Enriched product title (max 80 chars)" },
-                    ai_description: { type: "string", description: "Recommendation-oriented description (60-100 words)" },
-                    ai_faq: {
-                      type: "array",
-                      minItems: 3,
-                      maxItems: 3,
-                      items: {
-                        type: "object",
-                        properties: {
-                          question: { type: "string" },
-                          answer: { type: "string" },
-                        },
-                        required: ["question", "answer"],
+        const aiData = await chatCompletion({
+          max_tokens: 4000,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "optimize_product",
+              description: "Return optimized product content for AI engines",
+              parameters: {
+                type: "object",
+                properties: {
+                  ai_title: { type: "string", description: "Enriched product title (max 80 chars)" },
+                  ai_description: { type: "string", description: "Recommendation-oriented description (60-100 words)" },
+                  ai_faq: {
+                    type: "array",
+                    minItems: 3,
+                    maxItems: 3,
+                    items: {
+                      type: "object",
+                      properties: {
+                        question: { type: "string" },
+                        answer: { type: "string" },
                       },
-                      description: "EXACTLY 3 Q&A: 1 usage, 1 technical, 1 decision/delivery",
+                      required: ["question", "answer"],
                     },
-                    ai_schema_markup: { type: "object", description: "Complete JSON-LD schema with Product and FAQPage" },
-                    ai_score: { type: "number", description: "AI optimization score 0-100" },
+                    description: "EXACTLY 3 Q&A: 1 usage, 1 technical, 1 decision/delivery",
                   },
-                  required: ["ai_title", "ai_description", "ai_faq", "ai_schema_markup", "ai_score"],
+                  ai_schema_markup: { type: "object", description: "Complete JSON-LD schema with Product and FAQPage" },
+                  ai_score: { type: "number", description: "AI optimization score 0-100" },
                 },
+                required: ["ai_title", "ai_description", "ai_faq", "ai_schema_markup", "ai_score"],
               },
-            }],
-            tool_choice: { type: "function", function: { name: "optimize_product" } },
-          }),
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "optimize_product" } },
         });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          console.error("AI error for product " + product.id + ":", response.status, errText);
-          if (response.status === 429) throw new Error("Rate limit exceeded, please try again later");
-          if (response.status === 402) throw new Error("Payment required, please add credits");
-          continue;
-        }
-
-        const aiData = await response.json();
         const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
         if (!toolCall) {
           console.error("No tool call in response for product", product.id);
           continue;
         }
+
 
         const optimized = JSON.parse(toolCall.function.arguments);
 

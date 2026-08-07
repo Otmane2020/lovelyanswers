@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,27 +140,15 @@ The topic should be a question or decision-oriented statement that AI engines wo
 Output ONLY valid JSON:
 {"topic": "suggested topic", "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5"]}`;
 
-      const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + openRouterKey,
-        },
-        body: JSON.stringify({
-          model: "google/gemma-4-31b-it:free",
-          // Free models get rate-limited upstream constantly; OpenRouter falls back
-          // through this list automatically when one errors out.
-          models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-          messages: [
-            { role: "system", content: "Respond with valid JSON only." },
-            { role: "user", content: suggestPrompt },
-          ],
-          temperature: 0.8,
-          max_tokens: 300,
-        }),
+      const aiData = await chatCompletion({
+        messages: [
+          { role: "system", content: "Respond with valid JSON only." },
+          { role: "user", content: suggestPrompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 300,
       });
 
-      const aiData = await aiRes.json();
       const raw = aiData.choices?.[0]?.message?.content || "";
       try {
         const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -230,15 +222,27 @@ Output ONLY valid JSON:
       : [];
     const competitorBrief = competitorList.length ? competitorList.join(", ") : "N/A";
 
+    // Full project context (scraping, analyze-website, keywords, competitors,
+    // questions...). Fail-safe: never blocks generation when a provider is down.
+    const { blocks: projectContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(svc, projectId, { maxKeywords: 20 });
+    console.log(`[generate-geo-content] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     const seoContext = `
-SEO DATA (from DataForSEO keyword research on this project):
+${projectContextBlocks}
+
+SEO DATA (project keyword research):
 Target keywords (volume / difficulty / intent): ${keywordBrief}
 Competitors ranking in this niche: ${competitorBrief}
 Business type: ${projectRow?.business_type || "N/A"}
 Audience: ${projectRow?.audience || "N/A"}
 
-Use the highest-volume keywords naturally in the title, the opening answer and H2s.
+GEO SPECIALISATION: this content is written to be CITED by AI engines — not to rank in classic SERPs.
+Ground every section in the BUSINESS CONTEXT and WEBSITE CONTEXT above: reference the real pages,
+real offering and real audience of this brand. Never write generic industry filler.
+Use the most relevant keywords naturally in the title, the opening answer and H2s.
 Cover angles the listed competitors are known for, but with more concrete data so AI engines cite this page instead.`;
+
 
     const geoSystemPrompt = `You are a world-class Generative Engine Optimization (GEO) expert for ${currentYear}.
 Your mission: create content so authoritative and data-rich that AI engines (ChatGPT, Gemini, Perplexity, Claude) MUST cite it.
@@ -342,27 +346,15 @@ Output JSON:
 
     console.log("Generating GEO content: type=" + type + ", topic=" + topic + ", brand=" + brand);
 
-    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openRouterKey,
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: geoSystemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.65,
-        max_tokens: 4000,
-      }),
+    const aiData = await chatCompletion({
+      messages: [
+        { role: "system", content: geoSystemPrompt },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.65,
+      max_tokens: 4000,
     });
 
-    const aiData = await aiRes.json();
     const rawContent = aiData.choices?.[0]?.message?.content;
 
     if (!rawContent) {

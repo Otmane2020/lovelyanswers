@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +59,7 @@ serve(async (req) => {
 
     // Get project details for additional context
     let projectContext = "";
+    let projectContextBlocks = "";
     let language = "en";
     
     if (projectId) {
@@ -73,6 +77,15 @@ serve(async (req) => {
 
       projectContext = settings?.business_description || project?.business_description || "";
       language = settings?.language || project?.language || "en";
+
+      // Fail-safe project context (includes LOCATION data). Never blocks on a
+      // missing provider — falls back to scraping / analysis / existing keywords.
+      const { blocks, readiness, degraded } = await loadGenerationContext(supabase, projectId, {
+        includeLocation: true,
+        maxKeywords: 12,
+      });
+      projectContextBlocks = blocks;
+      console.log(`[generate-local-answer] context readiness=${readiness} degraded=${degraded.join(" | ") || "none"}`);
     }
 
     // Build rich context from Places API data
@@ -130,8 +143,12 @@ ABSOLUTE RULES:
 7. NEUTRAL expert tone - no advertising
 8. Include practical tips and mistakes to avoid`;
 
+    const localCtxBlock = projectContextBlocks
+      ? projectContextBlocks + "\n\nLOCAL AEO : reponse ancree sur l'etablissement et sa zone reelle. Utilise les donnees LOCATION et le contexte ci-dessus, jamais des generalites.\n\n"
+      : "";
+
     const userPrompt = language === "fr"
-      ? `Informations sur l'etablissement:
+      ? `${localCtxBlock}Informations sur l'etablissement:
 Nom: ${businessName || "Etablissement local"}
 Localisation: ${location || "Zone locale"}
 ${contextParts.length > 0 ? "\nDetails:\n" + contextParts.join("\n") : ""}
@@ -148,7 +165,7 @@ STRUCTURE OBLIGATOIRE:
 6. Inclure le contexte temporel (${currentYear})
 
 Retourne UNIQUEMENT le texte de la reponse en markdown. Pas de JSON. Pas de guillemets autour. 250-400 mots.`
-      : `Business Information:
+      : `${localCtxBlock}Business Information:
 Name: ${businessName || "Local Business"}
 Location: ${location || "Local area"}
 ${contextParts.length > 0 ? "\nDetails:\n" + contextParts.join("\n") : ""}
@@ -166,32 +183,17 @@ MANDATORY STRUCTURE:
 
 Return ONLY the answer text in markdown. No JSON. No quotes around it. 250-400 words.`;
 
-    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + OPENROUTER_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.5,
-        max_tokens: 2000,
-      }),
+    const aiData = await chatCompletion({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 2000,
     });
 
-    if (!aiResponse.ok) {
-      throw new Error("AI request failed: " + aiResponse.status);
-    }
-
-    const aiData = await aiResponse.json();
     const answer = aiData.choices?.[0]?.message?.content || "";
+
 
     return new Response(
       JSON.stringify({

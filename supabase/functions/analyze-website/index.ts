@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateCaller } from "../_shared/internal-auth.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,29 +13,16 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const dataforseoLogin = Deno.env.get("DATAFORSEO_LOGIN");
     const dataforseoPassword = Deno.env.get("DATAFORSEO_PASSWORD");
     const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    // Auth: browser calls carry a user JWT, backend orchestrators (onboarding
+    // pipeline, cron, Refresh Project Context) carry the service role key.
+    const caller = await authenticateCaller(req);
+    if (!caller.ok) {
       return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: caller.error || "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -225,7 +213,7 @@ serve(async (req) => {
     console.log("[ANALYZE-WEBSITE] 📄 Total page content extracted:", pageContent.length, "chars");
 
     // Step 2: Use AI to analyze the FULL page content and find competitors + keywords
-    if (openrouterApiKey && pageContent.length > 50) {
+    if ((openrouterApiKey || Deno.env.get("LOVABLE_API_KEY")) && pageContent.length > 50) {
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Using AI to analyze full page content...");
         
@@ -301,36 +289,22 @@ Respond ONLY with this JSON (no explanation):
   "language": "${detectedLanguage}"
 }`;
 
-        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          // Free models queue behind rate limits instead of failing fast —
-          // without a hard cap here, a stalled upstream request left the
-          // whole analysis (and onboarding's "Analyzing your site…" state)
-          // hanging indefinitely instead of falling through to the
-          // meta-description fallback.
-          signal: AbortSignal.timeout(25000),
-          headers: {
-            "Authorization": `Bearer ${openrouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemma-4-31b-it:free",
-            // Free models get rate-limited upstream constantly; OpenRouter falls back
-            // through this list automatically when one errors out.
-            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-            max_tokens: 4000,
-            messages: [
-              { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
-              { role: "user", content: analysisPrompt }
-            ],
-            temperature: 0.3,
-          }),
+        // Shared caller: OpenRouter free chain first, Lovable AI Gateway as
+        // fallback — onboarding must never fall back to the raw meta tag just
+        // because the free daily quota is exhausted.
+        const aiRes = await chatCompletion({
+          messages: [
+            { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
+            { role: "user", content: analysisPrompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 4000,
         });
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const content = aiData.choices?.[0]?.message?.content?.trim() || "";
-          console.log("[ANALYZE-WEBSITE] 🤖 AI analysis response:", content.substring(0, 500) + "...");
+        {
+          const content = String(aiRes.choices?.[0]?.message?.content ?? "").trim();
+          console.log(`[ANALYZE-WEBSITE] 🤖 AI analysis via ${aiRes.provider}/${aiRes.model}:`, content.substring(0, 500) + "...");
+
           
           try {
             // Parse JSON response
@@ -388,15 +362,8 @@ Respond ONLY with this JSON (no explanation):
           } catch (parseError) {
             console.error("[ANALYZE-WEBSITE] ⚠️ Error parsing AI response:", parseError);
           }
-        } else {
-          // This was silent before — description quietly stayed as the raw
-          // scraped meta tag with no error anywhere, so onboarding displayed
-          // it labeled as "what our AI understood" when the AI call never
-          // actually ran. Surface the real status/body so a credit/quota
-          // outage (seen elsewhere as OpenRouter 402s) is diagnosable.
-          const errBody = await aiResponse.text().catch(() => "");
-          console.error("[ANALYZE-WEBSITE] ⚠️ OpenRouter call failed:", aiResponse.status, errBody.substring(0, 300));
         }
+
       } catch (e) {
         console.error("[ANALYZE-WEBSITE] ⚠️ AI analysis error:", e);
       }

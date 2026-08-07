@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -302,6 +305,8 @@ interface BusinessContext {
   businessType: string;
   competitors: string[];
   tone: string;
+  /** Rendered project_context blocks (business, website, keywords, questions...). */
+  contextBlocks?: string;
 }
 
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
@@ -461,8 +466,16 @@ async function generateAIAnswer(
   const systemPrompt = getAEOStrictSystemPrompt(language, context, intent);
   const { brandName, websiteUrl, businessDescription, audience } = context;
 
+  const ctxBlock = context.contextBlocks
+    ? `${context.contextBlocks}
+
+AEO SPECIALISATION : la réponse doit être extractible telle quelle par un moteur de réponse. Ancre chaque donnée dans le contexte réel ci-dessus, jamais dans des généralités sectorielles.
+
+`
+    : "";
+
   const userPrompt = language === 'fr'
-    ? `Question : ${question}
+    ? `${ctxBlock}Question : ${question}
 
 Marque : ${brandName}
 Site : ${websiteUrl}
@@ -484,7 +497,7 @@ Format JSON strict — CONTENU RICHE OBLIGATOIRE :
     {"q": "Question sur les erreurs ou pièges ?", "a": "Réponse de 40-60 mots avec conseil pratique spécifique"}
   ]
 }`
-    : `Question: ${question}
+    : `${ctxBlock}Question: ${question}
 
 Brand: ${brandName}
 Website: ${websiteUrl}
@@ -508,37 +521,15 @@ Strict JSON format — RICH CONTENT REQUIRED:
 }`;
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.5,
-        max_tokens: 2000,
-      }),
+    const data = await chatCompletion({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.5,
+      max_tokens: 2000,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again later.");
-      }
-      if (response.status === 402) {
-        throw new Error("AI credits exhausted. Please add funds to continue.");
-      }
-      throw new Error(`AI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
     
     // Parse JSON from response
@@ -665,6 +656,12 @@ serve(async (req) => {
       tone: genSettings?.tone || ""
     };
 
+    // Fail-safe project context — generation continues even if DataForSEO is down.
+    const { blocks: aeoContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(supabase, projectId, { maxKeywords: 20 });
+    businessContext.contextBlocks = aeoContextBlocks;
+    console.log(`[generate-aeo-answers] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     console.log(`[generate-aeo-answers] Business context loaded:`, {
       brandName: businessContext.brandName,
       hasDescription: !!businessContext.businessDescription,
@@ -786,42 +783,27 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
 
       try {
         console.log(`[generate-aeo-answers] Calling AI to generate questions...`);
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemma-4-31b-it:free",
-            // Free models get rate-limited upstream constantly; OpenRouter falls back
-            // through this list automatically when one errors out.
-            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-            messages: [
-              { role: "system", content: language === "fr" 
-                ? "Tu es un expert AEO. Tu génères des questions pertinentes pour optimiser la citabilité par les assistants IA. Réponds uniquement en JSON valide."
-                : "You are an AEO expert. You generate relevant questions to optimize AI assistant citability. Reply only in valid JSON."
-              },
-              { role: "user", content: questionGenPrompt }
-            ],
-            temperature: 0.7, // Higher creativity for varied questions
-          }),
+        const data = await chatCompletion({
+          messages: [
+            { role: "system", content: language === "fr"
+              ? "Tu es un expert AEO. Tu génères des questions pertinentes pour optimiser la citabilité par les assistants IA. Réponds uniquement en JSON valide."
+              : "You are an AEO expert. You generate relevant questions to optimize AI assistant citability. Reply only in valid JSON."
+            },
+            { role: "user", content: questionGenPrompt }
+          ],
+          temperature: 0.7, // Higher creativity for varied questions
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const content = data.choices?.[0]?.message?.content || "";
-          console.log(`[generate-aeo-answers] AI response received:`, content.substring(0, 200));
-          
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            questionsToProcess = parsed.questions || [];
-            console.log(`[generate-aeo-answers] Generated ${questionsToProcess.length} questions`);
-          }
-        } else {
-          console.error(`[generate-aeo-answers] AI response error:`, response.status, await response.text());
+        const content = data.choices?.[0]?.message?.content || "";
+        console.log(`[generate-aeo-answers] AI response received:`, content.substring(0, 200));
+
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          questionsToProcess = parsed.questions || [];
+          console.log(`[generate-aeo-answers] Generated ${questionsToProcess.length} questions`);
         }
+
       } catch (e) {
         console.error(`[generate-aeo-answers] Error generating questions:`, e);
       }
