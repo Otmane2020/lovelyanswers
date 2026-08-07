@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletion } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -238,12 +239,13 @@ Deno.serve(async (req) => {
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
 
     const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openRouterKey) {
-      return new Response(JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }), {
+    if (!openRouterKey && !Deno.env.get("LOVABLE_API_KEY") && !Deno.env.get("GEMINI_API_KEY") && !Deno.env.get("DEEPSEEK_API_KEY")) {
+      return new Response(JSON.stringify({ error: "No AI provider configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const currentYear = new Date().getFullYear();
 
@@ -278,33 +280,29 @@ TOPIC QUALITY RULES:
 Output ONLY a JSON array of exactly ${toGenerate} items, in the same order as the type sequence above:
 [{"topic": "topic text", "keywords": ["kw1", "kw2", "kw3"]}]`;
 
-    const topicsRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openRouterKey,
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: "Respond with valid JSON only. No markdown fences." },
-          { role: "user", content: topicsPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 4000,
-      }),
+    const topicsData = await chatCompletion({
+      messages: [
+        { role: "system", content: "Respond with valid JSON only. No markdown fences." },
+        { role: "user", content: topicsPrompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 4000,
     });
 
-    const topicsData = await topicsRes.json();
     const topicsRaw = topicsData.choices?.[0]?.message?.content || "";
     let topics: { topic: string; keywords: string[] }[] = [];
 
     try {
-      const cleaned = topicsRaw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      topics = JSON.parse(cleaned);
+      const cleaned = topicsRaw
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+      // Some models wrap the array in prose; salvage the JSON array.
+      const start = cleaned.indexOf("[");
+      const end = cleaned.lastIndexOf("]");
+      const jsonText = start !== -1 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+      topics = JSON.parse(jsonText);
+      if (!Array.isArray(topics)) throw new Error("not an array");
     } catch {
       console.error("[generate-30-gso] Failed to parse topics:", topicsRaw.slice(0, 500));
       return new Response(JSON.stringify({ error: "Failed to generate topics" }), {
