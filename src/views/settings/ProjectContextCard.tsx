@@ -131,6 +131,40 @@ export function ProjectContextCard() {
         </div>
       </div>
 
+      {sources.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data sources</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {sources.map(([key, src]) => (
+              <div key={key} className="flex items-start gap-2 rounded-lg border p-2.5">
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                    src.status === "present"
+                      ? "bg-primary"
+                      : src.status === "stale"
+                        ? "bg-muted-foreground"
+                        : "bg-destructive"
+                  }`}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">
+                    {SOURCE_LABELS[key] || key}{" "}
+                    <span className="text-muted-foreground font-normal">({src.count})</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {src.status === "present"
+                      ? src.last_updated
+                        ? `Updated ${new Date(src.last_updated).toLocaleDateString()}`
+                        : "Available"
+                      : src.detail || src.status}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {lastError && <p className="text-xs text-destructive">{lastError}</p>}
 
       {ctx?.refreshed_at && (
