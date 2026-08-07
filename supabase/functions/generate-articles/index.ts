@@ -310,7 +310,7 @@ serve(async (req) => {
               { role: "user", content: buildArticlePrompt(keyword, brand, website, businessType, audience, language) },
             ],
             temperature: 0.6,
-            max_tokens: 8000,
+            max_tokens: 4000,
           }),
         });
 

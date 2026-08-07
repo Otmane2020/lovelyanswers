@@ -394,7 +394,7 @@ Output JSON: {"title":"the local question itself, under 70 chars","meta_descript
               { role: "user", content: contentPrompt },
             ],
             temperature: 0.65,
-            max_tokens: 10000,
+            max_tokens: 4000,
           }),
         });
 

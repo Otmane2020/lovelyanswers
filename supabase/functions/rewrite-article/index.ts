@@ -238,7 +238,7 @@ Respond in JSON:
         { role: "user", content: rewritePrompt },
       ],
       temperature: 0.6,
-      max_tokens: 8000,
+      max_tokens: 4000,
     }),
   });
 
