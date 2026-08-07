@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -302,6 +303,8 @@ interface BusinessContext {
   businessType: string;
   competitors: string[];
   tone: string;
+  /** Rendered project_context blocks (business, website, keywords, questions...). */
+  contextBlocks?: string;
 }
 
 // 🔒 AEO CITATION-FIRST SYSTEM PROMPT - Decision-oriented, not encyclopedic
@@ -461,8 +464,16 @@ async function generateAIAnswer(
   const systemPrompt = getAEOStrictSystemPrompt(language, context, intent);
   const { brandName, websiteUrl, businessDescription, audience } = context;
 
+  const ctxBlock = context.contextBlocks
+    ? `${context.contextBlocks}
+
+AEO SPECIALISATION : la réponse doit être extractible telle quelle par un moteur de réponse. Ancre chaque donnée dans le contexte réel ci-dessus, jamais dans des généralités sectorielles.
+
+`
+    : "";
+
   const userPrompt = language === 'fr'
-    ? `Question : ${question}
+    ? `${ctxBlock}Question : ${question}
 
 Marque : ${brandName}
 Site : ${websiteUrl}
@@ -484,7 +495,7 @@ Format JSON strict — CONTENU RICHE OBLIGATOIRE :
     {"q": "Question sur les erreurs ou pièges ?", "a": "Réponse de 40-60 mots avec conseil pratique spécifique"}
   ]
 }`
-    : `Question: ${question}
+    : `${ctxBlock}Question: ${question}
 
 Brand: ${brandName}
 Website: ${websiteUrl}
@@ -664,6 +675,12 @@ serve(async (req) => {
       competitors: genSettings?.competitors || project.competitors || [],
       tone: genSettings?.tone || ""
     };
+
+    // Fail-safe project context — generation continues even if DataForSEO is down.
+    const { blocks: aeoContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(supabase, projectId, { maxKeywords: 20 });
+    businessContext.contextBlocks = aeoContextBlocks;
+    console.log(`[generate-aeo-answers] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
 
     console.log(`[generate-aeo-answers] Business context loaded:`, {
       brandName: businessContext.brandName,

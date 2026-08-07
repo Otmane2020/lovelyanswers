@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,11 +146,13 @@ function buildArticlePrompt(
   businessType: string,
   audience: string,
   language: string,
+  contextBlocks = "",
 ): string {
   const lang = language === "fr" ? "French" : "English";
 
   return `Write a comprehensive, in-depth article optimized for both SEO and AI citation. Follow every rule exactly.
 
+${contextBlocks ? `## Project context (real data — ground every section in it, never write generic industry filler)\n${contextBlocks}\n\nSEO SPECIALISATION: this piece targets classic search rankings for the primary keyword below, while staying quotable. Reference the real pages, offering and audience above.\n` : ""}
 ## Context
 - Brand: "${brand}"
 - Website: ${website || "N/A"}
@@ -258,6 +261,12 @@ serve(async (req) => {
 
     const existingSlugs = new Set((existingArticles || []).map((a: any) => a.slug?.toLowerCase()));
 
+    // Fail-safe project context: falls back to scraping / analyze-website /
+    // existing keywords / competitors when a provider (DataForSEO) is down.
+    const { blocks: projectContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(supabase, projectId, { maxKeywords: 20 });
+    console.log(`[generate-articles] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     console.log("[generate-articles] Project: \"" + brand + "\" | Lang: " + language + " | Keywords: " + count);
 
     const generatedArticles: any[] = [];
@@ -310,7 +319,7 @@ serve(async (req) => {
             models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildArticlePrompt(keyword, brand, website, businessType, audience, language) },
+              { role: "user", content: buildArticlePrompt(keyword, brand, website, businessType, audience, language, projectContextBlocks) },
             ],
             temperature: 0.6,
             max_tokens: 4000,
