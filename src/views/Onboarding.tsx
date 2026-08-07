@@ -74,6 +74,7 @@ interface Analysis {
   keywords: (string | { keyword: string })[]
   language: string
   recommendationExample?: string
+  aiEnriched?: boolean
 }
 
 const normalizeUrl = (raw: string) => {
@@ -397,7 +398,7 @@ export default function Onboarding() {
     setError('')
     try {
       setPhase('Reading your website…')
-      let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string; category?: string } = {}
+      let data: Record<string, unknown> & { success?: boolean; domain?: string; brandName?: string; description?: string; language?: string; competitors?: string[]; keywords?: unknown[]; recommendationExample?: string; category?: string; aiEnriched?: boolean } = {}
       try {
         const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-website', {
           body: { url: normalizeUrl(bizSite || bizName) },
@@ -770,7 +771,9 @@ export default function Onboarding() {
 
               <div className="card-box">
                 <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
-                  What our AI understood about your business
+                  {analysis?.aiEnriched
+                    ? 'What our AI understood about your business'
+                    : 'From your site'}
                 </div>
                 <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                   {analysis?.description || (

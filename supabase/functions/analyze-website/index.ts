@@ -73,6 +73,10 @@ serve(async (req) => {
     let detectedLanguage = "en";
     let recommendationExample = "";
     let category = "";
+    // False until the main OpenRouter call actually succeeds and parses —
+    // lets the caller tell "real AI enrichment" apart from "description is
+    // still just the raw scraped meta tag because the AI call failed".
+    let aiEnriched = false;
 
     // Step 1: Fetch and analyze FULL website content
     console.log("[ANALYZE-WEBSITE] 📄 Fetching full website content...");
@@ -365,10 +369,20 @@ Respond ONLY with this JSON (no explanation):
                 category = parsed.category;
                 console.log("[ANALYZE-WEBSITE] ✅ AI classified category:", category);
               }
+
+              aiEnriched = true;
             }
           } catch (parseError) {
             console.error("[ANALYZE-WEBSITE] ⚠️ Error parsing AI response:", parseError);
           }
+        } else {
+          // This was silent before — description quietly stayed as the raw
+          // scraped meta tag with no error anywhere, so onboarding displayed
+          // it labeled as "what our AI understood" when the AI call never
+          // actually ran. Surface the real status/body so a credit/quota
+          // outage (seen elsewhere as OpenRouter 402s) is diagnosable.
+          const errBody = await aiResponse.text().catch(() => "");
+          console.error("[ANALYZE-WEBSITE] ⚠️ OpenRouter call failed:", aiResponse.status, errBody.substring(0, 300));
         }
       } catch (e) {
         console.error("[ANALYZE-WEBSITE] ⚠️ AI analysis error:", e);
@@ -503,6 +517,7 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
         language: detectedLanguage,
         recommendationExample,
         category,
+        aiEnriched,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
