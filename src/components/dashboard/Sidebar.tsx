@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { useSubscription } from '@/hooks/useSubscription'
 import type { DashboardTab } from '@/views/GEODashboard'
-import { SupportModal } from './SupportModal'
+import { HelpModal } from './HelpModal'
 import {
   IconSparkle, IconHome, IconWrite, IconPin, IconChart, IconGear
 } from './Icons'
@@ -105,7 +105,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </div>
         </div>
       </div>
-      {showSupport && <SupportModal onClose={() => setShowSupport(false)} />}
+      {showSupport && <HelpModal onClose={() => setShowSupport(false)} />}
     </aside>
   )
 }
