@@ -43,6 +43,26 @@ export interface ProjectContextSnapshot {
   products: Array<{ title: string | null; description: string | null; category: string | null; price: number | null }>;
   tone: string | null;
   built_at: string;
+  /** Where each part of the context comes from, and whether it is usable. */
+  sources: Record<ContextSourceKey, ContextSource>;
+}
+
+/** Provenance of each context block — lets the UI explain what is missing. */
+export type ContextSourceKey =
+  | "scraping" | "analyze_website" | "dataforseo" | "competitors"
+  | "google_business" | "shopping" | "user_input";
+
+export interface ContextSource {
+  /** present = usable data, missing = nothing stored, stale = older than 30 days. */
+  status: "present" | "missing" | "stale";
+  /** How many records back this block. */
+  count: number;
+  /** Last time this source produced data. */
+  last_updated: string | null;
+  /** Which context fields this source feeds. */
+  feeds: string[];
+  /** Human-readable reason when status is not "present". */
+  detail?: string;
 }
 
 export type Readiness = "ready" | "partial" | "insufficient";
@@ -61,13 +81,13 @@ export async function buildProjectContext(
     supabase.from("generation_settings").select("*").eq("project_id", projectId).maybeSingle(),
     supabase
       .from("site_pages")
-      .select("url, page_type, title, meta_description, headings, word_count, lang, content")
+      .select("url, page_type, title, meta_description, headings, word_count, lang, content, scraped_at, updated_at")
       .eq("project_id", projectId)
       .order("word_count", { ascending: false })
       .limit(40),
     supabase
       .from("keywords")
-      .select("keyword, search_volume, cpc, difficulty, intent, cluster, is_question")
+      .select("keyword, search_volume, cpc, difficulty, intent, cluster, is_question, source, enriched_at, updated_at")
       .eq("project_id", projectId)
       .order("search_volume", { ascending: false, nullsFirst: false })
       .limit(150),
@@ -85,7 +105,7 @@ export async function buildProjectContext(
   try {
     const { data } = await supabase
       .from("local_businesses")
-      .select("name, address, phone")
+      .select("name, address, phone, updated_at")
       .eq("project_id", projectId)
       .limit(10);
     locations = data || [];
@@ -93,7 +113,7 @@ export async function buildProjectContext(
   try {
     const { data } = await supabase
       .from("shopping_products")
-      .select("title, description, category, price")
+      .select("title, description, category, price, updated_at")
       .eq("project_id", projectId)
       .limit(30);
     products = data || [];
