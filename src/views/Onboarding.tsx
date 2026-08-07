@@ -769,18 +769,20 @@ export default function Onboarding() {
                   : 'This shapes the tone and the questions we optimize your content for.'}
               </p>
 
-              <div className="card-box">
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
+              <div className="card-box" style={{ padding: '8px 10px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 2 }}>
                   {!analysis?.description
                     ? 'Analyzing'
                     : analysis.aiEnriched
-                    ? 'What our AI understood about your business'
+                    ? 'What our AI understood'
                     : 'From your site'}
                 </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                  {analysis?.description || (
-                    <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>
-                  )}
+                <div style={{ fontSize: 11.5, lineHeight: 1.4 }}>
+                  {analysis?.description
+                    ? (analysis.description.length > 140
+                        ? `${analysis.description.slice(0, 140).trimEnd()}…`
+                        : analysis.description)
+                    : <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>}
                 </div>
               </div>
 
@@ -802,10 +804,11 @@ export default function Onboarding() {
 
               <div className="foot-nav">
                 <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="btn btn-primary" onClick={() => setStep(4)}>
-                  Continue <IcArrow />
+                <button className="btn btn-primary" disabled={!projectId} onClick={() => setStep(5)}>
+                  {projectId ? <>Continue <IcArrow /></> : (phase || 'Reading your site…')}
                 </button>
               </div>
+
             </>
           )}
 
