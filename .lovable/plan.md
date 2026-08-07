@@ -130,8 +130,23 @@ Livré à la fin de l'implémentation, uniquement des éléments réellement fai
 - limitations restantes
 Aucune intention, aucune recommandation, aucun audit théorique.
 
+### 16. Livraison par phases (pas de big bang)
+
+Chaque phase est livrée seule, testée et validée avant la suivante. Aucune phase suivante ne démarre tant que la précédente n'est pas fonctionnelle.
+
+| Phase | Contenu | Critère de validation |
+|---|---|---|
+| **1. Schéma** | Migration SQL uniquement : colonnes `projects` (statut onboarding), colonnes `site_pages`, colonnes `keywords`, tables `content_topics` / `project_context` si l'extension d'une table existante n'est pas possible. **Zéro changement fonctionnel**, aucun code applicatif touché. | App inchangée, migration appliquée, colonnes vérifiées en base. |
+| **2. Onboarding + contexte** | `onboarding-pipeline` (orchestrateur, appelle l'existant), persistance du scraping dans `site_pages`, `_shared/project-context.ts`, statut d'onboarding côté UI. | Onboarding réel sur un vrai domaine : pages stockées, contexte construit, statut `completed`. |
+| **3. Données** | Reconnexion DataForSEO (`keyword-research` persistante), keywords enrichis, competitors persistés et injectés dans le contexte. | Lignes `keywords` avec `search_volume`/`cpc` non nuls, competitors présents dans le snapshot. |
+| **4. Génération** | Injection du contexte dans les fonctions de génération existantes, prompts spécialisés par type. | Une génération réelle par type, avec INPUT CONTEXT / KEYWORD / ANGLE / OUTPUT / TABLE. |
+| **5. Planning** | Planning 30 jours × types via `titlesOnly`, adaptation des crons existants, file de retry, anti-duplication. | 30 jours planifiés, cron quotidien qui génère et rattrape sans doublon. |
+| **6. Shopping** | Feed exposé dans Intégrations, produits, fallback éditorial sans produit. | Feed parsé, produits générés, fallback vérifié. |
+
+Après chaque phase : commit Git, liste des fichiers modifiés, résultats des tests réellement exécutés, bugs rencontrés. Le rapport final (§15) agrège ces rapports de phase.
 
 ## Détails techniques
+
 
 - **Migration unique** : colonnes `projects` (statut onboarding), colonnes `site_pages`, colonnes `keywords` (`cpc`, `serp_domains`, `source`, `cluster`, `is_question`), tables `project_context` et `content_topics` (avec GRANT + RLS scopées au propriétaire du projet).
 - **Nouvelles fonctions** : `onboarding-pipeline` (orchestrateur idempotent) et `scrape-site-pages` (orchestrateur de scraping réutilisant `parse-sitemap` / `firecrawl-scrape` / `internal-scraper`). Aucun nouveau scraper ni générateur.
