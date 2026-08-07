@@ -138,27 +138,15 @@ The topic should be a question or decision-oriented statement that AI engines wo
 Output ONLY valid JSON:
 {"topic": "suggested topic", "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5"]}`;
 
-      const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + openRouterKey,
-        },
-        body: JSON.stringify({
-          model: "google/gemma-4-31b-it:free",
-          // Free models get rate-limited upstream constantly; OpenRouter falls back
-          // through this list automatically when one errors out.
-          models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-          messages: [
-            { role: "system", content: "Respond with valid JSON only." },
-            { role: "user", content: suggestPrompt },
-          ],
-          temperature: 0.8,
-          max_tokens: 300,
-        }),
+      const aiData = await chatCompletion({
+        messages: [
+          { role: "system", content: "Respond with valid JSON only." },
+          { role: "user", content: suggestPrompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 300,
       });
 
-      const aiData = await aiRes.json();
       const raw = aiData.choices?.[0]?.message?.content || "";
       try {
         const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
