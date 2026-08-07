@@ -182,6 +182,7 @@ Rules:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [{ role: "user", content: aiPrompt }],
         temperature: 0.7,
       }),

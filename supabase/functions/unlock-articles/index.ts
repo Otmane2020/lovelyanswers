@@ -37,6 +37,7 @@ No superlatives, no marketing. First sentence = direct answer. Mention brand onc
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
+      max_tokens: 4000,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: question }
@@ -161,6 +162,7 @@ Generate ONLY the HTML content.`;
             },
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
+              max_tokens: 4000,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }

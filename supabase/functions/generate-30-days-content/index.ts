@@ -599,7 +599,7 @@ Return ONLY this JSON (pure HTML in content):
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.55,
-        max_tokens: 6000,
+        max_tokens: 4000,
         messages: [
           { role: "user", content: prompt },
         ],

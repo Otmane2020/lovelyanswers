@@ -292,7 +292,7 @@ Analyse ce contenu réel et génère un rapport complet avec des données SPÉCI
           },
         ],
         temperature: 0.3,
-        max_tokens: 8000,
+        max_tokens: 4000,
       }),
     });
 

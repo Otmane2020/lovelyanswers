@@ -397,7 +397,7 @@ export default function Landing() {
                 border: '1px solid var(--line)', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', flexShrink: 0,
               }}>
-                <img src={shopifyLogo} alt="Shopify" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+                <img src={typeof shopifyLogo === 'string' ? shopifyLogo : (shopifyLogo as { src: string }).src} alt="Shopify" style={{ width: 26, height: 26, objectFit: 'contain' }} />
               </div>
               <h3 style={{ fontSize: '16px', margin: 0 }}>GEO Shopping for Shopify</h3>
             </div>

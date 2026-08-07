@@ -216,6 +216,7 @@ Rules:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [
           { role: "system", content: "You are an SEO & AEO expert auditor. Always respond with valid JSON arrays only. Never wrap in markdown code blocks." },
           { role: "user", content: auditPrompt },

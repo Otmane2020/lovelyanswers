@@ -1517,6 +1517,7 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
+      max_tokens: 4000,
       messages: [
         { 
           role: "system", 
@@ -1651,6 +1652,7 @@ Return JSON:
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
+      max_tokens: 4000,
       messages: [
         { 
           role: "system", 
@@ -1727,6 +1729,7 @@ Return JSON (respond in ${context.language === "fr" ? "French" : "English"}):
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
+      max_tokens: 4000,
       messages: [
         { 
           role: "system", 
@@ -1844,6 +1847,7 @@ Write the Reddit comment now:`;
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
+      max_tokens: 4000,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

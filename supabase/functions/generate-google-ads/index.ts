@@ -174,6 +174,7 @@ RULES:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Here is the website content to analyze:\n\n${pageContent}\n\nGenerate the ${type === "search" ? "Search" : "PMax"} campaign configuration now. Return ONLY the JSON, no markdown.` },
