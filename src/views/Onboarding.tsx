@@ -677,7 +677,7 @@ export default function Onboarding() {
             </div>
           </div>
           <div className="progress">
-            <div className="progress-bar" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+            <div className="progress-bar" style={{ width: `${(displayStep / TOTAL_STEPS) * 100}%` }} />
           </div>
         </div>
 
