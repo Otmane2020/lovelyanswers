@@ -661,7 +661,7 @@ export default function Onboarding() {
               <div className="brand-name">AutopilotGEO</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="step-count">Step {step}/{TOTAL_STEPS}</div>
+              <div className="step-count">Step {displayStep}/{TOTAL_STEPS}</div>
               {user && (
                 <button
                   type="button"
