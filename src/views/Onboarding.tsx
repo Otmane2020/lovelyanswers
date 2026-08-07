@@ -878,18 +878,25 @@ export default function Onboarding() {
 
               <div className="compare-preview">
                 <div className="prev-card before">
-                  <div className="lbl">Today, without AutopilotGEO</div>
+                  <div className="lbl">{language === 'fr' ? "Aujourd'hui, sans AutopilotGEO" : 'Today, without AutopilotGEO'}</div>
                   <div className="txt">
-                    ChatGPT has never heard of <b>{brand}</b>. When someone asks for a recommendation,
-                    a competitor gets named instead
-                    {analysis?.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.
+                    {language === 'fr' ? (
+                      <>ChatGPT n'a jamais entendu parler de <b>{brand}</b>. Quand on lui demande une recommandation,
+                      c'est un concurrent qui est cité{analysis?.competitors?.length ? <> — à commencer par <b>{analysis.competitors[0]}</b></> : null}.</>
+                    ) : (
+                      <>ChatGPT has never heard of <b>{brand}</b>. When someone asks for a recommendation,
+                      a competitor gets named instead
+                      {analysis?.competitors?.length ? <> — starting with <b>{analysis.competitors[0]}</b></> : null}.</>
+                    )}
                   </div>
                 </div>
                 <div className="prev-card after">
-                  <div className="lbl">With AutopilotGEO, in ~2 weeks</div>
+                  <div className="lbl">{language === 'fr' ? 'Avec AutopilotGEO, dans ~2 semaines' : 'With AutopilotGEO, in ~2 weeks'}</div>
                   <div className="txt">
                     {analysis?.aiEnriched && analysis?.recommendationExample ? (
                       <>"{analysis.recommendationExample}"</>
+                    ) : language === 'fr' ? (
+                      <>Une vraie recommandation rédigée par l'IA pour <b>{brand}</b> — générée à partir de votre vrai site, pas un texte générique.</>
                     ) : (
                       <>A real AI-written recommendation for <b>{brand}</b> — generated from your actual site, not a placeholder.</>
                     )}
