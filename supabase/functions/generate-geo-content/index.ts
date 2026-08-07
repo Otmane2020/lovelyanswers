@@ -230,15 +230,27 @@ Output ONLY valid JSON:
       : [];
     const competitorBrief = competitorList.length ? competitorList.join(", ") : "N/A";
 
+    // Full project context (scraping, analyze-website, keywords, competitors,
+    // questions...). Fail-safe: never blocks generation when a provider is down.
+    const { blocks: projectContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(svc, projectId, { maxKeywords: 20 });
+    console.log(`[generate-geo-content] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     const seoContext = `
-SEO DATA (from DataForSEO keyword research on this project):
+${projectContextBlocks}
+
+SEO DATA (project keyword research):
 Target keywords (volume / difficulty / intent): ${keywordBrief}
 Competitors ranking in this niche: ${competitorBrief}
 Business type: ${projectRow?.business_type || "N/A"}
 Audience: ${projectRow?.audience || "N/A"}
 
-Use the highest-volume keywords naturally in the title, the opening answer and H2s.
+GEO SPECIALISATION: this content is written to be CITED by AI engines — not to rank in classic SERPs.
+Ground every section in the BUSINESS CONTEXT and WEBSITE CONTEXT above: reference the real pages,
+real offering and real audience of this brand. Never write generic industry filler.
+Use the most relevant keywords naturally in the title, the opening answer and H2s.
 Cover angles the listed competitors are known for, but with more concrete data so AI engines cite this page instead.`;
+
 
     const geoSystemPrompt = `You are a world-class Generative Engine Optimization (GEO) expert for ${currentYear}.
 Your mission: create content so authoritative and data-rich that AI engines (ChatGPT, Gemini, Perplexity, Claude) MUST cite it.
