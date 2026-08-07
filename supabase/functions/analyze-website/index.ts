@@ -376,15 +376,8 @@ Respond ONLY with this JSON (no explanation):
           } catch (parseError) {
             console.error("[ANALYZE-WEBSITE] ⚠️ Error parsing AI response:", parseError);
           }
-        } else {
-          // This was silent before — description quietly stayed as the raw
-          // scraped meta tag with no error anywhere, so onboarding displayed
-          // it labeled as "what our AI understood" when the AI call never
-          // actually ran. Surface the real status/body so a credit/quota
-          // outage (seen elsewhere as OpenRouter 402s) is diagnosable.
-          const errBody = await aiResponse.text().catch(() => "");
-          console.error("[ANALYZE-WEBSITE] ⚠️ OpenRouter call failed:", aiResponse.status, errBody.substring(0, 300));
         }
+
       } catch (e) {
         console.error("[ANALYZE-WEBSITE] ⚠️ AI analysis error:", e);
       }
