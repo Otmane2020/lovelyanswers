@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { useSubscription } from '@/hooks/useSubscription'
 import type { DashboardTab } from '@/views/GEODashboard'
+import { SupportModal } from './SupportModal'
 import {
   IconSparkle, IconHome, IconWrite, IconPin, IconChart, IconGear
 } from './Icons'
@@ -26,6 +28,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { signOut } = useAuth()
   const { data: integrations } = useIntegrations()
   const { trial, subscriptionEnd, openCustomerPortal } = useSubscription()
+  const [showSupport, setShowSupport] = useState(false)
 
   // Only one paid tier exists today (Starter), so "Upgrade" opens the same
   // Stripe customer portal as Settings' "Manage" — it's the honest action
@@ -93,10 +96,16 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             Upgrade
           </button>
         </div>
-        <div className="signout" onClick={handleSignOut} role="button" tabIndex={0}>
-          ⇥ Sign out
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div className="signout" style={{ flex: 1 }} onClick={() => setShowSupport(true)} role="button" tabIndex={0}>
+            ? Help
+          </div>
+          <div className="signout" style={{ flex: 1 }} onClick={handleSignOut} role="button" tabIndex={0}>
+            ⇥ Sign out
+          </div>
         </div>
       </div>
+      {showSupport && <SupportModal onClose={() => setShowSupport(false)} />}
     </aside>
   )
 }
