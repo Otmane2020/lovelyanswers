@@ -31,17 +31,49 @@ Deno.serve(async (req) => {
       .eq('id', project_id)
       .single()
 
-    const { data: queries } = await supabase
+    if (!project) {
+      return new Response(JSON.stringify({ error: 'Project not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    let { data: queries } = await supabase
       .from('tracked_queries')
       .select('*')
       .eq('project_id', project_id)
       .eq('is_active', true)
 
-    if (!project || !queries?.length) {
-      return new Response(JSON.stringify({ error: 'Project or queries not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // Nothing to check yet is a normal state for a brand-new project, not an
+    // error — nowhere in the app lets someone add a tracked query by hand,
+    // so without this "Run the first check" would 404 forever. Seed a small
+    // default set from the project's own name/category instead. Sticking to
+    // chatgpt/claude (routed through OpenRouter, already confirmed working)
+    // rather than perplexity/gemini/bing, which need their own API keys
+    // that aren't necessarily configured.
+    if (!queries?.length) {
+      const brand = project.brand_name || project.name
+      const category = (project.business_type || 'business').toLowerCase()
+      const defaultQueries = [
+        `Best ${category} recommendations`,
+        `Is ${brand} a good choice?`,
+        `What is ${brand}?`,
+      ]
+      const seedRows = defaultQueries.flatMap((query) =>
+        ['chatgpt', 'claude'].map((platform) => ({
+          project_id,
+          query,
+          platform,
+          category: 'discovery',
+          is_active: true,
+        }))
+      )
+      const { data: inserted, error: seedError } = await supabase
+        .from('tracked_queries')
+        .upsert(seedRows, { onConflict: 'project_id,query,platform', ignoreDuplicates: true })
+        .select('*')
+      if (seedError) throw seedError
+      queries = inserted && inserted.length > 0 ? inserted : seedRows
     }
 
     const brandNames = project.brand_names?.length

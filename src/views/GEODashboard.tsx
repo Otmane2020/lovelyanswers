@@ -95,13 +95,15 @@ export default function GEODashboard() {
         // `planning` — daily-planning-fill is the one that actually upserts
         // planning rows and links answer_id/article_id back onto them, which
         // is what the completeness check above (and the cron) both rely on.
-        // It only fills a few days per call (timeout budget), so call it a
-        // handful of times in a row to catch a mostly-empty project up fast
-        // instead of waiting for one visit per batch.
+        // Each day costs 3 sequential OpenRouter calls; since the model was
+        // switched to slower, rate-limited free tiers, 3 days/call (9 calls)
+        // was blowing past Supabase's 150s hard timeout. 1 day/call keeps
+        // real headroom even when a call is slow — call it more times in a
+        // row instead to still catch a mostly-empty project up in one visit.
         let totalCompleted = 0
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 8; i++) {
           const { data, error } = await supabase.functions.invoke('daily-planning-fill', {
-            body: { projectId: project.id, days: 30, maxDaysToFill: 3 },
+            body: { projectId: project.id, days: 30, maxDaysToFill: 1 },
           })
           if (error) throw error
           const result = data?.results?.[0]

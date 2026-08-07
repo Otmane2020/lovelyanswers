@@ -8,6 +8,21 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAME = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
 
+// Mirrors daily-planning-fill's own ROTATION + angleForOffset exactly — the
+// angle was never stored on the row itself, but since scheduled_date is
+// always written as that day's UTC midnight, the same day-index formula
+// reproduces it deterministically without a schema migration.
+const ANGLE_ROTATION = ['geo', 'aeo', 'seo', 'local_aeo', 'aeo_shopping'] as const
+const ANGLE_LABEL: Record<string, string> = {
+  geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping',
+}
+function angleLabelForDate(dateStr: string | null): string {
+  if (!dateStr) return 'GEO'
+  const dayIndex = Math.floor(new Date(dateStr).getTime() / 86_400_000)
+  const angle = ANGLE_ROTATION[((dayIndex % ANGLE_ROTATION.length) + ANGLE_ROTATION.length) % ANGLE_ROTATION.length]
+  return ANGLE_LABEL[angle]
+}
+
 type Status = 'live' | 'wait' | 'draft'
 type Filter = 'all' | Status
 
@@ -43,7 +58,7 @@ export function Content() {
     const fromArticles: Row[] = articles.map((a: any) => ({
       id: `art-${a.id}`,
       title: a.title,
-      format: 'Article · GEO',
+      format: `Article · ${angleLabelForDate(a.scheduled_date || a.created_at)}`,
       icon: <IconFile />,
       where: a.gsc_indexed ? 'Your site · Google' : 'Your site',
       status: a.status === 'published' ? 'live' : a.scheduled_date ? 'wait' : 'draft',
@@ -54,7 +69,7 @@ export function Content() {
     const fromAnswers: Row[] = answers.map((a: any) => ({
       id: `ans-${a.id}`,
       title: a.question,
-      format: 'Answer · GEO',
+      format: `Answer · ${angleLabelForDate(a.scheduled_date || a.created_at)}`,
       icon: <IconMessage />,
       where: (a.platforms && a.platforms.length ? a.platforms : ['ChatGPT']).join(' · '),
       status: a.is_public ? 'live' : a.scheduled_date ? 'wait' : 'draft',

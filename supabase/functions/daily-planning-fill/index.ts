@@ -107,6 +107,9 @@ async function generateQuestion(
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      // A single stalled free-model call must not eat the whole request's
+      // 150s budget — 3 of these run sequentially per day filled.
+      signal: AbortSignal.timeout(20000),
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemma-4-31b-it:free",
@@ -184,6 +187,9 @@ async function generateAnswer(
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      // A single stalled free-model call must not eat the whole request's
+      // 150s budget — 3 of these run sequentially per day filled.
+      signal: AbortSignal.timeout(20000),
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemma-4-31b-it:free",
@@ -241,6 +247,9 @@ async function generateArticle(
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      // A single stalled free-model call must not eat the whole request's
+      // 150s budget — 3 of these run sequentially per day filled.
+      signal: AbortSignal.timeout(20000),
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemma-4-31b-it:free",
