@@ -47,9 +47,17 @@ Obligatoire : projet + (`brand_name` ou `domain`) + description/activité + **au
 Facultatif (fallback silencieux) : DataForSEO, competitors, GMB, shopping.
 Si le minimum n'est pas atteint : **aucune génération**, statut `partial` ou `failed`, message clair côté UI, retry automatique par le cron de rattrapage.
 
-### 4. `project_context` = cache, jamais source de vérité
-Snapshot consolidé pour les générations, avec `context_version` et `refreshed_at`. Sources de vérité inchangées (`projects`, `site_pages`, `keywords`, `local_businesses`, `shopping_products`, `shopping_feeds`, `generation_settings`).
-Refresh déclenché par : nouveau scraping, nouveaux keywords, nouveaux competitors, connexion GMB, nouveau feed Shopping, modification de l'activité, ou snapshot périmé (> 7 jours). Si le snapshot est absent/périmé, le builder relit les sources.
+### 4. `project_context` = cache, jamais source de vérité + Context Refresh
+Snapshot consolidé pour les générations, avec `context_version` et `refreshed_at`. Sources de vérité inchangées (`projects`, `site_pages`, `keywords`, `competitors`, `local_businesses`, `shopping_products`, `shopping_feeds`, `generation_settings`).
+
+**Invalidation automatique** : triggers de base sur les sources importantes (`site_pages`, `keywords`, `local_businesses`, `shopping_products`, `shopping_feeds`, `projects.business_description`/`competitors`, `generation_settings`) qui marquent le snapshot périmé (`stale = true`). Toute génération qui trouve un snapshot périmé ou absent le reconstruit avant de bâtir son prompt, puis incrémente `context_version`.
+
+**Événements couverts** : le client modifie son site, ajoute des services ou des produits, connecte Google Business plus tard, ajoute un Shopping Feed, change ses keywords ou ses competitors.
+
+**Aucun contenu déjà publié n'est régénéré.** Seuls les contenus futurs (slots `planned` non générés) utilisent le nouveau contexte.
+
+**Bouton "Refresh project context"** dans les paramètres du projet (`src/views/AeoSettings.tsx`), avec options : relancer le scraping (si les pages datent), relancer DataForSEO (case à cocher, coûteux), reconstruire le contexte, recalculer les sujets restants du planning. Il appelle `onboarding-pipeline` en mode `refresh` (idempotent) : il ne touche ni aux contenus publiés, ni aux slots déjà générés — il ne réécrit que les sujets des jours futurs encore non générés, en respectant l'anti-duplication `content_topics`.
+
 
 ### 5. `site_pages` — pages stratégiques uniquement
 Ajout des colonnes `page_type`, `normalized_url`, `content`, `headings`, `word_count`, `lang`, `scraped_at`.
