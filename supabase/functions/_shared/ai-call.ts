@@ -145,6 +145,52 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     console.warn("[AI] OPENROUTER_API_KEY not set, skipping OpenRouter");
   }
 
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (geminiKey) {
+    console.log("[AI] OpenRouter exhausted, falling back to Gemini API");
+    for (const model of GEMINI_FALLBACK_MODELS) {
+      try {
+        const r = await tryEndpoint(
+          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          geminiKey,
+          model,
+          opts,
+        );
+        if (r.ok) return { choices: [{ message: r.message }], model, provider: "gemini" };
+        lastError = r.error;
+        lastStatus = r.status;
+      } catch (err) {
+        console.error(`[AI:Gemini] ${model} threw:`, err);
+        lastError = String(err);
+      }
+    }
+  } else {
+    console.warn("[AI] GEMINI_API_KEY not set, skipping Gemini fallback");
+  }
+
+  const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY");
+  if (deepseekKey) {
+    console.log("[AI] Gemini unavailable, falling back to DeepSeek");
+    for (const model of DEEPSEEK_FALLBACK_MODELS) {
+      try {
+        const r = await tryEndpoint(
+          "https://api.deepseek.com/chat/completions",
+          deepseekKey,
+          model,
+          opts,
+        );
+        if (r.ok) return { choices: [{ message: r.message }], model, provider: "deepseek" };
+        lastError = r.error;
+        lastStatus = r.status;
+      } catch (err) {
+        console.error(`[AI:DeepSeek] ${model} threw:`, err);
+        lastError = String(err);
+      }
+    }
+  } else {
+    console.warn("[AI] DEEPSEEK_API_KEY not set, skipping DeepSeek fallback");
+  }
+
   if (lovableKey) {
     console.log("[AI] OpenRouter exhausted, falling back to Lovable AI Gateway");
     for (const model of LOVABLE_FALLBACK_MODELS) {
