@@ -136,7 +136,10 @@ Output ONLY valid JSON:
           Authorization: "Bearer " + openRouterKey,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
+          model: "google/gemma-4-31b-it:free",
+          // Free models get rate-limited upstream constantly; OpenRouter falls back
+          // through this list automatically when one errors out.
+          models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
           messages: [
             { role: "system", content: "Respond with valid JSON only." },
             { role: "user", content: suggestPrompt },
@@ -339,7 +342,10 @@ Output JSON:
         Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemma-4-31b-it:free",
+        // Free models get rate-limited upstream constantly; OpenRouter falls back
+        // through this list automatically when one errors out.
+        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
         messages: [
           { role: "system", content: geoSystemPrompt },
           { role: "user", content: prompt },

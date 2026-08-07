@@ -305,7 +305,10 @@ Respond ONLY with this JSON (no explanation):
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemma-4-31b-it:free",
+            // Free models get rate-limited upstream constantly; OpenRouter falls back
+            // through this list automatically when one errors out.
+            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
             max_tokens: 4000,
             messages: [
               { role: "system", content: "Tu es un expert SEO et en analyse de marché. Tu analyses le contenu des sites web pour extraire des informations stratégiques. Tu réponds uniquement avec du JSON valide." },
@@ -418,7 +421,10 @@ Réponds UNIQUEMENT avec un JSON array de domaines:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemma-4-31b-it:free",
+            // Free models get rate-limited upstream constantly; OpenRouter falls back
+            // through this list automatically when one errors out.
+            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
             max_tokens: 4000,
             messages: [
               { role: "system", content: "Tu es un expert en analyse de marché et en identification de concurrents. Tu réponds uniquement avec du JSON valide." },

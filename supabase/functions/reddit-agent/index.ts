@@ -1516,7 +1516,10 @@ CRITICAL: Return ONLY posts from the input. Do NOT invent URLs.`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
+      // Free models get rate-limited upstream constantly; OpenRouter falls back
+      // through this list automatically when one errors out.
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
       max_tokens: 4000,
       messages: [
         { 
@@ -1651,7 +1654,10 @@ Return JSON:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
+      // Free models get rate-limited upstream constantly; OpenRouter falls back
+      // through this list automatically when one errors out.
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
       max_tokens: 4000,
       messages: [
         { 
@@ -1728,7 +1734,10 @@ Return JSON (respond in ${context.language === "fr" ? "French" : "English"}):
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
+      // Free models get rate-limited upstream constantly; OpenRouter falls back
+      // through this list automatically when one errors out.
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
       max_tokens: 4000,
       messages: [
         { 
@@ -1846,7 +1855,10 @@ Write the Reddit comment now:`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
+      // Free models get rate-limited upstream constantly; OpenRouter falls back
+      // through this list automatically when one errors out.
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
       max_tokens: 4000,
       messages: [
         { role: "system", content: systemPrompt },

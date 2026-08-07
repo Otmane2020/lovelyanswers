@@ -261,7 +261,7 @@ async function analyzeSentiment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'google/gemma-4-31b-it:free',
         max_tokens: 60,
         messages: [
           {
