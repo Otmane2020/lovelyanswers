@@ -239,3 +239,9 @@ verify_jwt = false
 
 [functions.prerender]
 verify_jwt = false
+
+[functions.scrape-site-pages]
+verify_jwt = false
+
+[functions.onboarding-pipeline]
+verify_jwt = false
