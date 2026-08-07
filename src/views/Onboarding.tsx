@@ -809,40 +809,8 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* STEP 4 — reading the site, real analysis + project creation.
-             Never auto-advances to step 5 — even once the analysis is
-             ready, it waits for an explicit click. */}
-          {step === 4 && (
-            <>
-              {projectId ? (
-                <>
-                  <h1>Your site's been analyzed</h1>
-                  <p className="sub">Logo, sector and language are ready to review.</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                    <IcCheck size={46} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h1>Reading your website…</h1>
-                  <p className="sub">Pulling your logo, detecting your sector and language.</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                    <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
-                      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <p className="phase">{phase || 'Starting…'}</p>
-                </>
-              )}
-              <div className="foot-nav">
-                <button className="btn-ghost" onClick={() => setStep(3)}>Back</button>
-                <button className="btn btn-primary" disabled={!projectId} onClick={() => setStep(5)}>
-                  Continue <IcArrow />
-                </button>
-              </div>
-            </>
-          )}
+
+
 
           {/* STEP 5 — the "wow" preview, still before payment */}
           {step === 5 && (analysis || preScraped) && (
