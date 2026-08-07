@@ -28,7 +28,29 @@
 6. `generate-strategic-articles` est un fichier **vide (0 octet)**.
 7. Séparation planning/génération **déjà existante** et réutilisable : `generate-30-days-content` accepte `titlesOnly: true` (crée les slots sans générer le contenu) — c'est le mécanisme historique à réutiliser.
 
+## Règle absolue : réutiliser avant de créer
+
+Ordre imposé pour chaque point du plan : chercher l'existant → le réutiliser → le corriger → créer seulement s'il n'existe réellement rien.
+
+- Aucune Edge Function modifiée sans avoir d'abord vérifié toutes les autres qui font la même chose (grep sur le rôle, pas sur le nom).
+- Aucune table créée si une table existante peut être étendue.
+- Aucun cron créé : les crons existants (`daily-planning-fill`, `check-planning-completeness`, `generate-30-gso-contents`, publications) sont adaptés.
+- Aucun pipeline parallèle : le mécanisme historique `generate-30-days-content` + `titlesOnly` est réutilisé.
+- Aucune fonction de scraping, de génération, de publication ou d'analyse n'est remplacée — elles sont appelées telles quelles.
+
+**Seuls éléments réellement nouveaux, et pourquoi** :
+
+| Nouveau | Justification |
+|---|---|
+| `onboarding-pipeline` | Aucune fonction d'orchestration onboarding n'existe (vérifié) ; l'orchestration vit aujourd'hui dans le frontend. Elle n'embarque aucune logique métier, elle appelle l'existant. |
+| `scrape-site-pages` | Pas de scraper créé : simple séquenceur qui appelle `parse-sitemap` → `firecrawl-scrape` → `internal-scraper` et persiste dans `site_pages`. Fusionné dans `onboarding-pipeline` si la vérification montre que c'est suffisant. |
+| Table `content_topics` | Aucune table ne stocke les sujets/fingerprints ; `planning`/`planning_days` portent des slots, pas des sujets normalisés. |
+| Table `project_context` | Cache de snapshot ; à défaut, extension de `generation_settings` si la vérification en cours d'implémentation montre que le JSON peut y loger sans casser l'existant. |
+
+Toutes les autres modifications sont des **corrections de fonctions existantes** (persistance manquante, contexte non injecté, gate incohérent).
+
 ## Architecture corrigée
+
 
 ### 1. Orchestrateur backend (le frontend ne pilote plus rien)
 Aucune fonction d'orchestration onboarding n'existe aujourd'hui → création d'**une seule** fonction `onboarding-pipeline` (orchestrateur pur : elle n'embarque ni scraper ni générateur, elle appelle l'existant).
