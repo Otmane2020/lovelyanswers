@@ -10,8 +10,8 @@ type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
 /** One piece a day, cycling through five angles — day 0 GEO, day 1 SEO,
- * day 2 AEO, day 3 Local AEO, day 4 AEO Shopping, then repeat. */
-const ROTATION = ["geo", "seo", "aeo", "local_aeo", "aeo_shopping"] as const;
+ * day 2 SEO, day 3 Local AEO, day 4 AEO Shopping, then repeat. */
+const ROTATION = ["geo", "aeo", "seo", "local_aeo", "aeo_shopping"] as const;
 type ContentAngle = typeof ROTATION[number];
 
 const ANGLE_BRIEF: Record<ContentAngle, string> = {
@@ -120,6 +120,12 @@ async function generateQuestion(
     });
 
     const json = await res.json();
+    if (!res.ok || json?.error) {
+      // Surface the provider's own message (quota exhausted, bad key, model
+      // unavailable) instead of the useless generic "Invalid JSON" that this
+      // used to throw once content came back empty.
+      throw new Error("AI provider error " + res.status + ": " + JSON.stringify(json?.error ?? json).slice(0, 300));
+    }
     const content = json?.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Invalid JSON");
@@ -188,6 +194,12 @@ async function generateAnswer(
     });
 
     const json = await res.json();
+    if (!res.ok || json?.error) {
+      // Surface the provider's own message (quota exhausted, bad key, model
+      // unavailable) instead of the useless generic "Invalid JSON" that this
+      // used to throw once content came back empty.
+      throw new Error("AI provider error " + res.status + ": " + JSON.stringify(json?.error ?? json).slice(0, 300));
+    }
     const content = json?.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Invalid JSON");
@@ -236,6 +248,12 @@ async function generateArticle(
     });
 
     const json = await res.json();
+    if (!res.ok || json?.error) {
+      // Surface the provider's own message (quota exhausted, bad key, model
+      // unavailable) instead of the useless generic "Invalid JSON" that this
+      // used to throw once content came back empty.
+      throw new Error("AI provider error " + res.status + ": " + JSON.stringify(json?.error ?? json).slice(0, 300));
+    }
     const content = json?.choices?.[0]?.message?.content ?? "";
 
     let jsonStr = "";
