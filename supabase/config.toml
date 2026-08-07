@@ -245,3 +245,6 @@ verify_jwt = false
 
 [functions.onboarding-pipeline]
 verify_jwt = false
+
+[functions.enrich-keywords]
+verify_jwt = false

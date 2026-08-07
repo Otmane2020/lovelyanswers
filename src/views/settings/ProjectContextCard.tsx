@@ -24,6 +24,25 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
+/** Human labels for the provenance of each context block. */
+const SOURCE_LABELS: Record<string, string> = {
+  scraping: "Website scraping",
+  analyze_website: "Business analysis",
+  dataforseo: "DataForSEO (volume / CPC)",
+  competitors: "Competitors",
+  google_business: "Google Business",
+  shopping: "Shopping products",
+  user_input: "Manual settings",
+};
+
+interface ContextSource {
+  status: "present" | "missing" | "stale";
+  count: number;
+  last_updated: string | null;
+  feeds?: string[];
+  detail?: string;
+}
+
 interface ContextRow {
   readiness: string | null;
   context_version: number | null;
@@ -92,6 +111,9 @@ export function ProjectContextCard() {
   const pages = ctx?.context?.website?.pages_count ?? 0;
   const keywords = ctx?.context?.keywords?.length ?? 0;
   const competitors = ctx?.context?.competitors?.length ?? 0;
+  const sources = Object.entries(
+    (ctx?.context?.sources || {}) as Record<string, ContextSource>,
+  );
 
   return (
     <Card className="p-6 space-y-4">
@@ -130,6 +152,40 @@ export function ProjectContextCard() {
           <div className="text-muted-foreground text-xs">competitors</div>
         </div>
       </div>
+
+      {sources.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data sources</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {sources.map(([key, src]) => (
+              <div key={key} className="flex items-start gap-2 rounded-lg border p-2.5">
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                    src.status === "present"
+                      ? "bg-primary"
+                      : src.status === "stale"
+                        ? "bg-muted-foreground"
+                        : "bg-destructive"
+                  }`}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">
+                    {SOURCE_LABELS[key] || key}{" "}
+                    <span className="text-muted-foreground font-normal">({src.count})</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {src.status === "present"
+                      ? src.last_updated
+                        ? `Updated ${new Date(src.last_updated).toLocaleDateString()}`
+                        : "Available"
+                      : src.detail || src.status}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {lastError && <p className="text-xs text-destructive">{lastError}</p>}
 

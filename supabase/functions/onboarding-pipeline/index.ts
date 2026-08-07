@@ -4,6 +4,7 @@
 // Modes: "full" (onboarding) | "refresh" (re-run on demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildProjectContext, saveProjectContext } from "../_shared/project-context.ts";
+import { invokeInternal } from "../_shared/internal-invoke.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,8 @@ const corsHeaders = {
 };
 
 type Status =
-  | "pending" | "scraping" | "analysing_business" | "building_context"
+  | "pending" | "scraping" | "analysing_business" | "analysing_competitors"
+  | "researching_keywords" | "building_context"
   | "completed" | "partial" | "failed";
 
 Deno.serve(async (req) => {
@@ -42,7 +44,6 @@ Deno.serve(async (req) => {
     projectId = body.projectId;
     const mode: "full" | "refresh" = body.mode === "refresh" ? "refresh" : "full";
     const rescrape: boolean = body.rescrape !== false;
-    const authHeader = req.headers.get("Authorization") || "";
 
     if (!projectId) {
       return new Response(JSON.stringify({ success: false, error: "projectId is required" }), {
@@ -65,16 +66,9 @@ Deno.serve(async (req) => {
     // ---- Step 1: strategic scraping ------------------------------------
     await setStatus("scraping", 10);
     if (websiteUrl && rescrape) {
-      try {
-        const { data, error } = await supabase.functions.invoke("scrape-site-pages", {
-          body: { projectId, websiteUrl, limit: 30 },
-        });
-        if (error) throw error;
-        steps.scraping = data;
-      } catch (e) {
-        steps.scraping = { success: false, error: e instanceof Error ? e.message : "scrape failed" };
-        console.error("[onboarding-pipeline] scraping failed", e);
-      }
+      const res = await invokeInternal("scrape-site-pages", { projectId, websiteUrl, limit: 30 });
+      steps.scraping = res.ok ? res.data : { success: false, error: res.error };
+      if (!res.ok) console.error("[onboarding-pipeline] scraping failed", res.error);
     } else {
       steps.scraping = { skipped: true };
     }
@@ -82,12 +76,13 @@ Deno.serve(async (req) => {
     // ---- Step 2: business analysis (existing analyze-website) ----------
     await setStatus("analysing_business", 45);
     if (websiteUrl) {
-      try {
-        const { data, error } = await supabase.functions.invoke("analyze-website", {
-          body: { url: websiteUrl },
-          headers: authHeader ? { Authorization: authHeader } : undefined,
-        });
-        if (error) throw error;
+      // Service-role call: works from cron / refresh with no browser session.
+      const res = await invokeInternal("analyze-website", { url: websiteUrl });
+      const data: any = res.data;
+      if (!res.ok) {
+        steps.business = { success: false, error: res.error };
+        console.error("[onboarding-pipeline] business analysis failed", res.error);
+      } else {
         if (data?.success) {
           const updates: Record<string, unknown> = {};
           if (data.brandName && !project.brand_name) updates.brand_name = data.brandName;
@@ -120,12 +115,25 @@ Deno.serve(async (req) => {
         } else {
           steps.business = { success: false, error: data?.error || "analyze-website returned no data" };
         }
-      } catch (e) {
-        steps.business = { success: false, error: e instanceof Error ? e.message : "analysis failed" };
-        console.error("[onboarding-pipeline] business analysis failed", e);
       }
     } else {
       steps.business = { skipped: true, reason: "no website url" };
+    }
+
+    // ---- Step 2b: competitor keywords (existing analyze-competitors) ----
+    await setStatus("analysing_competitors", 60);
+    {
+      const res = await invokeInternal("analyze-competitors", { projectId, language: project.language });
+      steps.competitors = res.ok ? res.data : { success: false, error: res.error };
+      if (!res.ok) console.error("[onboarding-pipeline] competitors failed", res.error);
+    }
+
+    // ---- Step 2c: real keyword data (DataForSEO) ------------------------
+    await setStatus("researching_keywords", 70);
+    {
+      const res = await invokeInternal("enrich-keywords", { projectId, language: project.language });
+      steps.keywords = res.ok ? res.data : { success: false, error: res.error };
+      if (!res.ok) console.error("[onboarding-pipeline] keyword enrichment failed", res.error);
     }
 
     // ---- Step 3: build the context snapshot ----------------------------
@@ -138,6 +146,9 @@ Deno.serve(async (req) => {
       pages: built.context.website.pages_count,
       keywords: built.context.keywords.length,
       competitors: built.context.competitors.length,
+      sources: Object.fromEntries(
+        Object.entries(built.context.sources).map(([k, v]) => [k, `${v.status} (${v.count})`]),
+      ),
       reasons: built.reasons,
     };
 
@@ -166,6 +177,7 @@ Deno.serve(async (req) => {
         status: finalStatus,
         readiness: built.readiness,
         contextVersion: version,
+        sources: built.context.sources,
         steps,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
