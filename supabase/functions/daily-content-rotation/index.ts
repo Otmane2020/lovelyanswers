@@ -7,11 +7,11 @@ const corsHeaders = {
 };
 
 /**
- * One piece a day, cycling through the four angles so a project never gets
- * four articles of the same shape in a row:
- *   day 0 → GEO, day 1 → SEO, day 2 → AEO, day 3 → Local AEO, then repeat.
+ * One piece a day, cycling through the five angles so a project never gets
+ * five articles of the same shape in a row:
+ *   day 0 → GEO, day 1 → AEO, day 2 → SEO, day 3 → Local AEO, day 4 → AEO Shopping, then repeat.
  */
-const ROTATION = ["geo", "seo", "aeo", "local_aeo"] as const;
+const ROTATION = ["geo", "aeo", "seo", "local_aeo", "aeo_shopping"] as const;
 type ContentType = typeof ROTATION[number];
 
 /** Days since epoch — stable across timezones, so the cycle never skips or repeats a day. */
@@ -29,6 +29,7 @@ const BRIEF: Record<ContentType, string> = {
   seo: "Classic SEO article: search-intent driven, structured with clear H2s, targeting the keyword's organic ranking.",
   aeo: "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.",
   local_aeo: "Local AEO: answer the question as it would be asked about this specific area — mention the city/region, opening hours, delivery zone and other local specifics.",
+  aeo_shopping: "AEO Shopping: answer a buying-decision question the way an AI assistant would when a shopper asks for a product recommendation — price range, what to look for, and why this business is a solid pick.",
 };
 
 serve(async (req) => {
