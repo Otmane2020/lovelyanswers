@@ -56,6 +56,9 @@ Deno.serve(async (req) => {
 
     const language = (langOverride || project.language || settings?.language || "en").toLowerCase();
 
+    // Surfaced in the response so the provenance card can explain a failure.
+    let dfsError: string | null = null;
+
     // ---- 1. Discover long-tail ideas seeded from real site content ---------
     let discovered: Awaited<ReturnType<typeof keywordIdeas>> = [];
     if (discover) {
@@ -79,6 +82,7 @@ Deno.serve(async (req) => {
           discovered = await keywordIdeas(seeds, language, 200);
           console.log(`[enrich-keywords] ${discovered.length} ideas from ${seeds.length} seeds`);
         } catch (e) {
+          dfsError = e instanceof Error ? e.message : String(e);
           console.error("[enrich-keywords] ideas failed", e);
         }
       }
@@ -103,6 +107,7 @@ Deno.serve(async (req) => {
       try {
         volumes = await keywordVolumes(needsVolume, language);
       } catch (e) {
+        dfsError = e instanceof Error ? e.message : String(e);
         console.error("[enrich-keywords] volumes failed", e);
       }
     }
@@ -158,7 +163,14 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[enrich-keywords] project=${projectId} enriched=${enriched} inserted=${inserted}`);
-    return json({ success: true, enriched, inserted, discovered: discovered.length, language });
+    return json({
+      success: !dfsError || enriched > 0 || inserted > 0,
+      enriched,
+      inserted,
+      discovered: discovered.length,
+      language,
+      dataforseoError: dfsError,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[enrich-keywords] fatal", message);
