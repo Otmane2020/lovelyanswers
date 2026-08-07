@@ -39,7 +39,7 @@ export interface ProjectContextSnapshot {
   }>;
   competitors: string[];
   target_audiences: string[];
-  locations: Array<{ name: string | null; address: string | null; city: string | null }>;
+  locations: Array<{ name: string | null; address: string | null; phone: string | null }>;
   products: Array<{ title: string | null; description: string | null; category: string | null; price: number | null }>;
   tone: string | null;
   built_at: string;
@@ -85,7 +85,7 @@ export async function buildProjectContext(
   try {
     const { data } = await supabase
       .from("local_businesses")
-      .select("name, address, city")
+      .select("name, address, phone")
       .eq("project_id", projectId)
       .limit(10);
     locations = data || [];
@@ -276,7 +276,7 @@ export function renderContextBlocks(
     blocks.push(
       `LOCATION:\n` +
         ctx.locations
-          .map((l) => `- ${l.name || ""} ${l.address || ""} ${l.city || ""}`.trim())
+          .map((l) => `- ${l.name || ""} ${l.address || ""}`.trim())
           .join("\n"),
     );
   }
