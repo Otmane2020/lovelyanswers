@@ -9,7 +9,7 @@ import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 6
 
 // Publishable keys are meant to be public (Stripe's own design — they only
 // ever initialize Stripe.js, never authorize a charge), so this is safe to
@@ -286,6 +286,12 @@ export default function Onboarding() {
     if (!authLoading && user && step === 1) setStep(2)
   }, [authLoading, user, step])
 
+  // Step 4 (the "reading your site" wait screen) was removed — step 3 now
+  // waits inline for the analysis. Keep the numbering of later steps and
+  // just collapse it for the progress indicator.
+  const displayStep = step > 4 ? step - 1 : step
+
+
   /** Cheap keyword heuristic against the scraped description/domain (and,
    * when known, the detected CMS) — a pre-filled guess the user can still
    * override, not a forced choice. The CMS is checked first: a real
@@ -500,7 +506,7 @@ export default function Onboarding() {
   // guarded by analysisStartedForUrl so it never fires twice for the same
   // site (e.g. once from typing, once from step 2's Continue button below).
   useEffect(() => {
-    if (step < 2 || step > 4 || !user) return
+    if (step < 2 || step > 3 || !user) return
     if (!bizName.trim() || !isValidUrl(bizSite)) return
     const url = normalizeUrl(bizSite)
     if (analysisStartedForUrl.current === url) return
@@ -521,7 +527,7 @@ export default function Onboarding() {
   // through) → make sure it's actually running, then leave the moment it's
   // done — from here or from wherever the person actually is.
   useEffect(() => {
-    if (step === 4 && !analyzing && !projectId) runAnalysis()
+    if (step === 3 && !analyzing && !projectId) runAnalysis()
   }, [step, analyzing, projectId, runAnalysis])
 
 
@@ -661,7 +667,7 @@ export default function Onboarding() {
               <div className="brand-name">AutopilotGEO</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="step-count">Step {step}/{TOTAL_STEPS}</div>
+              <div className="step-count">Step {displayStep}/{TOTAL_STEPS}</div>
               {user && (
                 <button
                   type="button"
@@ -677,7 +683,7 @@ export default function Onboarding() {
             </div>
           </div>
           <div className="progress">
-            <div className="progress-bar" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+            <div className="progress-bar" style={{ width: `${(displayStep / TOTAL_STEPS) * 100}%` }} />
           </div>
         </div>
 
@@ -769,18 +775,20 @@ export default function Onboarding() {
                   : 'This shapes the tone and the questions we optimize your content for.'}
               </p>
 
-              <div className="card-box">
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 4 }}>
+              <div className="card-box" style={{ padding: '8px 10px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 2 }}>
                   {!analysis?.description
                     ? 'Analyzing'
                     : analysis.aiEnriched
-                    ? 'What our AI understood about your business'
+                    ? 'What our AI understood'
                     : 'From your site'}
                 </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                  {analysis?.description || (
-                    <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>
-                  )}
+                <div style={{ fontSize: 11.5, lineHeight: 1.4 }}>
+                  {analysis?.description
+                    ? (analysis.description.length > 140
+                        ? `${analysis.description.slice(0, 140).trimEnd()}…`
+                        : analysis.description)
+                    : <span style={{ color: 'var(--ink-soft)' }}>Analyzing your site…</span>}
                 </div>
               </div>
 
@@ -802,47 +810,16 @@ export default function Onboarding() {
 
               <div className="foot-nav">
                 <button className="btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="btn btn-primary" onClick={() => setStep(4)}>
-                  Continue <IcArrow />
+                <button className="btn btn-primary" disabled={!projectId} onClick={() => setStep(5)}>
+                  {projectId ? <>Continue <IcArrow /></> : (phase || 'Reading your site…')}
                 </button>
               </div>
+
             </>
           )}
 
-          {/* STEP 4 — reading the site, real analysis + project creation.
-             Never auto-advances to step 5 — even once the analysis is
-             ready, it waits for an explicit click. */}
-          {step === 4 && (
-            <>
-              {projectId ? (
-                <>
-                  <h1>Your site's been analyzed</h1>
-                  <p className="sub">Logo, sector and language are ready to review.</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                    <IcCheck size={46} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h1>Reading your website…</h1>
-                  <p className="sub">Pulling your logo, detecting your sector and language.</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
-                    <svg className="spinner" width="46" height="46" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9" fill="none" stroke="#e4e5f0" strokeWidth="2.5" />
-                      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="#2e3a8c" strokeWidth="2.5" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <p className="phase">{phase || 'Starting…'}</p>
-                </>
-              )}
-              <div className="foot-nav">
-                <button className="btn-ghost" onClick={() => setStep(3)}>Back</button>
-                <button className="btn btn-primary" disabled={!projectId} onClick={() => setStep(5)}>
-                  Continue <IcArrow />
-                </button>
-              </div>
-            </>
-          )}
+
+
 
           {/* STEP 5 — the "wow" preview, still before payment */}
           {step === 5 && (analysis || preScraped) && (
