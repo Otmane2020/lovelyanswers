@@ -213,7 +213,7 @@ serve(async (req) => {
     console.log("[ANALYZE-WEBSITE] 📄 Total page content extracted:", pageContent.length, "chars");
 
     // Step 2: Use AI to analyze the FULL page content and find competitors + keywords
-    if (openrouterApiKey && pageContent.length > 50) {
+    if ((openrouterApiKey || Deno.env.get("LOVABLE_API_KEY")) && pageContent.length > 50) {
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Using AI to analyze full page content...");
         
