@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { chatCompletion } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,9 +39,6 @@ serve(async (req) => {
   }
 
   try {
-    const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openrouterKey) throw new Error("Missing OPENROUTER_API_KEY");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
@@ -86,28 +84,13 @@ ${projectContext ? `\nTHIS USER'S PROJECT:\n${projectContext}` : ""}`;
       { role: "user", content: message.slice(0, 2000) },
     ];
 
-    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal: AbortSignal.timeout(25000),
-      headers: {
-        Authorization: `Bearer ${openrouterKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages,
-        temperature: 0.4,
-        max_tokens: 600,
-      }),
+    const aiResponse = await chatCompletion({
+      messages,
+      temperature: 0.4,
+      max_tokens: 600,
     });
 
-    const data = await aiResponse.json();
-    if (!aiResponse.ok || data?.error) {
-      throw new Error("AI provider error " + aiResponse.status + ": " + JSON.stringify(data?.error ?? data).slice(0, 300));
-    }
-
-    const reply = data.choices?.[0]?.message?.content?.trim();
+    const reply = aiResponse.choices?.[0]?.message?.content?.trim();
     if (!reply) throw new Error("Empty AI response");
 
     return new Response(JSON.stringify({ reply }), {
