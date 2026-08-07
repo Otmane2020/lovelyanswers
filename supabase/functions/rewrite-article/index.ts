@@ -233,6 +233,9 @@ Respond in JSON:
     },
     body: JSON.stringify({
       model: "google/gemma-4-31b-it:free",
+      // Free models get rate-limited upstream constantly; OpenRouter falls back
+      // through this list automatically when one errors out.
+      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free", "openai/gpt-oss-20b:free", "nvidia/nemotron-3-nano-30b-a3b:free"],
       messages: [
         { role: "system", content: "You are an expert SEO content writer. Rewrite articles to be comprehensive, data-rich, and optimized for AI citation. Always respond with valid JSON only." },
         { role: "user", content: rewritePrompt },
