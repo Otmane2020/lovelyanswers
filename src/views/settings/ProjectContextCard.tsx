@@ -24,6 +24,25 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
+/** Human labels for the provenance of each context block. */
+const SOURCE_LABELS: Record<string, string> = {
+  scraping: "Website scraping",
+  analyze_website: "Business analysis",
+  dataforseo: "DataForSEO (volume / CPC)",
+  competitors: "Competitors",
+  google_business: "Google Business",
+  shopping: "Shopping products",
+  user_input: "Manual settings",
+};
+
+interface ContextSource {
+  status: "present" | "missing" | "stale";
+  count: number;
+  last_updated: string | null;
+  feeds?: string[];
+  detail?: string;
+}
+
 interface ContextRow {
   readiness: string | null;
   context_version: number | null;
