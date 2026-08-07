@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadGenerationContext } from "../_shared/project-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +43,12 @@ serve(async (req) => {
     if (fetchError) throw fetchError;
     if (!products || products.length === 0) throw new Error("No products to process");
 
+    // Fail-safe project context (includes PRODUCT DATA). Generation continues
+    // even when DataForSEO or another provider is unavailable.
+    const { blocks: projectContextBlocks, readiness: contextReadiness, degraded: contextDegraded } =
+      await loadGenerationContext(supabase, projectId, { includeProducts: true, maxKeywords: 15 });
+    console.log(`[generate-product-ai] context readiness=${contextReadiness} degraded=${contextDegraded.join(" | ") || "none"}`);
+
     const results = [];
     for (const product of products) {
       try {
@@ -60,6 +67,7 @@ CRITICAL RULES:
 - The ai_description must contain ONE strong positioning sentence with specific use case and dimensions/context
 - Sound like a trusted product expert giving buying advice, not a salesperson
 
+${projectContextBlocks ? `${projectContextBlocks}\n\nSHOPPING AEO: optimise this product for AI shopping assistants. Ground the copy in the real catalogue, brand positioning and audience above — never generic e-commerce phrasing.\n` : ""}
 Brand context: ${project?.brand_name || "Unknown"} - ${project?.business_description || "E-commerce store"}
 Website: ${project?.website_url || ""}
 Industry: ${project?.business_type || "E-commerce"}

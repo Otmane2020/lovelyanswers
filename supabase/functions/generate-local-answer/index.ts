@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { loadGenerationContext } from "../_shared/project-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +57,7 @@ serve(async (req) => {
 
     // Get project details for additional context
     let projectContext = "";
+    let projectContextBlocks = "";
     let language = "en";
     
     if (projectId) {
@@ -73,6 +75,15 @@ serve(async (req) => {
 
       projectContext = settings?.business_description || project?.business_description || "";
       language = settings?.language || project?.language || "en";
+
+      // Fail-safe project context (includes LOCATION data). Never blocks on a
+      // missing provider — falls back to scraping / analysis / existing keywords.
+      const { blocks, readiness, degraded } = await loadGenerationContext(supabase, projectId, {
+        includeLocation: true,
+        maxKeywords: 12,
+      });
+      projectContextBlocks = blocks;
+      console.log(`[generate-local-answer] context readiness=${readiness} degraded=${degraded.join(" | ") || "none"}`);
     }
 
     // Build rich context from Places API data
@@ -130,8 +141,12 @@ ABSOLUTE RULES:
 7. NEUTRAL expert tone - no advertising
 8. Include practical tips and mistakes to avoid`;
 
+    const localCtxBlock = projectContextBlocks
+      ? projectContextBlocks + "\n\nLOCAL AEO : reponse ancree sur l'etablissement et sa zone reelle. Utilise les donnees LOCATION et le contexte ci-dessus, jamais des generalites.\n\n"
+      : "";
+
     const userPrompt = language === "fr"
-      ? `Informations sur l'etablissement:
+      ? `${localCtxBlock}Informations sur l'etablissement:
 Nom: ${businessName || "Etablissement local"}
 Localisation: ${location || "Zone locale"}
 ${contextParts.length > 0 ? "\nDetails:\n" + contextParts.join("\n") : ""}
@@ -148,7 +163,7 @@ STRUCTURE OBLIGATOIRE:
 6. Inclure le contexte temporel (${currentYear})
 
 Retourne UNIQUEMENT le texte de la reponse en markdown. Pas de JSON. Pas de guillemets autour. 250-400 mots.`
-      : `Business Information:
+      : `${localCtxBlock}Business Information:
 Name: ${businessName || "Local Business"}
 Location: ${location || "Local area"}
 ${contextParts.length > 0 ? "\nDetails:\n" + contextParts.join("\n") : ""}
