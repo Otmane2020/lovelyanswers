@@ -423,3 +423,59 @@ export function renderContextBlocks(
 
   return blocks.join("\n\n");
 }
+
+/**
+ * Fail-safe context loader for the generation functions.
+ *
+ * Generation must NEVER be blocked by a missing/erroring provider (DataForSEO
+ * in particular). This reads the snapshot, rebuilds it when needed, and falls
+ * back to whatever is already stored (scraping, analyze-website, existing
+ * keywords, competitors, questions) if anything throws.
+ */
+export async function loadGenerationContext(
+  supabase: any,
+  projectId: string,
+  opts: { includeLocation?: boolean; includeProducts?: boolean; maxKeywords?: number } = {},
+): Promise<{
+  context: ProjectContextSnapshot | null;
+  blocks: string;
+  readiness: Readiness | "unknown";
+  degraded: string[];
+}> {
+  const degraded: string[] = [];
+  let context: ProjectContextSnapshot | null = null;
+  let readiness: Readiness | "unknown" = "unknown";
+
+  try {
+    const res = await getProjectContext(supabase, projectId);
+    context = res.context;
+    readiness = res.readiness;
+  } catch (e) {
+    degraded.push(`snapshot unavailable (${(e as Error).message})`);
+    try {
+      const built = await buildProjectContext(supabase, projectId);
+      context = built.context;
+      readiness = built.readiness;
+    } catch (e2) {
+      degraded.push(`context rebuild failed (${(e2 as Error).message})`);
+    }
+  }
+
+  if (!context) return { context: null, blocks: "", readiness, degraded };
+
+  // Provider degradation is informational only — never a blocker.
+  for (const [key, src] of Object.entries(context.sources || {})) {
+    if (src.status !== "present") degraded.push(`${key}=${src.status}${src.detail ? ` (${src.detail})` : ""}`);
+  }
+
+  let blocks = renderContextBlocks(context, opts);
+
+  const dfs = context.sources?.dataforseo;
+  if (!dfs || dfs.status !== "present") {
+    blocks +=
+      `\n\nDATA NOTE: live search-volume data is unavailable (dataforseo=${dfs?.status ?? "missing"}${dfs?.detail ? `: ${dfs.detail}` : ""}).` +
+      ` Use the keywords, website pages, competitors and questions listed above as the source of truth and prioritise by topical relevance instead of volume.`;
+  }
+
+  return { context, blocks, readiness, degraded };
+}
