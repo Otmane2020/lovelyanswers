@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletion } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,84 +204,55 @@ Return ONLY this JSON (no markdown, no code block):
 {"questions":[{"question":"...?","intent":"criteria|price|howto|comparison|why|best"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        temperature: 0.7,
-        messages: [
-          { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
-        ],
-      }),
+    const res = await chatCompletion({
+      temperature: 0.7,
+      messages: [
+        { role: "user", content: `${prompt}\n\nBusiness: ${brandName}\nDescription: ${description}` },
+      ],
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    
+    const content = res.choices?.[0]?.message?.content ?? "";
+
     // Extract JSON from response
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("No JSON found");
-    
+
     const parsed = safeParseJSON(match[0]);
-    
+
     // Post-process questions
     const validQuestions = (parsed.questions || [])
       .slice(0, count)
       .map((q: any) => {
         let question = q.question || q;
-        
+
         if (typeof question !== "string") {
           question = `Comment choisir ${brandName} en ${currentYear} ?`;
         }
-        
+
         if (!isValidQuestion(question)) {
           question = language === "fr"
             ? `Comment choisir ${question} adapté à ses besoins en ${currentYear} ?`
             : `How to choose ${question} suited to your needs in ${currentYear}?`;
         }
-        
+
         question = ensureQuestionMark(question);
-        
+
         return {
           question,
           intent: INTENTS.includes(q.intent) ? q.intent : detectIntent(question),
         };
       });
-    
+
     console.log(`[generateQuestions] Generated ${validQuestions.length} valid questions`);
     return validQuestions;
   } catch (e) {
-    console.error("[generateQuestions] Failed:", e);
-    // Fallback questions
-    const fallback: { question: string; intent: IntentType }[] = [];
-    const templates = language === "fr" 
-      ? [
-          { q: `Comment choisir ${brandName.toLowerCase()} adapté à ses besoins en ${currentYear} ?`, i: "criteria" as IntentType },
-          { q: `Quel budget prévoir pour ${brandName.toLowerCase()} de qualité ?`, i: "price" as IntentType },
-          { q: `Quelles erreurs éviter avec ${brandName.toLowerCase()} ?`, i: "howto" as IntentType },
-          { q: `Pourquoi choisir ${brandName.toLowerCase()} plutôt que les alternatives ?`, i: "why" as IntentType },
-          { q: `Quels critères vérifier avant d'acheter ${brandName.toLowerCase()} ?`, i: "criteria" as IntentType },
-        ]
-      : [
-          { q: `How to choose ${brandName.toLowerCase()} suited to your needs in ${currentYear}?`, i: "criteria" as IntentType },
-          { q: `What budget for quality ${brandName.toLowerCase()}?`, i: "price" as IntentType },
-          { q: `What mistakes to avoid with ${brandName.toLowerCase()}?`, i: "howto" as IntentType },
-          { q: `Why choose ${brandName.toLowerCase()} over alternatives?`, i: "why" as IntentType },
-          { q: `What criteria to check before buying ${brandName.toLowerCase()}?`, i: "criteria" as IntentType },
-        ];
-    
-    for (let i = 0; i < count; i++) {
-      const t = templates[i % templates.length];
-      fallback.push({ question: t.q, intent: t.i });
-    }
-    return fallback;
+    // No fake template fallback — every provider in the chain (OpenRouter,
+    // Gemini, DeepSeek, Lovable AI) already failed inside chatCompletion, so
+    // there is nothing real to write. Returning [] here means the caller
+    // creates 0 answers/articles for this run instead of duplicate
+    // fallback-template titles across every project.
+    console.error("[generateQuestions] All providers failed, returning no questions:", e);
+    return [];
   }
 }
 
@@ -349,27 +321,15 @@ Return ONLY this JSON:
 {"answer":"rich 4-5 sentence response...","bullets":["Criterion 1 with precise data","Criterion 2 with concrete example","Criterion 3 mistake to avoid","Criterion 4 expert tip"],"faq":[{"q":"precise related question?","a":"30-50 word factual answer"},{"q":"alternative or comparison question?","a":"30-50 word answer"},{"q":"question about mistakes?","a":"30-50 word practical answer"}]}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        temperature: 0.5,
-        max_tokens: 2000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const res = await chatCompletion({
+      temperature: 0.5,
+      max_tokens: 2000,
+      messages: [
+        { role: "user", content: prompt },
+      ],
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
+    const content = res.choices?.[0]?.message?.content ?? "";
     const match = content.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("No JSON found");
 
@@ -382,20 +342,18 @@ Return ONLY this JSON:
     };
   } catch (e) {
     console.error(`[generateAnswer] Failed (retry ${retryCount}):`, e);
-    
+
     // Retry once with simpler prompt
     if (retryCount < 1) {
       console.log("[generateAnswer] Retrying with simpler prompt...");
       await new Promise(r => setTimeout(r, 500));
       return generateAnswer(question, brandName, description, intent, language, apiKey, retryCount + 1);
     }
-    
-    // Fallback - AEO-compliant
-    return {
-      answer: `Le choix dépend de plusieurs critères essentiels : le budget disponible, les besoins spécifiques et la qualité recherchée. Une analyse préalable permet d'éviter les erreurs courantes.`,
-      bullets: ["Définir clairement ses besoins", "Comparer plusieurs options", "Vérifier la qualité et les garanties"],
-      faq: [],
-    };
+
+    // No generic-paragraph fallback — every provider in the chain already
+    // failed. Let this question fail loudly so the caller's per-question
+    // try/catch skips it instead of inserting fake content.
+    throw e;
   }
 }
 
@@ -596,27 +554,15 @@ Return ONLY this JSON (pure HTML in content):
 {"title":"Clear title with question in ${currentYear}","content":"<p class=\\"aeo-answer\\"><strong>Direct answer...</strong>...</p><div class=\\"aeo-summary\\">...</div><h2>Section 1</h2><p>...</p><blockquote>...</blockquote><h2>Section 2</h2><p>...</p><ol><li>...</li></ol><hr><h2>Section 3</h2>...<h2>Common Mistakes</h2><ul><li>...</li></ul><h2>Conclusion</h2><p>...</p>","metaDescription":"150-160 char description with key answer and number"}`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        temperature: 0.55,
-        max_tokens: 4000,
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
+    const res = await chatCompletion({
+      temperature: 0.55,
+      max_tokens: 4000,
+      messages: [
+        { role: "user", content: prompt },
+      ],
     });
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "";
+    const content = res.choices?.[0]?.message?.content ?? "";
 
     // Try to extract JSON from code blocks first
     let jsonStr = "";
@@ -694,8 +640,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
+    // Not required up front: chatCompletion() (via _shared/ai-call.ts) falls
+    // through OpenRouter -> Gemini -> DeepSeek -> Lovable AI Gateway on its
+    // own, so a missing/exhausted OPENROUTER_API_KEY alone should never abort
+    // the whole run. apiKey is kept only for the generateX() signatures below
+    // (unused internally now, chatCompletion reads its own env keys).
+    const apiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
 
     const auth = req.headers.get("authorization");
     if (!auth) throw new Error("Missing auth header");
