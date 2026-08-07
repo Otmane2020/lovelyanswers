@@ -286,6 +286,12 @@ export default function Onboarding() {
     if (!authLoading && user && step === 1) setStep(2)
   }, [authLoading, user, step])
 
+  // Step 4 (the "reading your site" wait screen) was removed — step 3 now
+  // waits inline for the analysis. Keep the numbering of later steps and
+  // just collapse it for the progress indicator.
+  const displayStep = step > 4 ? step - 1 : step
+
+
   /** Cheap keyword heuristic against the scraped description/domain (and,
    * when known, the detected CMS) — a pre-filled guess the user can still
    * override, not a forced choice. The CMS is checked first: a real
