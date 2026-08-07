@@ -72,6 +72,100 @@ function excerpt(text: string | null, len = 600): string | null {
   return text.replace(/\s+/g, " ").trim().slice(0, len);
 }
 
+const STALE_AFTER_DAYS = 30;
+
+function latest(rows: any[], ...fields: string[]): string | null {
+  let max: number | null = null;
+  for (const row of rows) {
+    for (const f of fields) {
+      const v = row?.[f];
+      if (!v) continue;
+      const t = new Date(v).getTime();
+      if (!Number.isNaN(t) && (max === null || t > max)) max = t;
+    }
+  }
+  return max === null ? null : new Date(max).toISOString();
+}
+
+function makeSource(
+  count: number,
+  lastUpdated: string | null,
+  feeds: string[],
+  missingDetail: string,
+): ContextSource {
+  if (!count) return { status: "missing", count: 0, last_updated: null, feeds, detail: missingDetail };
+  const isStale =
+    !!lastUpdated &&
+    Date.now() - new Date(lastUpdated).getTime() > STALE_AFTER_DAYS * 86_400_000;
+  return {
+    status: isStale ? "stale" : "present",
+    count,
+    last_updated: lastUpdated,
+    feeds,
+    detail: isStale ? `last refreshed more than ${STALE_AFTER_DAYS} days ago` : undefined,
+  };
+}
+
+/** Provenance map: which source feeds which block, and is it usable today. */
+function buildSources(input: {
+  pages: any[]; keywords: any[]; competitors: string[]; locations: any[];
+  products: any[]; project: any; settings: any; description: string | null;
+}): Record<ContextSourceKey, ContextSource> {
+  const { pages, keywords, competitors, locations, products, project, settings, description } = input;
+
+  const dfsKeywords = keywords.filter((k: any) => k.source === "dataforseo" || k.enriched_at);
+  const hasBusinessAnalysis = !!(description && description.length > 30);
+  const manualFields = [
+    settings.tone, settings.brand_name, settings.target_audiences?.length ? "audiences" : null,
+    project.audience, project.business_type,
+  ].filter(Boolean);
+
+  return {
+    scraping: makeSource(
+      pages.length,
+      latest(pages, "scraped_at", "updated_at"),
+      ["website.pages", "website.detected_language"],
+      "no page scraped yet — run Refresh project context",
+    ),
+    analyze_website: makeSource(
+      hasBusinessAnalysis ? 1 : 0,
+      project.updated_at ?? null,
+      ["project.business_description", "project.business_type", "target_audiences"],
+      "business analysis never completed",
+    ),
+    dataforseo: makeSource(
+      dfsKeywords.length,
+      latest(keywords, "enriched_at", "updated_at"),
+      ["keywords.search_volume", "keywords.cpc", "keywords.difficulty", "keywords.intent"],
+      "no keyword enriched with real search data (DataForSEO)",
+    ),
+    competitors: makeSource(
+      competitors.length,
+      project.updated_at ?? null,
+      ["competitors", "keywords (competitor gap)"],
+      "no competitor identified",
+    ),
+    google_business: makeSource(
+      locations.length,
+      latest(locations, "updated_at"),
+      ["locations"],
+      "no Google Business location connected",
+    ),
+    shopping: makeSource(
+      products.length,
+      latest(products, "updated_at"),
+      ["products"],
+      "no product imported (Shopify / feed)",
+    ),
+    user_input: makeSource(
+      manualFields.length,
+      settings.updated_at ?? null,
+      ["tone", "brand_name", "audience", "business_type"],
+      "nothing filled manually in settings",
+    ),
+  };
+}
+
 export async function buildProjectContext(
   supabase: any,
   projectId: string,
@@ -152,13 +246,24 @@ export async function buildProjectContext(
       })),
       detected_language: pages.find((p: any) => p.lang)?.lang ?? null,
     },
-    keywords: keywords,
+    keywords: keywords.map((k: any) => ({
+      keyword: k.keyword,
+      search_volume: k.search_volume ?? null,
+      cpc: k.cpc ?? null,
+      difficulty: k.difficulty ?? null,
+      intent: k.intent ?? null,
+      cluster: k.cluster ?? null,
+      is_question: k.is_question ?? null,
+    })),
     competitors,
     target_audiences: Array.isArray(settings.target_audiences) ? settings.target_audiences : [],
     locations,
     products,
     tone: settings.tone ?? null,
     built_at: new Date().toISOString(),
+    sources: buildSources({
+      pages, keywords, competitors, locations, products, project, settings, description,
+    }),
   };
 
   // Readiness: identity + at least one real context source.
