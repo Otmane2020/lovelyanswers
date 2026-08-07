@@ -36,8 +36,17 @@ async function dfsPost(path: string, payload: unknown[]): Promise<any> {
     },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`DataForSEO ${path} HTTP ${res.status}`);
-  return await res.json();
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    throw new Error(`DataForSEO ${path} HTTP ${res.status}: ${detail}`);
+  }
+  const json = await res.json();
+  // DFS answers 200 with a task-level error code on quota / access problems.
+  const task = json?.tasks?.[0];
+  if (task && task.status_code && task.status_code >= 40000) {
+    throw new Error(`DataForSEO ${path} task ${task.status_code}: ${task.status_message}`);
+  }
+  return json;
 }
 
 export function locationCode(language: string): number {
