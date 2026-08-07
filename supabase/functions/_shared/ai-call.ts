@@ -47,7 +47,7 @@ export interface ChatBody {
 export interface ChatResult {
   choices: Array<{ message: { content?: string; tool_calls?: any[] } }>;
   model: string;
-  provider: "openrouter" | "lovable";
+  provider: "openrouter" | "gemini" | "deepseek" | "lovable";
 }
 
 function buildBody(model: string, opts: ChatBody) {
