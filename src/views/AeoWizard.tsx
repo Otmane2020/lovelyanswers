@@ -150,6 +150,10 @@ export default function AeoWizard() {
         await supabase.from("keywords").insert(keywordRows);
       }
       if (project?.id) {
+        // Backend orchestration: strategic scraping + business analysis + context snapshot.
+        supabase.functions.invoke('onboarding-pipeline', {
+          body: { projectId: project.id, mode: 'full' }
+        }).catch(err => console.error('[WIZARD] Onboarding pipeline error:', err));
         supabase.functions.invoke('generate-30-days-content', {
           body: { projectId: project.id, language: data.language, days: 30, questionsPerDay: 1, titlesOnly: true }
         }).catch(err => console.error('[WIZARD] Title generation error:', err));
