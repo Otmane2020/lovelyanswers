@@ -11,29 +11,13 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAME = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
 
-// Mirrors daily-planning-fill's own ROTATION + angleForOffset exactly for
-// the three angles it actually owns (SEO/AEO/Local AEO — each produced by
-// its own dedicated function: generate-articles, generate-aeo-answers +
-// generate-aeo-article, generate-local-answer). GEO comes from a separate
-// cron (daily-content-rotation → generate-geo-content → geo_contents) and
-// Shopping from on-demand product enrichment (generate-product-ai →
-// shopping_products) — both are already labeled directly from their own
-// row source below, not guessed from a date. The angle was never stored on
-// the answers/articles row itself, but scheduled_date is always written as
-// that day's UTC midnight, so the same day-index formula reproduces it
-// deterministically without a schema migration. The backend also drops
-// Local AEO from the rotation when the project has no Google Business
-// connection, so the same filter has to be applied here or the guess
-// drifts out of sync.
-const ANGLE_ROTATION = ['seo', 'aeo', 'local_aeo'] as const
+// geo_contents.content_type is a real stored column ('geo' | 'seo' | 'aeo'
+// | 'local_aeo'), written by generate-30-gso-contents which owns the 30-day
+// rotation. Read it directly instead of guessing the angle from the date.
+// The answers/articles track is AEO-only by design (daily-planning-fill),
+// and shopping_products are Shopping — both labeled from their own source.
 const ANGLE_LABEL: Record<string, string> = {
-  geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping',
-}
-function angleLabelForDate(dateStr: string | null, rotation: readonly string[]): string {
-  if (!dateStr || rotation.length === 0) return 'AEO'
-  const dayIndex = Math.floor(new Date(dateStr).getTime() / 86_400_000)
-  const angle = rotation[((dayIndex % rotation.length) + rotation.length) % rotation.length]
-  return ANGLE_LABEL[angle]
+  geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping', product: 'Shopping',
 }
 
 type Status = 'live' | 'wait' | 'draft'
@@ -73,17 +57,11 @@ export function Content() {
   const loading = la || lb || lc
 
   const hasProducts = shoppingProducts.length > 0
-  const hasGmb = integrations.some((i: any) => i.platform === 'google_business' && i.is_connected)
-  const availableRotation = useMemo(
-    () => ANGLE_ROTATION.filter((a) => a !== 'local_aeo' || hasGmb),
-    [hasGmb]
-  )
-
   const rows: Row[] = useMemo(() => {
     const fromArticles: Row[] = articles.map((a: any) => ({
       id: `art-${a.id}`,
       title: a.title,
-      format: `Article · ${angleLabelForDate(a.scheduled_date || a.created_at, availableRotation)}`,
+      format: 'Article · AEO',
       icon: <IconFile />,
       where: a.gsc_indexed ? 'Your site · Google' : 'Your site',
       status: a.status === 'published' ? 'live' : a.scheduled_date ? 'wait' : 'draft',
@@ -96,7 +74,7 @@ export function Content() {
     const fromAnswers: Row[] = answers.map((a: any) => ({
       id: `ans-${a.id}`,
       title: a.question,
-      format: `Answer · ${angleLabelForDate(a.scheduled_date || a.created_at, availableRotation)}`,
+      format: 'Answer · AEO',
       icon: <IconMessage />,
       where: (a.platforms && a.platforms.length ? a.platforms : ['ChatGPT']).join(' · '),
       status: a.is_public ? 'live' : a.scheduled_date ? 'wait' : 'draft',
@@ -111,7 +89,7 @@ export function Content() {
       kind: 'page',
       raw: g,
       title: g.title || g.topic,
-      format: `${g.content_type === 'product' ? 'Product page' : 'Page'} · GEO`,
+      format: `Page · ${ANGLE_LABEL[g.content_type] || 'GEO'}`,
       icon: <IconTag />,
       where: g.website ? 'Your site' : '—',
       status: g.published_at ? 'live' : g.scheduled_date ? 'wait' : 'draft',
@@ -142,7 +120,7 @@ export function Content() {
       if (!y.date) return -1
       return new Date(y.date).getTime() - new Date(x.date).getTime()
     })
-  }, [articles, answers, geoContents, shoppingProducts, availableRotation])
+  }, [articles, answers, geoContents, shoppingProducts])
 
   const counts = useMemo(
     () => ({

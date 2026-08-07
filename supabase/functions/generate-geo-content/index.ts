@@ -79,12 +79,19 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // The 30-day calendar (generate-30-gso-contents) calls this with the
+    // service role key for the "geo" slots — there's no human session
+    // behind a cron run, and getClaims() would reject that key since it
+    // carries no `sub`. Same internal-caller pattern the other generators
+    // already use.
+    if (token !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json();
@@ -383,9 +390,16 @@ Output JSON:
     const content = parsed.content || "";
     const score = computeGeoScore(content, brand);
 
-    // Schedule on next available date
-    const scheduledDate = new Date();
-    scheduledDate.setDate(scheduledDate.getDate() + 1 + Math.floor(Math.random() * 29));
+    // The 30-day calendar assigns the exact day this piece belongs to and
+    // passes it in; only fall back to a random slot for ad-hoc calls that
+    // don't care which day it lands on.
+    let scheduledDate: Date;
+    if (body.scheduledDate && !isNaN(new Date(body.scheduledDate).getTime())) {
+      scheduledDate = new Date(body.scheduledDate);
+    } else {
+      scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() + 1 + Math.floor(Math.random() * 29));
+    }
 
     // Save to database
     const serviceClient = createClient(

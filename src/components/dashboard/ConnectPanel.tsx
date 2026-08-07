@@ -3,6 +3,7 @@ import { useActiveProject } from '@/hooks/useProjects'
 import { useIntegrations, useDeleteIntegration } from '@/hooks/useIntegrations'
 import { IntegrationConfigModal } from '@/components/integrations/IntegrationConfigModal'
 import { DoItForMeModal } from './DoItForMeModal'
+import { useImportFeed, useShoppingProducts } from '@/hooks/useShoppingProducts'
 import { toast } from 'sonner'
 
 import shopifyLogo from '@/assets/shopify-logo-new.png'
@@ -60,6 +61,25 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
   const deleteIntegration = useDeleteIntegration()
   const [platform, setPlatform] = useState<string | null>(null)
   const [showDoItForMe, setShowDoItForMe] = useState(false)
+  // Reuses the existing feed pipeline (parse-shopping-feed -> shopping_products),
+  // previously only reachable from the standalone Shopping dashboard.
+  const importFeed = useImportFeed()
+  const { data: shoppingProducts = [] } = useShoppingProducts()
+  const [feedUrl, setFeedUrl] = useState('')
+
+  const importShoppingFeed = async () => {
+    if (!feedUrl.trim()) {
+      toast.error('Paste your Google Shopping feed URL first')
+      return
+    }
+    try {
+      const result: any = await importFeed.mutateAsync({ feedUrl: feedUrl.trim() })
+      toast.success(`${result?.imported ?? 0} products imported`)
+      setFeedUrl('')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not import that feed')
+    }
+  }
 
   const connectedFor = (id: string) => integrations.find((i) => i.platform === id && i.is_connected)
   const current = platform ? connectedFor(platform) : undefined
@@ -172,6 +192,29 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
             ))}
         </>
       )}
+
+      <div className="section-label" style={{ marginTop: '22px' }}>Google Shopping feed</div>
+      <div className="card-box">
+        <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 10 }}>
+          {shoppingProducts.length > 0
+            ? `${shoppingProducts.length} product${shoppingProducts.length > 1 ? 's' : ''} imported — Shopping content is generated from your real catalog.`
+            : 'Paste your Google Merchant / Shopping feed URL to import your catalog. Without it, Shopping days fall back to a general buying guide.'}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={feedUrl}
+            onChange={(e) => setFeedUrl(e.target.value)}
+            placeholder="https://yoursite.com/feed.xml"
+            style={{
+              flex: 1, padding: '10px 12px', fontSize: 13.5, fontFamily: 'inherit',
+              border: '1px solid var(--line)', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)',
+            }}
+          />
+          <button className="btn btn-primary btn-sm" disabled={importFeed.isPending} onClick={importShoppingFeed}>
+            {importFeed.isPending ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+      </div>
 
       {showDoItForMe && <DoItForMeModal onClose={() => setShowDoItForMe(false)} />}
 

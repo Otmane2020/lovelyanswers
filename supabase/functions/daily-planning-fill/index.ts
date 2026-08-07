@@ -9,32 +9,22 @@ const corsHeaders = {
 type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
-/** One piece a day, cycling through the angles this function owns.
- * GEO lives entirely in daily-content-rotation (generate-geo-content writes
- * to geo_contents, a different table with its own scheduling — it doesn't
- * fit the planning/answers/articles model this function tracks). Shopping
- * isn't day-rotated at all: see fillShoppingProduct below, which enriches
- * the next un-enriched catalog product whenever one exists, independent of
- * the daily cadence. */
-const ROTATION = ["seo", "aeo", "local_aeo"] as const;
-type ContentAngle = typeof ROTATION[number];
-
-const ANGLE_BRIEF: Record<ContentAngle, string> = {
-  seo: "Classic SEO piece: search-intent driven, structured with clear points, targeting the keyword's organic ranking.",
-  aeo: "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.",
-  local_aeo: "Local AEO: answer the question as it would be asked about this specific area — mention the city/region, opening hours, delivery zone and other local specifics.",
-};
-
-/** Days since epoch — stable across timezones, so the cycle never skips or repeats a day.
- * Takes the rotation array as a parameter (rather than closing over the
- * module-level ROTATION) so a project missing prerequisites for an angle
- * (no products for Shopping, no Google Business connection for Local AEO)
- * can pass a filtered list — the frontend derives the same label from
- * scheduled_date with an identical formula, so both must stay in sync. */
-function angleForOffset(dayOffset: number, rotation: readonly ContentAngle[] = ROTATION): ContentAngle {
-  const base = Math.floor(Date.now() / 86_400_000) + dayOffset;
-  return rotation[base % rotation.length];
-}
+/**
+ * This function owns ONE track: the AEO answer+article pairs stored in
+ * `answers`/`articles` and indexed by the `planning` table (whose only
+ * content columns are answer_id and article_id — it cannot reference
+ * anything else).
+ *
+ * It deliberately has NO content-type rotation of its own. The 30-day
+ * GEO -> SEO -> AEO -> Local AEO calendar is owned by
+ * generate-30-gso-contents (one piece per calendar day, type =
+ * CONTENT_TYPES[dayOffset % n], stored in geo_contents.content_type with
+ * its own scheduled_date), driven hourly by check-planning-completeness.
+ * A second rotation here produced a competing calendar writing different
+ * content on the same days — which is why the two never lined up.
+ */
+const AEO_BRIEF =
+  "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.";
 
 function detectIntent(text: string): IntentType {
   const q = text.toLowerCase();
@@ -306,27 +296,12 @@ serve(async (req) => {
       const normalize = (q: string) => q.toLowerCase().replace(/[?!.,]/g, "").trim();
       const usedQuestions = new Set<string>((existingAnswers || []).map((a: any) => normalize(a.question || "")));
 
-      // Shopping and Local AEO content is only meaningful with real data
-      // behind it — a "Shopping" piece with no products, or a "Local AEO"
-      // piece with no Google Business connection, is generic filler with
-      // nothing to actually cite. Skip those angles for this project until
-      // the prerequisite is there instead of generating hollow content.
+      // Shopping content is only meaningful with a real catalog behind it.
       const { count: productCount } = await supabase
         .from("shopping_products")
         .select("id", { count: "exact", head: true })
         .eq("project_id", project.id);
       const hasProducts = (productCount || 0) > 0;
-
-      const { data: gmbIntegration } = await supabase
-        .from("integrations")
-        .select("id")
-        .eq("project_id", project.id)
-        .eq("platform", "google_business")
-        .eq("is_connected", true)
-        .maybeSingle();
-      const hasGmb = !!gmbIntegration;
-
-      const availableRotation = ROTATION.filter((a) => a !== "local_aeo" || hasGmb);
 
       // Shopping isn't day-rotated — it enriches whatever product in the
       // catalog hasn't been touched yet, via generate-product-ai, the
@@ -364,9 +339,7 @@ serve(async (req) => {
       // Ensure rows exist in planning for the whole window (31 days)
       for (let dayOffset = 0; dayOffset < days; dayOffset++) {
         const targetDate = new Date(today.getTime() + dayOffset * 86400000);
-        const dateStr = targetDate.toISOString().split("T")[0];
-        const angle = angleForOffset(dayOffset, availableRotation);
-
+        const dateStr = targetDate.toISOString().split("T")[0];
         await supabase
           .from("planning")
           .upsert(
@@ -398,132 +371,52 @@ serve(async (req) => {
 
         daysTouched++;
 
-        console.log("[daily-planning-fill] Filling day " + dateStr + " (" + angle + ") for " + project.name + "...");
+        console.log("[daily-planning-fill] Filling day " + dateStr + " (aeo) for " + project.name + "...");
 
         try {
           let answerId: string | null = null;
           let articleId: string | null = null;
 
-          if (angle === "seo") {
-            // generate-articles is self-contained: picks the keyword,
-            // writes the SEO article (1800-2200 words, H2/H3, meta
-            // description) AND its own FAQ-derived answers in one call.
-            const keyword = keywordList.length
-              ? keywordList[dayOffset % keywordList.length]
-              : brandName + " guide";
-            const data = await callFn(supabase, serviceRoleKey, "generate-articles", {
-              projectId: project.id,
-              keywords: [keyword],
-              language,
-              count: 1,
-            });
-            const created = data?.articles?.[0];
-            if (!created) {
-              console.log("[daily-planning-fill] generate-articles produced nothing for " + dateStr + " (likely a duplicate slug) — leaving for a future run");
-              continue;
-            }
-            articleId = created.id;
-            await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
-            const { data: linkedAnswer } = await supabase
-              .from("answers").select("id").eq("article_id", articleId).limit(1).maybeSingle();
-            if (linkedAnswer) {
-              answerId = linkedAnswer.id;
-              await supabase.from("planning").update({ answer_id: answerId }).eq("id", planningRow.id);
-            }
-          } else if (angle === "aeo") {
-            let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-            if (usedQuestions.has(normalize(q.question))) {
-              q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-            }
-            if (usedQuestions.has(normalize(q.question))) {
-              console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
-              continue;
-            }
-            usedQuestions.add(normalize(q.question));
+          // AEO only: a direct question -> citation-first answer
+          // (generate-aeo-answers) -> matching AEO article
+          // (generate-aeo-article). SEO / GEO / Local AEO are NOT produced
+          // here — they belong to the 30-day calendar owned by
+          // generate-30-gso-contents, which already rotates those types.
+          let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, AEO_BRIEF, [...usedQuestions], competitorList);
+          if (usedQuestions.has(normalize(q.question))) {
+            q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, AEO_BRIEF, [...usedQuestions], competitorList);
+          }
+          if (usedQuestions.has(normalize(q.question))) {
+            console.log('[daily-planning-fill] Skipping day ' + dateStr + ' — still a duplicate after retry: ' + q.question);
+            continue;
+          }
+          usedQuestions.add(normalize(q.question));
 
-            // generate-aeo-answers: short, direct, citation-first Q&A —
-            // the AEO-specific format, not a generic article.
-            const answerData = await callFn(supabase, serviceRoleKey, "generate-aeo-answers", {
-              projectId: project.id,
-              questions: [q.question],
-              targetPlatforms: ["chatgpt", "gemini", "claude"],
-              language,
-            });
-            const createdAnswer = answerData?.answers?.[0];
-            if (!createdAnswer) {
-              console.log("[daily-planning-fill] generate-aeo-answers produced nothing for " + dateStr + " (likely scored too low) — leaving for a future run");
-              continue;
-            }
-            answerId = createdAnswer.id;
-            await supabase.from("planning").update({ answer_id: answerId, day: dateStr }).eq("id", planningRow.id);
-            await supabase.from("answers").update({ scheduled_date: targetDate.toISOString() }).eq("id", answerId);
+          const answerData = await callFn(supabase, serviceRoleKey, 'generate-aeo-answers', {
+            projectId: project.id,
+            questions: [q.question],
+            targetPlatforms: ['chatgpt', 'gemini', 'claude'],
+            language,
+          });
+          const createdAnswer = answerData?.answers?.[0];
+          if (!createdAnswer) {
+            console.log('[daily-planning-fill] generate-aeo-answers produced nothing for ' + dateStr + ' (likely scored too low) — leaving for a future run');
+            continue;
+          }
+          answerId = createdAnswer.id;
+          await supabase.from('planning').update({ answer_id: answerId }).eq('id', planningRow.id);
+          await supabase.from('answers').update({ scheduled_date: targetDate.toISOString() }).eq('id', answerId);
 
-            // generate-aeo-article: the matching AEO-style article for
-            // that same answer (still Q&A-led, not a full SEO piece).
-            const articleData = await callFn(supabase, serviceRoleKey, "generate-aeo-article", { answerId, language });
-            if (articleData?.article?.id) {
-              articleId = articleData.article.id;
-              await supabase.from("articles").update({ scheduled_date: targetDate.toISOString(), status: "scheduled" }).eq("id", articleId);
-              await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
-            }
-          } else if (angle === "local_aeo") {
-            let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-            if (usedQuestions.has(normalize(q.question))) {
-              q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-            }
-            if (usedQuestions.has(normalize(q.question))) {
-              console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
-              continue;
-            }
-            usedQuestions.add(normalize(q.question));
-
-            // generate-local-answer is a pure generator (no DB write) built
-            // for location-grounded answers — persist its result ourselves.
-            const local = await callFn(supabase, serviceRoleKey, "generate-local-answer", {
-              projectId: project.id,
-              question: q.question,
-              businessName: brandName,
-              location: "",
-              businessContext: {},
-            });
-            if (!local?.answer) {
-              console.log("[daily-planning-fill] generate-local-answer produced nothing for " + dateStr);
-              continue;
-            }
-            const score = computeScore(local.answer, brandName);
-            const { data: insertedAnswer, error: answerError } = await supabase
-              .from("answers")
-              .insert({
-                project_id: project.id,
-                question: q.question,
-                answer: local.answer,
-                slug: generateSlug(q.question),
-                intent: q.intent,
-                score,
-                is_public: false,
-                platforms: ["chatgpt", "gemini"],
-                scheduled_date: targetDate.toISOString(),
-              })
-              .select()
-              .single();
-            if (answerError || !insertedAnswer) {
-              console.error("[daily-planning-fill] Error inserting local answer:", answerError);
-              continue;
-            }
-            answerId = insertedAnswer.id;
-            await supabase.from("planning").update({ answer_id: answerId }).eq("id", planningRow.id);
-
-            const articleData = await callFn(supabase, serviceRoleKey, "generate-aeo-article", { answerId, language });
-            if (articleData?.article?.id) {
-              articleId = articleData.article.id;
-              await supabase.from("articles").update({ scheduled_date: targetDate.toISOString(), status: "scheduled" }).eq("id", articleId);
-              await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
-            }
+          const articleData = await callFn(supabase, serviceRoleKey, 'generate-aeo-article', { answerId, language });
+          if (articleData?.article?.id) {
+            articleId = articleData.article.id;
+            await supabase.from('articles').update({ scheduled_date: targetDate.toISOString(), status: 'scheduled' }).eq('id', articleId);
+            await supabase.from('planning').update({ article_id: articleId }).eq('id', planningRow.id);
           }
 
           if (answerId || articleId) daysCompleted++;
         } catch (err) {
-          console.error("[daily-planning-fill] Error filling " + dateStr + " (" + angle + "):", err);
+          console.error("[daily-planning-fill] Error filling " + dateStr + " (aeo):", err);
         }
 
         // Small delay

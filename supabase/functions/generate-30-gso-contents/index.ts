@@ -116,6 +116,19 @@ Deno.serve(async (req) => {
       .eq("project_id", projectId)
       .single();
 
+    // Real business location for the local_aeo slots. Sourced from
+    // local_businesses, which is populated from the Google Places / Business
+    // Profile lookup (one row per project) and is the only place an actual
+    // address, rating and category list exists. Without this the local_aeo
+    // prompt had nothing concrete and was explicitly told to invent
+    // plausible specifics — which is exactly what makes local answers
+    // useless: a Local AEO piece that never names the real city or area.
+    const { data: localBusiness } = await supabase
+      .from("local_businesses")
+      .select("place_id, name, address, phone, website, rating, review_count, types")
+      .eq("project_id", projectId)
+      .maybeSingle();
+
     const brand = settings?.brand_name || project.brand_name || "Brand";
     const website = settings?.website_url || project.website_url || "";
     const description = settings?.business_description || "";
@@ -131,8 +144,21 @@ Deno.serve(async (req) => {
     // type rotating through geo -> seo -> aeo -> local_aeo -> geo -> ...
     // — 30 pieces total across the window, not 4/day. Check what's already
     // scheduled per day so a run only fills days that are actually empty.
-    const CONTENT_TYPES = ["geo", "seo", "aeo", "local_aeo"] as const;
-    type ContentType = typeof CONTENT_TYPES[number];
+    const ALL_CONTENT_TYPES = ["geo", "seo", "aeo", "local_aeo", "shopping"] as const;
+    type ContentType = typeof ALL_CONTENT_TYPES[number];
+    // Local AEO only earns a slot once there's a real verified location to
+    // ground it in (local_businesses, from the Google Business Profile
+    // lookup) — without one it can only produce location-less "local"
+    // content. Shopping always keeps its slot: with a catalog it enriches a
+    // real product, without one it falls back to a sector buying guide, so
+    // the editorial rotation stays varied either way.
+    const CONTENT_TYPES = (localBusiness
+      ? ALL_CONTENT_TYPES
+      : ALL_CONTENT_TYPES.filter((t) => t !== "local_aeo")) as readonly ContentType[];
+    console.log(
+      "[generate-30-gso] Rotation: " + CONTENT_TYPES.join(" -> ") +
+      (localBusiness ? " (location: " + (localBusiness.address || localBusiness.name) + ")" : " (no verified location — local_aeo skipped)")
+    );
     // Caps AI calls per invocation so one cron tick can't time out; the next
     // tick picks up wherever this one left off, since the check is always
     // against what's actually in the database, not an in-memory counter.
@@ -156,7 +182,23 @@ Deno.serve(async (req) => {
     const dayKey = (d: Date) => d.toISOString().slice(0, 10);
     // Any content already scheduled for a day — of whatever type — means
     // that day is done. Only one piece per day is ever wanted.
-    const coveredDays = new Set((existingContents || []).map((c) => dayKey(new Date(c.scheduled_date))));
+    const [{ data: schedArticles }, { data: schedAnswers }, { data: schedLocal }, { data: schedShop }] = await Promise.all([
+      supabase.from("articles").select("scheduled_date").eq("project_id", projectId)
+        .gte("scheduled_date", now.toISOString()).lt("scheduled_date", in30.toISOString()),
+      supabase.from("answers").select("scheduled_date").eq("project_id", projectId)
+        .gte("scheduled_date", now.toISOString()).lt("scheduled_date", in30.toISOString()),
+      supabase.from("local_answers").select("scheduled_date").eq("project_id", projectId)
+        .gte("scheduled_date", dayKey(now)).lt("scheduled_date", dayKey(in30)),
+      supabase.from("shopping_planning").select("scheduled_date").eq("project_id", projectId)
+        .gte("scheduled_date", dayKey(now)).lt("scheduled_date", dayKey(in30)),
+    ]);
+
+    const coveredDays = new Set<string>();
+    for (const c of existingContents || []) coveredDays.add(dayKey(new Date(c.scheduled_date)));
+    for (const r of schedArticles || []) if (r.scheduled_date) coveredDays.add(dayKey(new Date(r.scheduled_date)));
+    for (const r of schedAnswers || []) if (r.scheduled_date) coveredDays.add(dayKey(new Date(r.scheduled_date)));
+    for (const r of schedLocal || []) if (r.scheduled_date) coveredDays.add(dayKey(new Date(r.scheduled_date)));
+    for (const r of schedShop || []) if (r.scheduled_date) coveredDays.add(dayKey(new Date(r.scheduled_date)));
 
     // One slot per still-empty day, with its type fixed by the day's
     // position in the rotation — not by what's missing, since only one
@@ -276,191 +318,168 @@ Output ONLY a JSON array of exactly ${toGenerate} items, in the same order as th
     const created: { id: string; title: string; type: string; scheduled_date: string }[] = [];
     const skipped: { type: string; reason: string }[] = [];
 
-    // Build business context for prompts
-    const businessContext = `Brand: ${brand}
-Website: ${website || "N/A"}
-Industry: ${businessType}
-Audience: ${audience}
-${description ? "Description: " + description : ""}
-${competitors?.length > 0 ? "Competitors: " + competitors.join(", ") : ""}
-${tone ? "Tone: " + tone : ""}`;
-
-    const htmlRules = `CRITICAL FORMAT RULES:
-- Output semantic HTML only. NO markdown. NO H1 tags. NO <!DOCTYPE>, <html>, <head>, <body>, <style> wrappers.
-- Use <h2>, <h3> for sections. Use <p> for paragraphs. Use <ul>/<ol>/<li> for lists.
-- Use <blockquote> for key insights or expert quotes. Use <strong> and <em> for emphasis.
-- Use <hr> as section separators.
-- Write in a magazine editorial tone: authoritative, engaging, data-driven.
-- Each H2 section MUST open with a 1-2 sentence direct answer (AI snippet bait).
-- Include at least 3 specific data points or statistics per article.
-- Add "Pro tip:" or "Expert insight:" callouts using <blockquote>.`;
+    // Every type goes to the Edge Function actually built for its editorial
+    // format — no shared prompt here, which was the bug that made all five
+    // types come out SEO-shaped:
+    //   geo       -> generate-geo-content   (long citation-ready, geo_contents)
+    //   seo       -> generate-articles      (classic H2/H3 SEO, articles)
+    //   aeo       -> generate-aeo-answers   (short direct Q&A, answers)
+    //                + generate-aeo-article (matching AEO article, articles)
+    //   local_aeo -> generate-local-answer  (location-grounded, local_answers)
+    //   shopping  -> generate-product-ai    (product enrichment, shopping_products
+    //                + shopping_planning), falling back to a sector buying
+    //                guide when the catalog is empty so the rotation holds.
+    async function callFn(name: string, payload: unknown) {
+      const res = await fetch(supabaseUrl + "/functions/v1/" + name, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + serviceRoleKey },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.error) {
+        throw new Error(name + " failed (" + res.status + "): " + JSON.stringify(json?.error ?? json).slice(0, 200));
+      }
+      return json;
+    }
 
     for (let i = 0; i < toFillNow.length; i++) {
       const slot = toFillNow[i];
       const t = topics[i];
       const type = slot.type;
       const scheduledDateStr = slot.date.toISOString();
+      const scheduledDay = scheduledDateStr.slice(0, 10);
 
-      // Positional pairing with the AI response can come up short (fewer
-      // topics returned than requested) or land on something already
-      // scheduled elsewhere this run — skip the slot rather than guess;
-      // the next invocation re-checks the database and picks it back up.
       if (!t?.topic || existingTopics.has(t.topic.toLowerCase())) {
         skipped.push({ type, reason: !t?.topic ? "no topic returned" : "duplicate topic" });
         continue;
       }
+      existingTopics.add(t.topic.toLowerCase());
 
-      console.log("[generate-30-gso] Generating " + (i + 1) + "/" + toGenerate + ": " + t.topic.substring(0, 50) + "... (" + type + ")");
-
-      let contentPrompt = "";
-
-      if (type === "geo") {
-        contentPrompt = `You are a GEO expert writing for a premium magazine in ${currentYear}. Write a comprehensive GEO article about "${t.topic}" for "${brand}".
-${businessContext}
-Keywords: ${(t.keywords || []).join(", ")}
-Language: ${language === "fr" ? "French" : "English"}
-${htmlRules}
-
-STRUCTURE (ALL sections mandatory):
-1. <p><strong>Direct Answer (40-60 words)</strong> - cite-ready paragraph answering the implied question with 1 concrete number</p>
-2. <h2>Why This Matters in ${currentYear}</h2> - industry context, 2-3 stats
-3. <h2>How It Works</h2> - step-by-step with <ol>, 5-7 steps
-4. <h2>Key Criteria / What to Look For</h2> - 4-6 points with thresholds
-5. <h2>Common Mistakes to Avoid</h2> - 4-5 actionable mistakes
-6. <h2>Expert Recommendations</h2> - mention "${brand}" 3-4 times naturally
-7. <h2>FAQ</h2> - 4 Q&A pairs using <h3> and <p>
-
-QUALITY: 1800+ words, 5+ data points, 2+ <blockquote>, mention "${brand}" 5-7 times.
-Output JSON: {"title":"...under 70 chars","meta_description":"...150-160 chars with stat","content":"...semantic HTML..."}`;
-      } else if (type === "seo") {
-        contentPrompt = `You are an SEO content writer in ${currentYear}. Write a classic search-intent-driven article targeting the keyword behind "${t.topic}" for "${brand}".
-${businessContext}
-Keywords: ${(t.keywords || []).join(", ")}
-Language: ${language === "fr" ? "French" : "English"}
-${htmlRules}
-
-STRUCTURE (ALL sections mandatory):
-1. <p><strong>Intro (60-90 words)</strong></p> - hook + what the reader will learn, primary keyword in the first sentence
-2. <h2>Why This Matters in ${currentYear}</h2> - industry context, 2-3 stats
-3. <h2>Step-by-Step Guide</h2> - 5-7 steps with <ol>
-4. <h2>Key Criteria / What to Look For</h2> - 4-6 points with thresholds
-5. <h2>Common Mistakes to Avoid</h2> - 4-5 actionable mistakes
-6. <h2>Why Choose ${brand}</h2> - mention "${brand}" 3-4 times naturally
-7. <h2>FAQ</h2> - 4 Q&A pairs using <h3> and <p>, each targeting a related long-tail keyword
-
-QUALITY: 1500+ words, 5+ data points, 2+ <blockquote>, natural keyword density, mention "${brand}" 4-6 times.
-Output JSON: {"title":"...under 70 chars, keyword near the front","meta_description":"...150-160 chars with keyword","content":"...semantic HTML..."}`;
-      } else if (type === "aeo") {
-        contentPrompt = `You are an Answer Engine Optimization expert in ${currentYear}. Answer the single question "${t.topic}" for "${brand}" the way a voice assistant or ChatGPT would read it aloud.
-${businessContext}
-Keywords: ${(t.keywords || []).join(", ")}
-Language: ${language === "fr" ? "French" : "English"}
-${htmlRules}
-
-STRUCTURE (ALL sections mandatory):
-1. <p><strong>Direct Answer (30-50 words)</strong></p> - the actual answer to the question, in the first sentence, with one concrete number
-2. <h2>The Full Picture</h2> - 2-3 short paragraphs of supporting detail
-3. <h2>What This Means for You</h2> - practical takeaway mentioning "${brand}" naturally 2-3 times
-4. <h2>Related Questions</h2> - 3 short Q&A pairs using <h3> and <p>, each answered in 1-2 sentences
-
-QUALITY: 600-900 words total — this is a snippet-first answer, not a long-form article. Every section opens with its answer, not a lead-in.
-Output JSON: {"title":"the question itself, under 70 chars","meta_description":"...150-160 chars, the direct answer","content":"...semantic HTML..."}`;
-      } else {
-        // local_aeo
-        contentPrompt = `You are a Local AEO expert in ${currentYear}. Answer "${t.topic}" the way it would actually be asked about a specific area, for "${brand}" (${website}).
-${businessContext}
-Keywords: ${(t.keywords || []).join(", ")}
-Language: ${language === "fr" ? "French" : "English"}
-${htmlRules}
-
-STRUCTURE (ALL sections mandatory):
-1. <p><strong>Direct Answer (30-50 words)</strong></p> - answer the question as asked with a location in mind, mention the specific area/region if known from the description
-2. <h2>Local Specifics</h2> - opening hours, delivery/service area, or location details relevant to the question (invent plausible specifics consistent with the business description if none are given, framed generally rather than as an exact claim)
-3. <h2>Why ${brand} for This Area</h2> - 2-3 sentences, mention "${brand}" naturally
-4. <h2>Nearby Questions</h2> - 2 short Q&A pairs using <h3> and <p> about related local concerns (parking, delivery zones, hours)
-
-QUALITY: 500-800 words — local answers are short and specific, not padded.
-Output JSON: {"title":"the local question itself, under 70 chars","meta_description":"...150-160 chars with a local reference","content":"...semantic HTML..."}`;
-      }
+      console.log("[generate-30-gso] Slot " + (i + 1) + "/" + toGenerate + " (" + type + ") -> " + t.topic.substring(0, 60));
 
       try {
-        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + openRouterKey,
-          },
-          body: JSON.stringify({
-            model: "google/gemma-4-31b-it:free",
-            // Free models get rate-limited upstream constantly; OpenRouter falls back
-            // through this list automatically when one errors out.
-            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-            messages: [
-              { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
-              { role: "user", content: contentPrompt },
-            ],
-            temperature: 0.65,
-            max_tokens: 4000,
-          }),
-        });
+        if (type === "geo") {
+          const out = await callFn("generate-geo-content", {
+            projectId, topic: t.topic, brand, website, language,
+            contentType: "article", keywords: t.keywords || [],
+            scheduledDate: scheduledDateStr,
+          });
+          created.push({ id: out?.data?.id || "", title: out?.data?.title || t.topic, type, scheduled_date: scheduledDateStr });
 
-        const aiData = await aiRes.json();
-        const rawContent = aiData.choices?.[0]?.message?.content || "";
+        } else if (type === "seo") {
+          const kw = (t.keywords && t.keywords[0]) || t.topic;
+          const out = await callFn("generate-articles", { projectId, keywords: [kw], language, count: 1 });
+          const art = out?.articles?.[0];
+          if (!art) { skipped.push({ type, reason: "generate-articles returned no article" }); continue; }
+          await supabase.from("articles").update({ scheduled_date: scheduledDateStr }).eq("id", art.id);
+          created.push({ id: art.id, title: art.title || t.topic, type, scheduled_date: scheduledDateStr });
 
-        let parsed: { title: string; meta_description: string; content: string };
-        try {
-          const cleaned2 = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-          parsed = JSON.parse(cleaned2);
-        } catch {
-          parsed = {
-            title: brand + " - " + t.topic,
-            meta_description: "Expert GEO content about " + t.topic + " featuring " + brand,
-            content: rawContent,
-          };
+        } else if (type === "aeo") {
+          const ansOut = await callFn("generate-aeo-answers", {
+            projectId, questions: [t.topic],
+            targetPlatforms: ["chatgpt", "gemini", "claude"], language,
+          });
+          const ans = ansOut?.answers?.[0];
+          if (!ans) { skipped.push({ type, reason: "generate-aeo-answers returned nothing (score gate)" }); continue; }
+          await supabase.from("answers").update({ scheduled_date: scheduledDateStr }).eq("id", ans.id);
+          try {
+            const artOut = await callFn("generate-aeo-article", { answerId: ans.id, language });
+            if (artOut?.article?.id) {
+              await supabase.from("articles")
+                .update({ scheduled_date: scheduledDateStr, status: "scheduled" })
+                .eq("id", artOut.article.id);
+            }
+          } catch (e) {
+            console.error("[generate-30-gso] AEO article failed (answer kept):", e);
+          }
+          created.push({ id: ans.id, title: t.topic, type, scheduled_date: scheduledDateStr });
+
+        } else if (type === "local_aeo") {
+          const out = await callFn("generate-local-answer", {
+            projectId, question: t.topic,
+            businessName: localBusiness?.name || brand,
+            location: localBusiness?.address || "",
+            businessContext: {
+              rating: localBusiness?.rating,
+              reviewCount: localBusiness?.review_count,
+              types: localBusiness?.types,
+              phone: localBusiness?.phone,
+              website: localBusiness?.website || website,
+            },
+          });
+          if (!out?.answer) { skipped.push({ type, reason: "generate-local-answer returned no answer" }); continue; }
+          const { data: insLocal, error: localErr } = await supabase
+            .from("local_answers")
+            .insert({
+              project_id: projectId,
+              business_id: localBusiness?.place_id || projectId,
+              business_name: localBusiness?.name || brand,
+              question: t.topic,
+              answer: out.answer,
+              score: computeGsoScore(out.answer, brand),
+              is_public: false,
+              scheduled_date: scheduledDay,
+              slug: slugify(t.topic) + "-" + Date.now().toString(36),
+              language,
+            })
+            .select("id")
+            .single();
+          if (localErr) { skipped.push({ type, reason: localErr.message }); continue; }
+          created.push({ id: insLocal.id, title: t.topic, type, scheduled_date: scheduledDateStr });
+
+        } else {
+          // shopping — reuse the existing catalog pipeline rather than
+          // writing a parallel one: products come from parse-shopping-feed
+          // (Google Shopping Feed URL) or a manual import, generate-product-ai
+          // enriches them, shopping_planning schedules the day.
+          let productId: string | null = null;
+
+          // Prefer a product that has no AI content yet, so each shopping
+          // slot moves the catalog forward instead of re-scheduling the same
+          // already-enriched item.
+          const { data: rawProduct } = await supabase
+            .from("shopping_products").select("id")
+            .eq("project_id", projectId).is("ai_title", null)
+            .limit(1).maybeSingle();
+
+          if (rawProduct) {
+            await callFn("generate-product-ai", { productId: rawProduct.id, projectId, language });
+            productId = rawProduct.id;
+          } else {
+            const { data: readyProduct } = await supabase
+              .from("shopping_products").select("id")
+              .eq("project_id", projectId).not("ai_title", "is", null)
+              .limit(1).maybeSingle();
+            productId = readyProduct?.id ?? null;
+          }
+
+          if (productId) {
+            const { error: planErr } = await supabase.from("shopping_planning").insert({
+              project_id: projectId,
+              product_id: productId,
+              scheduled_date: scheduledDay,
+              published: false,
+            });
+            if (planErr) { skipped.push({ type, reason: planErr.message }); continue; }
+            created.push({ id: productId, title: t.topic, type, scheduled_date: scheduledDateStr });
+          } else {
+            // No catalog at all (and no feed imported yet): fall back to a
+            // sector-level buying guide / comparison so the shopping slot
+            // still produces something useful and the rotation stays varied.
+            const out = await callFn("generate-geo-content", {
+              projectId, topic: t.topic, brand, website, language,
+              contentType: "comparison", keywords: t.keywords || [],
+              scheduledDate: scheduledDateStr,
+            });
+            created.push({ id: out?.data?.id || "", title: out?.data?.title || t.topic, type: "shopping_guide", scheduled_date: scheduledDateStr });
+          }
         }
-
-        const score = computeGsoScore(parsed.content || "", brand);
-        const slug = slugify(parsed.title || t.topic) + "-" + Date.now().toString(36);
-
-        const { data: inserted, error: insertError } = await supabase
-          .from("geo_contents")
-          .insert({
-            project_id: projectId,
-            topic: t.topic,
-            brand,
-            website: website || null,
-            title: parsed.title,
-            meta_description: parsed.meta_description || null,
-            content: parsed.content,
-            html_content: parsed.content,
-            content_type: type,
-            score,
-            slug,
-            keywords: t.keywords || [],
-            scheduled_date: scheduledDateStr,
-          })
-          .select("id, title")
-          .single();
-
-        if (insertError) {
-          console.error("[generate-30-gso] Insert error for " + (i + 1) + ":", insertError);
-          skipped.push({ type, reason: insertError.message });
-          continue;
-        }
-
-        created.push({
-          id: inserted.id,
-          title: inserted.title,
-          type,
-          scheduled_date: scheduledDateStr,
-        });
-
-        // Delay to avoid rate limits
-        await new Promise((r) => setTimeout(r, 500));
       } catch (err) {
-        console.error("[generate-30-gso] Error generating content " + (i + 1) + ":", err);
+        console.error("[generate-30-gso] Slot " + (i + 1) + " (" + type + ") failed:", err);
         skipped.push({ type, reason: err instanceof Error ? err.message : String(err) });
       }
+
+      await new Promise((r) => setTimeout(r, 500));
     }
 
     const remainingSlots = slots.length - toFillNow.length;
