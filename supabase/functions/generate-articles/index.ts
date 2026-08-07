@@ -306,36 +306,19 @@ serve(async (req) => {
       // Call AI with improved prompt
       let aiData: any;
       try {
-        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + openRouterKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemma-4-31b-it:free",
-            // Free models get rate-limited upstream constantly; OpenRouter falls back
-            // through this list automatically when one errors out.
-            models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildArticlePrompt(keyword, brand, website, businessType, audience, language, projectContextBlocks) },
-            ],
-            temperature: 0.6,
-            max_tokens: 4000,
-          }),
+        aiData = await chatCompletion({
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: buildArticlePrompt(keyword, brand, website, businessType, audience, language, projectContextBlocks) },
+          ],
+          temperature: 0.6,
+          max_tokens: 4000,
         });
-
-        if (!aiRes.ok) {
-          console.error("[generate-articles] AI HTTP error: " + aiRes.status);
-          continue;
-        }
-
-        aiData = await aiRes.json();
       } catch (fetchErr) {
-        console.error("[generate-articles] Fetch error for \"" + keyword + "\":", fetchErr);
+        console.error("[generate-articles] AI error for \"" + keyword + "\":", fetchErr);
         continue;
       }
+
 
       const rawContent = aiData.choices?.[0]?.message?.content;
       if (!rawContent) {
