@@ -53,6 +53,7 @@ Règles:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: aiMessages,
         stream: true,
       }),

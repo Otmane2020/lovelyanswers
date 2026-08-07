@@ -215,6 +215,7 @@ Return ONLY a JSON array:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 4000,
         messages: [
           {
             role: "system",
