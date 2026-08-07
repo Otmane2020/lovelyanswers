@@ -282,6 +282,11 @@ export async function buildProjectContext(
     if (!hasScraped) reasons.push("no scraped pages");
     if (keywords.length === 0) reasons.push("no keywords");
   }
+  // Surface every source that cannot contribute, so the UI can explain why the
+  // context is incomplete instead of just showing "partial".
+  for (const [key, src] of Object.entries(context.sources)) {
+    if (src.status !== "present") reasons.push(`${key}: ${src.detail || src.status}`);
+  }
 
   return { context, readiness, reasons };
 }
