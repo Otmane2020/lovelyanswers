@@ -3,6 +3,7 @@ import { useArticles } from '@/hooks/useArticles'
 import { useAnswers } from '@/hooks/useAnswers'
 import { useGeoContents } from '@/hooks/useGeoContents'
 import { IconFlame, IconFile, IconMessage, IconTag, IconList, IconCalendar } from './Icons'
+import { ContentPreviewModal } from './ContentPreviewModal'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAME = (y: number, m: number) =>
@@ -35,6 +36,8 @@ interface Row {
   status: Status
   url: string | null
   date: string | null
+  kind: 'article' | 'answer' | 'page'
+  raw: any
 }
 
 const STATUS_LABEL: Record<Status, string> = { live: 'Live', wait: 'Waiting', draft: 'Draft' }
@@ -43,6 +46,7 @@ export function Content() {
   const [viewMode, setViewMode] = useState<'list' | 'cal'>('list')
   const [filter, setFilter] = useState<Filter>('all')
   const [page, setPage] = useState(1)
+  const [previewRow, setPreviewRow] = useState<Row | null>(null)
   const PAGE_SIZE = 25
   const today = new Date()
   const [calYear, setCalYear] = useState(today.getFullYear())
@@ -64,6 +68,8 @@ export function Content() {
       status: a.status === 'published' ? 'live' : a.scheduled_date ? 'wait' : 'draft',
       url: a.published_url || null,
       date: a.scheduled_date || a.created_at || null,
+      kind: 'article',
+      raw: a,
     }))
 
     const fromAnswers: Row[] = answers.map((a: any) => ({
@@ -75,10 +81,14 @@ export function Content() {
       status: a.is_public ? 'live' : a.scheduled_date ? 'wait' : 'draft',
       url: a.published_url || null,
       date: a.scheduled_date || a.created_at || null,
+      kind: 'answer',
+      raw: a,
     }))
 
     const fromGeo: Row[] = geoContents.map((g: any) => ({
       id: `geo-${g.id}`,
+      kind: 'page',
+      raw: g,
       title: g.title || g.topic,
       format: `${g.content_type === 'product' ? 'Product page' : 'Page'} · GEO`,
       icon: <IconTag />,
@@ -328,9 +338,10 @@ export function Content() {
                     <td>
                       <button
                         className="btn btn-ghost btn-sm"
-                        disabled={!row.url}
-                        title={row.url ? 'Open published page' : 'Not published yet'}
-                        onClick={() => row.url && window.open(row.url, '_blank', 'noopener')}
+                        title={row.url ? 'Open published page' : 'Preview'}
+                        onClick={() =>
+                          row.url ? window.open(row.url, '_blank', 'noopener') : setPreviewRow(row)
+                        }
                       >
                         View
                       </button>
@@ -371,6 +382,41 @@ export function Content() {
             ))}
           </div>
         </>
+      )}
+
+      {previewRow?.kind === 'article' && (
+        <ContentPreviewModal
+          kind="article"
+          title={previewRow.raw.title}
+          meta={[previewRow.raw.meta_description, previewRow.raw.word_count ? `${previewRow.raw.word_count} words` : null]
+            .filter(Boolean)
+            .join(' · ')}
+          body={previewRow.raw.html_content || previewRow.raw.content || ''}
+          isHtml={!!previewRow.raw.html_content}
+          onClose={() => setPreviewRow(null)}
+        />
+      )}
+      {previewRow?.kind === 'answer' && (
+        <ContentPreviewModal
+          kind="answer"
+          title={previewRow.raw.question}
+          meta={(previewRow.raw.platforms?.length ? previewRow.raw.platforms : ['ChatGPT']).join(' · ')}
+          body={previewRow.raw.answer || ''}
+          isHtml={false}
+          bullets={previewRow.raw.supporting_content?.bullets}
+          faq={previewRow.raw.supporting_content?.faq}
+          onClose={() => setPreviewRow(null)}
+        />
+      )}
+      {previewRow?.kind === 'page' && (
+        <ContentPreviewModal
+          kind="article"
+          title={previewRow.raw.title || previewRow.raw.topic}
+          meta={previewRow.raw.meta_description || ''}
+          body={previewRow.raw.html_content || previewRow.raw.content || ''}
+          isHtml={!!previewRow.raw.html_content}
+          onClose={() => setPreviewRow(null)}
+        />
       )}
     </section>
   )
