@@ -607,16 +607,25 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // The daily planning cron calls this with the service role key (no
+    // human session behind it) to generate AEO answers unattended — skip
+    // the user/ownership check for that case, same pattern used elsewhere
+    // for cron-callable functions.
+    const isServiceRole = token === supabaseServiceKey;
+    let callerUserId: string | null = null;
+    if (!isServiceRole) {
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !userData.user) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      callerUserId = userData.user.id;
     }
 
-    const { 
-      projectId, 
+    const {
+      projectId,
       questions, // Array of questions to generate answers for (optional if useKeywords=true)
       targetPlatforms = ["chatgpt", "gemini", "claude"],
       language = "fr",
@@ -626,12 +635,10 @@ serve(async (req) => {
     console.log(`[generate-aeo-answers] Starting for project: ${projectId}, useKeywords: ${useKeywords}, ${questions?.length || 0} questions`);
 
     // Get project info
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .eq("user_id", userData.user.id)
-      .single();
+    const projectQuery = supabase.from("projects").select("*").eq("id", projectId);
+    const { data: project, error: projectError } = await (
+      callerUserId ? projectQuery.eq("user_id", callerUserId) : projectQuery
+    ).single();
 
     if (projectError || !project) {
       return new Response(JSON.stringify({ error: "Project not found" }), {

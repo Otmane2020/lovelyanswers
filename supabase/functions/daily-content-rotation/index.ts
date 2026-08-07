@@ -7,30 +7,22 @@ const corsHeaders = {
 };
 
 /**
- * One piece a day, cycling through the five angles so a project never gets
- * five articles of the same shape in a row:
- *   day 0 → GEO, day 1 → AEO, day 2 → SEO, day 3 → Local AEO, day 4 → AEO Shopping, then repeat.
+ * This cron owns GEO only. It used to rotate through "geo"/"aeo"/"seo"/
+ * "local_aeo"/"aeo_shopping" labels and hand whichever one came up to
+ * generate-geo-content as its `contentType` — but that function's
+ * `contentType` actually only ever meant "article" | "mentions" | "pillar"
+ * | "comparison" (GEO-piece variants), so anything other than the "geo"
+ * label matched no branch, left the prompt empty, and silently produced a
+ * generic GEO article anyway. AEO/SEO/Local AEO/Shopping now go through
+ * their own dedicated functions (generate-aeo-answers + generate-aeo-
+ * article, generate-articles, generate-local-answer, generate-product-ai)
+ * via daily-planning-fill instead, which actually understand those
+ * formats — this cron just does what generate-geo-content was actually
+ * built for: one GEO piece a day.
  */
-const ROTATION = ["geo", "aeo", "seo", "local_aeo", "aeo_shopping"] as const;
-type ContentType = typeof ROTATION[number];
+const CONTENT_TYPE = "article" as const;
 
-/** Days since epoch — stable across timezones, so the cycle never skips or repeats a day. */
-function dayIndex(date = new Date()): number {
-  return Math.floor(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / 86_400_000);
-}
-
-export function typeForDay(date = new Date()): ContentType {
-  return ROTATION[dayIndex(date) % ROTATION.length];
-}
-
-/** Angle-specific brief handed to the generator alongside the keywords. */
-const BRIEF: Record<ContentType, string> = {
-  geo: "Generative Engine Optimization: a citation-ready piece that ChatGPT, Gemini and Perplexity can quote directly. Lead with the answer, keep claims factual and attributable.",
-  seo: "Classic SEO article: search-intent driven, structured with clear H2s, targeting the keyword's organic ranking.",
-  aeo: "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.",
-  local_aeo: "Local AEO: answer the question as it would be asked about this specific area — mention the city/region, opening hours, delivery zone and other local specifics.",
-  aeo_shopping: "AEO Shopping: answer a buying-decision question the way an AI assistant would when a shopper asks for a product recommendation — price range, what to look for, and why this business is a solid pick.",
-};
+const BRIEF = "Generative Engine Optimization: a citation-ready piece that ChatGPT, Gemini and Perplexity can quote directly. Lead with the answer, keep claims factual and attributable.";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -53,8 +45,7 @@ serve(async (req) => {
       // No body — the cron path, which covers every active project.
     }
 
-    const contentType = typeForDay();
-    console.log("[ROTATION] Content type for today:", contentType, "project:", onlyProjectId ?? "all");
+    console.log("[ROTATION] Generating GEO content, project:", onlyProjectId ?? "all");
 
     let query = supabase
       .from("projects")
@@ -68,7 +59,7 @@ serve(async (req) => {
 
     if (!projects?.length) {
       return new Response(
-        JSON.stringify({ success: true, contentType, processed: 0, message: "No active projects" }),
+        JSON.stringify({ success: true, contentType: CONTENT_TYPE, processed: 0, message: "No active projects" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -89,7 +80,7 @@ serve(async (req) => {
 
         const nextKeyword = keywords?.[0] ?? null;
         const brand = project.brand_name || project.name;
-        const topic = nextKeyword?.keyword || `${brand} — ${contentType.replace("_", " ")} update`;
+        const topic = nextKeyword?.keyword || `${brand} — GEO update`;
 
         const { error: genError } = await supabase.functions.invoke("generate-geo-content", {
           body: {
@@ -98,9 +89,9 @@ serve(async (req) => {
             brand,
             website: project.website_url,
             language: project.language || "en",
-            contentType,
+            contentType: CONTENT_TYPE,
             keywords: (keywords ?? []).slice(0, 8).map((k) => k.keyword),
-            brief: BRIEF[contentType],
+            brief: BRIEF,
           },
         });
 
@@ -126,7 +117,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        contentType,
+        contentType: CONTENT_TYPE,
         processed: results.length,
         succeeded,
         failed: results.length - succeeded,

@@ -794,24 +794,29 @@ serve(async (req) => {
       });
     }
 
-    // Create client with user's auth header for getClaims
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error("[generate-aeo-article] Auth error:", claimsError);
-      return new Response(JSON.stringify({ error: "Invalid JWT" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // The daily planning cron calls this with the service role key (no
+    // human session behind it) to generate the AEO article for an answer
+    // it just created unattended — skip the user/ownership check for that
+    // case, same pattern used elsewhere for cron-callable functions.
+    const isServiceRole = token === supabaseServiceKey;
+    let userId: string | null = null;
+    if (!isServiceRole) {
+      // Create client with user's auth header for getClaims
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
       });
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        console.error("[generate-aeo-article] Auth error:", claimsError);
+        return new Response(JSON.stringify({ error: "Invalid JWT" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.claims.sub as string;
     }
 
-    const userId = claimsData.claims.sub;
-    
     // Use service role client for DB operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -833,8 +838,10 @@ serve(async (req) => {
       });
     }
 
-    // Verify ownership
-    if (answer.projects?.user_id !== userId) {
+    // Verify ownership (skipped for the service-role/cron caller — there's
+    // no end user to own the request, the answer's own project_id is trust
+    // enough since it was itself created by the same cron for this project).
+    if (userId && answer.projects?.user_id !== userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

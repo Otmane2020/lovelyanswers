@@ -11,19 +11,26 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAME = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
 
-// Mirrors daily-planning-fill's own ROTATION + angleForOffset exactly — the
-// angle was never stored on the row itself, but since scheduled_date is
-// always written as that day's UTC midnight, the same day-index formula
-// reproduces it deterministically without a schema migration. The backend
-// also drops Shopping/Local AEO from the rotation when the project has no
-// products / no Google Business connection, so the same filter has to be
-// applied here or the label guess drifts out of sync.
-const ANGLE_ROTATION = ['geo', 'aeo', 'seo', 'local_aeo', 'aeo_shopping'] as const
+// Mirrors daily-planning-fill's own ROTATION + angleForOffset exactly for
+// the three angles it actually owns (SEO/AEO/Local AEO — each produced by
+// its own dedicated function: generate-articles, generate-aeo-answers +
+// generate-aeo-article, generate-local-answer). GEO comes from a separate
+// cron (daily-content-rotation → generate-geo-content → geo_contents) and
+// Shopping from on-demand product enrichment (generate-product-ai →
+// shopping_products) — both are already labeled directly from their own
+// row source below, not guessed from a date. The angle was never stored on
+// the answers/articles row itself, but scheduled_date is always written as
+// that day's UTC midnight, so the same day-index formula reproduces it
+// deterministically without a schema migration. The backend also drops
+// Local AEO from the rotation when the project has no Google Business
+// connection, so the same filter has to be applied here or the guess
+// drifts out of sync.
+const ANGLE_ROTATION = ['seo', 'aeo', 'local_aeo'] as const
 const ANGLE_LABEL: Record<string, string> = {
   geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping',
 }
 function angleLabelForDate(dateStr: string | null, rotation: readonly string[]): string {
-  if (!dateStr || rotation.length === 0) return 'GEO'
+  if (!dateStr || rotation.length === 0) return 'AEO'
   const dayIndex = Math.floor(new Date(dateStr).getTime() / 86_400_000)
   const angle = rotation[((dayIndex % rotation.length) + rotation.length) % rotation.length]
   return ANGLE_LABEL[angle]
@@ -41,7 +48,7 @@ interface Row {
   status: Status
   url: string | null
   date: string | null
-  kind: 'article' | 'answer' | 'page'
+  kind: 'article' | 'answer' | 'page' | 'product'
   raw: any
 }
 
@@ -68,8 +75,8 @@ export function Content() {
   const hasProducts = shoppingProducts.length > 0
   const hasGmb = integrations.some((i: any) => i.platform === 'google_business' && i.is_connected)
   const availableRotation = useMemo(
-    () => ANGLE_ROTATION.filter((a) => (a !== 'aeo_shopping' || hasProducts) && (a !== 'local_aeo' || hasGmb)),
-    [hasProducts, hasGmb]
+    () => ANGLE_ROTATION.filter((a) => a !== 'local_aeo' || hasGmb),
+    [hasGmb]
   )
 
   const rows: Row[] = useMemo(() => {
@@ -112,12 +119,30 @@ export function Content() {
       date: g.scheduled_date || g.created_at || null,
     }))
 
-    return [...fromArticles, ...fromAnswers, ...fromGeo].sort((x, y) => {
+    // Only enriched products (generate-product-ai has actually run on them)
+    // count as a real "Shopping" piece of content — an imported-but-untouched
+    // product isn't AEO-ready content yet.
+    const fromProducts: Row[] = shoppingProducts
+      .filter((p: any) => p.ai_title || p.ai_description)
+      .map((p: any) => ({
+        id: `prod-${p.id}`,
+        kind: 'product',
+        raw: p,
+        title: p.ai_title || p.title,
+        format: 'Product · Shopping',
+        icon: <IconTag />,
+        where: p.product_url ? 'Your site' : '—',
+        status: p.published_at ? 'live' : p.scheduled_date ? 'wait' : 'draft',
+        url: p.published_url || null,
+        date: p.scheduled_date || p.created_at || null,
+      }))
+
+    return [...fromArticles, ...fromAnswers, ...fromGeo, ...fromProducts].sort((x, y) => {
       if (!x.date) return 1
       if (!y.date) return -1
       return new Date(y.date).getTime() - new Date(x.date).getTime()
     })
-  }, [articles, answers, geoContents, availableRotation])
+  }, [articles, answers, geoContents, shoppingProducts, availableRotation])
 
   const counts = useMemo(
     () => ({
@@ -432,6 +457,19 @@ export function Content() {
           meta={previewRow.raw.meta_description || ''}
           body={previewRow.raw.html_content || previewRow.raw.content || ''}
           isHtml={!!previewRow.raw.html_content}
+          onClose={() => setPreviewRow(null)}
+        />
+      )}
+      {previewRow?.kind === 'product' && (
+        <ContentPreviewModal
+          kind="answer"
+          title={previewRow.raw.ai_title || previewRow.raw.title}
+          meta={[previewRow.raw.price ? `${previewRow.raw.price} ${previewRow.raw.currency || ''}`.trim() : null, previewRow.raw.brand]
+            .filter(Boolean)
+            .join(' · ')}
+          body={previewRow.raw.ai_description || ''}
+          isHtml={false}
+          faq={(previewRow.raw.ai_faq || []).map((f: any) => ({ q: f.question || f.q, a: f.answer || f.a }))}
           onClose={() => setPreviewRow(null)}
         />
       )}

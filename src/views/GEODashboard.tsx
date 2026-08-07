@@ -91,9 +91,13 @@ export default function GEODashboard() {
       const [{ count: totalRows }, { count: incompleteRows }] = await Promise.all([
         supabase.from('planning').select('id', { count: 'exact', head: true })
           .eq('project_id', project.id).gte('day', todayStr).lt('day', endDateStr),
+        // A day counts as filled once it has EITHER piece — not every
+        // content angle produces both an answer and an article (see
+        // daily-planning-fill), so requiring both here would keep flagging
+        // genuinely-complete days as still needing work.
         supabase.from('planning').select('id', { count: 'exact', head: true })
           .eq('project_id', project.id).gte('day', todayStr).lt('day', endDateStr)
-          .or('answer_id.is.null,article_id.is.null'),
+          .is('answer_id', null).is('article_id', null),
       ])
 
       if ((totalRows || 0) >= windowDays && (incompleteRows || 0) === 0) return

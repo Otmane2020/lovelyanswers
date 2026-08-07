@@ -9,17 +9,20 @@ const corsHeaders = {
 type IntentType = "price" | "duration" | "criteria" | "comparison" | "howto" | "best" | "what" | "why";
 const INTENTS: IntentType[] = ["price", "criteria", "comparison", "howto", "best", "what", "why", "duration"];
 
-/** One piece a day, cycling through five angles — day 0 GEO, day 1 SEO,
- * day 2 SEO, day 3 Local AEO, day 4 AEO Shopping, then repeat. */
-const ROTATION = ["geo", "aeo", "seo", "local_aeo", "aeo_shopping"] as const;
+/** One piece a day, cycling through the angles this function owns.
+ * GEO lives entirely in daily-content-rotation (generate-geo-content writes
+ * to geo_contents, a different table with its own scheduling — it doesn't
+ * fit the planning/answers/articles model this function tracks). Shopping
+ * isn't day-rotated at all: see fillShoppingProduct below, which enriches
+ * the next un-enriched catalog product whenever one exists, independent of
+ * the daily cadence. */
+const ROTATION = ["seo", "aeo", "local_aeo"] as const;
 type ContentAngle = typeof ROTATION[number];
 
 const ANGLE_BRIEF: Record<ContentAngle, string> = {
-  geo: "Generative Engine Optimization: a citation-ready piece that ChatGPT, Gemini and Perplexity can quote directly. Lead with the answer, keep claims factual and attributable.",
   seo: "Classic SEO piece: search-intent driven, structured with clear points, targeting the keyword's organic ranking.",
   aeo: "Answer Engine Optimization: a direct question-and-answer piece, one clear question answered in the first two sentences, then the supporting detail.",
   local_aeo: "Local AEO: answer the question as it would be asked about this specific area — mention the city/region, opening hours, delivery zone and other local specifics.",
-  aeo_shopping: "AEO Shopping: answer a buying-decision question the way an AI assistant would when a shopper asks for a product recommendation — price range, what to look for, and why this business is a solid pick.",
 };
 
 /** Days since epoch — stable across timezones, so the cycle never skips or repeats a day.
@@ -182,158 +185,30 @@ async function generateQuestion(
   }
 }
 
-async function generateAnswer(
-  question: string,
-  brandName: string,
-  description: string,
-  intent: IntentType,
-  language: string,
-  apiKey: string
-): Promise<{ answer: string; bullets: string[]; faq: { q: string; a: string }[] }> {
-  const systemPrompt = language === "fr"
-    ? "Tu es un expert AEO. Redige une reponse citation-first. Premiere phrase = reponse DIRECTE. Mention " + brandName + " UNE fois. 80-120 mots."
-    : "You are an AEO expert. Write a citation-first answer. First sentence = DIRECT answer. Mention " + brandName + " ONCE. 80-120 words.";
-
-  const userPrompt = "Question: " + question + "\nBrand: " + brandName + "\nDescription: " + description + "\nIntent: " + intent + "\n\nReturn JSON: {\"answer\": \"...\", \"bullets\": [], \"faq\": []}";
-
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      // A single stalled free-model call must not eat the whole request's
-      // 150s budget — 3 of these run sequentially per day filled.
-      signal: AbortSignal.timeout(20000),
-      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        max_tokens: 4000,
-        temperature: 0.3,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-
-    const json = await res.json();
-    if (!res.ok || json?.error) {
-      // Surface the provider's own message (quota exhausted, bad key, model
-      // unavailable) instead of the useless generic "Invalid JSON" that this
-      // used to throw once content came back empty.
-      throw new Error("AI provider error " + res.status + ": " + JSON.stringify(json?.error ?? json).slice(0, 300));
-    }
-    const content = json?.choices?.[0]?.message?.content ?? "";
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Invalid JSON");
-    return JSON.parse(match[0]);
-  } catch (e) {
-    console.error("Failed to generate answer:", e);
-    return {
-      answer: language === "fr"
-        ? brandName + " propose des solutions adaptees. Consultez les ressources disponibles."
-        : brandName + " offers solutions tailored to your needs. See the resources below for details.",
-      bullets: [],
-      faq: [],
-    };
-  }
-}
-
-async function generateArticle(
-  question: string,
-  answer: string,
-  brandName: string,
-  language: string,
-  apiKey: string,
-  angleBrief: string = ""
-): Promise<{ title: string; content: string; htmlContent: string; metaDescription: string; wordCount: number }> {
-  const systemPrompt = language === "fr"
-    ? "Tu rediges un article de blog SEO/AEO complet. Titre accrocheur. 800-1200 mots. Mentionner " + brandName + " 2-3 fois."
-    : "Write a complete SEO/AEO blog article. Catchy title. 800-1200 words. Mention " + brandName + " 2-3 times.";
-
-  const userPrompt = "Question: " + question + "\nAnswer: " + answer + "\nBrand: " + brandName +
-    (angleBrief ? "\nAngle: " + angleBrief : "") +
-    "\n\nReturn JSON: {\"title\": \"...\", \"content\": \"...\", \"metaDescription\": \"...\"}";
-
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      // A single stalled free-model call must not eat the whole request's
-      // 150s budget — 3 of these run sequentially per day filled.
-      signal: AbortSignal.timeout(20000),
-      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        max_tokens: 4000,
-        temperature: 0.5,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-
-    const json = await res.json();
-    if (!res.ok || json?.error) {
-      // Surface the provider's own message (quota exhausted, bad key, model
-      // unavailable) instead of the useless generic "Invalid JSON" that this
-      // used to throw once content came back empty.
-      throw new Error("AI provider error " + res.status + ": " + JSON.stringify(json?.error ?? json).slice(0, 300));
-    }
-    const content = json?.choices?.[0]?.message?.content ?? "";
-
-    let jsonStr = "";
-    const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
-    else {
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) jsonStr = match[0];
-    }
-
-    if (!jsonStr) throw new Error("Invalid JSON");
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " ");
-      jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
-      parsed = JSON.parse(jsonStr);
-    }
-
-    const articleContent = parsed.content || answer;
-    const wordCount = articleContent.split(/\s+/).length;
-
-    const htmlContent = articleContent
-      .replace(/### (.*)/g, "<h3>$1</h3>")
-      .replace(/## (.*)/g, "<h2>$1</h2>")
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/\n\n/g, "</p><p>")
-      .replace(/^/, "<p>")
-      .replace(/$/, "</p>");
-
-    return {
-      title: parsed.title || question,
-      content: articleContent,
-      htmlContent,
-      metaDescription: parsed.metaDescription || answer.substring(0, 155),
-      wordCount,
-    };
-  } catch (e) {
-    console.error("Failed to generate article:", e);
-    return {
-      title: question,
-      content: answer,
-      htmlContent: "<p>" + answer + "</p>",
-      metaDescription: answer.substring(0, 155),
-      wordCount: answer.split(/\s+/).length,
-    };
-  }
+/**
+ * Every content type is produced by the project's own dedicated Edge
+ * Function — generate-articles (SEO), generate-aeo-answers +
+ * generate-aeo-article (AEO), generate-local-answer (Local AEO) — not a
+ * generic prompt here. Each has a different editorial format (SEO: long
+ * structured article with H2/H3 and meta description; AEO: short direct
+ * Q&A; Local AEO: location-grounded answer), which is exactly why a single
+ * shared generator was wrong. This function's own job is orchestration:
+ * pick the day's angle, hand it to the right specialist, and record the
+ * result in `planning`.
+ *
+ * They're normally user-triggered (real JWT + ownership check) — invoked
+ * here with the service role key instead, which each one now recognizes
+ * (see the isServiceRole checks added to generate-aeo-answers,
+ * generate-aeo-article and generate-local-answer).
+ */
+async function callFn(supabase: any, serviceRoleKey: string, name: string, payload: unknown) {
+  const { data, error } = await supabase.functions.invoke(name, {
+    body: payload,
+    headers: { Authorization: "Bearer " + serviceRoleKey },
+  });
+  if (error) throw new Error(name + " failed: " + error.message);
+  if (data?.error) throw new Error(name + " failed: " + data.error);
+  return data;
 }
 
 /**
@@ -349,10 +224,8 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
     const apiKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
@@ -398,6 +271,7 @@ serve(async (req) => {
       daysTouched: number;
       daysCompleted: number;
       stoppedEarly: boolean;
+      shoppingProductEnriched: string | null;
     }[] = [];
 
     for (const project of projects || []) {
@@ -452,9 +326,36 @@ serve(async (req) => {
         .maybeSingle();
       const hasGmb = !!gmbIntegration;
 
-      const availableRotation = ROTATION.filter(
-        (a) => (a !== "aeo_shopping" || hasProducts) && (a !== "local_aeo" || hasGmb)
-      );
+      const availableRotation = ROTATION.filter((a) => a !== "local_aeo" || hasGmb);
+
+      // Shopping isn't day-rotated — it enriches whatever product in the
+      // catalog hasn't been touched yet, via generate-product-ai, the
+      // function actually built for it (titles/descriptions/FAQ per
+      // product, not a themed article). One per run keeps this inside the
+      // time budget alongside the day-planning work below.
+      let shoppingProductEnriched: string | null = null;
+      if (hasProducts) {
+        const { data: nextProduct } = await supabase
+          .from("shopping_products")
+          .select("id")
+          .eq("project_id", project.id)
+          .eq("status", "imported")
+          .limit(1)
+          .maybeSingle();
+        if (nextProduct) {
+          try {
+            await callFn(supabase, serviceRoleKey, "generate-product-ai", {
+              productId: nextProduct.id,
+              projectId: project.id,
+              language,
+            });
+            shoppingProductEnriched = nextProduct.id;
+            console.log("[daily-planning-fill] Enriched shopping product " + nextProduct.id + " for " + project.name);
+          } catch (e) {
+            console.error("[daily-planning-fill] Shopping enrichment failed for " + project.name + ":", e);
+          }
+        }
+      }
 
       let daysTouched = 0;
       let daysCompleted = 0;
@@ -482,8 +383,12 @@ serve(async (req) => {
 
         if (!planningRow) continue;
 
-        // If already complete, skip
-        if (planningRow.answer_id && planningRow.article_id) continue;
+        // A day counts as covered once it has EITHER piece — not every
+        // specialist produces both (generate-local-answer returns only an
+        // answer; a failed article call shouldn't re-trigger the answer
+        // half too). Requiring both meant angles that only fill one side
+        // got re-attempted forever.
+        if (planningRow.answer_id || planningRow.article_id) continue;
 
         // Stop early to avoid timeout
         if (daysTouched >= maxDaysToFill) {
@@ -493,125 +398,139 @@ serve(async (req) => {
 
         daysTouched++;
 
-        console.log("[daily-planning-fill] Filling day " + dateStr + " for " + project.name + "...");
+        console.log("[daily-planning-fill] Filling day " + dateStr + " (" + angle + ") for " + project.name + "...");
 
-        // 1) Ensure we have an answer
-        let answerId = planningRow.answer_id as string | null;
-        let answerQuestion = "";
-        let answerText = "";
+        try {
+          let answerId: string | null = null;
+          let articleId: string | null = null;
 
-        if (answerId) {
-          const { data: existingAnswer } = await supabase
-            .from("answers")
-            .select("id, question, answer")
-            .eq("id", answerId)
-            .single();
-          if (existingAnswer) {
-            answerQuestion = existingAnswer.question;
-            answerText = existingAnswer.answer;
-          } else {
-            answerId = null;
-          }
-        }
+          if (angle === "seo") {
+            // generate-articles is self-contained: picks the keyword,
+            // writes the SEO article (1800-2200 words, H2/H3, meta
+            // description) AND its own FAQ-derived answers in one call.
+            const keyword = keywordList.length
+              ? keywordList[dayOffset % keywordList.length]
+              : brandName + " guide";
+            const data = await callFn(supabase, serviceRoleKey, "generate-articles", {
+              projectId: project.id,
+              keywords: [keyword],
+              language,
+              count: 1,
+            });
+            const created = data?.articles?.[0];
+            if (!created) {
+              console.log("[daily-planning-fill] generate-articles produced nothing for " + dateStr + " (likely a duplicate slug) — leaving for a future run");
+              continue;
+            }
+            articleId = created.id;
+            await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
+            const { data: linkedAnswer } = await supabase
+              .from("answers").select("id").eq("article_id", articleId).limit(1).maybeSingle();
+            if (linkedAnswer) {
+              answerId = linkedAnswer.id;
+              await supabase.from("planning").update({ answer_id: answerId }).eq("id", planningRow.id);
+            }
+          } else if (angle === "aeo") {
+            let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
+            if (usedQuestions.has(normalize(q.question))) {
+              q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
+            }
+            if (usedQuestions.has(normalize(q.question))) {
+              console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
+              continue;
+            }
+            usedQuestions.add(normalize(q.question));
 
-        if (!answerId) {
-          let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-          // One retry with a stronger nudge if it still landed on something
-          // already used (small business + a static fallback template make
-          // this the common case, not a rare one).
-          if (usedQuestions.has(normalize(q.question))) {
-            q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
-          }
-          if (usedQuestions.has(normalize(q.question))) {
-            console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
-            continue;
-          }
-          usedQuestions.add(normalize(q.question));
+            // generate-aeo-answers: short, direct, citation-first Q&A —
+            // the AEO-specific format, not a generic article.
+            const answerData = await callFn(supabase, serviceRoleKey, "generate-aeo-answers", {
+              projectId: project.id,
+              questions: [q.question],
+              targetPlatforms: ["chatgpt", "gemini", "claude"],
+              language,
+            });
+            const createdAnswer = answerData?.answers?.[0];
+            if (!createdAnswer) {
+              console.log("[daily-planning-fill] generate-aeo-answers produced nothing for " + dateStr + " (likely scored too low) — leaving for a future run");
+              continue;
+            }
+            answerId = createdAnswer.id;
+            await supabase.from("planning").update({ answer_id: answerId, day: dateStr }).eq("id", planningRow.id);
+            await supabase.from("answers").update({ scheduled_date: targetDate.toISOString() }).eq("id", answerId);
 
-          const answerData = await generateAnswer(q.question, brandName, description, q.intent, language, apiKey);
-          const score = computeScore(answerData.answer, brandName);
+            // generate-aeo-article: the matching AEO-style article for
+            // that same answer (still Q&A-led, not a full SEO piece).
+            const articleData = await callFn(supabase, serviceRoleKey, "generate-aeo-article", { answerId, language });
+            if (articleData?.article?.id) {
+              articleId = articleData.article.id;
+              await supabase.from("articles").update({ scheduled_date: targetDate.toISOString(), status: "scheduled" }).eq("id", articleId);
+              await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
+            }
+          } else if (angle === "local_aeo") {
+            let q = await generateQuestion(brandName, description, language, apiKey, dayOffset, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
+            if (usedQuestions.has(normalize(q.question))) {
+              q = await generateQuestion(brandName, description, language, apiKey, dayOffset + 1000, keywordList, ANGLE_BRIEF[angle], [...usedQuestions], competitorList);
+            }
+            if (usedQuestions.has(normalize(q.question))) {
+              console.log("[daily-planning-fill] Skipping day " + dateStr + " — still a duplicate after retry: " + q.question);
+              continue;
+            }
+            usedQuestions.add(normalize(q.question));
 
-          const { data: insertedAnswer, error: answerError } = await supabase
-            .from("answers")
-            .insert({
-              project_id: project.id,
+            // generate-local-answer is a pure generator (no DB write) built
+            // for location-grounded answers — persist its result ourselves.
+            const local = await callFn(supabase, serviceRoleKey, "generate-local-answer", {
+              projectId: project.id,
               question: q.question,
-              answer: answerData.answer,
-              slug: generateSlug(q.question),
-              intent: q.intent,
-              score,
-              is_public: false,
-              scheduled_date: targetDate.toISOString(),
-              supporting_content: { bullets: answerData.bullets, faq: answerData.faq },
-            })
-            .select()
-            .single();
-
-          if (answerError || !insertedAnswer) {
-            console.error("[daily-planning-fill] Error inserting answer:", answerError);
-            continue;
-          }
-
-          answerId = insertedAnswer.id;
-          answerQuestion = insertedAnswer.question;
-          answerText = insertedAnswer.answer;
-
-          await supabase
-            .from("planning")
-            .update({ answer_id: answerId })
-            .eq("id", planningRow.id);
-        }
-
-        // 2) Ensure we have an article
-        if (!planningRow.article_id) {
-          try {
-            const articleData = await generateArticle(answerQuestion, answerText, brandName, language, apiKey, ANGLE_BRIEF[angle]);
-            const score = computeScore(answerText, brandName);
-
-            const { data: insertedArticle, error: articleError } = await supabase
-              .from("articles")
+              businessName: brandName,
+              location: "",
+              businessContext: {},
+            });
+            if (!local?.answer) {
+              console.log("[daily-planning-fill] generate-local-answer produced nothing for " + dateStr);
+              continue;
+            }
+            const score = computeScore(local.answer, brandName);
+            const { data: insertedAnswer, error: answerError } = await supabase
+              .from("answers")
               .insert({
                 project_id: project.id,
-                linked_answer_id: answerId,
-                title: articleData.title,
-                content: articleData.content,
-                html_content: articleData.htmlContent,
-                meta_description: articleData.metaDescription,
-                word_count: articleData.wordCount,
-                slug: generateSlug(articleData.title),
-                status: "scheduled",
+                question: q.question,
+                answer: local.answer,
+                slug: generateSlug(q.question),
+                intent: q.intent,
+                score,
+                is_public: false,
+                platforms: ["chatgpt", "gemini"],
                 scheduled_date: targetDate.toISOString(),
-                aeo_score: score,
               })
               .select()
               .single();
-
-            if (articleError || !insertedArticle) {
-              console.error("[daily-planning-fill] Error inserting article:", articleError);
+            if (answerError || !insertedAnswer) {
+              console.error("[daily-planning-fill] Error inserting local answer:", answerError);
               continue;
             }
+            answerId = insertedAnswer.id;
+            await supabase.from("planning").update({ answer_id: answerId }).eq("id", planningRow.id);
 
-            await supabase
-              .from("answers")
-              .update({ article_id: insertedArticle.id, has_article: true })
-              .eq("id", answerId);
-
-            await supabase
-              .from("planning")
-              .update({ article_id: insertedArticle.id })
-              .eq("id", planningRow.id);
-
-            daysCompleted++;
-          } catch (err) {
-            console.error("[daily-planning-fill] Error generating article for " + dateStr + ":", err);
+            const articleData = await callFn(supabase, serviceRoleKey, "generate-aeo-article", { answerId, language });
+            if (articleData?.article?.id) {
+              articleId = articleData.article.id;
+              await supabase.from("articles").update({ scheduled_date: targetDate.toISOString(), status: "scheduled" }).eq("id", articleId);
+              await supabase.from("planning").update({ article_id: articleId }).eq("id", planningRow.id);
+            }
           }
+
+          if (answerId || articleId) daysCompleted++;
+        } catch (err) {
+          console.error("[daily-planning-fill] Error filling " + dateStr + " (" + angle + "):", err);
         }
 
         // Small delay
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      results.push({ projectId: project.id, name: project.name, daysTouched, daysCompleted, stoppedEarly });
+      results.push({ projectId: project.id, name: project.name, daysTouched, daysCompleted, stoppedEarly, shoppingProductEnriched });
     }
 
     return new Response(
