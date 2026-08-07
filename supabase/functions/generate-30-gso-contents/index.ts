@@ -239,12 +239,13 @@ Deno.serve(async (req) => {
     const existingTopics = new Set((existingContents || []).map((c: any) => c.topic?.toLowerCase()));
 
     const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openRouterKey) {
-      return new Response(JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }), {
+    if (!openRouterKey && !Deno.env.get("LOVABLE_API_KEY") && !Deno.env.get("GEMINI_API_KEY") && !Deno.env.get("DEEPSEEK_API_KEY")) {
+      return new Response(JSON.stringify({ error: "No AI provider configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const currentYear = new Date().getFullYear();
 
