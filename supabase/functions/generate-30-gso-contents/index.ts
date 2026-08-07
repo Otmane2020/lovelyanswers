@@ -309,10 +309,6 @@ Output ONLY a JSON array of exactly ${toGenerate} items, in the same order as th
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     console.log("[generate-30-gso] Got " + topics.length + " topics for " + toGenerate + " slots, generating content...");
