@@ -96,8 +96,18 @@ Sélection différenciée : GEO (entités, factuel, citations) · SEO (intent, p
 ### 14. Tests obligatoires
 Création d'un projet test avec un vrai domaine, exécution complète du pipeline, puis vérification : pages trouvées / stockées, business détecté, services, competitors, keywords, volumes DataForSEO, questions, `project_context`, 30 jours de planning. Puis une génération réelle par type (GEO, SEO, AEO, Local AEO si possible, Shopping) avec, pour chacune : INPUT CONTEXT, KEYWORD CIBLE, ANGLE, OUTPUT, TABLE D'ÉCRITURE.
 
-### 15. Compte rendu final
-Fonctionnalités retrouvées / réutilisées, bugs corrigés, orchestration créée, tables et colonnes modifiées, edge functions modifiées, crons conservés et désactivés, résultat de l'onboarding réel et des générations test, plus le schéma final du pipeline.
+### 15. Rapport de développement final (pas un audit)
+Livré à la fin de l'implémentation, uniquement des éléments réellement faits :
+- fonctionnalités réellement développées
+- fichiers modifiés
+- migrations créées
+- Edge Functions modifiées
+- composants React modifiés
+- tests réellement exécutés (avec sorties)
+- bugs rencontrés
+- limitations restantes
+Aucune intention, aucune recommandation, aucun audit théorique.
+
 
 ## Détails techniques
 
