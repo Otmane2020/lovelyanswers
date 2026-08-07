@@ -92,6 +92,9 @@ export function ProjectContextCard() {
   const pages = ctx?.context?.website?.pages_count ?? 0;
   const keywords = ctx?.context?.keywords?.length ?? 0;
   const competitors = ctx?.context?.competitors?.length ?? 0;
+  const sources = Object.entries(
+    (ctx?.context?.sources || {}) as Record<string, ContextSource>,
+  );
 
   return (
     <Card className="p-6 space-y-4">
