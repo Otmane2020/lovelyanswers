@@ -5,6 +5,9 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import { useActiveProject } from '@/hooks/useProjects'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useIntegrations } from '@/hooks/useIntegrations'
+import { useArticles } from '@/hooks/useArticles'
+import { useAnswers } from '@/hooks/useAnswers'
 import { supabase } from '@/integrations/supabase/client'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Today } from '@/components/dashboard/Today'
@@ -12,6 +15,8 @@ import { Content } from '@/components/dashboard/Content'
 import { Presence } from '@/components/dashboard/Presence'
 import { Results } from '@/components/dashboard/Results'
 import { Settings } from '@/components/dashboard/Settings'
+import { DoItForMeModal } from '@/components/dashboard/DoItForMeModal'
+import { IconAlert } from '@/components/dashboard/Icons'
 import '@/styles/dashboard.css'
 
 export type DashboardTab = 'today' | 'content' | 'presence' | 'results' | 'settings'
@@ -22,8 +27,12 @@ export default function GEODashboard() {
   const { user, isLoading: authLoading } = useAuth()
   const { project, isLoading: projectLoading } = useActiveProject()
   const { subscribed, trial, isLoading: subLoading } = useSubscription()
+  const { data: integrations = [] } = useIntegrations()
+  const { data: articles = [] } = useArticles()
+  const { data: answers = [] } = useAnswers()
   const [searchParams] = useSearchParams()
   const [generating, setGenerating] = useState(false)
+  const [showDoItForMe, setShowDoItForMe] = useState(false)
   const generationCheckedFor = useRef<string | null>(null)
   // ?tab=settings lets other screens deep-link straight to a panel instead of
   // bouncing the user out to a separate page.
@@ -126,6 +135,13 @@ export default function GEODashboard() {
 
   if (!user || !project || (!subscribed && !trial)) return null
 
+  const cmsConnected = integrations.some(
+    (i) => i.is_connected && !['google_business', 'google_search_console'].includes(i.platform)
+  )
+  const waiting =
+    articles.filter((a: any) => a.status !== 'published').length +
+    answers.filter((a: any) => !a.is_public).length
+
   const renderPanel = () => {
     switch (activeTab) {
       case 'content': return <Content />
@@ -140,6 +156,22 @@ export default function GEODashboard() {
     <div className="geo-dashboard">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main>
+        {!cmsConnected && waiting > 0 && (
+          <div className="action-banner" style={{ marginBottom: 20, position: 'sticky', top: 0, zIndex: 15 }}>
+            <div className="icon"><IconAlert /></div>
+            <div className="body">
+              <h3>{waiting} piece{waiting > 1 ? 's' : ''} of content ready, but your site isn't connected</h3>
+              <p>Nothing publishes until it's linked. Takes about 5 minutes, or we'll do it for you.</p>
+            </div>
+            <button className="btn btn-ghost amber btn-sm" onClick={() => setShowDoItForMe(true)}>
+              Do it for me
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('settings')}>
+              Connect my site
+            </button>
+          </div>
+        )}
+        {showDoItForMe && <DoItForMeModal onClose={() => setShowDoItForMe(false)} />}
         {generating && (
           <div className="action-banner" style={{ marginBottom: 20 }}>
             <div className="icon">
