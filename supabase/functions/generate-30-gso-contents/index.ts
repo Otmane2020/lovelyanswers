@@ -243,7 +243,7 @@ Output ONLY a JSON array of exactly ${toGenerate} items, in the same order as th
         Authorization: "Bearer " + openRouterKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemma-4-31b-it:free",
         messages: [
           { role: "system", content: "Respond with valid JSON only. No markdown fences." },
           { role: "user", content: topicsPrompt },
@@ -388,7 +388,7 @@ Output JSON: {"title":"the local question itself, under 70 chars","meta_descript
             Authorization: "Bearer " + openRouterKey,
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemma-4-31b-it:free",
             messages: [
               { role: "system", content: "You are a world-class GEO content strategist. Always respond with valid JSON only. No markdown fences." },
               { role: "user", content: contentPrompt },

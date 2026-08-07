@@ -36,7 +36,7 @@ No superlatives, no marketing. First sentence = direct answer. Mention brand onc
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
       max_tokens: 4000,
       messages: [
         { role: "system", content: systemPrompt },
@@ -161,7 +161,7 @@ Generate ONLY the HTML content.`;
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "google/gemma-4-31b-it:free",
               max_tokens: 4000,
               messages: [
                 { role: "system", content: systemPrompt },

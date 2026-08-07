@@ -725,7 +725,7 @@ Reply in JSON:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

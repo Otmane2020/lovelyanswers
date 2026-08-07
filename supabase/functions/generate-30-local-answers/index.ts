@@ -353,7 +353,7 @@ Return ONLY valid JSON:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemma-4-31b-it:free",
       temperature: 0.45,
       max_tokens: 2000, // ← CRITIQUE : assez pour 300-450 mots en markdown
       messages: [

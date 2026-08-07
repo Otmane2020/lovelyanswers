@@ -66,7 +66,7 @@ Return ONLY the JSON array, no explanation.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemma-4-31b-it:free",
         max_tokens: 4000,
         messages: [
           { role: "system", content: "You are a marketing expert. Return only valid JSON arrays." },

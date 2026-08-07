@@ -171,7 +171,7 @@ Return ONLY the answer text in markdown. No JSON. No quotes around it. 250-400 w
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemma-4-31b-it:free",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

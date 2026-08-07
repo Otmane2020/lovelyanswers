@@ -515,7 +515,7 @@ Strict JSON format — RICH CONTENT REQUIRED:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemma-4-31b-it:free",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -783,7 +783,7 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemma-4-31b-it:free",
             messages: [
               { role: "system", content: language === "fr" 
                 ? "Tu es un expert AEO. Tu génères des questions pertinentes pour optimiser la citabilité par les assistants IA. Réponds uniquement en JSON valide."
