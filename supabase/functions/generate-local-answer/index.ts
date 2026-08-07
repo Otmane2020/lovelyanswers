@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { loadGenerationContext } from "../_shared/project-context.ts";
+import { chatCompletion } from "../_shared/ai-call.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,32 +183,17 @@ MANDATORY STRUCTURE:
 
 Return ONLY the answer text in markdown. No JSON. No quotes around it. 250-400 words.`;
 
-    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + OPENROUTER_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-31b-it:free",
-        // Free models get rate-limited upstream constantly; OpenRouter falls back
-        // through this list automatically when one errors out.
-        models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.5,
-        max_tokens: 2000,
-      }),
+    const aiData = await chatCompletion({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 2000,
     });
 
-    if (!aiResponse.ok) {
-      throw new Error("AI request failed: " + aiResponse.status);
-    }
-
-    const aiData = await aiResponse.json();
     const answer = aiData.choices?.[0]?.message?.content || "";
+
 
     return new Response(
       JSON.stringify({
