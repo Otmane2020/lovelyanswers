@@ -170,7 +170,14 @@ export default function Dashboard() {
     fetchRealStats();
   }, [project?.id]);
 
-  // Auto-trigger 30-day generation when the planning window is incomplete
+  // Auto-trigger 30-day generation when the calendar window is incomplete.
+  // generate-30-gso-contents is the single source of truth for the 30-day
+  // calendar (one piece/day rotating through geo/seo/aeo/local_aeo/
+  // shopping) — it used to be generate-30-days-content here, which only
+  // ever produced AEO answer+article pairs and competed with the actual
+  // rotation for the same days. It safely no-ops when the window is
+  // already complete, so no separate completeness math is needed beyond a
+  // rough row count.
   useEffect(() => {
     const triggerAutoGeneration = async () => {
       if (!project || !user || hasTriggeredGeneration.current) return;
@@ -181,28 +188,19 @@ export default function Dashboard() {
       const todayStr = today.toISOString().split("T")[0];
       const endDateStr = endDate.toISOString().split("T")[0];
 
-      // Check if planning is complete for the next 30 days
-      const [{ count: planningRows }, { count: incompletePlanningRows }] = await Promise.all([
-        supabase
-          .from("planning")
-          .select("id", { count: "exact", head: true })
-          .eq("project_id", project.id)
-          .gte("day", todayStr)
-          .lt("day", endDateStr),
-        supabase
-          .from("planning")
-          .select("id", { count: "exact", head: true })
-          .eq("project_id", project.id)
-          .gte("day", todayStr)
-          .lt("day", endDateStr)
-          .or("answer_id.is.null,article_id.is.null"),
+      const [{ count: geoCount }, { count: articleCount }, { count: answerCount }] = await Promise.all([
+        supabase.from("geo_contents").select("id", { count: "exact", head: true })
+          .eq("project_id", project.id).gte("scheduled_date", todayStr).lt("scheduled_date", endDateStr),
+        supabase.from("articles").select("id", { count: "exact", head: true })
+          .eq("project_id", project.id).gte("scheduled_date", todayStr).lt("scheduled_date", endDateStr),
+        supabase.from("answers").select("id", { count: "exact", head: true })
+          .eq("project_id", project.id).gte("scheduled_date", todayStr).lt("scheduled_date", endDateStr),
       ]);
 
-      const totalRows = planningRows || 0;
-      const incompleteRows = incompletePlanningRows || 0;
+      const totalRows = (geoCount || 0) + (articleCount || 0) + (answerCount || 0);
 
       // Nothing to do
-      if (totalRows >= 30 && incompleteRows === 0) return;
+      if (totalRows >= 30) return;
 
       hasTriggeredGeneration.current = true;
 
@@ -218,7 +216,7 @@ export default function Dashboard() {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         // Don't proceed if no valid session
         if (!session?.access_token) {
           console.log("[Dashboard] No valid session, skipping auto-generation");
@@ -230,13 +228,10 @@ export default function Dashboard() {
           duration: 5000,
         });
 
-        const { data, error } = await supabase.functions.invoke("generate-30-days-content", {
+        const { data, error } = await supabase.functions.invoke("generate-30-gso-contents", {
           body: {
             projectId: project.id,
-            language: project.language || "fr",
-            days: 30,
-            overwrite: false, // IMPORTANT: Don't delete existing content, only fill gaps
-            questionsPerDay: 1, // 1 question per day = 1 answer + 1 article = 2 items per day
+            maxSlots: 30,
           },
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
@@ -249,11 +244,12 @@ export default function Dashboard() {
           return;
         }
 
-        const answersCount = data?.answers_created || 0;
-        const articlesCount = data?.articles_created || 0;
-        toast.success(`✨ Planning updated: ${answersCount} answers, ${articlesCount} articles`, {
-          duration: 6000,
-        });
+        const createdCount = data?.created || 0;
+        if (createdCount > 0) {
+          toast.success(`✨ Planning updated: ${createdCount} piece${createdCount > 1 ? "s" : ""} generated`, {
+            duration: 6000,
+          });
+        }
       } catch (error) {
         console.error("Error generating content:", error);
       } finally {
