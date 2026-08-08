@@ -14,8 +14,9 @@ const MONTH_NAME = (y: number, m: number) =>
 // geo_contents.content_type is a real stored column ('geo' | 'seo' | 'aeo'
 // | 'local_aeo'), written by generate-30-gso-contents which owns the 30-day
 // rotation. Read it directly instead of guessing the angle from the date.
-// The answers/articles track is AEO-only by design (daily-planning-fill),
-// and shopping_products are Shopping — both labeled from their own source.
+// articles is shared by the SEO track (generate-articles, standalone) and
+// the AEO track (generate-aeo-article, linked from an answer) — see the
+// aeoArticleIds check below for how those are told apart.
 const ANGLE_LABEL: Record<string, string> = {
   geo: 'GEO', aeo: 'AEO', seo: 'SEO', local_aeo: 'Local AEO', aeo_shopping: 'Shopping', product: 'Shopping',
 }
@@ -58,10 +59,17 @@ export function Content() {
 
   const hasProducts = shoppingProducts.length > 0
   const rows: Row[] = useMemo(() => {
+    // articles is shared by two producers: generate-aeo-article (writes
+    // answers.article_id -> this article, no linked_answer_id set) and
+    // generate-articles / SEO track (standalone, no answer link at all).
+    // Either signal means AEO; absence of both means SEO.
+    const aeoArticleIds = new Set(
+      answers.filter((a: any) => a.article_id).map((a: any) => a.article_id)
+    )
     const fromArticles: Row[] = articles.map((a: any) => ({
       id: `art-${a.id}`,
       title: a.title,
-      format: 'Article · AEO',
+      format: a.linked_answer_id || aeoArticleIds.has(a.id) ? 'Article · AEO' : 'Article · SEO',
       icon: <IconFile />,
       where: a.gsc_indexed ? 'Your site · Google' : 'Your site',
       status: a.status === 'published' ? 'live' : a.scheduled_date ? 'wait' : 'draft',
