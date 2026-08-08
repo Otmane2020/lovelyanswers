@@ -63,12 +63,17 @@ export default function GEODashboard() {
     }
   }, [authLoading, user, projectLoading, project, subLoading, subscribed, trial, navigate])
 
-  // The cron that's supposed to fill the next 30 days of content runs
-  // server-side on a schedule — but if it's ever behind (or not yet
+  // The cron that's supposed to fill the next 30 days of content
+  // (generate-30-gso-contents, driven hourly by check-planning-completeness)
+  // runs server-side on a schedule — but if it's ever behind (or not yet
   // deployed), someone landing on the dashboard would see nothing without
   // this: check once per project whether the next 30 days are actually
   // planned, and if not, generate the gap right now instead of waiting for
-  // the next scheduled run.
+  // the next scheduled run. generate-30-gso-contents is the single source
+  // of truth for the calendar (one piece/day rotating through
+  // geo/seo/aeo/local_aeo/shopping) and safely no-ops when the window is
+  // already complete, so it's fine to just call it rather than duplicating
+  // its own completeness check here.
   useEffect(() => {
     if (!project || !subscribed && !trial) return
     if (generationCheckedFor.current === project.id) return
@@ -88,48 +93,33 @@ export default function GEODashboard() {
       const todayStr = today.toISOString().split('T')[0]
       const endDateStr = new Date(today.getTime() + windowDays * 86400000).toISOString().split('T')[0]
 
-      const [{ count: totalRows }, { count: incompleteRows }] = await Promise.all([
-        supabase.from('planning').select('id', { count: 'exact', head: true })
-          .eq('project_id', project.id).gte('day', todayStr).lt('day', endDateStr),
-        // A day counts as filled once it has EITHER piece — not every
-        // content angle produces both an answer and an article (see
-        // daily-planning-fill), so requiring both here would keep flagging
-        // genuinely-complete days as still needing work.
-        supabase.from('planning').select('id', { count: 'exact', head: true })
-          .eq('project_id', project.id).gte('day', todayStr).lt('day', endDateStr)
-          .is('answer_id', null).is('article_id', null),
+      const [{ count: geoCount }, { count: articleCount }, { count: answerCount }] = await Promise.all([
+        supabase.from('geo_contents').select('id', { count: 'exact', head: true })
+          .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
+        supabase.from('articles').select('id', { count: 'exact', head: true })
+          .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
+        supabase.from('answers').select('id', { count: 'exact', head: true })
+          .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
       ])
 
-      if ((totalRows || 0) >= windowDays && (incompleteRows || 0) === 0) return
+      const totalRows = (geoCount || 0) + (articleCount || 0) + (answerCount || 0)
+      if (totalRows >= windowDays) return
 
       setGenerating(true)
       try {
-        // generate-30-days-content writes answers/articles but never touches
-        // `planning` — daily-planning-fill is the one that actually upserts
-        // planning rows and links answer_id/article_id back onto them, which
-        // is what the completeness check above (and the cron) both rely on.
-        // Each day costs 3 sequential OpenRouter calls; since the model was
-        // switched to slower, rate-limited free tiers, 3 days/call (9 calls)
-        // was blowing past Supabase's 150s hard timeout. 1 day/call keeps
-        // real headroom even when a call is slow — call it more times in a
-        // row instead to still catch a mostly-empty project up in one visit.
-        let totalCompleted = 0
-        for (let i = 0; i < 8; i++) {
-          const { data, error } = await supabase.functions.invoke('daily-planning-fill', {
-            body: { projectId: project.id, days: windowDays, maxDaysToFill: 1 },
-          })
-          if (error) throw error
-          const result = data?.results?.[0]
-          totalCompleted += result?.daysCompleted || 0
-          if (!result || (!result.stoppedEarly && result.daysTouched === 0)) break
-        }
-        if (totalCompleted > 0) {
-          toast.success(`${totalCompleted} piece${totalCompleted > 1 ? 's' : ''} of content generated`)
-        } else {
+        const { data, error } = await supabase.functions.invoke('generate-30-gso-contents', {
+          body: { projectId: project.id, maxSlots: windowDays },
+        })
+        if (error) throw error
+        const createdCount = data?.created || 0
+        if (createdCount > 0) {
+          toast.success(`${createdCount} piece${createdCount > 1 ? 's' : ''} of content generated`)
+        } else if (!data?.skipped) {
           toast.error('Content generation ran but produced nothing — check the edge function logs')
         }
         queryClient.invalidateQueries({ queryKey: ['articles'] })
         queryClient.invalidateQueries({ queryKey: ['answers'] })
+        queryClient.invalidateQueries({ queryKey: ['geo_contents'] })
       } catch (e) {
         console.error('[GEODashboard] auto-fill generation failed', e)
         toast.error(e instanceof Error ? e.message : 'Content generation failed')

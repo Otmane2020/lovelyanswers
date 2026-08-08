@@ -661,28 +661,26 @@ export default function Onboarding() {
   }
 
   /* --- step 6 -> step 7: seed the 30-day plan now instead of waiting on the
-     cron's small per-tick batches. Two tracks, both pre-existing: the AEO
-     answer+article pairing (same call AeoWizard already uses) and the
-     GEO/SEO/AEO/Local-AEO geo_contents track — 30 slots covers all 30 days
-     in one shot since maxSlots overrides the steady-state cron cap. Real
-     competitor/keyword research (DataForSEO) is NOT triggered here — the
-     Stripe webhook does that once the payment this step just took is
-     actually confirmed. --- */
+     cron's small per-tick batches. generate-30-gso-contents is the single
+     source of truth for the calendar — one piece/day rotating through
+     geo/seo/aeo/local_aeo/shopping. It used to run alongside
+     generate-30-days-content(titlesOnly:true), which stamped a real AEO
+     answer+article row ("Content locked — subscribe to unlock.") on every
+     one of the 30 days regardless of that day's rotation type — that's what
+     buried the GEO/SEO/Local AEO/Shopping content under a wall of AEO
+     placeholders. 16 slots (4 full days) is as much as one request can
+     safely generate before risking a function timeout;
+     check-planning-completeness's hourly cron tops up the rest of the
+     30-day window from here. Real competitor/keyword research (DataForSEO)
+     is NOT triggered here — the Stripe webhook does that once the payment
+     this step just took is actually confirmed. --- */
   const finish = async () => {
     setStep(7)
     if (!projectId) return
     try {
-      await Promise.all([
-        supabase.functions.invoke('generate-30-days-content', {
-          body: { projectId, language, days: 30, questionsPerDay: 1, titlesOnly: true },
-        }),
-        // 16 slots (4 full days) is as much as one request can safely
-        // generate before risking a function timeout; check-planning-completeness's
-        // hourly cron tops up the rest of the 30-day window from here.
-        supabase.functions.invoke('generate-30-gso-contents', {
-          body: { projectId, maxSlots: 16 },
-        }),
-      ])
+      await supabase.functions.invoke('generate-30-gso-contents', {
+        body: { projectId, maxSlots: 16 },
+      })
     } catch (e) {
       console.error('[ONBOARDING] first generation failed', e)
     }
