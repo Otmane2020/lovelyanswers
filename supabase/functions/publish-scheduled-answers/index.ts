@@ -648,17 +648,29 @@ Deno.serve(async (req) => {
         if (publishResult.success) {
           await supabase
             .from("articles")
-            .update({ status: "published" })
+            .update({ status: "published", publish_error: null })
             .eq("id", article.id);
 
           console.log(`[publish-scheduled] ✅ Article published: ${publishResult.url || article.id}`);
           results.push({ id: article.id, type: "article", success: true, url: publishResult.url });
         } else {
           console.error(`[publish-scheduled] ❌ Failed to publish article: ${publishResult.error}`);
+          // This used to only live in the function's own response/logs —
+          // the article itself stayed at "draft" forever with nothing in
+          // the database showing a publish was even attempted, let alone
+          // why it failed.
+          await supabase
+            .from("articles")
+            .update({ publish_error: publishResult.error || "CMS publish did not succeed" })
+            .eq("id", article.id);
           results.push({ id: article.id, type: "article", success: false, error: publishResult.error });
         }
       } catch (err) {
         console.error(`[publish-scheduled] ❌ Error processing article ${article.id}:`, err);
+        await supabase
+          .from("articles")
+          .update({ publish_error: String(err) })
+          .eq("id", article.id);
         results.push({ id: article.id, type: "article", success: false, error: String(err) });
       }
     }

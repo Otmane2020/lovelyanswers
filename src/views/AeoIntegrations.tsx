@@ -61,13 +61,14 @@ export default function AeoIntegrations() {
   const deleteIntegration = useDeleteIntegration();
   const { isConnected: gscConnected, isLoading: gscLoading, refetch: refetchGsc } = useGoogleSearchConsole();
   const { isSubscribed } = useSubscriptionContext();
-  const { 
-    isConnected: gmbConnected, 
-    locations: gmbLocations, 
-    selectedLocationIds: gmbSelectedIds, 
-    isLoading: gmbLoading, 
+  const {
+    isConnected: gmbConnected,
+    locations: gmbLocations,
+    selectedLocationIds: gmbSelectedIds,
+    isLoading: gmbLoading,
     toggleLocation: toggleGmbLocation,
     connectGMB,
+    disconnectGMB,
   } = useGoogleBusiness();
   const router = useRouter();
 
@@ -201,46 +202,79 @@ export default function AeoIntegrations() {
     savePublishSettings({ publish_frequency: freq });
   };
 
-  // Handle OAuth callback for Google Search Console
+  // Handle OAuth callback — this page is the redirect_uri for BOTH Google
+  // Search Console (google-oauth-url, state = a plain UUID) and Google
+  // Business Profile when connected from this page's own card
+  // (gmb-oauth-url, state = base64 JSON {type:"gmb", projectId}). This used
+  // to always exchange the code via google-oauth-token regardless of which
+  // flow it came from — a GMB code exchanged as GSC either fails outright
+  // or silently overwrites profiles.google_oauth_token with a
+  // business.manage-scoped token, breaking GSC too. Branch on `state` the
+  // same way AeoLocal.tsx's (working) GMB callback already does.
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       const state = urlParams.get("state");
+      if (!code || !state) return;
 
-      if (code && state) {
-        setConnectingGsc(true);
+      let gmbState: { type?: string; projectId?: string } = {};
+      try {
+        gmbState = JSON.parse(atob(state));
+      } catch {
+        // Not base64 JSON -> this is GSC's plain UUID state, fall through.
+      }
+
+      if (gmbState.type === "gmb") {
         try {
-          // We must pass the same redirectUri used to start the OAuth flow.
-          // Store it before redirecting to Google, then read it back here.
-          const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
-            `${window.location.origin}/integrations`;
-
-          const { data, error } = await supabase.functions.invoke("google-oauth-token", {
-            body: { code, state, redirectUri },
+          const redirectUri = `${window.location.origin}/integrations`;
+          const { data, error } = await supabase.functions.invoke("gmb-oauth-token", {
+            body: { code, redirectUri, projectId: gmbState.projectId || project?.id },
           });
-
           if (error) throw error;
-          if (!data?.success) {
-            const msg = [data?.error, data?.details].filter(Boolean).join("\n");
-            throw new Error(msg || "Failed to connect");
-          }
-
-          toast.success("Google Search Console connecté avec succès!");
-          refetchGsc();
-          sessionStorage.removeItem("gsc_oauth_redirect_uri");
+          if (!data?.success) throw new Error(data?.error || "Failed to connect");
+          toast.success("Google Business Profile connecté avec succès!");
           window.history.replaceState({}, document.title, window.location.pathname);
+          window.location.reload();
         } catch (error: any) {
-          console.error("OAuth callback error:", error);
-          toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
-        } finally {
-          setConnectingGsc(false);
+          console.error("GMB OAuth callback error:", error);
+          toast.error("Erreur de connexion Google Business: " + (error.message || "Unknown error"));
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
+        return;
+      }
+
+      setConnectingGsc(true);
+      try {
+        // We must pass the same redirectUri used to start the OAuth flow.
+        // Store it before redirecting to Google, then read it back here.
+        const redirectUri = sessionStorage.getItem("gsc_oauth_redirect_uri") ||
+          `${window.location.origin}/integrations`;
+
+        const { data, error } = await supabase.functions.invoke("google-oauth-token", {
+          body: { code, state, redirectUri },
+        });
+
+        if (error) throw error;
+        if (!data?.success) {
+          const msg = [data?.error, data?.details].filter(Boolean).join("\n");
+          throw new Error(msg || "Failed to connect");
+        }
+
+        toast.success("Google Search Console connecté avec succès!");
+        refetchGsc();
+        sessionStorage.removeItem("gsc_oauth_redirect_uri");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error: any) {
+        console.error("OAuth callback error:", error);
+        toast.error("Erreur de connexion: " + (error.message || "Unknown error"));
+      } finally {
+        setConnectingGsc(false);
       }
     };
 
     handleOAuthCallback();
-  }, [refetchGsc]);
+  }, [refetchGsc, project?.id]);
 
   // Load available GSC sites when connected
   useEffect(() => {
@@ -907,10 +941,28 @@ export default function AeoIntegrations() {
               </div>
             </div>
             {gmbConnected ? (
-              <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Connected
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-500/20 text-green-600 border-0 px-4 py-2">
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Connected
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await disconnectGMB();
+                      toast.success("Google Business disconnected");
+                    } catch {
+                      toast.error("Could not disconnect Google Business");
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Disconnect
+                </Button>
+              </div>
             ) : (
               <Button onClick={connectGMB} disabled={gmbLoading} className="gap-2">
                 {gmbLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}

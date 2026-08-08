@@ -3,6 +3,7 @@ import { useArticles } from '@/hooks/useArticles'
 import { useAnswers } from '@/hooks/useAnswers'
 import { useGeoContents } from '@/hooks/useGeoContents'
 import { useShoppingProducts } from '@/hooks/useShoppingProducts'
+import { useLocalAnswers } from '@/hooks/useLocalAnswers'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { IconFlame, IconFile, IconMessage, IconTag, IconList, IconCalendar } from './Icons'
 import { ContentPreviewModal } from './ContentPreviewModal'
@@ -33,7 +34,7 @@ interface Row {
   status: Status
   url: string | null
   date: string | null
-  kind: 'article' | 'answer' | 'page' | 'product'
+  kind: 'article' | 'answer' | 'page' | 'product' | 'local'
   raw: any
 }
 
@@ -44,7 +45,7 @@ export function Content() {
   const [filter, setFilter] = useState<Filter>('all')
   const [page, setPage] = useState(1)
   const [previewRow, setPreviewRow] = useState<Row | null>(null)
-  const PAGE_SIZE = 25
+  const PAGE_SIZE = 4
   const today = new Date()
   const [calYear, setCalYear] = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth())
@@ -53,6 +54,7 @@ export function Content() {
   const { data: answers = [], isLoading: lb } = useAnswers()
   const { data: geoContents = [], isLoading: lc } = useGeoContents()
   const { data: shoppingProducts = [] } = useShoppingProducts()
+  const { data: localAnswers = [] } = useLocalAnswers()
   const { data: integrations = [] } = useIntegrations()
 
   const loading = la || lb || lc
@@ -123,12 +125,28 @@ export function Content() {
         date: p.scheduled_date || p.created_at || null,
       }))
 
-    return [...fromArticles, ...fromAnswers, ...fromGeo, ...fromProducts].sort((x, y) => {
+    // local_answers (Local AEO) had no mapper at all — the whole track was
+    // invisible in this list and in the Live/Waiting/Draft counters, even
+    // though generate-30-gso-contents actively schedules it.
+    const fromLocal: Row[] = localAnswers.map((l: any) => ({
+      id: `local-${l.id}`,
+      title: l.question,
+      format: 'Answer · Local AEO',
+      icon: <IconMessage />,
+      where: l.business_name || 'Local',
+      status: l.is_public ? 'live' : l.scheduled_date ? 'wait' : 'draft',
+      url: l.published_url || null,
+      date: l.scheduled_date || l.created_at || null,
+      kind: 'local',
+      raw: l,
+    }))
+
+    return [...fromArticles, ...fromAnswers, ...fromGeo, ...fromProducts, ...fromLocal].sort((x, y) => {
       if (!x.date) return 1
       if (!y.date) return -1
       return new Date(y.date).getTime() - new Date(x.date).getTime()
     })
-  }, [articles, answers, geoContents, shoppingProducts])
+  }, [articles, answers, geoContents, shoppingProducts, localAnswers])
 
   const counts = useMemo(
     () => ({
@@ -141,7 +159,27 @@ export function Content() {
 
   const visible = filter === 'all' ? rows : rows.filter((r) => r.status === filter)
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
-  const pageRows = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // Clamped rather than trusting `page` directly: switching filters resets
+  // it to 1, but the underlying data can also shrink on its own (a refetch
+  // after publish, a deletion) and leave `page` pointing past the new last
+  // page, which would otherwise render an empty table.
+  const currentPage = Math.min(page, totalPages)
+  const pageRows = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  // Previous / 1 2 3 … / Next — always show first, last, and a small window
+  // around the current page, collapsing the rest behind an ellipsis instead
+  // of rendering every page number when there are many.
+  const pageNumbers = useMemo(() => {
+    const nums: (number | '…')[] = []
+    const windowStart = Math.max(2, currentPage - 1)
+    const windowEnd = Math.min(totalPages - 1, currentPage + 1)
+    nums.push(1)
+    if (windowStart > 2) nums.push('…')
+    for (let n = windowStart; n <= windowEnd; n++) nums.push(n)
+    if (windowEnd < totalPages - 1) nums.push('…')
+    if (totalPages > 1) nums.push(totalPages)
+    return nums
+  }, [currentPage, totalPages])
 
   const changeFilter = (f: Filter | ((prev: Filter) => Filter)) => {
     setFilter(f)
@@ -380,14 +418,25 @@ export function Content() {
             </table>
           </div>
           {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
+              <button className="btn btn-ghost btn-sm" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
                 ‹ Previous
               </button>
-              <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
-                Page {page} of {totalPages} · {visible.length} items
-              </span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              {pageNumbers.map((n, i) =>
+                n === '…' ? (
+                  <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--ink-soft)', fontSize: 12.5 }}>…</span>
+                ) : (
+                  <button
+                    key={n}
+                    className="btn btn-ghost btn-sm"
+                    style={n === currentPage ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)' } : undefined}
+                    onClick={() => setPage(n as number)}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+              <button className="btn btn-ghost btn-sm" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>
                 Next ›
               </button>
             </div>
@@ -443,6 +492,16 @@ export function Content() {
           meta={previewRow.raw.meta_description || ''}
           body={previewRow.raw.html_content || previewRow.raw.content || ''}
           isHtml={!!previewRow.raw.html_content}
+          onClose={() => setPreviewRow(null)}
+        />
+      )}
+      {previewRow?.kind === 'local' && (
+        <ContentPreviewModal
+          kind="answer"
+          title={previewRow.raw.question}
+          meta={previewRow.raw.business_name || ''}
+          body={previewRow.raw.answer || ''}
+          isHtml={false}
           onClose={() => setPreviewRow(null)}
         />
       )}

@@ -16,7 +16,7 @@ import { Presence } from '@/components/dashboard/Presence'
 import { Results } from '@/components/dashboard/Results'
 import { Settings } from '@/components/dashboard/Settings'
 import { DoItForMeModal } from '@/components/dashboard/DoItForMeModal'
-import { IconAlert } from '@/components/dashboard/Icons'
+import { IconAlert, IconSparkle } from '@/components/dashboard/Icons'
 import '@/styles/dashboard.css'
 
 export type DashboardTab = 'today' | 'content' | 'presence' | 'results' | 'settings'
@@ -93,22 +93,54 @@ export default function GEODashboard() {
       const todayStr = today.toISOString().split('T')[0]
       const endDateStr = new Date(today.getTime() + windowDays * 86400000).toISOString().split('T')[0]
 
-      const [{ count: geoCount }, { count: articleCount }, { count: answerCount }] = await Promise.all([
-        supabase.from('geo_contents').select('id', { count: 'exact', head: true })
+      // Count DAYS actually covered in the rolling window, not raw rows —
+      // and across all five tables the rotation can land a slot in.
+      // Raw-row counting across just geo_contents/articles/answers
+      // undercounted every project using local_aeo or shopping slots
+      // (scheduled into local_answers / shopping_planning, which weren't
+      // counted at all, and aeo days write BOTH an answer and an article
+      // so they double-count rows anyway), so the window looked
+      // permanently incomplete and this fired the generation call -- and
+      // the "Generating your content..." banner -- on every single login,
+      // even though generate-30-gso-contents' own day-coverage check would
+      // then correctly find nothing to do and no-op. Match its logic
+      // exactly so this only ever fires for a day that's genuinely missing.
+      const dayKey = (d: string) => d.slice(0, 10)
+      const [
+        { data: geoRows },
+        { data: articleRows },
+        { data: answerRows },
+        { data: localRows },
+        { data: shopRows },
+      ] = await Promise.all([
+        supabase.from('geo_contents').select('scheduled_date')
           .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
-        supabase.from('articles').select('id', { count: 'exact', head: true })
+        supabase.from('articles').select('scheduled_date')
           .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
-        supabase.from('answers').select('id', { count: 'exact', head: true })
+        supabase.from('answers').select('scheduled_date')
+          .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
+        supabase.from('local_answers').select('scheduled_date')
+          .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
+        supabase.from('shopping_planning').select('scheduled_date')
           .eq('project_id', project.id).gte('scheduled_date', todayStr).lt('scheduled_date', endDateStr),
       ])
 
-      const totalRows = (geoCount || 0) + (articleCount || 0) + (answerCount || 0)
-      if (totalRows >= windowDays) return
+      const coveredDays = new Set<string>()
+      for (const rows of [geoRows, articleRows, answerRows, localRows, shopRows]) {
+        for (const r of rows || []) {
+          if (r.scheduled_date) coveredDays.add(dayKey(r.scheduled_date))
+        }
+      }
+
+      const missingDays = windowDays - coveredDays.size
+      if (missingDays <= 0) return
 
       setGenerating(true)
       try {
+        // Only ask for exactly the days that are missing — not the whole
+        // window — so a normal one-day rolling gap fills one day, not 30.
         const { data, error } = await supabase.functions.invoke('generate-30-gso-contents', {
-          body: { projectId: project.id, maxSlots: windowDays },
+          body: { projectId: project.id, maxSlots: missingDays },
         })
         if (error) throw error
         const createdCount = data?.created || 0
@@ -159,6 +191,15 @@ export default function GEODashboard() {
 
   return (
     <div className="geo-dashboard">
+      <div className="mobile-topbar">
+        <div className="brand">
+          <div className="brand-mark"><IconSparkle /></div>
+          <div className="brand-text">
+            <div className="eyebrow">AUTOPILOT</div>
+            <div className="name">GEO</div>
+          </div>
+        </div>
+      </div>
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main>
         {!cmsConnected && waiting > 0 && (

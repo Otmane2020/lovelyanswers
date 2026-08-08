@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useActiveProject } from '@/hooks/useProjects'
 import { useIntegrations, useDeleteIntegration } from '@/hooks/useIntegrations'
 import { IntegrationConfigModal } from '@/components/integrations/IntegrationConfigModal'
 import { DoItForMeModal } from './DoItForMeModal'
-import { useImportFeed, useShoppingProducts } from '@/hooks/useShoppingProducts'
+import { useImportFeed, useShoppingProducts, useShoppingFeeds } from '@/hooks/useShoppingProducts'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 import shopifyLogo from '@/assets/shopify-logo-new.png'
@@ -56,6 +58,7 @@ interface ConnectPanelProps {
  * IntegrationConfigModal rather than sending people to the legacy page.
  */
 export function ConnectPanel({ onClose }: ConnectPanelProps) {
+  const navigate = useNavigate()
   const { project } = useActiveProject()
   const { data: integrations = [], refetch } = useIntegrations()
   const deleteIntegration = useDeleteIntegration()
@@ -65,19 +68,45 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
   // previously only reachable from the standalone Shopping dashboard.
   const importFeed = useImportFeed()
   const { data: shoppingProducts = [] } = useShoppingProducts()
+  const { data: shoppingFeeds = [] } = useShoppingFeeds()
   const [feedUrl, setFeedUrl] = useState('')
+  const [generatingShopping, setGeneratingShopping] = useState(false)
 
-  const importShoppingFeed = async () => {
-    if (!feedUrl.trim()) {
+  const latestFeed = shoppingFeeds[0]
+
+  const importShoppingFeed = async (urlOverride?: string) => {
+    const url = urlOverride ?? feedUrl
+    if (!url.trim()) {
       toast.error('Paste your Google Shopping feed URL first')
       return
     }
     try {
-      const result: any = await importFeed.mutateAsync({ feedUrl: feedUrl.trim() })
-      toast.success(`${result?.imported ?? 0} products imported`)
+      const result: any = await importFeed.mutateAsync({ feedUrl: url.trim() })
+      toast.success(`${result?.count ?? 0} products imported`)
       setFeedUrl('')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not import that feed')
+    }
+  }
+
+  const syncCatalog = () => {
+    if (!latestFeed?.feed_url) return
+    importShoppingFeed(latestFeed.feed_url)
+  }
+
+  const generateShoppingContent = async () => {
+    if (!project) return
+    setGeneratingShopping(true)
+    try {
+      const { error } = await supabase.functions.invoke('auto-generate-shopping', {
+        body: { projectId: project.id },
+      })
+      if (error) throw error
+      toast.success('Shopping content generation started')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not start Shopping content generation')
+    } finally {
+      setGeneratingShopping(false)
     }
   }
 
@@ -195,11 +224,38 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
 
       <div className="section-label" style={{ marginTop: '22px' }}>Google Shopping feed</div>
       <div className="card-box">
-        <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 10 }}>
-          {shoppingProducts.length > 0
-            ? `${shoppingProducts.length} product${shoppingProducts.length > 1 ? 's' : ''} imported — Shopping content is generated from your real catalog.`
-            : 'Paste your Google Merchant / Shopping feed URL to import your catalog. Without it, Shopping days fall back to a general buying guide.'}
-        </div>
+        {shoppingProducts.length > 0 ? (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', marginBottom: 2 }}>
+              ✓ {shoppingProducts.length} product{shoppingProducts.length > 1 ? 's' : ''} imported
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 12 }}>
+              Your Google Shopping catalog is connected — AEO Shopping is enabled. AutoPilot GEO creates product-focused content from your real catalog.
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8,
+              marginBottom: 12, fontSize: 12,
+            }}>
+              <div><div style={{ color: 'var(--ink-soft)' }}>With images</div><div style={{ fontWeight: 700 }}>{shoppingProducts.filter((p: any) => p.image_url).length}</div></div>
+              <div><div style={{ color: 'var(--ink-soft)' }}>In stock</div><div style={{ fontWeight: 700 }}>{shoppingProducts.filter((p: any) => /in.?stock/i.test(p.availability || '')).length}</div></div>
+              <div><div style={{ color: 'var(--ink-soft)' }}>Last sync</div><div style={{ fontWeight: 700 }}>{latestFeed?.last_synced_at ? new Date(latestFeed.last_synced_at).toLocaleDateString() : '—'}</div></div>
+              <div><div style={{ color: 'var(--ink-soft)' }}>Feed status</div><div style={{ fontWeight: 700, textTransform: 'capitalize' }}>{latestFeed?.status || 'active'}</div></div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/shopping')}>View products</button>
+              <button className="btn btn-ghost btn-sm" disabled={importFeed.isPending || !latestFeed?.feed_url} onClick={syncCatalog}>
+                {importFeed.isPending ? 'Syncing…' : 'Sync catalog'}
+              </button>
+              <button className="btn btn-primary btn-sm" disabled={generatingShopping} onClick={generateShoppingContent}>
+                {generatingShopping ? 'Generating…' : 'Generate Shopping content'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 10 }}>
+            Paste your Google Merchant / Shopping feed URL to import your catalog. Without it, Shopping days fall back to a general buying guide.
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             value={feedUrl}
@@ -210,7 +266,7 @@ export function ConnectPanel({ onClose }: ConnectPanelProps) {
               border: '1px solid var(--line)', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)',
             }}
           />
-          <button className="btn btn-primary btn-sm" disabled={importFeed.isPending} onClick={importShoppingFeed}>
+          <button className="btn btn-primary btn-sm" disabled={importFeed.isPending} onClick={() => importShoppingFeed()}>
             {importFeed.isPending ? 'Importing…' : 'Import'}
           </button>
         </div>
