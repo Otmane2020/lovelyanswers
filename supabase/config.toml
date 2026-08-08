@@ -1,4 +1,4 @@
-project_id = "pnohfokjlhpzrkczruju"
+project_id = "xpwghzwkvjmksenrnaxl"
 
 # Previously deployed with an explicit --no-verify-jwt CLI flag rather than a
 # config.toml entry; declared here so a blanket `functions deploy` preserves
