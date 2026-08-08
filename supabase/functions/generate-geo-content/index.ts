@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { loadGenerationContext } from "../_shared/project-context.ts";
 import { chatCompletion } from "../_shared/ai-call.ts";
+import { renderArticlePage } from "../_shared/article-template.ts";
 
 
 
@@ -374,6 +375,18 @@ Output JSON:
     const content = parsed.content || "";
     const score = computeGeoScore(content, brand);
 
+    const htmlContent = renderArticlePage({
+      kind: "geo",
+      title: parsed.title || brand + " - " + topic,
+      dek: parsed.meta_description,
+      bodyMarkdown: content || rawContent,
+      metaDescription: parsed.meta_description,
+      brandName: brand,
+      websiteUrl: website || "",
+      language: lang,
+      faq: parsed.faq || [],
+    });
+
     // The 30-day calendar assigns the exact day this piece belongs to and
     // passes it in; only fall back to a random slot for ad-hoc calls that
     // don't care which day it lands on.
@@ -401,6 +414,7 @@ Output JSON:
         title: parsed.title || brand + " - " + topic,
         meta_description: parsed.meta_description || null,
         content: parsed.content || rawContent,
+        html_content: htmlContent,
         content_type: type,
         score,
         slug,

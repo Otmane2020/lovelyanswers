@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { loadGenerationContext } from "../_shared/project-context.ts";
 import { chatCompletion } from "../_shared/ai-call.ts";
+import { renderArticlePage } from "../_shared/article-template.ts";
 
 
 const corsHeaders = {
@@ -367,6 +368,18 @@ serve(async (req) => {
       // Schedule on Mon/Wed/Fri only
       const scheduledDate = getNextPublishDate(new Date(), i);
 
+      const htmlContent = renderArticlePage({
+        kind: "seo",
+        title: articleData.title || keyword + " - Complete Guide",
+        dek: articleData.metaDescription,
+        bodyMarkdown: content,
+        metaDescription: articleData.metaDescription,
+        brandName: brand,
+        websiteUrl: website,
+        language,
+        faq: faqs.map((f: any) => ({ q: f.question ?? f.q, a: f.answer ?? f.a })),
+      });
+
       // Save article
       const { data: article, error: articleError } = await supabase
         .from("articles")
@@ -374,6 +387,7 @@ serve(async (req) => {
           project_id: projectId,
           title: articleData.title || keyword + " - Complete Guide",
           content,
+          html_content: htmlContent,
           status,
           word_count: wordCount,
           meta_description: articleData.metaDescription || null,
