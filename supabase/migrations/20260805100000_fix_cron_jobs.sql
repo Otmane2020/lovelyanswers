@@ -44,9 +44,9 @@ end $$;
 -- ---------------------------------------------------------------------------
 do $$
 declare
-  job text;
+  job_name text;
 begin
-  foreach job in array array[
+  foreach job_name in array array[
     'publish-scheduled-content',
     'publish-scheduled-answers-hourly',
     'apg-publish-scheduled-answers',
@@ -55,8 +55,8 @@ begin
     'apg-daily-planning-fill',
     'apg-index-published-articles'
   ] loop
-    if exists (select 1 from cron.job where jobname = job) then
-      perform cron.unschedule(job);
+    if exists (select 1 from cron.job where jobname = job_name) then
+      perform cron.unschedule(job_name);
     end if;
   end loop;
 end $$;
@@ -83,7 +83,7 @@ begin
   end if;
 
   select net.http_post(
-    url := 'https://pnohfokjlhpzrkczruju.supabase.co/functions/v1/' || function_name,
+    url := 'https://xpwghzwkvjmksenrnaxl.supabase.co/functions/v1/' || function_name,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || key

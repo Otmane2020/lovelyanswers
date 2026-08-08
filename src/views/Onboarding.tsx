@@ -229,7 +229,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (authLoading || !user || subLoading || resumedBilling) return
     supabase.from('projects')
-      .select('id, brand_name, name, website_url, domain, business_description, business_type, language, country, detected_cms, competitors')
+      .select('id, brand_name, name, website_url, domain, business_description, business_type, language, country, detected_cms, competitors, recommendation_example')
       .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
         const existing = data?.[0]
@@ -260,6 +260,8 @@ export default function Onboarding() {
           targetAudiences: [],
           keywords: [],
           language: existing.language || 'en',
+          recommendationExample: existing.recommendation_example || '',
+          aiEnriched: !!existing.recommendation_example,
         })
         setStep(5)
         // The projects table never stored a favicon column, so a resumed
@@ -274,6 +276,20 @@ export default function Onboarding() {
               }
             })
             .catch((e) => console.error('[ONBOARDING] resume favicon backfill failed', e))
+        }
+        // Older/interrupted projects have no stored recommendation_example
+        // (added after they were created) — re-run the real AI analysis so
+        // the "what ChatGPT would say" preview always shows genuine AI
+        // output instead of permanently falling back to generic copy.
+        if (existing.website_url && !existing.recommendation_example) {
+          supabase.functions.invoke('analyze-website', { body: { url: normalizeUrl(existing.website_url) } })
+            .then(({ data: reanalyzed }) => {
+              if (reanalyzed?.success && reanalyzed.aiEnriched && reanalyzed.recommendationExample) {
+                setAnalysis((prev) => (prev ? { ...prev, recommendationExample: reanalyzed.recommendationExample, aiEnriched: true } : prev))
+                supabase.from('projects').update({ recommendation_example: reanalyzed.recommendationExample }).eq('id', existing.id)
+              }
+            })
+            .catch((e) => console.error('[ONBOARDING] resume recommendation backfill failed', e))
         }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -485,6 +501,7 @@ export default function Onboarding() {
           brand_name: goodBrandName,
           competitors: Array.isArray(data.competitors) ? data.competitors : null,
           detected_cms: curPreScraped?.cms || null,
+          recommendation_example: data.recommendationExample || null,
           is_active: true,
         })
         .select()

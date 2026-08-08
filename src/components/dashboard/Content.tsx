@@ -9,7 +9,7 @@ import { ContentPreviewModal } from './ContentPreviewModal'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAME = (y: number, m: number) =>
-  new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
+  new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
 // geo_contents.content_type is a real stored column ('geo' | 'seo' | 'aeo'
 // | 'local_aeo'), written by generate-30-gso-contents which owns the 30-day
@@ -395,7 +395,7 @@ export function Content() {
               <div className="task-row" key={`h-${row.id}`}>
                 <span className="task-dot" style={{ background: 'var(--green)' }} />
                 <span className="t-title">
-                  {row.date ? new Date(row.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''} — “{row.title}” published
+                  {row.date ? new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} — “{row.title}” published
                 </span>
                 <span className="t-meta">GEO</span>
               </div>

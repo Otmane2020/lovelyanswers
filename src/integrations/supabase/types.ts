@@ -3284,6 +3284,7 @@ export type Database = {
           onboarding_progress: number
           onboarding_status: string
           onboarding_updated_at: string | null
+          recommendation_example: string | null
           sitemap_url: string | null
           source: string | null
           updated_at: string | null
@@ -3313,6 +3314,7 @@ export type Database = {
           onboarding_progress?: number
           onboarding_status?: string
           onboarding_updated_at?: string | null
+          recommendation_example?: string | null
           sitemap_url?: string | null
           source?: string | null
           updated_at?: string | null
@@ -3342,6 +3344,7 @@ export type Database = {
           onboarding_progress?: number
           onboarding_status?: string
           onboarding_updated_at?: string | null
+          recommendation_example?: string | null
           sitemap_url?: string | null
           source?: string | null
           updated_at?: string | null
