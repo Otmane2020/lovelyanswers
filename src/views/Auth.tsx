@@ -4,7 +4,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { lovable } from "@/integrations/lovable";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark, themeVars } from "@/components/brand/BrandMark";
@@ -214,8 +213,9 @@ export default function Auth() {
   };
 
   const oauth = async (provider: "google" | "apple") => {
-    const { error } = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/auth`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth` },
     });
     if (error) {
       toast({
@@ -278,14 +278,8 @@ export default function Auth() {
                 </svg>
                 Continue with Google
               </button>
-              <button style={{ ...socialBtn, marginBottom: "22px" }} onClick={() => oauth("apple")}>
-                <svg style={{ width: 18, height: 18 }} viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 12.54c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.75-.78-2.87-.76-1.48.02-2.84.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.7.71 2.87.69 1.18-.02 1.93-1.08 2.65-2.14.84-1.23 1.18-2.42 1.2-2.48-.03-.01-2.3-.88-2.31-3.5zM14.88 5.6c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.55 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.57-1.22z" />
-                </svg>
-                Continue with Apple
-              </button>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "0 0 22px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "22px 0 22px" }}>
                 <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
                 <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: ".1em", color: "var(--ink-soft)" }}>or</span>
                 <span style={{ flex: 1, height: 1, background: "var(--line)" }} />

@@ -5,7 +5,6 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSubscription } from '@/hooks/useSubscription'
-import { lovable } from '@/integrations/lovable'
 import { BrandMark } from '@/components/brand/BrandMark'
 import '@/styles/onboarding.css'
 
@@ -357,8 +356,9 @@ export default function Onboarding() {
   }
 
   const oauth = async (provider: 'google' | 'apple') => {
-    const { error: e } = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/onboarding`,
+    const { error: e } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/onboarding` },
     })
     if (e) setError(e.message)
   }
@@ -714,9 +714,6 @@ export default function Onboarding() {
               <p className="sub">Just this — no card yet. This lets us save your progress as you go.</p>
               <button className="btn btn-social" onClick={() => oauth('google')}>
                 <IcGoogle /> Continue with Google
-              </button>
-              <button className="btn btn-social" onClick={() => oauth('apple')}>
-                <IcApple /> Continue with Apple
               </button>
               <div className="divider"><span /><em>or</em><span /></div>
               <label className="first">Email</label>
