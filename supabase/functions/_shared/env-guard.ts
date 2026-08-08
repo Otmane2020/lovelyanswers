@@ -17,7 +17,8 @@ function looksLikeRealSecret(value: string): boolean {
   return true;
 }
 
-/** Reads an env var and returns it only if it looks like a real secret, not a placeholder. */
+/** Reads an env var and returns it only if it looks like a real secret, not a placeholder.
+ *  A minimum length under 16 chars is treated as a placeholder too. */
 export function getUsableSecret(name: string): string | undefined {
   const v = Deno.env.get(name);
   if (!v) return undefined;
