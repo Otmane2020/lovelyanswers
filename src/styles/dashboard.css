@@ -72,6 +72,16 @@
 .flag-attn{background:var(--amber);color:#fff;}
 
 .sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);}
+
+/* Mobile top bar: the sidebar itself becomes a bottom tab bar on mobile
+   (.brand is display:none there), so the brand mark needs its own fixed
+   header instead of just disappearing. Hidden on desktop; shown below. */
+.mobile-topbar{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:20;
+  align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:var(--primary-deep);box-shadow:0 2px 12px rgba(0,0,0,.12);
+}
+.mobile-topbar .brand{padding:0;}
 .signout{display:flex;align-items:center;gap:10px;padding:9px 10px;font-size:13.5px;color:#8992d6;cursor:pointer;transition:color 0.2s ease;}
 .signout:hover{color:#a6ade4;}
 
@@ -211,13 +221,14 @@ tr:last-child td{border-bottom:none;}
     align-items:center;z-index:20;box-shadow:0 -4px 16px rgba(0,0,0,.12);
   }
   .brand,.sidebar-foot{display:none;}
+  .mobile-topbar{display:flex;}
   .nav-item{
     flex-direction:column;gap:3px;font-size:10px;padding:6px 4px;flex:1;
     text-align:center;border-radius:10px;
   }
   .nav-item .ic .ic-svg{width:20px;height:20px;}
   .nav-item .flag{position:absolute;top:2px;right:14px;margin-left:0;}
-  .geo-dashboard main{padding:20px 16px 90px;}
+  .geo-dashboard main{padding:calc(60px + env(safe-area-inset-top)) 16px 90px;}
   .top-header h1{font-size:21px;}
   .impact-hero{flex-direction:column;align-items:flex-start;}
   .grid-2{grid-template-columns:1fr;}

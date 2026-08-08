@@ -52,37 +52,55 @@ export function useSubscription() {
     }
   }, [user]);
 
+  // window.open() only survives popup blockers when it runs synchronously
+  // inside the click handler — call it BEFORE the await so the tab is
+  // already open (blank), then point it at the real URL once we have it.
+  // Opening it after the await (the old code) meant the browser no longer
+  // saw it as user-gesture-triggered and silently blocked it: no error,
+  // nothing visibly happens, which is exactly "the button doesn't work".
   const startCheckout = async () => {
+    const tab = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout");
-      
+
       if (error) {
         console.error("Checkout error:", error);
+        tab?.close();
         throw new Error("Failed to create checkout session");
       }
 
       if (data?.url) {
-        window.open(data.url, "_blank");
+        if (tab) tab.location.href = data.url;
+        else window.location.href = data.url; // popup blocked — fall back to same-tab redirect
+      } else {
+        tab?.close();
       }
     } catch (err) {
+      tab?.close();
       console.error("Checkout failed:", err);
       throw err;
     }
   };
 
   const openCustomerPortal = async () => {
+    const tab = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
-      
+
       if (error) {
         console.error("Portal error:", error);
+        tab?.close();
         throw new Error("Failed to open customer portal");
       }
 
       if (data?.url) {
-        window.open(data.url, "_blank");
+        if (tab) tab.location.href = data.url;
+        else window.location.href = data.url; // popup blocked — fall back to same-tab redirect
+      } else {
+        tab?.close();
       }
     } catch (err) {
+      tab?.close();
       console.error("Portal failed:", err);
       throw err;
     }

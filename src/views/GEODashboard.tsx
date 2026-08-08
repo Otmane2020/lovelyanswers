@@ -16,7 +16,7 @@ import { Presence } from '@/components/dashboard/Presence'
 import { Results } from '@/components/dashboard/Results'
 import { Settings } from '@/components/dashboard/Settings'
 import { DoItForMeModal } from '@/components/dashboard/DoItForMeModal'
-import { IconAlert } from '@/components/dashboard/Icons'
+import { IconAlert, IconSparkle } from '@/components/dashboard/Icons'
 import '@/styles/dashboard.css'
 
 export type DashboardTab = 'today' | 'content' | 'presence' | 'results' | 'settings'
@@ -159,6 +159,15 @@ export default function GEODashboard() {
 
   return (
     <div className="geo-dashboard">
+      <div className="mobile-topbar">
+        <div className="brand">
+          <div className="brand-mark"><IconSparkle /></div>
+          <div className="brand-text">
+            <div className="eyebrow">AUTOPILOT</div>
+            <div className="name">GEO</div>
+          </div>
+        </div>
+      </div>
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <main>
         {!cmsConnected && waiting > 0 && (
