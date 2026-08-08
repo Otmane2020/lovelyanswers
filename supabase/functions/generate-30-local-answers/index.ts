@@ -1,12 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { chatCompletion } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
 /* =======================
    HELPERS
@@ -315,7 +314,6 @@ async function generateLocalAnswer(
   businessContext: string,
   businessName: string,
   language: string,
-  apiKey: string,
 ): Promise<{ answer: string; bullets: string[] }> {
   const lang = language === "fr" ? "French" : "English";
   const blueprint = getCategoryBlueprint(category, language);
@@ -346,28 +344,16 @@ Return ONLY valid JSON:
   "bullets": ["Key info 1...", "Key info 2...", "Key info 3...", "Key info 4..."]
 }`;
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemma-4-31b-it:free",
-      // Free models get rate-limited upstream constantly; OpenRouter falls back
-      // through this list automatically when one errors out.
-      models: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"],
-      temperature: 0.45,
-      max_tokens: 2000, // ← CRITIQUE : assez pour 300-450 mots en markdown
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
+  const result = await chatCompletion({
+    temperature: 0.45,
+    max_tokens: 2000, // ← CRITIQUE : assez pour 300-450 mots en markdown
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
   });
 
-  const json = await res.json();
-  const raw = json?.choices?.[0]?.message?.content ?? "";
+  const raw = result.choices?.[0]?.message?.content ?? "";
   if (!raw) throw new Error("Empty AI response");
 
   const parsed = safeParseJSON<{ answer: string; bullets: string[] }>(raw);
@@ -467,7 +453,6 @@ serve(async (req) => {
           contextString,
           businessName,
           language,
-          OPENROUTER_API_KEY!,
         );
 
         const words = countWords(generated.answer);

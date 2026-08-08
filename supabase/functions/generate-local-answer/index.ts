@@ -40,14 +40,6 @@ serve(async (req) => {
       }
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { projectId, question, businessName, location, businessContext } = await req.json();
 
     if (!question) {

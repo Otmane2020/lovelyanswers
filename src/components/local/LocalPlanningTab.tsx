@@ -77,15 +77,47 @@ export function LocalPlanningTab({ businessName, businessId }: LocalPlanningTabP
 
   const handlePublish = async (answer: LocalAnswer) => {
     if (!project) return;
-    
+
     setPublishingId(answer.id);
     try {
-      // Get integration
+      // Google Business Profile has its own posting API (mybusiness.googleapis.com),
+      // incompatible with the generic CMS publisher below — route it separately.
+      const { data: gmbIntegration } = await supabase
+        .from("integrations")
+        .select("id")
+        .eq("project_id", project.id)
+        .eq("platform", "google_business")
+        .eq("is_connected", true)
+        .maybeSingle();
+
+      if (gmbIntegration) {
+        const { data, error } = await supabase.functions.invoke("gmb-publish-post", {
+          body: {
+            projectId: project.id,
+            content: `${answer.question}\n\n${answer.answer}`,
+          },
+        });
+
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.message || "Failed to publish to Google Business");
+
+        await supabase
+          .from("local_answers")
+          .update({ is_public: true, published_at: new Date().toISOString() })
+          .eq("id", answer.id);
+
+        toast.success(data.message || "Published to Google Business Profile!");
+        refetch();
+        return;
+      }
+
+      // Get generic CMS integration (WordPress/Shopify)
       const { data: integrations } = await supabase
         .from("integrations")
         .select("*")
         .eq("project_id", project.id)
         .eq("is_connected", true)
+        .in("platform", ["wordpress", "shopify"])
         .limit(1);
 
       if (!integrations || integrations.length === 0) {
