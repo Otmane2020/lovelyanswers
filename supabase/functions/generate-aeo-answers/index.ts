@@ -460,8 +460,7 @@ async function generateAIAnswer(
   question: string,
   context: BusinessContext,
   intent: IntentType,
-  language: string,
-  apiKey: string
+  language: string
 ): Promise<{ answer: string; bullets: string[]; faq: Array<{q: string; a: string}> }> {
   const systemPrompt = getAEOStrictSystemPrompt(language, context, intent);
   const { brandName, websiteUrl, businessDescription, audience } = context;
@@ -585,7 +584,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
@@ -831,8 +829,7 @@ Strict JSON format: {"questions": ["question 1", "question 2", ..."]}`;
           questionText,
           businessContext,
           intent,
-          language,
-          lovableApiKey
+          language
         );
         
         const score = computeCitationScoreAEO(generated.answer, platforms);

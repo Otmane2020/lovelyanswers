@@ -101,14 +101,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { topic, brand, website, keywords, projectId, contentType, language, mode } = body;
 
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!openRouterKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // AI Suggest mode
     if (mode === "suggest") {
       if (!brand || !projectId) {

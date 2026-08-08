@@ -16,9 +16,6 @@ serve(async (req) => {
     const { productId, projectId, language, all } = await req.json();
     if (!projectId) throw new Error("projectId required");
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

@@ -229,7 +229,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { projectId, keywords, language = "en", count = 5 }: ArticleRequest = await req.json();

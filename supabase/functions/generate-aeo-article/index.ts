@@ -428,7 +428,6 @@ async function generateArticleContentWithSettings(
   answer: string,
   context: BusinessContext,
   language: string,
-  apiKey: string,
   settings: ArticleSettings
 ): Promise<{ content: string; meta_description: string; keywords: string[] }> {
   const { brandName, websiteUrl, businessDescription, audience, businessType, competitors, tone } = context;
@@ -776,8 +775,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const lovableApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
-    
+
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "No authorization header" }), {
@@ -924,7 +922,6 @@ serve(async (req) => {
       answer.answer,
       businessContext,
       language,
-      lovableApiKey,
       settings
     );
 
