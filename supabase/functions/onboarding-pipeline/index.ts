@@ -75,7 +75,14 @@ Deno.serve(async (req) => {
 
     // ---- Step 2: business analysis (existing analyze-website) ----------
     await setStatus("analysing_business", 45);
-    if (websiteUrl) {
+    // Both callers of this pipeline (AeoWizard, Onboarding) already call
+    // analyze-website themselves first for instant UI feedback while the
+    // project doesn't exist yet — re-running it here on "full" mode would
+    // just burn a second AI call for data we already have. "refresh" mode
+    // keeps the unconditional re-analysis: that's its whole point.
+    if (mode === "full" && project.business_description) {
+      steps.business = { skipped: true, reason: "already analysed before onboarding-pipeline ran" };
+    } else if (websiteUrl) {
       // Service-role call: works from cron / refresh with no browser session.
       const res = await invokeInternal("analyze-website", { url: websiteUrl });
       const data: any = res.data;

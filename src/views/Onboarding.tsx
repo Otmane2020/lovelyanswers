@@ -528,6 +528,18 @@ export default function Onboarding() {
       if (projError) throw projError
       setProjectId(project.id)
       setPhase('')
+
+      // Backend orchestration, fire-and-forget: multi-page scraping,
+      // competitor keywords, DataForSEO enrichment, then the project_context
+      // snapshot every generation function reads from. Without this the
+      // context stays empty until someone finds "Refresh project context" in
+      // Settings — every piece of content generated in the meantime reads
+      // from a near-empty snapshot and gets cached that way. Business
+      // analysis itself is skipped inside the pipeline since it just ran
+      // above; this only fills in what runAnalysis() doesn't do.
+      supabase.functions.invoke('onboarding-pipeline', {
+        body: { projectId: project.id, mode: 'full' },
+      }).catch((e) => console.error('[ONBOARDING] onboarding-pipeline failed', e))
     } catch (err) {
       setError(await describeFnError(err, 'Something went wrong — please try again'))
       setPhase('')
