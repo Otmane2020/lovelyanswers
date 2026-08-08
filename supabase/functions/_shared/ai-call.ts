@@ -5,6 +5,9 @@
  * When that quota is hit every generation function used to hard-fail with 429.
  * This helper walks the free model chain and then falls back to the Lovable AI
  * Gateway (Gemini) so content generation never stops on a provider quota.
+ *
+ * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are synced into
+ * Supabase Edge Function secrets by the deploy workflow's Vercel pull step.
  */
 
 export const OPENROUTER_FREE_MODELS = [
