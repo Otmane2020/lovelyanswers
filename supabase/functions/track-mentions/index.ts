@@ -16,15 +16,64 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { project_id } = await req.json()
+    let body: any = {}
+    try {
+      body = await req.json()
+    } catch {
+      body = {}
+    }
+    const { project_id } = body
 
+    // This function was only ever reachable via the manual "Run first
+    // check" button (project_id required) — nothing scheduled it, so the
+    // AI Mentions metric stayed at 0 for every project until someone
+    // clicked that button by hand. No project_id (the cron path, same
+    // convention as check-planning-completeness/daily-content-rotation)
+    // now runs it for every active project.
     if (!project_id) {
-      return new Response(JSON.stringify({ error: 'project_id required' }), {
-        status: 400,
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('is_active', true)
+
+      const results: { projectId: string; ok: boolean; error?: string }[] = []
+      for (const p of projects || []) {
+        try {
+          await runForProject(p.id)
+          results.push({ projectId: p.id, ok: true })
+        } catch (err) {
+          console.error(`[track-mentions] Failed for project ${p.id}:`, err)
+          results.push({ projectId: p.id, ok: false, error: String(err) })
+        }
+        await sleep(1000)
+      }
+
+      const succeeded = results.filter((r) => r.ok).length
+      return new Response(JSON.stringify({
+        success: true,
+        processed: results.length,
+        succeeded,
+        failed: results.length - succeeded,
+        results,
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    const result = await runForProject(project_id)
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (error) {
+    console.error('Track mentions error:', error)
+    return new Response(JSON.stringify({ error: String(error) }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})
+
+async function runForProject(project_id: string) {
     const { data: project } = await supabase
       .from('projects')
       .select('*')
@@ -32,10 +81,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (!project) {
-      return new Response(JSON.stringify({ error: 'Project not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      throw new Error('Project not found')
     }
 
     let { data: queries } = await supabase
@@ -112,22 +158,13 @@ Deno.serve(async (req) => {
     await computeVisibilityScores(project_id)
 
     const succeeded = results.filter(r => r.status === 'fulfilled').length
-    return new Response(JSON.stringify({
+    return {
       success: true,
       processed: results.length,
       succeeded,
-      failed: results.length - succeeded
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (error) {
-    console.error('Track mentions error:', error)
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-})
+      failed: results.length - succeeded,
+    }
+}
 
 async function trackQuery(query: any, projectId: string, brandNames: string[], competitors: string[]) {
   let rawResponse: string

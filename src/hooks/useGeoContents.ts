@@ -33,11 +33,16 @@ export function useGeoContents() {
     queryKey: ["geo_contents", project?.id],
     queryFn: async () => {
       if (!project) return [];
+      // Unlike useArticles/useAnswers, this had no cap at all — fetched
+      // every row unbounded. Same 1000-row safety cap as those two, not a
+      // real pagination fix (Content.tsx still merges + paginates
+      // client-side), just stops an unbounded query as the catalog grows.
       const { data, error } = await supabase
         .from("geo_contents")
         .select("*")
         .eq("project_id", project.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
       return (data || []) as GeoContent[];

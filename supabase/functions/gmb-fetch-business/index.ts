@@ -52,7 +52,57 @@ serve(async (req) => {
       );
     }
 
-    const accessToken = integration.config.access_token;
+    // Unlike get-search-console-data / list-search-console-sites, this
+    // function used to send integration.config.access_token straight to
+    // Google with no expiry check — any token older than ~1h just 401'd
+    // with a generic "Failed to fetch GMB accounts" instead of refreshing.
+    let accessToken = integration.config.access_token as string;
+    const expiresAt = integration.config.token_expires_at
+      ? new Date(integration.config.token_expires_at).getTime()
+      : 0;
+    const refreshToken = integration.config.refresh_token as string | undefined;
+
+    if (expiresAt && expiresAt < Date.now() + 60_000) {
+      if (!refreshToken) {
+        return new Response(
+          JSON.stringify({ error: "GMB token expired and no refresh token stored", needsReconnect: true, business: null, locations: [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+      const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+      const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId ?? "",
+          client_secret: clientSecret ?? "",
+          refresh_token: refreshToken,
+          grant_type: "refresh_token",
+        }),
+      });
+      if (!refreshRes.ok) {
+        console.error("GMB token refresh failed:", await refreshRes.text());
+        await supabase.from("integrations").update({ is_connected: false }).eq("id", integration.id);
+        return new Response(
+          JSON.stringify({ error: "GMB token refresh failed", needsReconnect: true, business: null, locations: [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const refreshed = await refreshRes.json();
+      accessToken = refreshed.access_token;
+      await supabase
+        .from("integrations")
+        .update({
+          config: {
+            ...integration.config,
+            access_token: accessToken,
+            token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", integration.id);
+    }
 
     // Fetch accounts from Google Business Profile API
     const accountsResponse = await fetch(

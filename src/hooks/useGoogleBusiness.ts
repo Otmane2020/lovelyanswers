@@ -190,6 +190,24 @@ export function useGoogleBusiness() {
     return data;
   };
 
+  // There was no disconnect path for GMB at all — the "Connected" card had
+  // no reset control, unlike Search Console's. Deletes the integrations row
+  // outright rather than just clearing tokens (matches useDeleteIntegration's
+  // behavior for every other platform).
+  const disconnectGMB = async () => {
+    if (!project?.id) return;
+    const { error } = await supabase
+      .from("integrations")
+      .delete()
+      .eq("project_id", project.id)
+      .eq("platform", "google_business");
+    if (error) throw error;
+    setIsConnected(false);
+    setBusiness(null);
+    setLocations([]);
+    setSelectedLocationIds([]);
+  };
+
   return {
     business,
     locations,
@@ -198,6 +216,7 @@ export function useGoogleBusiness() {
     isConnected,
     isSaving,
     connectGMB,
+    disconnectGMB,
     fetchBusiness,
     fetchInsights,
     publishPost,

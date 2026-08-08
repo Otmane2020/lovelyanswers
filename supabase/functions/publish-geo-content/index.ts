@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
                 published_at: new Date().toISOString(),
                 is_public: true,
                 published_url: cmsData.url,
+                publish_error: null,
               })
               .eq("id", content.id);
 
@@ -88,17 +89,37 @@ Deno.serve(async (req) => {
             console.log(`Published GEO content ${content.id} to CMS: ${cmsData.url}`);
             continue;
           }
+
+          // A connected CMS exists and the call completed, but returned no
+          // URL (an error response, e.g. {error:"..."}) — this used to fall
+          // through to "mark as published internally" below, silently
+          // hiding a real publish failure. Record it and leave published_at
+          // null so this row stays eligible and gets retried next run.
+          console.error(`CMS publish failed for ${content.id}: no url in response`, cmsData);
+          await supabase
+            .from("geo_contents")
+            .update({ publish_error: cmsData?.error || "CMS publish did not return a URL" })
+            .eq("id", content.id);
+          continue;
         } catch (cmsErr) {
           console.error(`CMS publish failed for ${content.id}:`, cmsErr);
+          await supabase
+            .from("geo_contents")
+            .update({ publish_error: cmsErr instanceof Error ? cmsErr.message : String(cmsErr) })
+            .eq("id", content.id);
+          continue;
         }
       }
 
-      // Fallback: mark as published internally (no CMS)
+      // Fallback: no CMS connected at all — publish internally (the site's
+      // own /blog etc). Only reached when there's genuinely nowhere else to
+      // send it, not on a CMS failure (handled above).
       await supabase
         .from("geo_contents")
         .update({
           published_at: new Date().toISOString(),
           is_public: true,
+          publish_error: null,
         })
         .eq("id", content.id);
 
