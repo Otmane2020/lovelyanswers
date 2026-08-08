@@ -20,6 +20,51 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, "&#x27;");
 }
 
+// AEO's prompt asks the model for raw HTML (<a href="#section1">, <li>...),
+// but it doesn't always stay in HTML mode for the whole response — the TOC
+// or an internal link sometimes slips out in markdown syntax instead. Only
+// the http(s) case used to get linkified here; a same-page anchor like
+// "(#section1)" or a relative "(/blog)" fell through as literal bracket
+// text, which is exactly the broken-looking TOC/links this fixes.
+const linkifyMarkdown = (html: string): string =>
+  html.replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, (_m, text, url) => {
+    const isAbsolute = /^https?:\/\//.test(url);
+    return `<a href="${url}"${isAbsolute ? ' target="_blank" rel="noopener"' : ""}>${text}</a>`;
+  });
+
+// Same reasoning for bullet/numbered lists: a stray markdown list line
+// dropped into otherwise-HTML content rendered as a literal "* text" line
+// instead of a real <li>, since the whole-document passthrough below never
+// looked at individual lines once it saw *any* HTML block tag.
+const listifyMarkdown = (html: string): string => {
+  const lines = html.split("\n");
+  const out: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+  const closeList = () => {
+    if (listType) {
+      out.push(`</${listType}>`);
+      listType = null;
+    }
+  };
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    const ul = /^[-*•]\s+(.*)$/.exec(trimmed);
+    const ol = !ul && /^\d+[.)]\s+(.*)$/.exec(trimmed);
+    if (ul) {
+      if (listType !== "ul") { closeList(); out.push("<ul>"); listType = "ul"; }
+      out.push(`<li>${ul[1]}</li>`);
+    } else if (ol) {
+      if (listType !== "ol") { closeList(); out.push("<ol>"); listType = "ol"; }
+      out.push(`<li>${ol[1]}</li>`);
+    } else {
+      closeList();
+      out.push(raw);
+    }
+  }
+  closeList();
+  return out.join("\n");
+};
+
 /**
  * Small, dependency-free markdown -> HTML converter. Generation prompts
  * across the app ask the model for "## / ### headings, markdown lists,
@@ -27,12 +72,17 @@ export function escapeHtml(str: string): string {
  * bold/italic, bullet/numbered lists, blockquotes, links, simple pipe
  * tables) rather than pulling in a full markdown library for a Deno edge
  * function. Input that's already HTML (a `<h2>` etc.) passes through
- * untouched since none of the patterns below match existing tags.
+ * mostly untouched — see linkifyMarkdown/listifyMarkdown above for the
+ * exception.
  */
 export function markdownToHtml(md: string): string {
   if (!md) return "";
-  // Already HTML (contains block tags) — leave it as-is.
-  if (/<(h[1-6]|p|ul|ol|table|div|blockquote)[\s>]/i.test(md)) return md;
+  // Already HTML (contains block tags) — leave it as-is, aside from
+  // mopping up any markdown-style links/lists the model mixed in (see
+  // linkifyMarkdown/listifyMarkdown above).
+  if (/<(h[1-6]|p|ul|ol|table|div|blockquote)[\s>]/i.test(md)) {
+    return listifyMarkdown(linkifyMarkdown(md));
+  }
 
   const lines = md.replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
@@ -45,7 +95,10 @@ export function markdownToHtml(md: string): string {
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/g, "<em>$1</em>")
       .replace(/`(.+?)`/g, "<code>$1</code>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      .replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, (_m, linkText, url) => {
+        const isAbsolute = /^https?:\/\//.test(url);
+        return `<a href="${url}"${isAbsolute ? ' target="_blank" rel="noopener"' : ""}>${linkText}</a>`;
+      });
 
   const closeList = () => {
     if (listType) {
