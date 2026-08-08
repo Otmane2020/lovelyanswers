@@ -90,6 +90,25 @@ const isValidUrl = (raw: string) => {
   }
 }
 
+/* supabase.functions.invoke() errors carry only a generic "Edge Function
+   returned a non-2xx status code" as .message — the actual { error: "..." }
+   body our functions return lives on the raw Response at .context. Prefer
+   that so a real failure reason reaches the screen instead of the SDK's
+   unhelpful default. */
+const describeFnError = async (error: unknown, fallback: string): Promise<string> => {
+  const ctx = (error as { context?: Response })?.context
+  if (ctx && typeof ctx.json === 'function') {
+    try {
+      const body = await ctx.json()
+      if (body?.error && typeof body.error === 'string') return body.error
+    } catch {
+      // response body wasn't JSON — fall through to the generic message below
+    }
+  }
+  const message = error instanceof Error ? error.message : ''
+  return message && message !== 'Edge Function returned a non-2xx status code' ? message : fallback
+}
+
 /* ---------- icons ---------- */
 const IcArrow = () => (
   <svg className="ic-svg" viewBox="0 0 24 24" style={{ width: 14, height: 14, strokeWidth: 2 }}>
@@ -425,7 +444,7 @@ export default function Onboarding() {
         const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-website', {
           body: { url: normalizeUrl(bizSite || bizName) },
         })
-        if (fnError) throw new Error(fnError.message || 'Could not analyze your site')
+        if (fnError) throw fnError
         if (!fnData?.success) throw new Error(fnData?.error || 'Could not analyze your site')
         data = fnData
       } catch (e) {
@@ -510,7 +529,7 @@ export default function Onboarding() {
       setProjectId(project.id)
       setPhase('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(await describeFnError(err, 'Something went wrong — please try again'))
       setPhase('')
     } finally {
       setAnalyzing(false)
@@ -559,7 +578,7 @@ export default function Onboarding() {
       const { data, error: e } = await supabase.functions.invoke('create-subscription-intent', {
         body: { plan: nextPlan, promoCode: nextPromo || undefined },
       })
-      if (e) throw new Error(e.message)
+      if (e) throw e
       if (data?.error) throw new Error(data.error)
 
       if (data.alreadySubscribed) {
@@ -571,7 +590,7 @@ export default function Onboarding() {
       setAppliedDiscount(data.discount ?? null)
       return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start checkout')
+      setError(await describeFnError(err, 'Could not start checkout — please try again'))
       return false
     } finally {
       setBusy(false)
@@ -607,7 +626,7 @@ export default function Onboarding() {
       const { data, error: e } = await supabase.functions.invoke('create-subscription-intent', {
         body: { plan, promoCode: code },
       })
-      if (e) throw new Error(e.message)
+      if (e) throw e
       if (data?.error) throw new Error(data.error)
       // A 100%-off code settles the invoice at $0 — Stripe activates the
       // subscription immediately with nothing left to confirm, so there's
@@ -623,7 +642,7 @@ export default function Onboarding() {
       setAppliedDiscount(data.discount ?? null)
       setPromoCode(code)
     } catch (err) {
-      setPromoError(err instanceof Error ? err.message : 'Could not apply that code')
+      setPromoError(await describeFnError(err, 'Could not apply that code'))
     } finally {
       setPromoBusy(false)
     }

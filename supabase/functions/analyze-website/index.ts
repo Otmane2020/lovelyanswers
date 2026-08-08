@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authenticateCaller } from "../_shared/internal-auth.ts";
-import { chatCompletion } from "../_shared/ai-call.ts";
+import { chatCompletion, getUsableKey } from "../_shared/ai-call.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const dataforseoLogin = Deno.env.get("DATAFORSEO_LOGIN");
     const dataforseoPassword = Deno.env.get("DATAFORSEO_PASSWORD");
-    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    const openrouterApiKey = getUsableKey("OPENROUTER_API_KEY");
 
     // Auth: browser calls carry a user JWT, backend orchestrators (onboarding
     // pipeline, cron, Refresh Project Context) carry the service role key.
@@ -213,7 +213,7 @@ serve(async (req) => {
     console.log("[ANALYZE-WEBSITE] 📄 Total page content extracted:", pageContent.length, "chars");
 
     // Step 2: Use AI to analyze the FULL page content and find competitors + keywords
-    if ((openrouterApiKey || Deno.env.get("LOVABLE_API_KEY")) && pageContent.length > 50) {
+    if ((openrouterApiKey || getUsableKey("LOVABLE_API_KEY")) && pageContent.length > 50) {
       try {
         console.log("[ANALYZE-WEBSITE] 🤖 Using AI to analyze full page content...");
         

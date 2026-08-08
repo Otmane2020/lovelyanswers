@@ -55,6 +55,9 @@ export interface ChatResult {
   provider: "openrouter" | "gemini" | "deepseek" | "lovable";
 }
 
+import { getUsableSecret as getUsableKey } from "./env-guard.ts";
+export { getUsableKey };
+
 function buildBody(model: string, opts: ChatBody) {
   const body: Record<string, unknown> = {
     model,
@@ -118,8 +121,8 @@ async function tryEndpoint(
  * Returns an OpenRouter-shaped payload so call sites stay unchanged.
  */
 export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
-  const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  const openrouterKey = getUsableKey("OPENROUTER_API_KEY");
+  const lovableKey = getUsableKey("LOVABLE_API_KEY");
   const referer = opts.referer ?? "https://autopilotgeo.com";
   const title = opts.title ?? "AutopilotGEO";
 
@@ -150,7 +153,7 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     console.warn("[AI] OPENROUTER_API_KEY not set, skipping OpenRouter");
   }
 
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  const geminiKey = getUsableKey("GEMINI_API_KEY");
   if (geminiKey) {
     console.log("[AI] OpenRouter exhausted, falling back to Gemini API");
     for (const model of GEMINI_FALLBACK_MODELS) {
@@ -173,7 +176,7 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     console.warn("[AI] GEMINI_API_KEY not set, skipping Gemini fallback");
   }
 
-  const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY");
+  const deepseekKey = getUsableKey("DEEPSEEK_API_KEY");
   if (deepseekKey) {
     console.log("[AI] Gemini unavailable, falling back to DeepSeek");
     for (const model of DEEPSEEK_FALLBACK_MODELS) {
