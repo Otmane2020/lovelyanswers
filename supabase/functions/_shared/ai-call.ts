@@ -8,6 +8,8 @@
  *
  * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are synced into
  * Supabase Edge Function secrets by the deploy workflow's Vercel pull step.
+ * They must not be marked "Sensitive" in Vercel, or the pull step only ever
+ * receives the literal placeholder text "[SENSITIVE]" instead of the value.
  */
 
 export const OPENROUTER_FREE_MODELS = [
