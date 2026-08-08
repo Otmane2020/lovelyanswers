@@ -42,7 +42,7 @@ serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = getUsableSecret("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set or looks like a placeholder — check whether it's marked \"Sensitive\" in Vercel");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set or looks like a placeholder — check Project Settings > Edge Functions > Secrets in Supabase");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {

@@ -24,7 +24,7 @@ serve(async (req) => {
 
   try {
     const stripeKey = getUsableSecret("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not configured or looks like a placeholder — check whether it's marked \"Sensitive\" in Vercel");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not configured or looks like a placeholder — check Project Settings > Edge Functions > Secrets in Supabase");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 

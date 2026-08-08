@@ -6,10 +6,11 @@
  * This helper walks the free model chain and then falls back to the Lovable AI
  * Gateway (Gemini) so content generation never stops on a provider quota.
  *
- * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are synced into
- * Supabase Edge Function secrets by the deploy workflow's Vercel pull step.
- * They must not be marked "Sensitive" in Vercel, or the pull step only ever
- * receives the literal placeholder text "[SENSITIVE]" instead of the value.
+ * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are managed
+ * directly in the Supabase dashboard (Project Settings > Edge Functions >
+ * Secrets) — no longer synced from Vercel by the deploy workflow, since that
+ * sync used to silently overwrite a real key with a placeholder whenever the
+ * matching Vercel env var was marked "Sensitive".
  */
 
 export const OPENROUTER_FREE_MODELS = [
