@@ -6,10 +6,11 @@
  * This helper walks the free model chain and then falls back to the Lovable AI
  * Gateway (Gemini) so content generation never stops on a provider quota.
  *
- * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are synced into
- * Supabase Edge Function secrets by the deploy workflow's Vercel pull step.
- * They must not be marked "Sensitive" in Vercel, or the pull step only ever
- * receives the literal placeholder text "[SENSITIVE]" instead of the value.
+ * Keys read here (OPENROUTER_API_KEY, GEMINI_API_KEY, etc.) are managed
+ * directly in the Supabase dashboard (Project Settings > Edge Functions >
+ * Secrets) — no longer synced from Vercel by the deploy workflow, since that
+ * sync used to silently overwrite a real key with a placeholder whenever the
+ * matching Vercel env var was marked "Sensitive".
  */
 
 export const OPENROUTER_FREE_MODELS = [
@@ -54,6 +55,9 @@ export interface ChatResult {
   model: string;
   provider: "openrouter" | "gemini" | "deepseek" | "lovable";
 }
+
+import { getUsableSecret as getUsableKey } from "./env-guard.ts";
+export { getUsableKey };
 
 function buildBody(model: string, opts: ChatBody) {
   const body: Record<string, unknown> = {
@@ -118,8 +122,8 @@ async function tryEndpoint(
  * Returns an OpenRouter-shaped payload so call sites stay unchanged.
  */
 export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
-  const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  const openrouterKey = getUsableKey("OPENROUTER_API_KEY");
+  const lovableKey = getUsableKey("LOVABLE_API_KEY");
   const referer = opts.referer ?? "https://autopilotgeo.com";
   const title = opts.title ?? "AutopilotGEO";
 
@@ -150,7 +154,7 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     console.warn("[AI] OPENROUTER_API_KEY not set, skipping OpenRouter");
   }
 
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  const geminiKey = getUsableKey("GEMINI_API_KEY");
   if (geminiKey) {
     console.log("[AI] OpenRouter exhausted, falling back to Gemini API");
     for (const model of GEMINI_FALLBACK_MODELS) {
@@ -173,7 +177,7 @@ export async function chatCompletion(opts: ChatBody): Promise<ChatResult> {
     console.warn("[AI] GEMINI_API_KEY not set, skipping Gemini fallback");
   }
 
-  const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY");
+  const deepseekKey = getUsableKey("DEEPSEEK_API_KEY");
   if (deepseekKey) {
     console.log("[AI] Gemini unavailable, falling back to DeepSeek");
     for (const model of DEEPSEEK_FALLBACK_MODELS) {
