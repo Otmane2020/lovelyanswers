@@ -20,26 +20,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Handle OAuth callback from URL hash (for Google OAuth)
-    const handleOAuthCallback = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        // Set the session from OAuth callback
-        await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-
-    handleOAuthCallback();
-
-    // Set up auth state listener FIRST
+    // The client's own detectSessionInUrl (on by default) already parses
+    // the OAuth redirect — whether it comes back as a #access_token hash
+    // (implicit flow) or a ?code= query param (PKCE) — exchanges it, fires
+    // SIGNED_IN below, and strips it from the URL. A second manual parser
+    // used to live here, reading only the hash form and calling setSession
+    // itself: redundant with the SDK's own handling, blind to the PKCE
+    // form entirely, and a race against it for the hash form (whichever
+    // strips the URL first leaves the other with nothing to read) — the
+    // likely cause of Google sign-in occasionally never reaching this
+    // listener at all, leaving the user stuck without a redirect to
+    // onboarding or the dashboard.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -48,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
