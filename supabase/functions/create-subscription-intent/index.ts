@@ -64,14 +64,18 @@ serve(async (req) => {
       userData.user.id,
     );
 
-    // Reuse the customer if this email already has one.
-    const existing = await stripe.customers.list({ email, limit: 1 });
+    // Reuse the customer only if it's actually this user's — an email match
+    // alone isn't enough. Two Supabase accounts can share an email (e.g. an
+    // old/deleted account whose Stripe customer still exists), and treating
+    // any same-email customer as "this user's" let one account inherit a
+    // completely different account's active subscription and skip payment
+    // entirely (the "already subscribed" branch below would fire for
+    // someone who never paid). No customer verifiably owned by this user ->
+    // always create a fresh, correctly-tagged one rather than guess.
+    const existing = await stripe.customers.list({ email, limit: 10 });
     const customer =
-      existing.data[0] ??
-      (await stripe.customers.create({
-        email,
-        metadata: { supabase_user_id: userData.user.id },
-      }));
+      existing.data.find((c) => c.metadata?.supabase_user_id === userData.user.id) ??
+      (await stripe.customers.create({ email, metadata: { supabase_user_id: userData.user.id } }));
 
     // Don't create a second subscription if one is already live.
     const currentSubs = await stripe.subscriptions.list({
