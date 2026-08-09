@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -14,6 +15,7 @@ const passwordSchema = z.string().min(6, "Password must be at least 6 characters
 export default function Auth() {
   const navigate = useNavigate();
   const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const { subscribed, trial, isLoading: subLoading } = useSubscription();
   const { toast } = useToast();
 
   const [searchParams] = useSearchParams();
@@ -91,9 +93,18 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [toast]);
 
-  // Signed in: project -> dashboard, no project -> onboarding.
+  // Signed in with a paid/trialing project -> dashboard, anything else ->
+  // onboarding. This used to send anyone with *any* project row straight
+  // to /geo, regardless of subscription status — but Onboarding.tsx
+  // creates that row as early as step 3, well before payment, so a user
+  // who authenticated again mid-signup (e.g. a Google token refresh while
+  // still on the onboarding pages) landed straight on the dashboard with
+  // no payment and onboarding never finished. Onboarding.tsx itself
+  // already gets this right (only jumps to /geo when subscribed/trial,
+  // otherwise resumes onboarding with the existing project prefilled) —
+  // match that here instead of re-deciding it differently.
   useEffect(() => {
-    if (isResetPassword || !user) return;
+    if (isResetPassword || !user || subLoading) return;
 
     const checkUserAndRedirect = async () => {
       const { data: existingProjects, error } = await supabase
@@ -110,7 +121,7 @@ export default function Auth() {
       localStorage.removeItem("onboarding_data");
       localStorage.removeItem("onboarding_email");
 
-      if (existingProjects && existingProjects.length > 0) {
+      if (existingProjects && existingProjects.length > 0 && (subscribed || trial)) {
         navigate(checkoutSuccess ? "/geo?subscription=success" : "/geo", { replace: true });
       } else {
         navigate("/onboarding", { replace: true });
@@ -118,7 +129,7 @@ export default function Auth() {
     };
 
     checkUserAndRedirect();
-  }, [user, navigate, isResetPassword, checkoutSuccess]);
+  }, [user, navigate, isResetPassword, checkoutSuccess, subscribed, trial, subLoading]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
