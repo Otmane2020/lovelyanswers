@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -98,6 +99,7 @@ export default function RootLayout({
         </noscript>
 
         <Providers>{children}</Providers>
+        <Analytics />
 
         {/* Google Tag Manager */}
         <Script id="gtm" strategy="afterInteractive">
