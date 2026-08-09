@@ -48,6 +48,7 @@ serve(async (req) => {
     console.log("[CREATE-CHECKOUT] Plan:", plan, "Price ID:", priceId, "Guest:", isGuest);
 
     let userEmail: string | null = null;
+    let userId: string | null = null;
 
     // Try to get authenticated user first
     const authHeader = req.headers.get("Authorization");
@@ -56,6 +57,7 @@ serve(async (req) => {
       const { data } = await supabaseClient.auth.getUser(token);
       if (data.user?.email) {
         userEmail = data.user.email;
+        userId = data.user.id;
         console.log("[CREATE-CHECKOUT] Authenticated user:", userEmail);
       }
     }
@@ -75,12 +77,32 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if customer already exists
-    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      console.log("[CREATE-CHECKOUT] Existing customer found:", customerId);
+    // Only reuse a customer verifiably owned by THIS Supabase account — an
+    // email match alone isn't enough. Two Supabase accounts can share an
+    // email (e.g. an old/deleted account whose Stripe customer still
+    // exists), and blindly reusing whichever customer that email returns
+    // attaches this checkout to a stranger's billing history/subscription
+    // instead of this user's own. Guest checkout has no Supabase user yet
+    // to verify against, so it still matches by email only — expected,
+    // since there's no account to disambiguate against at that point.
+    let customerId: string | undefined;
+    if (userId) {
+      const customers = await stripe.customers.list({ email: userEmail, limit: 10 });
+      const owned = customers.data.find((c) => c.metadata?.supabase_user_id === userId);
+      if (owned) {
+        customerId = owned.id;
+        console.log("[CREATE-CHECKOUT] Existing owned customer found:", customerId);
+      } else {
+        const created = await stripe.customers.create({ email: userEmail, metadata: { supabase_user_id: userId } });
+        customerId = created.id;
+        console.log("[CREATE-CHECKOUT] Created new tagged customer:", customerId);
+      }
+    } else {
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        console.log("[CREATE-CHECKOUT] Existing guest customer found:", customerId);
+      }
     }
 
     const origin = req.headers.get("origin") || "https://autopilotgeo.com";

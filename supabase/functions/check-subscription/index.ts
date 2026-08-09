@@ -146,11 +146,20 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Matching by email alone and trusting whichever customer comes back
+    // first used to let one Supabase account inherit ANOTHER account's
+    // subscription just because they happen to share an email (e.g. an
+    // old/deleted account's Stripe customer still exists with an active
+    // sub) — a real cross-account billing leak. Only trust a customer
+    // that create-checkout/create-subscription-intent actually tagged as
+    // belonging to THIS user; an email match with no matching tag, or
+    // tagged for a different user, is not this account's subscription.
+    const customers = await stripe.customers.list({ email: user.email, limit: 10 });
+    const customerId = customers.data.find((c) => c.metadata?.supabase_user_id === user.id)?.id;
 
-    if (customers.data.length === 0) {
-      logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ 
+    if (!customerId) {
+      logStep("No Stripe customer owned by this user", { emailMatches: customers.data.length });
+      return new Response(JSON.stringify({
         subscribed: false,
         trial: false,
         product_id: null,
@@ -161,7 +170,6 @@ serve(async (req) => {
       });
     }
 
-    const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
     // Check for active or trialing subscriptions
